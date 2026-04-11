@@ -233,6 +233,8 @@ function App() {
   const [nextWeekResetAtMs, setNextWeekResetAtMs] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
   const [quests, setQuests] = useState([]);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [dataLoadError, setDataLoadError] = useState("");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showRerollConfirm, setShowRerollConfirm] = useState(false);
   const [showFreezeSuccess, setShowFreezeSuccess] = useState(false);
@@ -355,13 +357,18 @@ function App() {
   useEffect(() => {
     if (!authUser) {
       setLeaderboard([]);
+      setDataLoadError("");
+      setDataLoading(false);
       return;
     }
     const profileName = localStorage.getItem(characterNameKey(authUser.uid)) || authUser.displayName || "Warrior";
     const profilePortrait = localStorage.getItem(portraitKey(authUser.uid)) || "";
+    setDataLoading(true);
+    setDataLoadError("");
     upsertProfile(authUser.uid, profileName, profilePortrait)
       .then(() => Promise.all([fetchGameState(authUser.uid), fetchLeaderboard(), fetchAllQuests()]))
       .then(([gameStateResponse, { users }, allQuestsResponse]) => {
+        setDataLoading(false);
         applyServerTimeSync(gameStateResponse);
         const nextQuests = Array.isArray(gameStateResponse?.quests) ? gameStateResponse.quests.map(normalizeLocalizedQuest) : [];
         setQuests(nextQuests);
@@ -388,7 +395,10 @@ function App() {
         }
         setLeaderboard(users || []);
       })
-      .catch(() => {});
+      .catch((err) => {
+        setDataLoading(false);
+        setDataLoadError(err?.message || "Не удалось загрузить данные. Сервер просыпается (~1 мин). Нажмите «Повторить».");
+      });
   }, [authUser, characterName, languageId]);
 
   useEffect(() => {
