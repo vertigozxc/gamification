@@ -388,6 +388,7 @@ app.get("/api/game-state/:username", async (req, res) => {
     streakFreezeActive,
     preferredQuestIds,
     needsOnboarding,
+    allQuests: needsOnboarding ? getQuestPool() : [],
     productivity,
     ...buildServerTimeMeta(now)
   });
