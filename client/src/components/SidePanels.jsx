@@ -1,7 +1,7 @@
 import PropTypes from "prop-types";
 import { useTheme } from "../ThemeContext";
 
-function SidePanels({ leaderboard, authUser, logs }) {
+function SidePanels({ leaderboard, authUser }) {
   const { t } = useTheme();
   return (
     <div className="flex flex-col gap-4">
@@ -52,22 +52,7 @@ function SidePanels({ leaderboard, authUser, logs }) {
           })}
         </div>
       </div>
-      <div className="rounded-2xl overflow-hidden shadow-2xl flex flex-col" style={{ flex: "3", background: "var(--log-bg)", border: "2px solid var(--log-border)" }}>
-        <div className="px-6 py-4 flex items-center justify-between flex-shrink-0" style={{ borderBottom: "2px solid var(--log-header-border)" }}>
-          <h2 className="cinzel text-lg text-transparent bg-clip-text tracking-[0.18em] uppercase font-bold" style={{ backgroundImage: "var(--heading-gradient)" }}>{t.logSection}</h2>
-          <p className="text-[11px] uppercase tracking-widest text-slate-400">{t.logSub}</p>
-        </div>
-        <div className="px-4 py-3 overflow-y-auto flex flex-col gap-2" style={{ maxHeight: "320px" }} id="log-container">
-          {logs.length === 0 ? (
-            <p className="cinzel text-slate-500 italic text-sm px-3 py-2">{t.logEmpty}</p>
-          ) : [...logs].reverse().map((log, idx) => (
-            <div key={`${log.timestamp}-${idx}`} className="flex-shrink-0 rounded-xl border p-3 shadow-lg" style={{ borderColor: "var(--log-header-border)", background: "var(--card-bg)" }}>
-              <span className="text-slate-500 text-[10px] block mb-1 font-mono">[{log.timestamp}]</span>
-              <p className={`text-sm leading-relaxed ${log.classes}`}>» {log.msg}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+
     </div>
   );
 }
@@ -89,7 +74,7 @@ SidePanels.propTypes = {
     msg: PropTypes.string.isRequired,
     classes: PropTypes.string,
     timestamp: PropTypes.string.isRequired
-  })).isRequired
+  }))
 };
 
 export default SidePanels;
