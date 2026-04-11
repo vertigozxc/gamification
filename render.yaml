@@ -3,9 +3,9 @@ services:
     name: life-rpg-api
     runtime: node
     rootDir: server
-    plan: free
-    buildCommand: npm install; npm run prisma:generate; npm run prisma:deploy
-    startCommand: npm run start
+    plan: starter
+    buildCommand: npm install; npm run prisma:generate
+    startCommand: npm run prisma:deploy; npm run start
     healthCheckPath: /healthz
     envVars:
       - key: NODE_VERSION
@@ -13,9 +13,13 @@ services:
       - key: PORT
         value: 4000
       - key: DATABASE_URL
-        value: file:/tmp/dev.db
+        value: file:/var/data/dev.db
       - key: CLIENT_ORIGIN
         value: https://life-rpg-client.onrender.com
+    disk:
+      name: life-rpg-sqlite
+      mountPath: /var/data
+      sizeGB: 1
 
   - type: web
     runtime: static

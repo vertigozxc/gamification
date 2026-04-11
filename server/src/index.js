@@ -55,10 +55,11 @@ function parsePreferredQuestIds(rawValue) {
   if (!rawValue) {
     return [];
   }
+  const validQuestIds = new Set(getQuestPool().map((quest) => quest.id));
   return [...new Set(String(rawValue)
     .split(",")
     .map((item) => Number(item.trim()))
-    .filter((item) => Number.isInteger(item) && item > 0))];
+    .filter((item) => Number.isInteger(item) && item > 0 && validQuestIds.has(item)))];
 }
 
 function serializePreferredQuestIds(questIds) {
