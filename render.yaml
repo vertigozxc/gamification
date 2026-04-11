@@ -13,13 +13,9 @@ services:
       - key: PORT
         value: 4000
       - key: DATABASE_URL
-        value: file:/var/data/dev.db
+        value: file:/tmp/dev.db
       - key: CLIENT_ORIGIN
         value: https://life-rpg-client.onrender.com
-    disk:
-      name: life-rpg-sqlite
-      mountPath: /var/data
-      sizeGB: 1
 
   - type: web
     runtime: static
