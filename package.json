@@ -1,0 +1,21 @@
+{
+  "name": "life-rpg-online",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install",
+    "install:mobile": "npm --prefix mobile install",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "dev:client:lan": "npm --prefix client run dev -- --host 0.0.0.0 --port 5173",
+    "dev:mobile": "npm --prefix mobile run start",
+    "dev:ios": "npm --prefix mobile run ios",
+    "dev:ios:full": "concurrently \"npm run dev:server\" \"npm run dev:client:lan\" \"npm run dev:mobile\"",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "build": "npm --prefix client run build",
+    "start": "npm --prefix server run start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

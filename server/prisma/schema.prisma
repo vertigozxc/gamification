@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String          @id @default(cuid())
+  username         String          @unique
+  displayName      String
+  photoUrl         String          @default("")
+  preferredQuestIds String         @default("")
+  level            Int             @default(1)
+  xp               Int             @default(0)
+  xpNext           Int             @default(300)
+  strPoints        Int             @default(0)
+  intPoints        Int             @default(0)
+  staPoints        Int             @default(0)
+  streak                 Int             @default(0)
+  tokens                 Int             @default(0)
+  currentPI              Float?
+  currentTier            String          @default("IRON")
+  weeksInCurrentTier     Int             @default(0)
+  rankLevel              Int             @default(1)
+  lastTierWeekKey        String          @default("")
+  lastStreakIncreaseAt   DateTime?
+  streakFreezeExpiresAt  DateTime?
+  lastFreeTaskRerollAt   DateTime?
+  lastDailyResetAt       DateTime        @default(now())
+  createdAt              DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  completions      QuestCompletion[]
+  dailyScores      DailyScore[]
+  invitesSent      Invite[]        @relation("invitesSent")
+  invitesReceived  Invite[]        @relation("invitesReceived")
+  friendshipsA     Friendship[]    @relation("friendA")
+  friendshipsB     Friendship[]    @relation("friendB")
+}
+
+model DailyScore {
+  id                 String   @id @default(cuid())
+  userId             String
+  dayKey             String
+  xpToday            Int      @default(0)
+  tasksCompleted     Int      @default(0)
+  baseTasksCompleted Int      @default(0)
+  score              Float    @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dayKey])
+  @@index([userId, dayKey])
+}
+
+model QuestCompletion {
+  id          String   @id @default(cuid())
+  userId      String
+  questId     Int
+  dayKey      String
+  completedAt DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questId, dayKey])
+  @@index([userId, completedAt])
+}
+
+model Invite {
+  id             String    @id @default(cuid())
+  code           String    @unique
+  inviterId      String
+  invitedUserId  String?
+  status         String    @default("PENDING")
+  createdAt      DateTime  @default(now())
+  acceptedAt     DateTime?
+  inviter        User      @relation("invitesSent", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitedUser    User?     @relation("invitesReceived", fields: [invitedUserId], references: [id])
+
+  @@index([inviterId])
+}
+
+model Friendship {
+  id        String   @id @default(cuid())
+  userAId   String
+  userBId   String
+  createdAt DateTime @default(now())
+  userA     User     @relation("friendA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB     User     @relation("friendB", fields: [userBId], references: [id], onDelete: Cascade)
+
+  @@unique([userAId, userBId])
+  @@index([userAId])
+  @@index([userBId])
+}
+
+model QuestFeedback {
+  id           String   @id @default(cuid())
+  userId       String
+  questId      String
+  questionType String   @default("How useful was this task?")
+  rating       Int      @default(0)
+  textNotes    String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId, questId])
+}

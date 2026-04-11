@@ -1,0 +1,4 @@
+﻿<div className="flex justify-between w-full items-center mt-2">
+  {!isDone && <span className="text-xs cinzel text-slate-300">{t.pinnedHint}</span>}
+  {!isDone && <button className="text-xs px-2 py-1 bg-slate-800 rounded border border-slate-600 hover:bg-slate-700 text-slate-300" onClick={(e) => { e.stopPropagation(); onRerollPinned(quest.id); }}>⟳ Reroll</button>}
+</div>
