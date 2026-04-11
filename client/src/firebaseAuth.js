@@ -8,10 +8,30 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const googleProvider = new GoogleAuthProvider();
+const requiredKeys = [
+  "VITE_FIREBASE_API_KEY",
+  "VITE_FIREBASE_AUTH_DOMAIN",
+  "VITE_FIREBASE_PROJECT_ID",
+  "VITE_FIREBASE_APP_ID"
+];
 
-googleProvider.setCustomParameters({ prompt: "select_account" });
+const missingKeys = requiredKeys.filter((key) => !import.meta.env[key]);
 
-export { auth, googleProvider };
+let auth = null;
+let googleProvider = null;
+let firebaseInitError = "";
+
+if (missingKeys.length > 0) {
+  firebaseInitError = `Missing Firebase env vars: ${missingKeys.join(", ")}.`;
+} else {
+  try {
+    const app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    googleProvider = new GoogleAuthProvider();
+    googleProvider.setCustomParameters({ prompt: "select_account" });
+  } catch (error) {
+    firebaseInitError = error?.message || "Firebase initialization failed.";
+  }
+}
+
+export { auth, googleProvider, firebaseInitError };

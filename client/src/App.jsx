@@ -1,5 +1,5 @@
 ﻿import { useEffect, useRef, useState } from "react";
-import { auth, googleProvider } from "./firebaseAuth";
+import { auth, googleProvider, firebaseInitError } from "./firebaseAuth";
 import {
   upsertProfile,
   syncState as syncStateToServer,
@@ -192,7 +192,7 @@ function App() {
     setAuthError,
     handleGoogleLogin,
     handleLogout
-  } = useAuthSession({ auth, googleProvider });
+  } = useAuthSession({ auth, googleProvider, firebaseInitError });
   const {
     t,
     tf,

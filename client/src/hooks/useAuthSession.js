@@ -41,12 +41,20 @@ function toReadableAuthError(error) {
   return message;
 }
 
-function useAuthSession({ auth, googleProvider }) {
+function useAuthSession({ auth, googleProvider, firebaseInitError = "" }) {
   const [authUser, setAuthUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState("");
 
   useEffect(() => {
+    if (!auth) {
+      setAuthLoading(false);
+      if (firebaseInitError) {
+        setAuthError(firebaseInitError);
+      }
+      return undefined;
+    }
+
     const unsub = onAuthStateChanged(auth, (user) => {
       setAuthUser(user);
       setAuthLoading(false);
@@ -61,6 +69,11 @@ function useAuthSession({ auth, googleProvider }) {
   }, [auth]);
 
   async function handleGoogleLogin() {
+    if (!auth || !googleProvider) {
+      setAuthError(firebaseInitError || "Google sign-in is not configured yet.");
+      return;
+    }
+
     try {
       setAuthError("");
 
@@ -81,6 +94,11 @@ function useAuthSession({ auth, googleProvider }) {
   }
 
   async function handleLogout(onSuccess) {
+    if (!auth) {
+      setAuthError(firebaseInitError || "Logout is unavailable until Firebase is configured.");
+      return;
+    }
+
     try {
       await signOut(auth);
       if (typeof onSuccess === "function") {
