@@ -69,6 +69,20 @@ function normalizeQuest(quest, translateQuest, translateCategory) {
   };
 }
 
+function normalizePinnedQuestProgress(items) {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items
+    .map((item) => ({
+      questId: Number(item?.questId),
+      daysCompleted: Math.max(0, Number(item?.daysCompleted) || 0),
+      totalDays: Math.max(1, Number(item?.totalDays) || 21)
+    }))
+    .filter((item) => Number.isInteger(item.questId) && item.questId > 0);
+}
+
 function getTimestamp() {
   const now = new Date();
   const hours = String(now.getHours()).padStart(2, "0");
@@ -95,6 +109,7 @@ function createDefaultState() {
       lastFreeTaskRerollAt: null
     },
     preferredQuestIds: [],
+    pinnedQuestProgress21d: [],
     productivity: {
       xpToday: 0,
       tasksCompletedToday: 0,
@@ -134,6 +149,7 @@ function normalizeState(rawState) {
   state.preferredQuestIds = Array.isArray(rawState.preferredQuestIds)
     ? rawState.preferredQuestIds.filter((id) => Number.isInteger(id))
     : [];
+  state.pinnedQuestProgress21d = normalizePinnedQuestProgress(rawState.pinnedQuestProgress21d);
   state.productivity = {
     ...state.productivity,
     ...(rawState.productivity && typeof rawState.productivity === "object" ? rawState.productivity : {})
@@ -215,7 +231,10 @@ function App() {
 
   const handleQuestCompleteWrapper = (quest, event) => {
     completeQuest(quest, event);
-    setFeedbackTask(quest);
+    const isPinnedQuest = Array.isArray(state.preferredQuestIds) && state.preferredQuestIds.includes(quest.id);
+    if (!isPinnedQuest) {
+      setFeedbackTask(quest);
+    }
   };
 
   const handleFeedbackSubmit = (feedbackData) => {
@@ -390,6 +409,7 @@ function App() {
               lastFreeTaskRerollAt: userData.lastFreeTaskRerollAt ?? null
             },
             productivity: gameStateResponse?.productivity ?? prev.productivity,
+            pinnedQuestProgress21d: normalizePinnedQuestProgress(gameStateResponse?.pinnedQuestProgress21d),
             preferredQuestIds
           }));
         }
@@ -434,6 +454,7 @@ function App() {
             lastFreeTaskRerollAt: userData.lastFreeTaskRerollAt ?? null
           },
           productivity: gameStateResponse?.productivity ?? prev.productivity,
+          pinnedQuestProgress21d: normalizePinnedQuestProgress(gameStateResponse?.pinnedQuestProgress21d),
           lastReset: Date.now(),
           hasRerolledToday: false,
           extraRerollsToday: 0,
@@ -522,8 +543,12 @@ function App() {
   ];
   const pinnedQuests = quests.slice(0, 4);
   const otherQuests = quests.slice(4);
+  const pinnedQuestProgressById = Object.fromEntries(
+    normalizePinnedQuestProgress(state.pinnedQuestProgress21d).map((item) => [item.questId, item])
+  );
   const allRandomCompleted = otherQuests.length > 0 && otherQuests.every(q => state.completed.includes(q.id));
   const canReroll = (!state.hasRerolledToday || state.extraRerollsToday > 0) && completedToday < 8 && !allRandomCompleted;
+  const languageShortLabel = languageId === "ru" ? "RU" : "EN";
   const isFreePinnedReroll = !state.user?.lastFreeTaskRerollAt || (Date.now() - new Date(state.user.lastFreeTaskRerollAt).getTime() >= 30 * 24 * 60 * 60 * 1000);
   let daysUntilFreePinnedReroll = 0;
   if (!isFreePinnedReroll) {
@@ -897,17 +922,17 @@ function App() {
 
         <header className="flex flex-col items-center gap-3 py-3 mb-4">
           <div className="w-full flex items-center justify-end gap-2 user-auth-widget flex-wrap">
-            <div className="flex items-center gap-1" style={{ border: "1px solid var(--panel-border)", borderRadius: "999px", padding: "2px 4px" }}>
+            <div className="flex items-center gap-1">
               <div className="theme-selector" style={{ position: "relative" }}>
                 <button className="theme-picker-trigger" onClick={() => setShowThemePicker(true)}>
-                  <span>{themes[themeId].icon}</span> {getThemeMeta(themeId).label}
-                  <span className="ml-1 text-xs opacity-60">v</span>
+                  <span>{themes[themeId].icon}</span> {t.chooseThemeButtonLabel}
+                  <span className="ml-1 text-xs opacity-60">▾</span>
                 </button>
               </div>
               <div className="theme-selector" style={{ position: "relative" }}>
                 <button className="theme-picker-trigger" onClick={() => setShowLanguagePicker(true)}>
-                  <span>🌐</span> {getLanguageMeta(languageId).nativeLabel}
-                  <span className="ml-1 text-xs opacity-60">v</span>
+                  <span>🌐</span> {languageShortLabel}
+                  <span className="ml-1 text-xs opacity-60">▾</span>
                 </button>
               </div>
             </div>
@@ -944,34 +969,6 @@ function App() {
               <div className="h-px flex-1 opacity-60" style={{ background: `linear-gradient(to left, transparent, var(--color-primary))` }} />
             </div>
           </div>
-          <div className="w-full flex justify-center mt-2 gap-2 flex-wrap">
-            <button
-              onClick={() => setState(prev => ({ ...prev, lvl: prev.lvl + 1, xpNext: Math.floor(prev.xpNext * 1.1) }))}
-              className="text-xs px-3 py-1 rounded-full border border-yellow-500 bg-yellow-900/30 text-yellow-500 hover:bg-yellow-500 hover:text-black transition-colors font-bold"
-              title={t.cheatLevelUp}
-            >
-              +1 {t.levelLabel}
-            </button>
-            <button
-              onClick={handleResetDaily}
-              className="text-xs px-3 py-1 rounded-full border border-yellow-700 bg-yellow-900/30 text-yellow-600 hover:bg-yellow-700 hover:text-white transition-colors font-bold"
-            >
-              {t.resetDaily}
-            </button>
-            <button
-              onClick={handleHardReset}
-              className="text-xs px-3 py-1 rounded-full border border-red-600 bg-red-900/30 text-red-500 hover:bg-red-600 hover:text-white transition-colors font-bold"
-            >
-              {t.resetProgress}
-            </button>
-
-            <button
-              onClick={() => setShowAnalyticsPage(true)}
-              className="text-xs px-3 py-1 rounded-full border border-blue-600 bg-blue-900/30 text-blue-400 hover:bg-blue-600 hover:text-white transition-colors font-bold uppercase tracking-wider"
-            >
-              {t.analyticsButton} 📈
-            </button>
-          </div>
         </header>
 
         {showCity && (
@@ -1005,7 +1002,7 @@ function App() {
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <QuestBoard pinnedQuests={pinnedQuests} otherQuests={otherQuests} canRerollRandom={canReroll} onRerollRandom={() => handleReroll(completedToday, canReroll)} rerollButtonLabel={completedToday >= 8 || allRandomCompleted ? t.rerollComplete : state.hasRerolledToday && state.extraRerollsToday === 0 ? t.rerollDone : t.rerollButton} rerollButtonTitle={allRandomCompleted ? t.allRandomTasksDone : state.hasRerolledToday && state.extraRerollsToday === 0 ? t.alreadyUsedToday : completedToday >= 8 ? t.allDoneUnavailable : t.oncePerDay} completedIds={state.completed} questRenderCount={questRenderCountRef.current} onCompleteQuest={handleQuestCompleteWrapper} resetTimer={resetTimer} streakFreezeActive={state.streakFreezeActive} onOpenNotes={handleOpenNotes} />
+          <QuestBoard pinnedQuests={pinnedQuests} otherQuests={otherQuests} pinnedQuestProgressById={pinnedQuestProgressById} canRerollRandom={canReroll} onRerollRandom={() => handleReroll(completedToday, canReroll)} rerollButtonLabel={completedToday >= 8 || allRandomCompleted ? t.rerollComplete : state.hasRerolledToday && state.extraRerollsToday === 0 ? t.rerollDone : t.rerollButton} rerollButtonTitle={allRandomCompleted ? t.allRandomTasksDone : state.hasRerolledToday && state.extraRerollsToday === 0 ? t.alreadyUsedToday : completedToday >= 8 ? t.allDoneUnavailable : t.oncePerDay} completedIds={state.completed} questRenderCount={questRenderCountRef.current} onCompleteQuest={handleQuestCompleteWrapper} resetTimer={resetTimer} streakFreezeActive={state.streakFreezeActive} onOpenNotes={handleOpenNotes} />
 
           <SidePanels leaderboard={leaderboard} authUser={authUser} logs={state.logs} />
         </div>
@@ -1022,6 +1019,39 @@ function App() {
           onFreezeStreak={handleFreezeStreak}
           onBuyExtraReroll={handleBuyExtraReroll}
         />
+
+        <footer className="mt-8 rounded-2xl border p-4" style={{ borderColor: "var(--panel-border)", background: "var(--panel-bg)" }}>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <p className="cinzel text-sm font-bold tracking-[0.2em]" style={{ color: "var(--color-primary)" }}>АДМИН</p>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setState((prev) => ({ ...prev, lvl: prev.lvl + 1, xpNext: Math.floor(prev.xpNext * 1.1) }))}
+                className="text-xs px-3 py-1 rounded-full border border-yellow-500 bg-yellow-900/30 text-yellow-500 hover:bg-yellow-500 hover:text-black transition-colors font-bold"
+                title={t.cheatLevelUp}
+              >
+                +1 {t.levelLabel}
+              </button>
+              <button
+                onClick={handleResetDaily}
+                className="text-xs px-3 py-1 rounded-full border border-yellow-700 bg-yellow-900/30 text-yellow-600 hover:bg-yellow-700 hover:text-white transition-colors font-bold"
+              >
+                {t.resetDaily}
+              </button>
+              <button
+                onClick={handleHardReset}
+                className="text-xs px-3 py-1 rounded-full border border-red-600 bg-red-900/30 text-red-500 hover:bg-red-600 hover:text-white transition-colors font-bold"
+              >
+                {t.resetProgress}
+              </button>
+              <button
+                onClick={() => setShowAnalyticsPage(true)}
+                className="text-xs px-3 py-1 rounded-full border border-blue-600 bg-blue-900/30 text-blue-400 hover:bg-blue-600 hover:text-white transition-colors font-bold uppercase tracking-wider"
+              >
+                {t.analyticsButton} 📈
+              </button>
+            </div>
+          </div>
+        </footer>
       </div>
       )}
     </>

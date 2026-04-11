@@ -26,6 +26,20 @@ function useGameplayActions({
 }) {
   const [floatingTexts, setFloatingTexts] = useState([]);
 
+  function normalizePinnedQuestProgress(items) {
+    if (!Array.isArray(items)) {
+      return [];
+    }
+
+    return items
+      .map((item) => ({
+        questId: Number(item?.questId),
+        daysCompleted: Math.max(0, Number(item?.daysCompleted) || 0),
+        totalDays: Math.max(1, Number(item?.totalDays) || 21)
+      }))
+      .filter((item) => Number.isInteger(item.questId) && item.questId > 0);
+  }
+
   function mergeRerolledQuestsInPlace(currentQuests, rerolledQuests, completedQuestIds) {
     if (!Array.isArray(currentQuests) || currentQuests.length === 0) {
       return Array.isArray(rerolledQuests) ? rerolledQuests : [];
@@ -112,6 +126,7 @@ function useGameplayActions({
       streak: response.streak,
       tokens: gameState.tokens,
       productivity: response?.productivity ?? state.productivity,
+      pinnedQuestProgress21d: normalizePinnedQuestProgress(response?.pinnedQuestProgress21d),
       completed: [...state.completed, quest.id],
       logs: [...state.logs]
     };
@@ -215,6 +230,9 @@ function useGameplayActions({
         ...prev,
         completed: nextCompleted,
         productivity: result?.productivity ?? prev.productivity,
+        pinnedQuestProgress21d: Array.isArray(result?.pinnedQuestProgress21d)
+          ? normalizePinnedQuestProgress(result?.pinnedQuestProgress21d)
+          : prev.pinnedQuestProgress21d,
         hasRerolledToday: true,
         extraRerollsToday: prev.hasRerolledToday && prev.extraRerollsToday > 0 ? prev.extraRerollsToday - 1 : prev.extraRerollsToday,
         lastReset: Date.now(),
@@ -246,6 +264,9 @@ function useGameplayActions({
         ...prev,
         completed: [],
         productivity: result?.productivity ?? prev.productivity,
+        pinnedQuestProgress21d: Array.isArray(result?.pinnedQuestProgress21d)
+          ? normalizePinnedQuestProgress(result?.pinnedQuestProgress21d)
+          : prev.pinnedQuestProgress21d,
         hasRerolledToday: false,
         extraRerollsToday: 0,
         lastReset: Date.now(),
@@ -305,7 +326,8 @@ function useGameplayActions({
         hasRerolledToday: false,
         streakFreezeActive: false,
         extraRerollsToday: 0,
-        preferredQuestIds: Array.isArray(result?.preferredQuestIds) ? result.preferredQuestIds : prev.preferredQuestIds
+        preferredQuestIds: Array.isArray(result?.preferredQuestIds) ? result.preferredQuestIds : prev.preferredQuestIds,
+        pinnedQuestProgress21d: normalizePinnedQuestProgress(result?.pinnedQuestProgress21d)
       }));
       questRenderCountRef.current = 0;
     } catch {
@@ -332,6 +354,7 @@ function useGameplayActions({
         ...prev,
         tokens: result.tokens,
         preferredQuestIds: result.preferredQuestIds,
+        pinnedQuestProgress21d: normalizePinnedQuestProgress(result?.pinnedQuestProgress21d),
         completed: result.completedQuestIds || prev.completed,
         user: {
           ...prev.user,

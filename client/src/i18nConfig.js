@@ -5,6 +5,7 @@ export const languagePacks = {
     nativeLabel: "English",
     ui: {
       languageLabel: "Language",
+      chooseThemeButtonLabel: "Theme",
       chooseLanguageTitle: "Choose Language",
       chooseThemeTitle: "Choose Theme",
       doubleClickEditName: "Double-click to edit name",
@@ -142,6 +143,7 @@ export const languagePacks = {
     nativeLabel: "Русский",
     ui: {
       languageLabel: "Язык",
+      chooseThemeButtonLabel: "Стиль",
       chooseLanguageTitle: "Выбор языка",
       chooseThemeTitle: "Выбор темы",
       loginTitle: "Войти в мир",

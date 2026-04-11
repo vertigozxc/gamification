@@ -192,6 +192,64 @@ function buildServerTimeMeta(now = new Date()) {
   };
 }
 
+function buildRecentDayKeys(totalDays, endDate = new Date()) {
+  const safeTotal = Number.isInteger(totalDays) && totalDays > 0 ? totalDays : 1;
+  const keys = [];
+  for (let dayOffset = 0; dayOffset < safeTotal; dayOffset += 1) {
+    const date = new Date(endDate);
+    date.setUTCDate(date.getUTCDate() - dayOffset);
+    keys.push(getDateKey(date));
+  }
+  return keys;
+}
+
+async function getPinnedQuestProgress21d(user, preferredQuestIds, now = new Date()) {
+  const pinnedIds = Array.isArray(preferredQuestIds)
+    ? preferredQuestIds.filter((id) => Number.isInteger(id))
+    : [];
+
+  if (pinnedIds.length === 0) {
+    return [];
+  }
+
+  const dayKeys = buildRecentDayKeys(21, now);
+  const completions = await prisma.questCompletion.findMany({
+    where: {
+      userId: user.id,
+      questId: { in: pinnedIds },
+      dayKey: { in: dayKeys }
+    },
+    select: { questId: true, dayKey: true }
+  });
+
+  const uniqueDaysByQuestId = new Map();
+  for (const completion of completions) {
+    const questId = Number(completion.questId);
+    if (!uniqueDaysByQuestId.has(questId)) {
+      uniqueDaysByQuestId.set(questId, new Set());
+    }
+    uniqueDaysByQuestId.get(questId).add(completion.dayKey);
+  }
+
+  return pinnedIds.map((questId) => {
+    const completedDays = uniqueDaysByQuestId.get(questId) || new Set();
+    let consecutiveDays = 0;
+
+    for (const dayKey of dayKeys) {
+      if (!completedDays.has(dayKey)) {
+        break;
+      }
+      consecutiveDays += 1;
+    }
+
+    return {
+      questId,
+      daysCompleted: consecutiveDays,
+      totalDays: 21
+    };
+  });
+}
+
 async function computeTodayProgress(user, date = new Date()) {
   const dayKey = getDateKey(date);
   const completions = await prisma.questCompletion.findMany({
@@ -378,6 +436,7 @@ app.get("/api/game-state/:username", async (req, res) => {
     ? getDateKey(new Date(user.streakFreezeExpiresAt)) >= todayKey
     : false;
   const { preferredQuestIds, needsOnboarding } = onboardingStatus(user);
+  const pinnedQuestProgress21d = await getPinnedQuestProgress21d(user, preferredQuestIds, now);
   const { productivity } = await updateAndReadProductivity(user, now, { updateTierState: false });
 
   res.json({
@@ -388,6 +447,7 @@ app.get("/api/game-state/:username", async (req, res) => {
     quests: composeDailyQuests(user, completions.map((item) => item.questId)),
     streakFreezeActive,
     preferredQuestIds,
+    pinnedQuestProgress21d,
     needsOnboarding,
     allQuests: needsOnboarding ? getQuestPool() : [],
     productivity,
@@ -448,6 +508,7 @@ app.post("/api/onboarding/complete", async (req, res) => {
     const streakFreezeActive = updatedUser.streakFreezeExpiresAt
       ? getDateKey(new Date(updatedUser.streakFreezeExpiresAt)) >= todayKey
       : false;
+    const pinnedQuestProgress21d = await getPinnedQuestProgress21d(updatedUser, uniquePreferredQuestIds, now);
     const { productivity } = await updateAndReadProductivity(updatedUser, now, { updateTierState: false });
 
     res.json({
@@ -458,6 +519,7 @@ app.post("/api/onboarding/complete", async (req, res) => {
       quests: composeDailyQuests(updatedUser, completions.map((item) => item.questId)),
       streakFreezeActive,
       preferredQuestIds: uniquePreferredQuestIds,
+      pinnedQuestProgress21d,
       needsOnboarding: false,
       productivity,
       ...buildServerTimeMeta(now)
@@ -790,6 +852,7 @@ app.post("/api/quests/reroll-pinned", async (req, res) => {
       tokens: updatedUser.tokens,
       lastFreeTaskRerollAt: updatedUser.lastFreeTaskRerollAt,
       preferredQuestIds: rerolledPreferredQuestIds,
+      pinnedQuestProgress21d: await getPinnedQuestProgress21d(updatedUser, rerolledPreferredQuestIds, now),
       completedQuestIds,
       quests
     });
@@ -1051,6 +1114,7 @@ app.post("/api/shop/replace-pinned-quests", async (req, res) => {
       tokens: updatedUser.tokens,
       lastFreeTaskRerollAt: updatedUser.lastFreeTaskRerollAt,
       preferredQuestIds: uniquePreferredQuestIds,
+      pinnedQuestProgress21d: await getPinnedQuestProgress21d(updatedUser, uniquePreferredQuestIds, now),
       quests: composeDailyQuests(updatedUser, completions.map((item) => item.questId)),
       completedQuestIds: completions.map((item) => item.questId)
     });
@@ -1103,6 +1167,7 @@ app.post("/api/reset-hard", async (req, res) => {
       completedQuestIds: [],
       quests: dailyQuestsForUser(updatedUser, now),
       preferredQuestIds: parsePreferredQuestIds(updatedUser.preferredQuestIds),
+      pinnedQuestProgress21d: [],
       ...buildServerTimeMeta(now)
     });
   } catch (error) {

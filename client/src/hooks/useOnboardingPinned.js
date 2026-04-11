@@ -61,6 +61,20 @@ function useOnboardingPinned({
     });
   }, [allQuestOptions, replacePinnedSearch]);
 
+  function normalizePinnedQuestProgress(items) {
+    if (!Array.isArray(items)) {
+      return [];
+    }
+
+    return items
+      .map((item) => ({
+        questId: Number(item?.questId),
+        daysCompleted: Math.max(0, Number(item?.daysCompleted) || 0),
+        totalDays: Math.max(1, Number(item?.totalDays) || 21)
+      }))
+      .filter((item) => Number.isInteger(item.questId) && item.questId > 0);
+  }
+
   function resetOnLogout() {
     setShowOnboarding(false);
     setShowPinnedReplaceModal(false);
@@ -155,6 +169,7 @@ function useOnboardingPinned({
         ...prev,
         tokens: result?.tokens ?? prev.tokens,
         preferredQuestIds: Array.isArray(result?.preferredQuestIds) ? result.preferredQuestIds : prev.preferredQuestIds,
+        pinnedQuestProgress21d: normalizePinnedQuestProgress(result?.pinnedQuestProgress21d),
         completed: Array.isArray(result?.completedQuestIds) ? result.completedQuestIds : prev.completed,
         user: {
           ...prev.user,
@@ -218,6 +233,7 @@ function useOnboardingPinned({
         },
         productivity: result?.productivity ?? prev.productivity,
         preferredQuestIds: Array.isArray(result?.preferredQuestIds) ? result.preferredQuestIds : prev.preferredQuestIds,
+        pinnedQuestProgress21d: normalizePinnedQuestProgress(result?.pinnedQuestProgress21d),
         logs: [
           ...prev.logs,
           {
