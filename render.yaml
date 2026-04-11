@@ -21,7 +21,8 @@ services:
       mountPath: /var/data
       sizeGB: 1
 
-  - type: static
+  - type: web
+    runtime: static
     name: life-rpg-client
     rootDir: client
     buildCommand: npm install; npm run build
