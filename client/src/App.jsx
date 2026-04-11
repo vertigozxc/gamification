@@ -944,12 +944,6 @@ function App() {
           </div>
           <div className="w-full flex justify-center mt-2 gap-2 flex-wrap">
             <button
-              onClick={() => setShowCity(!showCity)}
-              className="text-xs px-4 py-1 rounded-full border border-[var(--panel-border)] bg-[var(--card-bg)] text-[var(--color-primary)] hover:bg-[var(--color-primary-dim)] hover:text-white transition-colors"
-            >
-              {showCity ? t.hideCity : t.viewCity}
-            </button>
-            <button
               onClick={() => setState(prev => ({ ...prev, lvl: prev.lvl + 1, xpNext: Math.floor(prev.xpNext * 1.1) }))}
               className="text-xs px-3 py-1 rounded-full border border-yellow-500 bg-yellow-900/30 text-yellow-500 hover:bg-yellow-500 hover:text-black transition-colors font-bold"
               title={t.cheatLevelUp}
