@@ -895,39 +895,41 @@ function App() {
       <div className="max-w-7xl mx-auto game-shell relative py-2 px-4">
         <div className="rune-orb rune-orb-left" />
 
-        <header className="relative flex flex-col items-center gap-3 py-3 mb-4">
-          <div className="absolute right-0 top-0 flex items-center gap-2 user-auth-widget">
-            <div className="theme-selector mr-2" style={{ position: "relative" }}>
-              <button className="theme-picker-trigger" onClick={() => setShowThemePicker(true)}>
+        <header className="flex flex-col items-center gap-3 py-3 mb-4">
+          <div className="w-full flex items-center justify-end gap-2 user-auth-widget flex-wrap">
+            <div className="flex items-center gap-1" style={{ border: "1px solid var(--panel-border)", borderRadius: "999px", padding: "2px 4px" }}>
+              <div className="theme-selector" style={{ position: "relative" }}>
+                <button className="theme-picker-trigger" onClick={() => setShowThemePicker(true)}>
                   <span>{themes[themeId].icon}</span> {getThemeMeta(themeId).label}
                   <span className="ml-1 text-xs opacity-60">v</span>
                 </button>
               </div>
-              <div className="theme-selector mr-2" style={{ position: "relative" }}>
+              <div className="theme-selector" style={{ position: "relative" }}>
                 <button className="theme-picker-trigger" onClick={() => setShowLanguagePicker(true)}>
                   <span>🌐</span> {getLanguageMeta(languageId).nativeLabel}
                   <span className="ml-1 text-xs opacity-60">v</span>
                 </button>
               </div>
-              <input ref={portraitUploadRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePortraitUpload} />
-              <div 
-                className="flex items-center gap-2 bg-slate-900/70 rounded-full pl-1 pr-3 py-1 cursor-pointer hover:opacity-80 transition-colors"
-                style={{ color: "var(--color-text)", borderWidth: 1, borderStyle: "solid", borderColor: "var(--panel-border)" }}
-                onClick={() => portraitUploadRef.current?.click()}
-                title={t.changeAvatar}
-              >
-                <div className="w-6 h-6 rounded-full overflow-hidden bg-slate-800 flex items-center justify-center border" style={{ borderColor: "var(--panel-border)" }}>
-                  {portraitData ? (
-                    <img src={portraitData} alt="Avatar" className="w-full h-full object-cover" />
-                  ) : (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 opacity-60">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
-                  )}
-                </div>
-                <span className="text-xs font-semibold max-w-[100px] truncate">{characterName || authUser.displayName || authUser.email}</span>
+            </div>
+            <input ref={portraitUploadRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePortraitUpload} />
+            <div 
+              className="flex items-center gap-2 bg-slate-900/70 rounded-full pl-1 pr-3 py-1 cursor-pointer hover:opacity-80 transition-colors"
+              style={{ color: "var(--color-text)", borderWidth: 1, borderStyle: "solid", borderColor: "var(--panel-border)" }}
+              onClick={() => portraitUploadRef.current?.click()}
+              title={t.changeAvatar}
+            >
+              <div className="w-6 h-6 rounded-full overflow-hidden bg-slate-800 flex items-center justify-center border" style={{ borderColor: "var(--panel-border)" }}>
+                {portraitData ? (
+                  <img src={portraitData} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 opacity-60">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                )}
               </div>
+              <span className="text-xs font-semibold max-w-[100px] truncate">{characterName || authUser.displayName || authUser.email}</span>
+            </div>
             <button className="logout-btn" onClick={() => setShowLogoutConfirm(true)}>{t.logoutConfirm}</button>
           </div>
           <div className="w-full flex items-center justify-center gap-4">

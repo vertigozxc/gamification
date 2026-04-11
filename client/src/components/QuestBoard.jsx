@@ -30,7 +30,6 @@ function QuestBoard({
             </h2>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3 sm:justify-end mt-4">
-            <button className="btn-danger bg-cyan-700 hover:bg-cyan-600 text-xs px-3 py-2 rounded-lg cinzel transition font-bold" onClick={onOpenNotes}>{t.notesButton}</button>
           </div>
         </div>
 
