@@ -203,6 +203,49 @@ function buildRecentDayKeys(totalDays, endDate = new Date()) {
   return keys;
 }
 
+function dayKeyToUtcDate(dayKey) {
+  const [year, month, day] = String(dayKey).split("-").map(Number);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    return null;
+  }
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+function countConsecutiveDaysFromLatest(completedDayKeys) {
+  const daySet = completedDayKeys instanceof Set ? completedDayKeys : new Set();
+  if (daySet.size === 0) {
+    return 0;
+  }
+
+  const sortedKeys = [...daySet].sort();
+  const latestDayKey = sortedKeys[sortedKeys.length - 1];
+  const cursor = dayKeyToUtcDate(latestDayKey);
+  if (!cursor) {
+    return 0;
+  }
+
+  let streakCount = 0;
+  while (daySet.has(getDateKey(cursor))) {
+    streakCount += 1;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+
+  return streakCount;
+}
+
+async function getQuestConsecutiveDaysForUser(userId, questId) {
+  const completions = await prisma.questCompletion.findMany({
+    where: {
+      userId,
+      questId
+    },
+    select: { dayKey: true }
+  });
+
+  const daySet = new Set(completions.map((item) => item.dayKey));
+  return countConsecutiveDaysFromLatest(daySet);
+}
+
 async function getPinnedQuestProgress21d(user, preferredQuestIds, now = new Date()) {
   const pinnedIds = Array.isArray(preferredQuestIds)
     ? preferredQuestIds.filter((id) => Number.isInteger(id))
@@ -212,12 +255,10 @@ async function getPinnedQuestProgress21d(user, preferredQuestIds, now = new Date
     return [];
   }
 
-  const dayKeys = buildRecentDayKeys(21, now);
   const completions = await prisma.questCompletion.findMany({
     where: {
       userId: user.id,
-      questId: { in: pinnedIds },
-      dayKey: { in: dayKeys }
+      questId: { in: pinnedIds }
     },
     select: { questId: true, dayKey: true }
   });
@@ -233,14 +274,7 @@ async function getPinnedQuestProgress21d(user, preferredQuestIds, now = new Date
 
   return pinnedIds.map((questId) => {
     const completedDays = uniqueDaysByQuestId.get(questId) || new Set();
-    let consecutiveDays = 0;
-
-    for (const dayKey of dayKeys) {
-      if (!completedDays.has(dayKey)) {
-        break;
-      }
-      consecutiveDays += 1;
-    }
+    const consecutiveDays = countConsecutiveDaysFromLatest(completedDays);
 
     return {
       questId,
@@ -574,6 +608,9 @@ app.post("/api/quests/complete", async (req, res) => {
     const pinnedQuestIds = parsePreferredQuestIds(user.preferredQuestIds);
     const questBaseXp = pinnedQuestIds.includes(quest.id) ? 30 : 20;
     const xpState = xpAfterQuest(user, { ...quest, xp: questBaseXp }, user.streak || 0);
+    const previousPinnedQuestStreak = pinnedQuestIds.includes(quest.id)
+      ? await getQuestConsecutiveDaysForUser(user.id, quest.id)
+      : 0;
 
     await prisma.questCompletion.create({
       data: { userId: user.id, questId: quest.id, dayKey }
@@ -587,6 +624,17 @@ app.post("/api/quests/complete", async (req, res) => {
     const xpStateWithMilestone = applyBonusXpProgress(xpState, milestoneReward.bonusXp);
 
     let tokenIncrement = milestoneReward.bonusTokens;
+    let habitMilestoneReached = false;
+    let habitMilestoneTokens = 0;
+
+    if (pinnedQuestIds.includes(quest.id)) {
+      const nextPinnedQuestStreak = await getQuestConsecutiveDaysForUser(user.id, quest.id);
+      if (previousPinnedQuestStreak < 21 && nextPinnedQuestStreak >= 21) {
+        habitMilestoneReached = true;
+        habitMilestoneTokens = 10;
+        tokenIncrement += habitMilestoneTokens;
+      }
+    }
     
     // Level up reward logic
     if (xpStateWithMilestone.level > user.level) {
@@ -638,6 +686,9 @@ app.post("/api/quests/complete", async (req, res) => {
       milestoneBonusXp: milestoneReward.bonusXp,
       milestoneTokens: milestoneReward.bonusTokens,
       totalAwardedXp: xpState.awardedXp + milestoneReward.bonusXp,
+      habitMilestoneReached,
+      habitMilestoneTokens,
+      habitMilestoneQuestId: quest.id,
       tokens: finalUser.tokens,
       productivity: productivityState.productivity,
       ...buildServerTimeMeta(now)
@@ -678,9 +729,53 @@ app.post("/api/reset-daily", async (req, res) => {
     }
 
     if (!parsed.isReroll) {
-      await prisma.questCompletion.deleteMany({
-        where: { userId: user.id, dayKey: today }
+      const todayRows = await prisma.questCompletion.findMany({
+        where: { userId: user.id, dayKey: today },
+        select: { id: true, questId: true }
       });
+
+      if (todayRows.length > 0) {
+        const questIds = [...new Set(todayRows.map((row) => row.questId))];
+        const existingRows = await prisma.questCompletion.findMany({
+          where: {
+            userId: user.id,
+            questId: { in: questIds }
+          },
+          select: { questId: true, dayKey: true }
+        });
+
+        const usedDayKeysByQuestId = new Map();
+        for (const row of existingRows) {
+          const questId = Number(row.questId);
+          if (!usedDayKeysByQuestId.has(questId)) {
+            usedDayKeysByQuestId.set(questId, new Set());
+          }
+          usedDayKeysByQuestId.get(questId).add(row.dayKey);
+        }
+
+        const moveOps = [];
+        for (const row of todayRows) {
+          const usedDayKeys = usedDayKeysByQuestId.get(row.questId) || new Set();
+          const targetDate = new Date(now);
+          targetDate.setUTCDate(targetDate.getUTCDate() - 1);
+
+          let targetDayKey = getDateKey(targetDate);
+          while (usedDayKeys.has(targetDayKey)) {
+            targetDate.setUTCDate(targetDate.getUTCDate() - 1);
+            targetDayKey = getDateKey(targetDate);
+          }
+
+          usedDayKeys.add(targetDayKey);
+          moveOps.push(prisma.questCompletion.update({
+            where: { id: row.id },
+            data: { dayKey: targetDayKey }
+          }));
+        }
+
+        if (moveOps.length > 0) {
+          await prisma.$transaction(moveOps);
+        }
+      }
     }
 
     const updatedUser = await prisma.user.update({
@@ -701,12 +796,15 @@ app.post("/api/reset-daily", async (req, res) => {
 
     const productivityState = await updateAndReadProductivity(updatedUser, now, { updateTierState: true });
     const finalUser = productivityState.user;
+    const { preferredQuestIds } = onboardingStatus(finalUser);
+    const pinnedQuestProgress21d = await getPinnedQuestProgress21d(finalUser, preferredQuestIds, now);
 
     res.json({
       ok: true,
       user: finalUser,
       quests: composeDailyQuests(finalUser, completedQuestIds, now, parsed.excludeCategories),
       completedQuestIds,
+      pinnedQuestProgress21d,
       productivity: productivityState.productivity,
       ...buildServerTimeMeta(now)
     });

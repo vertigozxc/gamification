@@ -2180,7 +2180,7 @@
 {
   "id": "quest_110",
   "title": "No Junk Food",
-  "description": "Не есть джанк фуд (пицца, бургер, чипсы и другие вредные продукты)",
+  "description": "Do not eat junk food (pizza, burgers, chips, or other unhealthy foods)",
   "category": "DISCIPLINE",
   "base_xp": 26,
   "effort_score": 2,
@@ -2203,8 +2203,8 @@
 },
 {
   "id": "quest_111",
-  "title": "No Alcohol Today",
-  "description": "Не пить алкоголь",
+  "title": "No Alcohol",
+  "description": "Do not drink alcohol",
   "category": "DISCIPLINE",
   "base_xp": 30,
   "effort_score": 3,
@@ -2228,7 +2228,7 @@
 {
   "id": "quest_112",
   "title": "No Nicotine",
-  "description": "Нет никотину - не курить",
+  "description": "No nicotine - do not smoke",
   "category": "DISCIPLINE",
   "base_xp": 34,
   "effort_score": 3,

@@ -20,6 +20,9 @@ function useGameplayActions({
   setShowFreezeSuccess,
   setShowLevelUp,
   setLevelUpLevel,
+  setShowHabitMilestone,
+  setHabitMilestoneTitle,
+  setHabitMilestoneTokens,
   levelDisplayRef,
   questRenderCountRef,
   vocab
@@ -115,6 +118,8 @@ function useGameplayActions({
     const actualXpGain = Number(completionResult?.totalAwardedXp ?? completionResult?.awardedXp ?? quest.xp);
     const milestoneBonusXp = Number(completionResult?.milestoneBonusXp ?? 0);
     const milestoneTokens = Number(completionResult?.milestoneTokens ?? 0);
+    const habitMilestoneReached = completionResult?.habitMilestoneReached === true;
+    const habitMilestoneTokens = Number(completionResult?.habitMilestoneTokens ?? 0);
     const leveledUp = gameState.level > state.lvl;
     const streakIncreased = response.streak > state.streak;
 
@@ -139,6 +144,19 @@ function useGameplayActions({
     if (milestoneTokens > 0) {
       const tokenLabel = milestoneTokens === 1 ? (vocab?.tokenSingular || "Token") : (vocab?.tokenPlural || "Tokens");
       spawnFloatingText(event.clientX, event.clientY - 110, `🪙 +${milestoneTokens} ${tokenLabel}`, "text-amber-300 text-sm font-bold");
+    }
+    if (habitMilestoneReached && habitMilestoneTokens > 0) {
+      const tokenLabel = habitMilestoneTokens === 1 ? (vocab?.tokenSingular || "Token") : (vocab?.tokenPlural || "Tokens");
+      spawnFloatingText(event.clientX, event.clientY - 140, `🏆 +${habitMilestoneTokens} ${tokenLabel}`, "text-emerald-300 text-sm font-bold");
+      if (typeof setHabitMilestoneTitle === "function") {
+        setHabitMilestoneTitle(quest.title);
+      }
+      if (typeof setHabitMilestoneTokens === "function") {
+        setHabitMilestoneTokens(habitMilestoneTokens);
+      }
+      if (typeof setShowHabitMilestone === "function") {
+        setShowHabitMilestone(true);
+      }
     }
 
     if (streakIncreased) {

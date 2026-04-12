@@ -4,6 +4,7 @@ import { useTheme } from "../ThemeContext";
 function QuestBoard({
   pinnedQuests,
   otherQuests,
+  pinnedQuestProgressById,
   canRerollRandom,
   onRerollRandom,
   rerollButtonLabel,
@@ -12,8 +13,7 @@ function QuestBoard({
   questRenderCount,
   onCompleteQuest,
   resetTimer,
-  streakFreezeActive,
-  onOpenNotes
+  streakFreezeActive
 }) {
   const { t } = useTheme();
   const totalQuestCount = pinnedQuests.length + otherQuests.length;
@@ -24,25 +24,24 @@ function QuestBoard({
       <div className="rounded-2xl p-6" style={{ background: "var(--section-quest-bg)", border: "2px solid var(--section-quest-border)" }}>
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
-            <span className="quest-header-icon">🧭­</span>
+            <span className="quest-header-icon">🧭</span>
             <h2 className="cinzel text-2xl text-transparent bg-clip-text tracking-widest" style={{ backgroundImage: "var(--quest-heading-gradient)" }}>
               {t.availableItems} <span className="text-lg align-middle">({remainingQuestCount}/{totalQuestCount})</span>
             </h2>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3 sm:justify-end mt-4">
-          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3 sm:justify-end mt-4" />
         </div>
 
-          <div className="text-sm text-slate-300 text-center mb-6 flex justify-center items-center gap-2">
-            <div>
-              ⏰ {t.dailyResetLabel} <span className="font-bold font-mono" style={{ color: "var(--color-primary)" }}>{resetTimer}</span>
+        <div className="text-sm text-slate-300 text-center mb-6 flex justify-center items-center gap-2">
+          <div>
+            ⏰ {t.dailyResetLabel} <span className="font-bold font-mono" style={{ color: "var(--color-primary)" }}>{resetTimer}</span>
+          </div>
+          <div className="relative group inline-block cursor-help z-50">
+            <svg className="w-5 h-5 text-slate-400 hover:text-cyan-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-56 p-3 bg-slate-800 text-xs text-slate-200 rounded border border-slate-600 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all text-left font-sans normal-case tracking-normal shadow-[0_0_15px_rgba(0,0,0,0.5)] pointer-events-none">
+              {t.dailyBoardTooltip || "Ежедневная доска, случайные задания и прогресс стрика обновляются в полночь по локальному времени. Не забывайте выполнять задания, чтобы получать награды и повышать стрик!"}
             </div>
-            <div className="relative group inline-block cursor-help z-50">
-              <svg className="w-5 h-5 text-slate-400 hover:text-cyan-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-56 p-3 bg-slate-800 text-xs text-slate-200 rounded border border-slate-600 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all text-left font-sans normal-case tracking-normal shadow-[0_0_15px_rgba(0,0,0,0.5)] pointer-events-none">
-                {t.dailyBoardTooltip}
-              </div>
-            </div>
+          </div>
           {streakFreezeActive && (
             <span className="ml-3 inline-flex items-center gap-1 bg-cyan-900/50 border border-cyan-500/60 rounded-full px-2.5 py-0.5 text-xs text-cyan-300 cinzel">
               {t.streakProtectedBadge}
@@ -58,10 +57,13 @@ function QuestBoard({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {pinnedQuests.map((quest, index) => {
                 const isDone = completedIds.includes(quest.id);
+                const pinnedProgress = pinnedQuestProgressById?.[quest.id] || { daysCompleted: 0, totalDays: 21 };
+                const progressPercent = Math.max(0, Math.min(100, (pinnedProgress.daysCompleted / pinnedProgress.totalDays) * 100));
+
                 return (
                   <div
                     key={`pinned-${quest.id}`}
-                      className={`quest-card p-5 rounded-xl flex flex-col justify-between h-48 ${isDone ? "completed" : ""}`}
+                    className={`quest-card p-5 rounded-xl flex flex-col min-h-[15rem] ${isDone ? "completed" : ""}`}
                     style={Object.assign({ background: "var(--card-pinned-bg)", border: "2px solid var(--card-pinned-border)" }, !isDone && questRenderCount === 0 ? { animationDelay: `${index * 0.1}s` } : {})}
                     onClick={(event) => onCompleteQuest(quest, event)}
                   >
@@ -73,11 +75,28 @@ function QuestBoard({
                         <span className="cinzel text-xs md:text-sm font-bold px-3 py-1.5 rounded-full" style={{ background: "var(--xp-badge-bg)", color: "var(--xp-badge-text)" }}>+{quest.xp} {t.xpLabel}</span>
                       </div>
                     </div>
+
                     <div className="flex-grow mt-3">
                       <h3 className="cinzel text-lg text-white font-bold mb-1">{quest.title}</h3>
                       <p className="text-slate-300 text-sm">{quest.desc}</p>
                     </div>
-                    {isDone && <span className="completed-badge">{t.completedLabel}</span>}
+
+                    <div className="mt-3 pt-2 border-t border-slate-700/60">
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <p className="cinzel text-[11px] tracking-widest uppercase shrink-0" style={{ color: "var(--color-primary)" }}>{t.progressLabel || "Progress"}</p>
+                          <span className="cinzel text-sm font-bold text-white">{pinnedProgress.daysCompleted}/{pinnedProgress.totalDays}</span>
+                        </div>
+                        {isDone && (
+                          <span className="completed-badge" style={{ position: "static", transform: "none", padding: "0.26rem 0.65rem", fontSize: "0.72rem", letterSpacing: "0.12em" }}>
+                            {t.completedLabel}
+                          </span>
+                        )}
+                      </div>
+                      <div className="w-full h-4 bg-black rounded-full border border-yellow-700 overflow-hidden shadow-inner">
+                        <div className="bar-fill h-full rounded-full" style={{ width: `${progressPercent}%` }} />
+                      </div>
+                    </div>
                   </div>
                 );
               })}
@@ -108,7 +127,7 @@ function QuestBoard({
                 return (
                   <div
                     key={quest.id}
-                      className={`quest-card p-5 rounded-xl flex flex-col justify-between h-48 ${isDone ? "completed" : ""}`}
+                    className={`quest-card p-5 rounded-xl flex flex-col justify-between h-48 ${isDone ? "completed" : ""}`}
                     style={!isDone && questRenderCount === 0 ? { animationDelay: `${(index + 4) * 0.1}s` } : {}}
                     onClick={(event) => onCompleteQuest(quest, event)}
                   >
@@ -154,6 +173,7 @@ QuestBoard.propTypes = {
     category: PropTypes.string,
     icon: PropTypes.string
   })).isRequired,
+  pinnedQuestProgressById: PropTypes.object,
   canRerollRandom: PropTypes.bool.isRequired,
   onRerollRandom: PropTypes.func.isRequired,
   rerollButtonLabel: PropTypes.string.isRequired,
@@ -162,9 +182,7 @@ QuestBoard.propTypes = {
   questRenderCount: PropTypes.number.isRequired,
   onCompleteQuest: PropTypes.func.isRequired,
   resetTimer: PropTypes.string.isRequired,
-  streakFreezeActive: PropTypes.bool.isRequired,
-  onOpenNotes: PropTypes.func.isRequired
+  streakFreezeActive: PropTypes.bool.isRequired
 };
 
 export default QuestBoard;
-
