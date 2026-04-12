@@ -1559,6 +1559,43 @@ app.get("/api/analytics/feedback", async (req, res) => {
   }
 });
 
+app.post("/api/admin/reset-all-users", async (_req, res) => {
+  try {
+    const now = new Date();
+
+    await prisma.questCompletion.deleteMany({});
+    await prisma.dailyScore.deleteMany({});
+
+    const result = await prisma.user.updateMany({
+      data: {
+        preferredQuestIds: "",
+        level: 1,
+        xp: 0,
+        xpNext: 300,
+        strPoints: 0,
+        intPoints: 0,
+        staPoints: 0,
+        streak: 0,
+        tokens: 0,
+        currentPI: null,
+        currentTier: "IRON",
+        weeksInCurrentTier: 0,
+        rankLevel: 1,
+        lastTierWeekKey: "",
+        lastStreakIncreaseAt: null,
+        streakFreezeExpiresAt: null,
+        lastFreeTaskRerollAt: null,
+        lastDailyResetAt: now
+      }
+    });
+
+    res.json({ ok: true, usersReset: result.count });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to reset all users", detail: error.message });
+  }
+});
+
 app.use((err, _req, res, _next) => {
   console.error(err);
   res.status(500).json({ error: "Internal server error" });
