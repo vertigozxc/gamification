@@ -1,8 +1,25 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
+const LANGUAGE_STORAGE_KEY = "rpg_language";
+
+function getSelectedLanguage() {
+  if (typeof window === "undefined") {
+    return "en";
+  }
+
+  const storedLanguage = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  return typeof storedLanguage === "string" && storedLanguage.trim().toLowerCase().startsWith("ru")
+    ? "ru"
+    : "en";
+}
 
 async function request(path, options = {}) {
+  const selectedLanguage = getSelectedLanguage();
   const response = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-language": selectedLanguage,
+      ...(options.headers || {})
+    },
     cache: "no-store",
     ...options
   });
