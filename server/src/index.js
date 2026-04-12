@@ -1559,37 +1559,43 @@ app.get("/api/analytics/feedback", async (req, res) => {
   }
 });
 
-app.post("/api/admin/reset-all-users", async (_req, res) => {
+app.post("/api/admin/reset-all-users", async (req, res) => {
+  const adminSecret = process.env.ADMIN_SECRET;
+  if (!adminSecret || req.headers["x-admin-secret"] !== adminSecret) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
   try {
     const now = new Date();
 
-    await prisma.questCompletion.deleteMany({});
-    await prisma.dailyScore.deleteMany({});
+    const [deletedCompletions, deletedScores, result] = await prisma.$transaction([
+      prisma.questCompletion.deleteMany({}),
+      prisma.dailyScore.deleteMany({}),
+      prisma.user.updateMany({
+        data: {
+          preferredQuestIds: "",
+          level: 1,
+          xp: 0,
+          xpNext: 300,
+          strPoints: 0,
+          intPoints: 0,
+          staPoints: 0,
+          streak: 0,
+          tokens: 0,
+          currentPI: null,
+          currentTier: "IRON",
+          weeksInCurrentTier: 0,
+          rankLevel: 1,
+          lastTierWeekKey: "",
+          lastStreakIncreaseAt: null,
+          streakFreezeExpiresAt: null,
+          lastFreeTaskRerollAt: null,
+          lastDailyResetAt: now
+        }
+      })
+    ]);
 
-    const result = await prisma.user.updateMany({
-      data: {
-        preferredQuestIds: "",
-        level: 1,
-        xp: 0,
-        xpNext: 300,
-        strPoints: 0,
-        intPoints: 0,
-        staPoints: 0,
-        streak: 0,
-        tokens: 0,
-        currentPI: null,
-        currentTier: "IRON",
-        weeksInCurrentTier: 0,
-        rankLevel: 1,
-        lastTierWeekKey: "",
-        lastStreakIncreaseAt: null,
-        streakFreezeExpiresAt: null,
-        lastFreeTaskRerollAt: null,
-        lastDailyResetAt: now
-      }
-    });
-
-    res.json({ ok: true, usersReset: result.count });
+    res.json({ ok: true, usersReset: result.count, deletedCompletions: deletedCompletions.count, deletedScores: deletedScores.count });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to reset all users", detail: error.message });
