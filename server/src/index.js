@@ -2,6 +2,7 @@ import "dotenv/config";
 import cors from "cors";
 import express from "express";
 import { fileURLToPath } from "node:url";
+import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { prisma } from "./db.js";
 import { normalizeQuestLanguage } from "./quest-localization.js";
@@ -1553,6 +1554,67 @@ app.get("/api/analytics/feedback", async (req, res) => {
     });
 
     res.json({ feedbacks, stats, questRatings });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post("/api/admin/reset-all-users", async (req, res) => {
+  const adminSecret = process.env.ADMIN_SECRET;
+  if (!adminSecret) {
+    return res.status(503).json({ error: "Admin endpoint is not configured (ADMIN_SECRET not set)" });
+  }
+
+  const authHeader = req.headers["authorization"] || "";
+  const provided = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  let authorized = false;
+  try {
+    const a = Buffer.from(provided);
+    const b = Buffer.from(adminSecret);
+    authorized = a.length === b.length && timingSafeEqual(a, b);
+  } catch {
+    authorized = false;
+  }
+  if (!provided || !authorized) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const now = new Date();
+    const [completions, scores, users] = await prisma.$transaction([
+      prisma.questCompletion.deleteMany({}),
+      prisma.dailyScore.deleteMany({}),
+      prisma.user.updateMany({
+        data: {
+          preferredQuestIds: "",
+          level: 1,
+          xp: 0,
+          xpNext: 300,
+          strPoints: 0,
+          intPoints: 0,
+          staPoints: 0,
+          streak: 0,
+          tokens: 0,
+          currentPI: null,
+          currentTier: "IRON",
+          weeksInCurrentTier: 0,
+          rankLevel: 1,
+          lastTierWeekKey: "",
+          lastStreakIncreaseAt: null,
+          streakFreezeExpiresAt: null,
+          lastFreeTaskRerollAt: null,
+          lastDailyResetAt: now
+        }
+      })
+    ]);
+
+    res.json({
+      ok: true,
+      usersReset: users.count,
+      completionsDeleted: completions.count,
+      dailyScoresDeleted: scores.count
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal server error" });
