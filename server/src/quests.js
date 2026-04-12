@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { getLocalizedQuestText } from "./quest-localization.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,6 +14,7 @@ function readQuestConfig() {
 
 const questConfig = readQuestConfig();
 const dailyQuestCount = Number(questConfig?.design_principles?.daily_quests_per_user) || 8;
+const rawQuestPool = Array.isArray(questConfig?.quests) ? questConfig.quests : [];
 
 function normalizeCategory(category) {
   const normalized = String(category || "").trim().toUpperCase();
@@ -37,17 +39,17 @@ function mapCategoryToStat(category) {
   }
 }
 
-const QUEST_POOL = Array.isArray(questConfig?.quests)
-  ? questConfig.quests.map((quest, index) => ({
-      id: index + 1,
-      sourceId: quest.id,
-      title: String(quest.title || `Quest ${index + 1}`),
-      description: String(quest.description || ""),
-      xp: Number(quest.base_xp) || 10,
-      category: normalizeCategory(quest.category),
-      stat: mapCategoryToStat(quest.category)
-    }))
-  : [];
+function buildQuestPool(language) {
+  return rawQuestPool.map((quest, index) => ({
+    id: index + 1,
+    sourceId: quest.id,
+    title: getLocalizedQuestText(quest, "title", language) || `Quest ${index + 1}`,
+    description: getLocalizedQuestText(quest, "description", language),
+    xp: Number(quest.base_xp) || 10,
+    category: normalizeCategory(quest.category),
+    stat: mapCategoryToStat(quest.category)
+  }));
+}
 
 function pickCategoryUniqueQuests(quests, count, excludeCategories = new Set()) {
   if (!Array.isArray(quests) || count <= 0) {
@@ -122,19 +124,20 @@ export function getDailyQuests(options = {}) {
   const resetSeed = Number(options.resetSeed) || 0;
   const pinnedQuestIds = normalizeQuestIds(options.pinnedQuestIds);
   const excludeCategories = new Set(options.excludeCategories || []);
+  const questPool = buildQuestPool(options.language);
 
-  if (QUEST_POOL.length === 0) {
+  if (questPool.length === 0) {
     return [];
   }
 
   const baseSeed = dateSeed(date) ^ hashString(username) ^ (resetSeed >>> 0);
-  const shuffled = seededShuffle(QUEST_POOL, baseSeed >>> 0);
+  const shuffled = seededShuffle(questPool, baseSeed >>> 0);
   const pinnedSet = new Set(pinnedQuestIds);
   const pinnedQuests = pinnedQuestIds
-    .map((id) => QUEST_POOL.find((quest) => quest.id === id))
+    .map((id) => questPool.find((quest) => quest.id === id))
     .filter(Boolean);
   const randomQuests = shuffled.filter((quest) => !pinnedSet.has(quest.id));
-  const totalCount = Math.min(dailyQuestCount, QUEST_POOL.length);
+  const totalCount = Math.min(dailyQuestCount, questPool.length);
   const randomCount = Math.max(0, totalCount - pinnedQuests.length);
 
   // Enforce category uniqueness only for the first 4 non-pinned slots shown to users.
@@ -151,6 +154,6 @@ export function getQuestById(id, options = {}) {
   return getDailyQuests(options).find((quest) => quest.id === id);
 }
 
-export function getQuestPool() {
-  return [...QUEST_POOL];
+export function getQuestPool(options = {}) {
+  return buildQuestPool(options.language);
 }

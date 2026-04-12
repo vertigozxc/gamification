@@ -208,3 +208,44 @@ test("POST /api/reset-daily handles impossible excludeCategories without failing
   const constrainedQuests = payload.quests.slice(0, 4);
   assert.equal(constrainedQuests.length, 4, "reroll should still provide 4 constrained quest slots");
 });
+
+test("GET /api/quests/all localizes the last three discipline quests", async () => {
+  const [ruResponse, enResponse] = await Promise.all([
+    fetch(`${baseUrl}/api/quests/all?lang=ru`),
+    fetch(`${baseUrl}/api/quests/all?lang=en`)
+  ]);
+
+  assert.equal(ruResponse.status, 200);
+  assert.equal(enResponse.status, 200);
+
+  const ruPayload = await ruResponse.json();
+  const enPayload = await enResponse.json();
+
+  const ruNoJunkFood = ruPayload.quests.find((quest) => quest.sourceId === "quest_110");
+  const ruNoAlcohol = ruPayload.quests.find((quest) => quest.sourceId === "quest_111");
+  const ruNoNicotine = ruPayload.quests.find((quest) => quest.sourceId === "quest_112");
+  const ruWanderer = ruPayload.quests.find((quest) => quest.sourceId === "quest_001");
+  const enNoJunkFood = enPayload.quests.find((quest) => quest.sourceId === "quest_110");
+  const enNoAlcohol = enPayload.quests.find((quest) => quest.sourceId === "quest_111");
+  const enNoNicotine = enPayload.quests.find((quest) => quest.sourceId === "quest_112");
+  const enWanderer = enPayload.quests.find((quest) => quest.sourceId === "quest_001");
+
+  assert.equal(ruWanderer?.title, "Путь странника");
+  assert.equal(ruWanderer?.description, "Пройди 6 000 шагов сегодня");
+
+  assert.equal(ruNoJunkFood?.title, "Без вредной еды");
+  assert.equal(ruNoJunkFood?.description, "Не ешь вредную еду (пиццу, бургеры, чипсы и другую нездоровую пищу)");
+  assert.equal(ruNoAlcohol?.title, "Без алкоголя");
+  assert.equal(ruNoAlcohol?.description, "Не употребляй алкоголь");
+  assert.equal(ruNoNicotine?.title, "Без никотина");
+  assert.equal(ruNoNicotine?.description, "Без никотина - не кури");
+
+  assert.equal(enNoJunkFood?.title, "No Junk Food");
+  assert.equal(enNoJunkFood?.description, "Do not eat junk food (pizza, burgers, chips, or other unhealthy foods)");
+  assert.equal(enNoAlcohol?.title, "No Alcohol");
+  assert.equal(enNoAlcohol?.description, "Do not drink alcohol");
+  assert.equal(enNoNicotine?.title, "No Nicotine");
+  assert.equal(enNoNicotine?.description, "No nicotine - do not smoke");
+  assert.equal(enWanderer?.title, "Wanderer’s Path");
+  assert.equal(enWanderer?.description, "Walk 6,000 steps today");
+});

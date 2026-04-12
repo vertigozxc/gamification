@@ -4,6 +4,7 @@ import express from "express";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { prisma } from "./db.js";
+import { normalizeQuestLanguage } from "./quest-localization.js";
 import { getDailyQuests, getQuestPool } from "./quests.js";
 import { buildInviteCode, getDateKey, slugifyUsername, xpAfterQuest } from "./utils.js";
 import {
@@ -50,6 +51,28 @@ app.get("/healthz", (_req, res) => {
 });
 
 const usernameBody = z.object({ username: z.string().min(2).max(64) });
+
+function getRequestLanguage(req) {
+  const candidates = [
+    req.query?.lang,
+    req.query?.language,
+    req.body?.lang,
+    req.body?.language,
+    req.headers["x-language"],
+    req.headers["accept-language"]
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim()) {
+      return normalizeQuestLanguage(candidate);
+    }
+    if (Array.isArray(candidate) && typeof candidate[0] === "string" && candidate[0].trim()) {
+      return normalizeQuestLanguage(candidate[0]);
+    }
+  }
+
+  return "en";
+}
 
 function parsePreferredQuestIds(rawValue) {
   if (!rawValue) {
@@ -100,30 +123,32 @@ function assignDynamicXp(quests, preferredQuestIds) {
   }));
 }
 
-function dailyQuestsForUser(user, date = new Date()) {
+function dailyQuestsForUser(user, date = new Date(), language = "en") {
   const preferredQuestIds = parsePreferredQuestIds(user.preferredQuestIds);
   const quests = getDailyQuests({
     date,
     username: user.username,
     resetSeed: user.lastDailyResetAt?.getTime?.() ?? 0,
-    pinnedQuestIds: preferredQuestIds
+    pinnedQuestIds: preferredQuestIds,
+    language
   });
 
   return assignDynamicXp(quests, preferredQuestIds);
 }
 
-function composeDailyQuests(user, completedQuestIds = [], date = new Date(), excludeCategories = []) {
+function composeDailyQuests(user, completedQuestIds = [], date = new Date(), excludeCategories = [], language = "en") {
   const preferredQuestIds = parsePreferredQuestIds(user.preferredQuestIds);
   const baseQuests = getDailyQuests({
     date,
     username: user.username,
     resetSeed: user.lastDailyResetAt?.getTime?.() ?? 0,
     pinnedQuestIds: preferredQuestIds,
-    excludeCategories
+    excludeCategories,
+    language
   });
 
   const totalCount = baseQuests.length;
-  const questPoolById = new Map(getQuestPool().map((quest) => [quest.id, quest]));
+  const questPoolById = new Map(getQuestPool({ language }).map((quest) => [quest.id, quest]));
   const selectedQuestIds = [];
 
   for (const questId of preferredQuestIds) {
@@ -402,6 +427,7 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.get("/api/quests", (req, res) => {
+  const language = getRequestLanguage(req);
   const username = typeof req.query.username === "string" ? req.query.username : "";
   const resetSeed = Number(req.query.resetSeed) || 0;
   const dateParam = typeof req.query.date === "string" ? req.query.date : "";
@@ -416,13 +442,15 @@ app.get("/api/quests", (req, res) => {
       date,
       username,
       resetSeed,
-      pinnedQuestIds
+      pinnedQuestIds,
+      language
     })
   });
 });
 
-app.get("/api/quests/all", (_req, res) => {
-  res.json({ quests: getQuestPool() });
+app.get("/api/quests/all", (req, res) => {
+  const language = getRequestLanguage(req);
+  res.json({ quests: getQuestPool({ language }) });
 });
 
 app.post("/api/profiles/upsert", async (req, res) => {
@@ -451,6 +479,7 @@ app.post("/api/profiles/upsert", async (req, res) => {
 });
 
 app.get("/api/game-state/:username", async (req, res) => {
+  const language = getRequestLanguage(req);
   const username = slugifyUsername(req.params.username);
   const user = await prisma.user.findUnique({ where: { username } });
   if (!user) {
@@ -478,12 +507,12 @@ app.get("/api/game-state/:username", async (req, res) => {
     dateKey,
     completedQuestIds: completions.map((item) => item.questId),
     streak: user.streak,
-    quests: composeDailyQuests(user, completions.map((item) => item.questId)),
+    quests: composeDailyQuests(user, completions.map((item) => item.questId), now, [], language),
     streakFreezeActive,
     preferredQuestIds,
     pinnedQuestProgress21d,
     needsOnboarding,
-    allQuests: needsOnboarding ? getQuestPool() : [],
+    allQuests: needsOnboarding ? getQuestPool({ language }) : [],
     productivity,
     ...buildServerTimeMeta(now)
   });
@@ -498,6 +527,7 @@ app.post("/api/onboarding/complete", async (req, res) => {
   });
 
   try {
+    const language = getRequestLanguage(req);
     const parsed = schema.parse(req.body);
     const username = slugifyUsername(parsed.username);
     const user = await prisma.user.findUnique({ where: { username } });
@@ -550,7 +580,7 @@ app.post("/api/onboarding/complete", async (req, res) => {
       user: updatedUser,
       completedQuestIds: completions.map((item) => item.questId),
       streak: updatedUser.streak,
-      quests: composeDailyQuests(updatedUser, completions.map((item) => item.questId)),
+      quests: composeDailyQuests(updatedUser, completions.map((item) => item.questId), now, [], language),
       streakFreezeActive,
       preferredQuestIds: uniquePreferredQuestIds,
       pinnedQuestProgress21d,
@@ -570,6 +600,7 @@ app.post("/api/quests/complete", async (req, res) => {
   });
 
   try {
+    const language = getRequestLanguage(req);
     const parsed = schema.parse(req.body);
     const username = slugifyUsername(parsed.username);
 
@@ -584,7 +615,7 @@ app.post("/api/quests/complete", async (req, res) => {
       orderBy: { completedAt: "asc" },
       select: { questId: true }
     });
-    const availableQuests = composeDailyQuests(user, todayCompletions.map((item) => item.questId));
+    const availableQuests = composeDailyQuests(user, todayCompletions.map((item) => item.questId), new Date(), [], language);
     const quest = availableQuests.find((item) => item.id === parsed.questId);
 
     if (!quest) {
@@ -700,6 +731,7 @@ app.post("/api/quests/complete", async (req, res) => {
 
 app.post("/api/reset-daily", async (req, res) => {
   try {
+    const language = getRequestLanguage(req);
     const schema = z.object({
       username: z.string().min(2).max(64),
       isReroll: z.boolean().optional(),
@@ -802,7 +834,7 @@ app.post("/api/reset-daily", async (req, res) => {
     res.json({
       ok: true,
       user: finalUser,
-      quests: composeDailyQuests(finalUser, completedQuestIds, now, parsed.excludeCategories),
+      quests: composeDailyQuests(finalUser, completedQuestIds, now, parsed.excludeCategories, language),
       completedQuestIds,
       pinnedQuestProgress21d,
       productivity: productivityState.productivity,
@@ -867,6 +899,7 @@ app.post("/api/shop/extra-reroll", async (req, res) => {
 
 app.post("/api/quests/reroll-pinned", async (req, res) => {
   try {
+    const language = getRequestLanguage(req);
     const schema = z.object({
       username: z.string().min(2).max(64),
       useTokens: z.boolean().default(false)
@@ -942,7 +975,8 @@ app.post("/api/quests/reroll-pinned", async (req, res) => {
       date: now,
       username: user.username,
       resetSeed,
-      pinnedQuestIds: rerolledPreferredQuestIds
+      pinnedQuestIds: rerolledPreferredQuestIds,
+      language
     });
 
     res.json({
@@ -967,6 +1001,7 @@ app.post("/api/quests/reroll-pinned", async (req, res) => {
 
 app.post("/api/quests/reroll-pinned_ORIG", async (req, res) => {
   try {
+    const language = getRequestLanguage(req);
     const schema = z.object({
       username: z.string().min(2).max(64),
       questIdToReroll: z.number().int().min(1),
@@ -1036,7 +1071,8 @@ app.post("/api/quests/reroll-pinned_ORIG", async (req, res) => {
       date: now,
       username: user.username,
       resetSeed: 0,
-      pinnedQuestIds: uniquePreferredQuestIds
+      pinnedQuestIds: uniquePreferredQuestIds,
+      language
     });
 
     res.json({
@@ -1060,6 +1096,7 @@ app.post("/api/quests/reroll-pinned_ORIG", async (req, res) => {
 
 app.post("/api/quests/reroll-pinned_LEGACY", async (req, res) => {
   try {
+    const language = getRequestLanguage(req);
     const schema = z.object({
       username: z.string().min(2).max(64),
       questIdToReroll: z.number().int().min(1),
@@ -1130,7 +1167,8 @@ app.post("/api/quests/reroll-pinned_LEGACY", async (req, res) => {
       date: now,
       username: user.username,
       resetSeed,
-      pinnedQuestIds: uniquePreferredQuestIds
+      pinnedQuestIds: uniquePreferredQuestIds,
+      language
     });
 
     res.json({
@@ -1154,6 +1192,7 @@ app.post("/api/quests/reroll-pinned_LEGACY", async (req, res) => {
 
 app.post("/api/shop/replace-pinned-quests", async (req, res) => {
   try {
+    const language = getRequestLanguage(req);
     const schema = z.object({
       username: z.string().min(2).max(64),
       preferredQuestIds: z.array(z.number().int().min(1)).min(1).max(4),
@@ -1213,7 +1252,7 @@ app.post("/api/shop/replace-pinned-quests", async (req, res) => {
       lastFreeTaskRerollAt: updatedUser.lastFreeTaskRerollAt,
       preferredQuestIds: uniquePreferredQuestIds,
       pinnedQuestProgress21d: await getPinnedQuestProgress21d(updatedUser, uniquePreferredQuestIds, now),
-      quests: composeDailyQuests(updatedUser, completions.map((item) => item.questId)),
+      quests: composeDailyQuests(updatedUser, completions.map((item) => item.questId), now, [], language),
       completedQuestIds: completions.map((item) => item.questId)
     });
   } catch (error) {
@@ -1223,6 +1262,7 @@ app.post("/api/shop/replace-pinned-quests", async (req, res) => {
 
 app.post("/api/reset-hard", async (req, res) => {
   try {
+    const language = getRequestLanguage(req);
     const parsed = usernameBody.parse(req.body);
     const username = slugifyUsername(parsed.username);
     const user = await prisma.user.findUnique({ where: { username } });
@@ -1263,7 +1303,7 @@ app.post("/api/reset-hard", async (req, res) => {
       ok: true,
       user: updatedUser,
       completedQuestIds: [],
-      quests: dailyQuestsForUser(updatedUser, now),
+      quests: dailyQuestsForUser(updatedUser, now, language),
       preferredQuestIds: parsePreferredQuestIds(updatedUser.preferredQuestIds),
       pinnedQuestProgress21d: [],
       ...buildServerTimeMeta(now)
@@ -1464,9 +1504,10 @@ app.post("/api/quest-feedback", async (req, res) => {
   }
 });
 
-app.get("/api/analytics/feedback", async (_req, res) => {
+app.get("/api/analytics/feedback", async (req, res) => {
   try {
-    const questPool = getQuestPool();
+    const language = getRequestLanguage(req);
+    const questPool = getQuestPool({ language });
     const feedbacksRaw = await prisma.questFeedback.findMany({
       orderBy: { createdAt: "desc" },
       take: 100
