@@ -166,7 +166,7 @@ export const languagePacks = {
       currentStreak: "Текущий стрик",
       todaysItems: "Задания на сегодня",
       streakUnit: "Стрик",
-      pinnedSection: "✦ Закрепленные задания",
+      pinnedSection: "✦ Привычки",
       otherSection: "Случайные ежедневные задания",
       otherSectionSub: "Случайные ежедневные задания",
       availableItems: "📜 Доступные задания",
