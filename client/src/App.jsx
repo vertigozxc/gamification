@@ -1065,6 +1065,7 @@ function App() {
           onBuyExtraReroll={handleBuyExtraReroll}
         />
 
+        {false && (
         <footer className="mt-8 rounded-2xl border p-4" style={{ borderColor: "var(--panel-border)", background: "var(--panel-bg)" }}>
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="cinzel text-sm font-bold tracking-[0.2em]" style={{ color: "var(--color-primary)" }}>{t.adminPanelLabel || "Admin Panel"}</p>
@@ -1097,6 +1098,7 @@ function App() {
             </div>
           </div>
         </footer>
+        )}
       </div>
       )}
     </>
