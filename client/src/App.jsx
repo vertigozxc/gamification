@@ -83,6 +83,30 @@ function normalizePinnedQuestProgress(items) {
     .filter((item) => Number.isInteger(item.questId) && item.questId > 0);
 }
 
+function compressImage(dataUrl, maxSide = 256, quality = 0.7) {
+  return new Promise((resolve) => {
+    const timeout = setTimeout(() => resolve(""), 10_000);
+    const img = new Image();
+    img.onload = () => {
+      clearTimeout(timeout);
+      try {
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      } catch {
+        resolve("");
+      }
+    };
+    img.onerror = () => { clearTimeout(timeout); resolve(""); };
+    img.src = dataUrl;
+  });
+}
+
 function getTimestamp() {
   const now = new Date();
   const hours = String(now.getHours()).padStart(2, "0");
@@ -388,6 +412,7 @@ function App() {
     setDataLoading(true);
     setDataLoadError("");
     upsertProfile(authUser.uid, profileName, profilePortrait)
+      .catch(() => upsertProfile(authUser.uid, profileName, ""))
       .then(() => Promise.all([fetchGameState(authUser.uid), fetchLeaderboard(), fetchAllQuests()]))
       .then(([gameStateResponse, { users }, allQuestsResponse]) => {
         setDataLoading(false);
@@ -606,13 +631,14 @@ function App() {
     const file = event.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (loadEvent) => {
+    reader.onload = async (loadEvent) => {
       const imageData = loadEvent.target?.result;
       if (typeof imageData !== "string") return;
-      localStorage.setItem(portraitKey(authUser.uid), imageData);
-      setPortraitData(imageData);
+      const compressed = await compressImage(imageData);
+      localStorage.setItem(portraitKey(authUser.uid), compressed);
+      setPortraitData(compressed);
       addLog(t.characterPortraitUpdated, "text-yellow-400 font-bold");
-      upsertProfile(authUser.uid, characterName || "Warrior", imageData)
+      upsertProfile(authUser.uid, characterName || "Warrior", compressed)
         .then(() => fetchLeaderboard())
         .then(({ users }) => setLeaderboard(users || []))
         .catch(() => {});
