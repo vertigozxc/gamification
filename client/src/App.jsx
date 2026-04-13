@@ -85,18 +85,24 @@ function normalizePinnedQuestProgress(items) {
 
 function compressImage(dataUrl, maxSide = 256, quality = 0.7) {
   return new Promise((resolve) => {
+    const timeout = setTimeout(() => resolve(""), 10_000);
     const img = new Image();
     img.onload = () => {
-      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
-      const w = Math.max(1, Math.round(img.width * scale));
-      const h = Math.max(1, Math.round(img.height * scale));
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL("image/jpeg", quality));
+      clearTimeout(timeout);
+      try {
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      } catch {
+        resolve("");
+      }
     };
-    img.onerror = () => resolve(dataUrl);
+    img.onerror = () => { clearTimeout(timeout); resolve(""); };
     img.src = dataUrl;
   });
 }
