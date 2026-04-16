@@ -1096,7 +1096,7 @@ function App() {
       />
 
       <div className={`levelup-popup ${showLevelUp ? "show" : "hidden"}`} aria-live="assertive" style={{ backdropFilter: "blur(8px)", background: "rgba(5, 10, 20, 0.85)" }}>
-        <div className="levelup-popup-card relative flex flex-col items-center justify-center p-8 md:p-12 w-[90vw] md:w-[600px] overflow-hidden" style={{ borderRadius: "2rem", border: "2px solid rgba(251, 191, 36, 0.6)", background: "linear-gradient(160deg, rgba(30,41,59,0.98), rgba(5,10,20,0.99))", boxShadow: "0 0 50px rgba(251, 191, 36, 0.2), inset 0 0 30px rgba(251,191,36,0.1)" }}>
+        <div className="levelup-popup-card relative flex flex-col items-center justify-center p-5 md:p-8 w-[90vw] md:w-[600px] max-h-[85vh] overflow-hidden" style={{ borderRadius: "2rem", border: "2px solid rgba(251, 191, 36, 0.6)", background: "linear-gradient(160deg, rgba(30,41,59,0.98), rgba(5,10,20,0.99))", boxShadow: "0 0 50px rgba(251, 191, 36, 0.2), inset 0 0 30px rgba(251,191,36,0.1)" }}>
           {/* Animated Background Rays */}
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-40">
             <div className="w-[150%] h-[150%] animate-[spin_20s_linear_infinite]" style={{ background: "conic-gradient(from 0deg, transparent 0deg, rgba(251,191,36,0.2) 20deg, transparent 40deg, rgba(251,191,36,0.2) 60deg, transparent 80deg, rgba(251,191,36,0.2) 100deg, transparent 120deg, rgba(251,191,36,0.2) 140deg, transparent 160deg, rgba(251,191,36,0.2) 180deg, transparent 200deg, rgba(251,191,36,0.2) 220deg, transparent 240deg, rgba(251,191,36,0.2) 260deg, transparent 280deg, rgba(251,191,36,0.2) 300deg, transparent 320deg, rgba(251,191,36,0.2) 340deg, transparent 360deg)" }} />
@@ -1105,24 +1105,24 @@ function App() {
           
           <div className="relative z-10 w-full text-center">
             {/* Title Section */}
-            <p className="levelup-popup-subtitle cinzel" style={{ fontSize: "1.4rem", letterSpacing: "5px", color: "#fef08a", textShadow: "0 0 15px rgba(251,191,36,0.7)", margin: "0 0 0.5rem 0", animation: "fadeInDown 0.6s ease-out" }}>
+            <p className="levelup-popup-subtitle cinzel" style={{ fontSize: "1.2rem", letterSpacing: "5px", color: "#fef08a", textShadow: "0 0 15px rgba(251,191,36,0.7)", margin: "0 0 0.25rem 0", animation: "fadeInDown 0.6s ease-out" }}>
               {t.levelUpTitle}
             </p>
-            <h2 className="levelup-popup-title cinzel" style={{ fontSize: "5rem", margin: "0 0 1.5rem 0", color: "#fbbf24", borderBottom: "1px solid rgba(251,191,36,0.3)", paddingBottom: "1rem", lineHeight: "1", filter: "drop-shadow(0 0 20px rgba(251,191,36,0.6))", animation: "levelUpPulseSoft 2s infinite" }}>
+            <h2 className="levelup-popup-title cinzel" style={{ fontSize: "4rem", margin: "0 0 0.75rem 0", color: "#fbbf24", borderBottom: "1px solid rgba(251,191,36,0.3)", paddingBottom: "0.5rem", lineHeight: "1", filter: "drop-shadow(0 0 20px rgba(251,191,36,0.6))", animation: "levelUpPulseSoft 2s infinite" }}>
               {t.levelUpPrefix} {levelUpLevel || state.lvl}
             </h2>
 
             {/* Content Text */}
-            <p className="levelup-popup-message" style={{ fontSize: "1.25rem", fontStyle: "italic", opacity: 0.9, margin: "0 0 1rem 0", color: "#e2e8f0", animation: "fadeInUp 0.8s ease-out" }}>
+            <p className="levelup-popup-message" style={{ fontSize: "1.1rem", fontStyle: "italic", opacity: 0.9, margin: "0 0 0.5rem 0", color: "#e2e8f0", animation: "fadeInUp 0.8s ease-out" }}>
               "{t.levelUpMessage}"
             </p>
-            <div className="mx-auto w-12 h-[2px] bg-yellow-600/50 mb-3" />
-            <p className="text-md text-amber-200/80 mb-6 px-4" style={{ animation: "fadeInUp 1s ease-out" }}>
+            <div className="mx-auto w-12 h-[2px] bg-yellow-600/50 mb-2" />
+            <p className="text-sm text-amber-200/80 mb-4 px-4" style={{ animation: "fadeInUp 1s ease-out" }}>
               {t.cityExpansionText}
             </p>
 
             {/* Rewards */}
-            <div className="inline-flex justify-center items-center gap-3 bg-black/40 border border-yellow-700/50 rounded-xl px-6 py-4 mb-8 shadow-[inset_0_0_15px_rgba(251,191,36,0.1)]" style={{ animation: "fadeInUp 1.2s ease-out" }}>
+            <div className="inline-flex justify-center items-center gap-3 bg-black/40 border border-yellow-700/50 rounded-xl px-5 py-3 mb-5 shadow-[inset_0_0_15px_rgba(251,191,36,0.1)]" style={{ animation: "fadeInUp 1.2s ease-out" }}>
               <span className="text-xl text-yellow-100 uppercase tracking-widest text-[0.85rem] font-bold">{t.rewardClaimLabel}</span>
               <span className="text-3xl font-black text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]">
                 +{levelUpLevel > 10 ? 2 : 1} <span className="text-4xl px-1">{t.tokenIcon}</span>
@@ -1292,6 +1292,27 @@ function App() {
               <div className="flex flex-col gap-4 animate-fade-in">
                 <div className="flex gap-2 justify-center mb-1">
                   <button onClick={handleResetDaily} className="text-[10px] px-3 py-1 rounded-full border transition-colors font-bold uppercase tracking-wider hover:opacity-80" style={{ borderColor: "var(--color-primary-dim)", background: "var(--card-bg)", color: "var(--color-primary)" }}>{t.resetDaily}</button>
+                  <button
+                    onClick={() => setState((prev) => {
+                      let xp = prev.xp + 500;
+                      let lvl = prev.lvl;
+                      let xpNext = prev.xpNext;
+                      while (xp >= xpNext) {
+                        xp -= xpNext;
+                        lvl += 1;
+                        xpNext = Math.floor(xpNext * 1.1);
+                      }
+                      if (lvl > prev.lvl) {
+                        setLevelUpLevel(lvl);
+                        setShowLevelUp(true);
+                      }
+                      return { ...prev, xp, lvl, xpNext };
+                    })}
+                    className="text-[10px] px-3 py-1 rounded-full border transition-colors font-bold uppercase tracking-wider hover:opacity-80"
+                    style={{ borderColor: "rgba(251,191,36,0.5)", background: "rgba(127,95,0,0.3)", color: "rgb(251,191,36)" }}
+                  >
+                    ⚡ +500 {t.xpLabel || "XP"}
+                  </button>
                   <button onClick={handleHardReset} className="text-[10px] px-3 py-1 rounded-full border transition-colors font-bold uppercase tracking-wider hover:opacity-80" style={{ borderColor: "rgba(220,38,38,0.5)", background: "rgba(127,29,29,0.3)", color: "rgb(239,68,68)" }}>{t.resetProgress}</button>
                 </div>
                 {/* Hero: XP + Level compact row */}
