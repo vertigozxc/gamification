@@ -45,7 +45,7 @@ function PinnedReplacementModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1">
             {filteredReplacePinnedQuests.map((quest) => {
               const isSelected = replacePinnedQuestIds.includes(quest.id);
-              const blocked = !isSelected && replacePinnedQuestIds.length >= 4;
+              const blocked = !isSelected && replacePinnedQuestIds.length >= 3;
               return (
                 <button
                   key={"replace-" + quest.id}

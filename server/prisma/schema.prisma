@@ -8,36 +8,38 @@ datasource db {
 }
 
 model User {
-  id               String          @id @default(cuid())
-  username         String          @unique
-  displayName      String
-  photoUrl         String          @default("")
-  preferredQuestIds String         @default("")
-  level            Int             @default(1)
-  xp               Int             @default(0)
-  xpNext           Int             @default(300)
-  strPoints        Int             @default(0)
-  intPoints        Int             @default(0)
-  staPoints        Int             @default(0)
-  streak                 Int             @default(0)
-  tokens                 Int             @default(0)
-  currentPI              Float?
-  currentTier            String          @default("IRON")
-  weeksInCurrentTier     Int             @default(0)
-  rankLevel              Int             @default(1)
-  lastTierWeekKey        String          @default("")
-  lastStreakIncreaseAt   DateTime?
-  streakFreezeExpiresAt  DateTime?
-  lastFreeTaskRerollAt   DateTime?
-  lastDailyResetAt       DateTime        @default(now())
-  createdAt              DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  completions      QuestCompletion[]
-  dailyScores      DailyScore[]
-  invitesSent      Invite[]        @relation("invitesSent")
-  invitesReceived  Invite[]        @relation("invitesReceived")
-  friendshipsA     Friendship[]    @relation("friendA")
-  friendshipsB     Friendship[]    @relation("friendB")
+  id                    String            @id @default(cuid())
+  username              String            @unique
+  displayName           String
+  photoUrl              String            @default("")
+  preferredQuestIds     String            @default("")
+  randomQuestIds        String            @default("")
+  level                 Int               @default(1)
+  xp                    Int               @default(0)
+  xpNext                Int               @default(250)
+  strPoints             Int               @default(0)
+  intPoints             Int               @default(0)
+  staPoints             Int               @default(0)
+  streak                Int               @default(0)
+  tokens                Int               @default(0)
+  currentPI             Float?
+  currentTier           String            @default("IRON")
+  weeksInCurrentTier    Int               @default(0)
+  rankLevel             Int               @default(1)
+  theme                 String            @default("adventure")
+  lastTierWeekKey       String            @default("")
+  lastStreakIncreaseAt  DateTime?
+  streakFreezeExpiresAt DateTime?
+  lastFreeTaskRerollAt  DateTime?
+  lastDailyResetAt      DateTime          @default(now())
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  dailyScores           DailyScore[]
+  friendshipsB          Friendship[]      @relation("friendB")
+  friendshipsA          Friendship[]      @relation("friendA")
+  invitesReceived       Invite[]          @relation("invitesReceived")
+  invitesSent           Invite[]          @relation("invitesSent")
+  completions           QuestCompletion[]
 }
 
 model DailyScore {
@@ -69,15 +71,15 @@ model QuestCompletion {
 }
 
 model Invite {
-  id             String    @id @default(cuid())
-  code           String    @unique
-  inviterId      String
-  invitedUserId  String?
-  status         String    @default("PENDING")
-  createdAt      DateTime  @default(now())
-  acceptedAt     DateTime?
-  inviter        User      @relation("invitesSent", fields: [inviterId], references: [id], onDelete: Cascade)
-  invitedUser    User?     @relation("invitesReceived", fields: [invitedUserId], references: [id])
+  id            String    @id @default(cuid())
+  code          String    @unique
+  inviterId     String
+  invitedUserId String?
+  status        String    @default("PENDING")
+  createdAt     DateTime  @default(now())
+  acceptedAt    DateTime?
+  invitedUser   User?     @relation("invitesReceived", fields: [invitedUserId], references: [id])
+  inviter       User      @relation("invitesSent", fields: [inviterId], references: [id], onDelete: Cascade)
 
   @@index([inviterId])
 }
@@ -87,8 +89,8 @@ model Friendship {
   userAId   String
   userBId   String
   createdAt DateTime @default(now())
-  userA     User     @relation("friendA", fields: [userAId], references: [id], onDelete: Cascade)
   userB     User     @relation("friendB", fields: [userBId], references: [id], onDelete: Cascade)
+  userA     User     @relation("friendA", fields: [userAId], references: [id], onDelete: Cascade)
 
   @@unique([userAId, userBId])
   @@index([userAId])

@@ -5,8 +5,14 @@ import { fileURLToPath } from "node:url";
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { prisma } from "./db.js";
-import { normalizeQuestLanguage } from "./quest-localization.js";
-import { getDailyQuests, getQuestPool } from "./quests.js";
+import {
+  getDailyQuests,
+  getMilestoneRewardForCount as getConfiguredMilestoneRewardForCount,
+  getPreferredQuestCount,
+  getQuestPool,
+  getStreakRuleConfig,
+  normalizeQuestLanguage
+} from "./quests.js";
 import { buildInviteCode, getDateKey, slugifyUsername, xpAfterQuest } from "./utils.js";
 import {
   calculatePI,
@@ -20,24 +26,27 @@ const app = express();
 const port = Number(process.env.PORT || 4000);
 
 function getAllowedOrigins() {
-  const raw = process.env.CLIENT_ORIGIN || "http://localhost:5173";
+  const raw = process.env.CLIENT_ORIGIN || "http://localhost:5173,http://127.0.0.1:5173";
   return raw
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
 }
 
+function isAllowedLanOrigin(origin) {
+  return /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)(:\d+)?$/i.test(String(origin || ""));
+}
+
 const allowedOrigins = getAllowedOrigins();
 
 app.use(cors({
   origin(origin, callback) {
-    // Allow requests without Origin (same-origin tools, curl, health checks).
     if (!origin) {
       callback(null, true);
       return;
     }
 
-    if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+    if (allowedOrigins.includes("*") || allowedOrigins.includes(origin) || isAllowedLanOrigin(origin)) {
       callback(null, true);
       return;
     }
@@ -46,6 +55,176 @@ app.use(cors({
   }
 }));
 app.use(express.json({ limit: "8mb" }));
+
+// In-memory store for mobile auth tokens (maps token -> user data)
+const mobileAuthTokens = new Map();
+
+// Store auth result from external browser login
+app.post("/api/auth/mobile-token", (req, res) => {
+  const { uid, displayName, email, photoURL, bridgeId } = req.body || {};
+  if (!uid || typeof uid !== "string") {
+    return res.status(400).json({ error: "uid is required" });
+  }
+  const key = (typeof bridgeId === "string" && bridgeId.trim())
+    ? `bridge:${bridgeId.trim()}`
+    : (Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2) + Date.now().toString(36));
+  mobileAuthTokens.set(key, {
+    uid: String(uid),
+    displayName: String(displayName || "Adventurer"),
+    email: String(email || ""),
+    photoURL: String(photoURL || ""),
+    createdAt: Date.now()
+  });
+  // Clean up old tokens (older than 5 min)
+  for (const [k, v] of mobileAuthTokens) {
+    if (Date.now() - v.createdAt > 300000) mobileAuthTokens.delete(k);
+  }
+  res.json({ token: key, bridgeId: bridgeId || null });
+});
+
+// Retrieve auth from token
+app.get("/api/auth/mobile-token/:token", (req, res) => {
+  const data = mobileAuthTokens.get(req.params.token);
+  if (!data) {
+    return res.status(404).json({ error: "Token not found or expired" });
+  }
+  mobileAuthTokens.delete(req.params.token); // one-time use
+  res.json({ user: data });
+});
+
+// Retrieve auth by shared bridge id between WebView and external browser
+app.get("/api/auth/mobile-bridge/:bridgeId", (req, res) => {
+  const bridgeId = String(req.params.bridgeId || "").trim();
+  if (!bridgeId) {
+    return res.status(400).json({ error: "bridgeId is required" });
+  }
+
+  const key = `bridge:${bridgeId}`;
+  const data = mobileAuthTokens.get(key);
+  if (!data) {
+    return res.status(404).json({ error: "Bridge auth not found or expired" });
+  }
+
+  mobileAuthTokens.delete(key); // one-time use
+  res.json({ user: data });
+});
+
+// Check if bridge auth exists without consuming it (used by RN polling)
+app.get("/api/auth/mobile-bridge-check/:bridgeId", (req, res) => {
+  const bridgeId = String(req.params.bridgeId || "").trim();
+  if (!bridgeId) {
+    return res.status(400).json({ exists: false });
+  }
+  const key = `bridge:${bridgeId}`;
+  const exists = mobileAuthTokens.has(key);
+  res.json({ exists });
+});
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "381152713640-o1cnhofvud2lna05gbor9o5cnplfm2e1.apps.googleusercontent.com";
+
+// Direct Google OAuth — 302 straight to accounts.google.com (no intermediate page)
+// ASWebAuthenticationSession shows "wants to use accounts.google.com to sign in"
+app.get("/api/auth/google-start", (req, res) => {
+  const bridgeId = String(req.query.bridgeId || "").trim();
+  const returnScheme = String(req.query.returnScheme || "com.liferpg.mobile").trim();
+  // Google allows localhost redirect URIs (not private IPs). On iOS simulator localhost = Mac.
+  const redirectUri = `http://localhost:${port}/api/auth/google-callback`;
+  const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const state = JSON.stringify({ bridgeId, returnScheme });
+
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: "id_token",
+    scope: "openid email profile",
+    nonce,
+    state,
+    prompt: "select_account"
+  });
+
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+});
+
+// Google OAuth callback — tiny HTML page that reads id_token from URL fragment,
+// extracts user info, stores in bridge, and redirects to deep link
+app.get("/api/auth/google-callback", (req, res) => {
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Completing sign-in...</title>
+<style>body{margin:0;background:#020617;display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui;color:#94a3b8}
+.spinner{width:32px;height:32px;border:3px solid #334155;border-top-color:#22d3ee;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}</style>
+</head><body>
+<div style="text-align:center"><div class="spinner" style="margin:0 auto 16px"></div><div id="msg">Completing sign-in...</div></div>
+<script>
+(function(){
+  function decodeJwt(token) {
+    var parts = token.split(".");
+    if (parts.length !== 3) return null;
+    var payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    while (payload.length % 4) payload += "=";
+    try { return JSON.parse(atob(payload)); } catch(e) { return null; }
+  }
+
+  var hash = window.location.hash.substring(1);
+  var params = {};
+  hash.split("&").forEach(function(part) {
+    var kv = part.split("=");
+    if (kv.length === 2) params[kv[0]] = decodeURIComponent(kv[1]);
+  });
+
+  var idToken = params.id_token;
+  var stateRaw = params.state;
+  var state = {};
+  try { state = JSON.parse(stateRaw); } catch(e) {}
+
+  var bridgeId = state.bridgeId || "";
+  var returnScheme = state.returnScheme || "com.liferpg.mobile";
+  var serverOrigin = location.origin;
+
+  if (!idToken) {
+    document.getElementById("msg").textContent = "Auth failed — no token received";
+    return;
+  }
+
+  var user = decodeJwt(idToken);
+  if (!user || !user.sub) {
+    document.getElementById("msg").textContent = "Auth failed — invalid token";
+    return;
+  }
+
+  fetch(serverOrigin + "/api/auth/mobile-token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      uid: user.sub,
+      displayName: user.name || user.email || "Adventurer",
+      email: user.email || "",
+      photoURL: user.picture || "",
+      bridgeId: bridgeId
+    })
+  }).then(function() {
+    location.replace(serverOrigin + "/api/auth/mobile-complete?bridgeId=" + encodeURIComponent(bridgeId) + "&scheme=" + encodeURIComponent(returnScheme));
+  }).catch(function() {
+    location.replace(serverOrigin + "/api/auth/mobile-complete?bridgeId=" + encodeURIComponent(bridgeId) + "&scheme=" + encodeURIComponent(returnScheme));
+  });
+})();
+</script>
+</body></html>`;
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.send(html);
+});
+
+// Server-side redirect to deep link (HTTP 302 — reliably intercepted by ASWebAuthenticationSession)
+app.get("/api/auth/mobile-complete", (req, res) => {
+  const bridgeId = String(req.query.bridgeId || "").trim();
+  const scheme = String(req.query.scheme || "com.liferpg.mobile").trim();
+  if (!bridgeId) {
+    return res.status(400).send("Missing bridgeId");
+  }
+  const target = `${scheme}://auth-complete?bridgeId=${encodeURIComponent(bridgeId)}`;
+  res.redirect(target);
+});
 
 app.get("/healthz", (_req, res) => {
   res.status(200).json({ ok: true });
@@ -83,7 +262,7 @@ function parsePreferredQuestIds(rawValue) {
   return [...new Set(String(rawValue)
     .split(",")
     .map((item) => Number(item.trim()))
-    .filter((item) => Number.isInteger(item) && item > 0 && validQuestIds.has(item)))];
+    .filter((item) => Number.isInteger(item) && item > 0 && validQuestIds.has(item)))].slice(0, getPreferredQuestCount());
 }
 
 function serializePreferredQuestIds(questIds) {
@@ -91,27 +270,28 @@ function serializePreferredQuestIds(questIds) {
 }
 
 function onboardingStatus(user) {
-  const preferredQuestIds = parsePreferredQuestIds(user.preferredQuestIds);
+  const preferredQuestIds = parsePreferredQuestIds(user.preferredQuestIds).slice(0, getPreferredQuestCount());
   return {
     preferredQuestIds,
-    needsOnboarding: preferredQuestIds.length < 4
+    needsOnboarding: preferredQuestIds.length < getPreferredQuestCount()
   };
 }
 
 function assignDynamicXp(quests, preferredQuestIds) {
   const nonPinned = quests.filter((q) => !preferredQuestIds.includes(q.id));
-  const totalBaseXp = nonPinned.reduce((sum, q) => sum + (q.baseXp || q.xp || 10), 0);
+  const totalBaseXp = nonPinned.reduce((sum, q) => sum + (q.effortScore || q.baseXp || q.xp || 10), 0);
   
   const assigned = {};
   if (totalBaseXp === 0 || nonPinned.length === 0) {
-    nonPinned.forEach(q => assigned[q.id] = 20);
+    nonPinned.forEach(q => assigned[q.id] = Math.floor(90 / nonPinned.length));
   } else {
-    let remaining = 80;
+    // 90 xp distributed across remaining daily quests based on effort/baseXp
+    let remaining = 90;
     nonPinned.forEach((q, idx) => {
       if (idx === nonPinned.length - 1) {
         assigned[q.id] = Math.max(0, remaining);
       } else {
-        const share = Math.round(80 * ((q.baseXp || q.xp || 10) / totalBaseXp));
+        const share = Math.round(90 * ((q.effortScore || q.baseXp || q.xp || 10) / totalBaseXp));
         assigned[q.id] = share;
         remaining -= share;
       }
@@ -120,7 +300,7 @@ function assignDynamicXp(quests, preferredQuestIds) {
 
   return quests.map((q) => ({
     ...q,
-    xp: preferredQuestIds.includes(q.id) ? 30 : Math.max(5, assigned[q.id] || 20)
+    xp: preferredQuestIds.includes(q.id) ? 30 : Math.max(5, assigned[q.id] || 0)
   }));
 }
 
@@ -131,6 +311,7 @@ function dailyQuestsForUser(user, date = new Date(), language = "en") {
     username: user.username,
     resetSeed: user.lastDailyResetAt?.getTime?.() ?? 0,
     pinnedQuestIds: preferredQuestIds,
+    streak: user.streak || 0,
     language
   });
 
@@ -139,12 +320,13 @@ function dailyQuestsForUser(user, date = new Date(), language = "en") {
 
 function composeDailyQuests(user, completedQuestIds = [], date = new Date(), excludeCategories = [], language = "en") {
   const preferredQuestIds = parsePreferredQuestIds(user.preferredQuestIds);
-  const baseQuests = getDailyQuests({
+  let baseQuests = getDailyQuests({
     date,
     username: user.username,
     resetSeed: user.lastDailyResetAt?.getTime?.() ?? 0,
     pinnedQuestIds: preferredQuestIds,
     excludeCategories,
+    streak: user.streak || 0,
     language
   });
 
@@ -158,6 +340,19 @@ function composeDailyQuests(user, completedQuestIds = [], date = new Date(), exc
     }
   }
 
+  // If we have saved random quests, use them for the remaining slots
+  const savedRandomIds = user.randomQuestIds ? user.randomQuestIds.split(',').map(Number).filter(Boolean) : [];
+  if (savedRandomIds.length > 0) {
+    // Add valid saved ones
+    for (const rId of savedRandomIds) {
+      if (selectedQuestIds.length >= totalCount) break;
+      if (questPoolById.has(rId) && !selectedQuestIds.includes(rId)) {
+        selectedQuestIds.push(rId);
+      }
+    }
+  }
+
+  // Fill remaining space from randomly generated quests if needed
   for (const quest of baseQuests) {
     if (selectedQuestIds.length >= totalCount) {
       break;
@@ -175,27 +370,34 @@ function composeDailyQuests(user, completedQuestIds = [], date = new Date(), exc
 }
 
 function calculateStreak(completedCount, currentStreak) {
-  if (completedCount >= 4) return currentStreak + 1;
-  if (completedCount === 3) return currentStreak;
-  return 0;
+  const rules = getStreakRuleConfig();
+  const successThreshold = Number(rules.successThresholdCompletedQuests) || 4;
+  const holdThreshold = Number(rules.holdThresholdCompletedQuests) || 3;
+  const resetThresholdMax = Number(rules.resetThresholdCompletedQuestsMax) || 2;
+
+  if (completedCount >= successThreshold) return currentStreak + 1;
+  if (completedCount >= holdThreshold) return currentStreak;
+  if (completedCount <= resetThresholdMax) return 0;
+  return currentStreak;
 }
 
 function milestoneRewardForCount(completedCount) {
-  if (completedCount === 8) return { bonusXp: 50, bonusTokens: 1 };
-  if (completedCount === 6) return { bonusXp: 30, bonusTokens: 0 };
-  if (completedCount === 4) return { bonusXp: 20, bonusTokens: 0 };
-  return { bonusXp: 0, bonusTokens: 0 };
+  return getConfiguredMilestoneRewardForCount(completedCount);
 }
 
 function applyBonusXpProgress(state, bonusXp) {
   let xp = state.xp + bonusXp;
   let level = state.level;
   let xpNext = state.xpNext;
+  
+  if (level === 1 && xpNext === 300) {
+    xpNext = 250;
+  }
 
   while (xp >= xpNext) {
     xp -= xpNext;
     level += 1;
-    xpNext = Math.floor(xpNext * 1.1);
+    xpNext = level === 1 ? 250 : Math.floor(xpNext * 1.1);
   }
 
   return { xp, level, xpNext };
@@ -423,6 +625,100 @@ async function updateAndReadProductivity(user, date = new Date(), options = {}) 
   };
 }
 
+
+app.get("/api/profile-stats/:username", async (req, res) => {
+  try {
+    const username = req.params.username.toLowerCase().replace(/[^a-z0-9_\-]/g, "").slice(0, 24);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "Not found" });
+
+    const totalQuestsCompleted = await prisma.questCompletion.count({ where: { userId: user.id } });
+
+    const dailyScores = await prisma.dailyScore.findMany({
+      where: { userId: user.id, tasksCompleted: { gt: 0 } },
+      orderBy: { dayKey: "asc" },
+      select: { dayKey: true }
+    });
+
+    let maxStreak = 0;
+    let currentStreakCounter = 0;
+    let prevDate = null;
+    for (const score of dailyScores) {
+      const [, y, m, d] = score.dayKey.match(/^(\d{4})-(\d{2})-(\d{2})$/) || [];
+      if (!y) continue;
+      const date = new Date(Number(y), Number(m) - 1, Number(d));
+      date.setHours(0, 0, 0, 0);
+
+      if (!prevDate) {
+        currentStreakCounter = 1;
+      } else {
+        const diff = Math.round((date - prevDate) / (1000 * 60 * 60 * 24));
+        if (diff === 1) {
+          currentStreakCounter++;
+        } else if (diff > 1) {
+          currentStreakCounter = 1;
+        }
+      }
+      prevDate = date;
+      if (currentStreakCounter > maxStreak) {
+        maxStreak = currentStreakCounter;
+      }
+    }
+
+    const allComps = await prisma.questCompletion.findMany({
+      where: { userId: user.id },
+      orderBy: { dayKey: "asc" },
+      select: { questId: true, dayKey: true }
+    });
+
+    const questGroups = {};
+    for (const c of allComps) {
+      if (!questGroups[c.questId]) questGroups[c.questId] = [];
+      questGroups[c.questId].push(c.dayKey);
+    }
+
+    let builtHabits = 0;
+    for (const qId of Object.keys(questGroups)) {
+      const dates = questGroups[qId];
+      let subStreak = 0;
+      let qPrev = null;
+      let qMax = 0;
+      for (const dStr of dates) {
+        const [, y, m, d] = dStr.match(/^(\d{4})-(\d{2})-(\d{2})$/) || [];
+        if (!y) continue;
+        const dt = new Date(Number(y), Number(m) - 1, Number(d));
+        dt.setHours(0, 0, 0, 0);
+
+        if (!qPrev) {
+          subStreak = 1;
+        } else {
+          const diff = Math.round((dt - qPrev) / (1000 * 60 * 60 * 24));
+          if (diff === 1) {
+            subStreak++;
+          } else if (diff > 1) {
+            subStreak = 1;
+          }
+        }
+        qPrev = dt;
+        if (subStreak > qMax) qMax = subStreak;
+      }
+      if (qMax >= 21) {
+        builtHabits++;
+      }
+    }
+
+    res.json({
+      totalQuestsCompleted,
+      maxStreak: Math.max(maxStreak, user.streak),
+      builtHabits,
+      joinedAt: user.createdAt
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "life-rpg-api" });
 });
@@ -431,6 +727,7 @@ app.get("/api/quests", (req, res) => {
   const language = getRequestLanguage(req);
   const username = typeof req.query.username === "string" ? req.query.username : "";
   const resetSeed = Number(req.query.resetSeed) || 0;
+  const streak = Number(req.query.streak) || 0;
   const dateParam = typeof req.query.date === "string" ? req.query.date : "";
   const parsedDate = dateParam ? new Date(dateParam) : new Date();
   const date = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
@@ -444,6 +741,7 @@ app.get("/api/quests", (req, res) => {
       username,
       resetSeed,
       pinnedQuestIds,
+      streak,
       language
     })
   });
@@ -524,7 +822,7 @@ app.post("/api/onboarding/complete", async (req, res) => {
     username: z.string().min(2).max(64),
     displayName: z.string().min(1).max(64),
     photoUrl: z.string().max(2_000_000).optional(),
-    preferredQuestIds: z.array(z.number().int().min(1)).length(4)
+    preferredQuestIds: z.array(z.number().int().min(1)).length(getPreferredQuestCount())
   });
 
   try {
@@ -537,13 +835,13 @@ app.post("/api/onboarding/complete", async (req, res) => {
     }
 
     const existingPreferred = parsePreferredQuestIds(user.preferredQuestIds);
-    if (existingPreferred.length === 4) {
+    if (existingPreferred.length >= getPreferredQuestCount()) {
       return res.status(409).json({ error: "Preferred quests are already locked" });
     }
 
-    const uniquePreferredQuestIds = [...new Set(parsed.preferredQuestIds)];
-    if (uniquePreferredQuestIds.length !== 4) {
-      return res.status(400).json({ error: "Pick exactly 4 unique preferred quests" });
+    const uniquePreferredQuestIds = [...new Set(parsed.preferredQuestIds)].slice(0, getPreferredQuestCount());
+    if (uniquePreferredQuestIds.length !== getPreferredQuestCount()) {
+      return res.status(400).json({ error: `Pick exactly ${getPreferredQuestCount()} unique preferred quests` });
     }
 
     const allQuestIds = new Set(getQuestPool().map((quest) => quest.id));
@@ -638,8 +936,7 @@ app.post("/api/quests/complete", async (req, res) => {
     }
 
     const pinnedQuestIds = parsePreferredQuestIds(user.preferredQuestIds);
-    const questBaseXp = pinnedQuestIds.includes(quest.id) ? 30 : 20;
-    const xpState = xpAfterQuest(user, { ...quest, xp: questBaseXp }, user.streak || 0);
+    const xpState = xpAfterQuest(user, quest, user.streak || 0);
     const previousPinnedQuestStreak = pinnedQuestIds.includes(quest.id)
       ? await getQuestConsecutiveDaysForUser(user.id, quest.id)
       : 0;
@@ -736,7 +1033,9 @@ app.post("/api/reset-daily", async (req, res) => {
     const schema = z.object({
       username: z.string().min(2).max(64),
       isReroll: z.boolean().optional(),
-      excludeCategories: z.array(z.string()).optional()
+      excludeCategories: z.array(z.string()).optional(),
+      targetQuestId: z.number().int().optional().nullable(),
+      keepQuestIds: z.array(z.number().int()).optional()
     });
     const parsed = schema.parse(req.body);
     const username = slugifyUsername(parsed.username);
@@ -811,11 +1110,39 @@ app.post("/api/reset-daily", async (req, res) => {
       }
     }
 
+    let newRandomQuestIds = "";
+
+    if (parsed.isReroll && parsed.targetQuestId && Array.isArray(parsed.keepQuestIds)) {
+      // Find one new quest from a newly seeded pool to replace the target
+      const { preferredQuestIds: pinned } = onboardingStatus(user);
+      const newPool = getDailyQuests({
+        date: now,
+        username,
+        resetSeed: now.getTime(),
+        pinnedQuestIds: pinned,
+        excludeCategories: parsed.excludeCategories || [],
+        streak: user.streak || 0,
+        language
+      });
+      
+      let replacementId = null;
+      for (const q of newPool) {
+        if (!parsed.keepQuestIds.includes(q.id) && q.id !== parsed.targetQuestId) {
+          replacementId = q.id;
+          break;
+        }
+      }
+      
+      const finalNonPinnedIds = [...parsed.keepQuestIds, replacementId].filter(Boolean);
+      newRandomQuestIds = finalNonPinnedIds.join(",");
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         lastDailyResetAt: now,
         lastStreakIncreaseAt: parsed.isReroll ? user.lastStreakIncreaseAt : null,
+        randomQuestIds: newRandomQuestIds, // Always replace or clear it!
         ...streakDecayData
       }
     });
@@ -1000,203 +1327,12 @@ app.post("/api/quests/reroll-pinned", async (req, res) => {
 });
 
 
-app.post("/api/quests/reroll-pinned_ORIG", async (req, res) => {
-  try {
-    const language = getRequestLanguage(req);
-    const schema = z.object({
-      username: z.string().min(2).max(64),
-      questIdToReroll: z.number().int().min(1),
-      useTokens: z.boolean().default(false)
-    });
-    const parsed = schema.parse(req.body);
-    const username = slugifyUsername(parsed.username);
-    const user = await prisma.user.findUnique({ where: { username } });
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    const preferredList = parsePreferredQuestIds(user.preferredQuestIds);
-    if (!preferredList.includes(parsed.questIdToReroll)) {
-      return res.status(400).json({ error: "Quest is not pinned" });
-    }
-
-    const now = new Date();
-    let isFree = !parsed.useTokens;
-
-    if (isFree) {
-      const msIn30Days = 30 * 24 * 60 * 60 * 1000;
-      if (user.lastFreeTaskRerollAt && (now.getTime() - new Date(user.lastFreeTaskRerollAt).getTime() < msIn30Days)) {
-         return res.status(400).json({ error: "Free reroll used in the last 30 days" });
-      }
-    } else {
-      if (user.tokens < 5) {
-        return res.status(400).json({ error: "Not enough tokens" });
-      }
-    }
-
-    const allQuestIds = new Set(getQuestPool().map((quest) => quest.id));
-    const oldQuest = getQuestById(parsed.questIdToReroll);
-    
-    // Generate valid replacement candidate (same category if possible, or any left)
-    const available = getQuestPool().filter(q => !preferredList.includes(q.id));
-    if (available.length === 0) return res.status(400).json({ error: "No quests available to swap" });
-    
-    let matchedCategoryQuests = available.filter(q => q.category === oldQuest?.category);
-    if (matchedCategoryQuests.length === 0) matchedCategoryQuests = available;
-    const newQuest = matchedCategoryQuests[Math.floor(Math.random() * matchedCategoryQuests.length)];
-
-    const uniquePreferredQuestIds = [...new Set(preferredList.map(id => id === parsed.questIdToReroll ? newQuest.id : id))];
-
-    const updateData = {
-      preferredQuestIds: serializePreferredQuestIds(uniquePreferredQuestIds)
-    };
-    if (!isFree) {
-      updateData.tokens = { decrement: 5 };
-    } else {
-      updateData.lastFreeTaskRerollAt = now;
-    }
-
-    const updatedUser = await prisma.user.update({
-      where: { id: user.id },
-      data: updateData
-    });
-
-    const dayKey = getDateKey(now);
-    const completions = await prisma.questCompletion.findMany({
-      where: { userId: user.id, dayKey },
-      select: { questId: true }
-    });
-    const completedQuestIds = completions.map((c) => c.questId);
-    
-    const quests = getDailyQuests({
-      date: now,
-      username: user.username,
-      resetSeed: 0,
-      pinnedQuestIds: uniquePreferredQuestIds,
-      language
-    });
-
-    res.json({
-      success: true,
-      tokens: updatedUser.tokens,
-      lastFreeTaskRerollAt: updatedUser.lastFreeTaskRerollAt,
-      preferredQuestIds: uniquePreferredQuestIds,
-      completedQuestIds,
-      quests
-    });
-
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ error: "Invalid request data", details: err.errors });
-    }
-    console.error("Reroll pinned error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-
-app.post("/api/quests/reroll-pinned_LEGACY", async (req, res) => {
-  try {
-    const language = getRequestLanguage(req);
-    const schema = z.object({
-      username: z.string().min(2).max(64),
-      questIdToReroll: z.number().int().min(1),
-      useTokens: z.boolean().default(false)
-    });
-    const parsed = schema.parse(req.body);
-    const username = slugifyUsername(parsed.username);
-    const user = await prisma.user.findUnique({ where: { username } });
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    const preferredList = parsePreferredQuestIds(user.preferredQuestIds);
-    if (!preferredList.includes(parsed.questIdToReroll)) {
-      return res.status(400).json({ error: "Quest is not pinned" });
-    }
-
-    const now = new Date();
-    let isFree = !parsed.useTokens;
-
-    if (isFree) {
-      const msIn30Days = 30 * 24 * 60 * 60 * 1000;
-      if (user.lastFreeTaskRerollAt && (now.getTime() - new Date(user.lastFreeTaskRerollAt).getTime() < msIn30Days)) {
-         return res.status(400).json({ error: "Free reroll used in the last 30 days" });
-      }
-    } else {
-      if (user.tokens < 5) {
-        return res.status(400).json({ error: "Not enough tokens" });
-      }
-    }
-
-    const allQuestIds = new Set(getQuestPool().map((quest) => quest.id));
-    const oldQuest = getQuestPool().find((q) => q.id === parsed.questIdToReroll);
-    
-    // Generate valid replacement candidate (same category if possible, or any left)
-    const available = getQuestPool().filter(q => !preferredList.includes(q.id));
-    if (available.length === 0) return res.status(400).json({ error: "No quests available to swap" });
-    
-    let matchedCategoryQuests = available.filter(q => q.category === oldQuest?.category);
-    if (matchedCategoryQuests.length === 0) matchedCategoryQuests = available;
-    const newQuest = matchedCategoryQuests[Math.floor(Math.random() * matchedCategoryQuests.length)];
-
-    const uniquePreferredQuestIds = [...new Set(preferredList.map(id => id === parsed.questIdToReroll ? newQuest.id : id))];
-
-    const updateData = {
-      preferredQuestIds: serializePreferredQuestIds(uniquePreferredQuestIds)
-    };
-    if (!isFree) {
-      updateData.tokens = { decrement: 5 };
-    } else {
-      updateData.lastFreeTaskRerollAt = now;
-    }
-
-    const updatedUser = await prisma.user.update({
-      where: { id: user.id },
-      data: updateData
-    });
-
-    const dayKey = getDateKey(now);
-    const completions = await prisma.questCompletion.findMany({
-      where: { userId: user.id, dayKey },
-      select: { questId: true }
-    });
-    const completedQuestIds = completions.map((c) => c.questId);
-    
-    const resetSeed = user.lastDailyResetAt?.getTime?.() ?? 0;
-    const quests = getDailyQuests({
-      date: now,
-      username: user.username,
-      resetSeed,
-      pinnedQuestIds: uniquePreferredQuestIds,
-      language
-    });
-
-    res.json({
-      success: true,
-      tokens: updatedUser.tokens,
-      lastFreeTaskRerollAt: updatedUser.lastFreeTaskRerollAt,
-      preferredQuestIds: uniquePreferredQuestIds,
-      completedQuestIds,
-      quests
-    });
-
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ error: "Invalid request data", details: err.errors });
-    }
-    console.error("Reroll pinned error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-
 app.post("/api/shop/replace-pinned-quests", async (req, res) => {
   try {
     const language = getRequestLanguage(req);
     const schema = z.object({
       username: z.string().min(2).max(64),
-      preferredQuestIds: z.array(z.number().int().min(1)).min(1).max(4),
+      preferredQuestIds: z.array(z.number().int().min(1)).min(1).max(getPreferredQuestCount()),
       useTokens: z.boolean().default(true)
     });
     const parsed = schema.parse(req.body);
@@ -1286,9 +1422,10 @@ app.post("/api/reset-hard", async (req, res) => {
       data: {
         level: 1,
         xp: 0,
-        xpNext: 300,
+        xpNext: 250,
         streak: 0,
         tokens: 0,
+        randomQuestIds: "",
         currentPI: null,
         currentTier: "IRON",
         weeksInCurrentTier: 0,
@@ -1304,7 +1441,7 @@ app.post("/api/reset-hard", async (req, res) => {
       ok: true,
       user: updatedUser,
       completedQuestIds: [],
-      quests: dailyQuestsForUser(updatedUser, now, language),
+      quests: composeDailyQuests(updatedUser, [], now, [], language),
       preferredQuestIds: parsePreferredQuestIds(updatedUser.preferredQuestIds),
       pinnedQuestProgress21d: [],
       ...buildServerTimeMeta(now)
@@ -1471,95 +1608,6 @@ app.get("/api/leaderboard", async (_req, res) => {
   }
 });
 
-app.post("/api/quest-feedback", async (req, res) => {
-  const schema = z.object({
-    username: z.string().min(2).max(64),
-    questId: z.union([z.string().min(1), z.number().int().positive()]).transform((value) => String(value)),
-    rating: z.number().int().min(0).max(10),
-    textNotes: z.string().trim().max(1000).optional().nullable(),
-    questionType: z.string().trim().min(1).max(200).default("How useful was this task?")
-  });
-
-  try {
-    const parsed = schema.parse(req.body);
-    const username = slugifyUsername(parsed.username);
-    const user = await prisma.user.findUnique({ where: { username } });
-
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    const feedback = await prisma.questFeedback.create({
-      data: {
-        userId: user.id,
-        questId: parsed.questId,
-        rating: parsed.rating,
-        textNotes: parsed.textNotes || null,
-        questionType: parsed.questionType || "How useful was this task?"
-      }
-    });
-
-    res.json({ ok: true, feedback });
-  } catch (error) {
-    res.status(400).json({ error: "Invalid request", detail: error.message });
-  }
-});
-
-app.get("/api/analytics/feedback", async (req, res) => {
-  try {
-    const language = getRequestLanguage(req);
-    const questPool = getQuestPool({ language });
-    const feedbacksRaw = await prisma.questFeedback.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 100
-    });
-
-    const userIds = [...new Set(feedbacksRaw.map((f) => f.userId))];
-    const users = userIds.length
-      ? await prisma.user.findMany({
-          where: { id: { in: userIds } },
-          select: { id: true, displayName: true, username: true }
-        })
-      : [];
-
-    const userMap = new Map(users.map((u) => [u.id, u]));
-    const feedbacks = feedbacksRaw.map((f) => ({
-      ...f,
-      user: userMap.get(f.userId) || null
-    }));
-
-    const stats = await prisma.questFeedback.groupBy({
-      by: ["questId", "questionType"],
-      _avg: { rating: true },
-      _count: { rating: true }
-    });
-
-    const questStats = await prisma.questFeedback.groupBy({
-      by: ["questId"],
-      _avg: { rating: true },
-      _count: { rating: true }
-    });
-
-    const questStatMap = new Map(questStats.map((entry) => [String(entry.questId), entry]));
-    const questRatings = questPool.map((quest) => {
-      const questId = String(quest.id);
-      const stat = questStatMap.get(questId);
-      return {
-        questId,
-        questTitle: quest.title,
-        questDescription: quest.description || "",
-        avgRating: typeof stat?._avg?.rating === "number" ? stat._avg.rating : null,
-        ratingCount: stat?._count?.rating || 0
-      };
-    });
-
-    res.json({ feedbacks, stats, questRatings });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
 app.post("/api/admin/reset-all-users", async (req, res) => {
   const adminSecret = process.env.ADMIN_SECRET;
   if (!adminSecret) {
@@ -1590,7 +1638,7 @@ app.post("/api/admin/reset-all-users", async (req, res) => {
           preferredQuestIds: "",
           level: 1,
           xp: 0,
-          xpNext: 300,
+          xpNext: 250,
           strPoints: 0,
           intPoints: 0,
           staPoints: 0,
@@ -1636,3 +1684,21 @@ if (isMainModule) {
 
 export default app;
 
+app.post("/api/profiles/theme", async (req, res) => {
+  const schema = z.object({
+    username: z.string().min(2).max(64),
+    theme: z.string().min(1).max(64)
+  });
+  try {
+    const parsed = schema.parse(req.body);
+    const username = slugifyUsername(parsed.username);
+    if (!username) return res.status(400).json({ error: "Invalid username" });
+    const user = await prisma.user.update({
+      where: { username },
+      data: { theme: parsed.theme },
+    });
+    res.json({ ok: true, theme: user.theme });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});

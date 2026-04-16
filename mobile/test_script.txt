@@ -1,0 +1,30 @@
+function buildWebMessageHandler() {
+  return `
+    (function() {
+      const bridge = window.ReactNativeWebView;
+      if (!bridge) return;
+      function sendTheme() {
+        const computed = getComputedStyle(document.body);
+        const rgbPanel = computed.getPropertyValue('--panel-bg').trim();
+        const rgbPrimary = computed.getPropertyValue('--color-primary').trim();
+        const rgbText = computed.getPropertyValue('--color-text').trim();
+        const hexBg = computed.getPropertyValue('--bg-body-color').trim();
+        
+        bridge.postMessage(JSON.stringify({
+          type: 'theme-colors',
+          colors: {
+            panelBg: rgbPanel || "rgba(8, 15, 30, 0.88)",
+            primary: rgbPrimary || "#fbbf24",
+            text: rgbText || "#94a3b8",
+            bg: hexBg || "#020617"
+          }
+        }));
+      }
+      
+      const observer = new MutationObserver(sendTheme);
+      observer.observe(document.body, { attributes: true, attributeFilter: ["data-theme"] });
+      window.addEventListener("load", sendTheme);
+      setTimeout(sendTheme, 500); // Initial check
+    })();
+  `;
+}

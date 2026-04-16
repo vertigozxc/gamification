@@ -1,0 +1,195 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project /Users/vertigozxc/Documents/gamification/mobile/ios/LifeRPGMobile.xcodeproj -configuration Debug -scheme LifeRPGMobile -destination id=35F3B33F-C0D7-4AB8-9C7C-062350E9F666
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (1 target)
+    Target 'LifeRPGMobile' in project 'LifeRPGMobile' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.4.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.4.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/ibtool --version --output-format xml1
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Users/vertigozxc/Documents/gamification/mobile/ios/LifeRPGMobile/Images.xcassets
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --version --output-format xml1
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+Build description signature: f6e9dd49148b98ba4e07e6b7b6435e5b
+Build description path: /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/XCBuildData/f6e9dd49148b98ba4e07e6b7b6435e5b.xcbuilddata
+CreateBuildDirectory /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Products
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios/LifeRPGMobile.xcodeproj
+    builtin-create-build-directory /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Products
+
+CreateBuildDirectory /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios/LifeRPGMobile.xcodeproj
+    builtin-create-build-directory /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex
+
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.4.sdk /Users/vertigozxc/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.4-23E237-686eebb5dc1d8ecb277353a59184f4aa.sdkstatcache
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios/LifeRPGMobile.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.4.sdk -o /Users/vertigozxc/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.4-23E237-686eebb5dc1d8ecb277353a59184f4aa.sdkstatcache
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile-c98668e54b0e5a649cbc7e0925d75912-VFS-iphonesimulator/all-product-headers.yaml
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios/LifeRPGMobile.xcodeproj
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile-c98668e54b0e5a649cbc7e0925d75912-VFS-iphonesimulator/all-product-headers.yaml
+
+CreateBuildDirectory /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Products/Debug-iphonesimulator
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios/LifeRPGMobile.xcodeproj
+    builtin-create-build-directory /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Products/Debug-iphonesimulator
+
+CreateBuildDirectory /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios/LifeRPGMobile.xcodeproj
+    builtin-create-build-directory /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+CreateBuildDirectory /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/ExplicitPrecompiledModules
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios/LifeRPGMobile.xcodeproj
+    builtin-create-build-directory /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+CreateBuildDirectory /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios/LifeRPGMobile.xcodeproj
+    builtin-create-build-directory /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Script-08A4A3CD28434E44B6B9DE2E.sh (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Script-08A4A3CD28434E44B6B9DE2E.sh
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Script-800E24972A6A228C8D4807E9.sh (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Script-800E24972A6A228C8D4807E9.sh
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Script-00DD1BFF1BD5951E006B06BC.sh (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Script-00DD1BFF1BD5951E006B06BC.sh
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile.hmap (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile.hmap
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile-project-headers.hmap (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile-project-headers.hmap
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile-own-target-headers.hmap (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile-own-target-headers.hmap
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile-generated-files.hmap (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile-generated-files.hmap
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile-all-target-headers.hmap (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile-all-target-headers.hmap
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Objects-normal/arm64/LifeRPGMobile_const_extract_protocols.json (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Objects-normal/arm64/LifeRPGMobile_const_extract_protocols.json
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile-all-non-framework-target-headers.hmap (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile-all-non-framework-target-headers.hmap
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Objects-normal/arm64/7187679823f38a2a940e0043cdf9d637-common-args.resp (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Objects-normal/arm64/7187679823f38a2a940e0043cdf9d637-common-args.resp
+'-std=gnu99' -fmodules -gmodules '-fmodules-cache-path=/Users/vertigozxc/Library/Developer/Xcode/DerivedData/ModuleCache.noindex' -fpascal-strings -O0 -fno-common '-DDEBUG=1' '-DFB_SONARKIT_ENABLED=1' -g -iquote /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile-generated-files.hmap -I/Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile-own-target-headers.hmap -I/Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile-all-target-headers.hmap -iquote /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile-project-headers.hmap -I/Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Products/Debug-iphonesimulator/include -I/Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/DerivedSources-normal/arm64 -I/Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/DerivedSources/arm64 -I/Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/DerivedSources -F/Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Products/Debug-iphonesimulator
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Objects-normal/arm64/LifeRPGMobile-OutputFileMap.json (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Objects-normal/arm64/LifeRPGMobile-OutputFileMap.json
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Objects-normal/arm64/LifeRPGMobile.LinkFileList (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Objects-normal/arm64/LifeRPGMobile.LinkFileList
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Objects-normal/arm64/LifeRPGMobile.SwiftFileList (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Objects-normal/arm64/LifeRPGMobile.SwiftFileList
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Objects-normal/arm64/LifeRPGMobile.SwiftConstValuesFileList (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Objects-normal/arm64/LifeRPGMobile.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile.DependencyStaticMetadataFileList (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile.DependencyMetadataFileList (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile.DependencyMetadataFileList
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile-DebugDylibPath-normal-arm64.txt (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile-DebugDylibPath-normal-arm64.txt
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile-DebugDylibInstallName-normal-arm64.txt (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile-DebugDylibInstallName-normal-arm64.txt
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/DerivedSources/LifeRPGMobile_vers.c (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/DerivedSources/LifeRPGMobile_vers.c
+
+WriteAuxiliaryFile /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/DerivedSources/Entitlements-Simulated.plist (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    write-file /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/DerivedSources/Entitlements-Simulated.plist
+
+MkDir /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Products/Debug-iphonesimulator/LifeRPGMobile.app (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    /bin/mkdir -p /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Products/Debug-iphonesimulator/LifeRPGMobile.app
+
+ProcessProductPackaging /Users/vertigozxc/Documents/gamification/mobile/ios/LifeRPGMobile/LifeRPGMobile.entitlements /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile.app.xcent (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    
+    Entitlements:
+    
+    {
+}
+    
+    builtin-productPackagingUtility /Users/vertigozxc/Documents/gamification/mobile/ios/LifeRPGMobile/LifeRPGMobile.entitlements -entitlements -format xml -o /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile.app.xcent
+
+ProcessProductPackaging /Users/vertigozxc/Documents/gamification/mobile/ios/LifeRPGMobile/LifeRPGMobile.entitlements /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile.app-Simulated.xcent (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    
+    Entitlements:
+    
+    {
+    "application-identifier" = "FAKETEAMID.com.liferpg.mobile";
+}
+    
+    builtin-productPackagingUtility /Users/vertigozxc/Documents/gamification/mobile/ios/LifeRPGMobile/LifeRPGMobile.entitlements -entitlements -format xml -o /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile.app-Simulated.xcent
+
+ProcessProductPackagingDER /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile.app.xcent /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile.app.xcent.der (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    /usr/bin/derq query -f xml -i /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile.app.xcent -o /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile.app.xcent.der --raw
+
+ProcessProductPackagingDER /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile.app-Simulated.xcent /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile.app-Simulated.xcent.der (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    /usr/bin/derq query -f xml -i /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile.app-Simulated.xcent -o /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/LifeRPGMobile.app-Simulated.xcent.der --raw
+
+PhaseScriptExecution [CP]\ Check\ Pods\ Manifest.lock /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Script-08A4A3CD28434E44B6B9DE2E.sh (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
+    cd /Users/vertigozxc/Documents/gamification/mobile/ios
+    /bin/sh -c /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Script-08A4A3CD28434E44B6B9DE2E.sh
+diff: /Podfile.lock: No such file or directory
+error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.
+
+note: Run script build phase 'Bundle React Native code and images' will be run during every build because the option to run the script phase "Based on dependency analysis" is unchecked. (in target 'LifeRPGMobile' from project 'LifeRPGMobile')

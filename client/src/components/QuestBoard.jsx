@@ -1,5 +1,8 @@
 ﻿import PropTypes from "prop-types";
+import { useRef, useState, useLayoutEffect, useCallback, useMemo } from "react";
 import { useTheme } from "../ThemeContext";
+import { QuestItem } from "./QuestItem";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 
 function QuestBoard({
   pinnedQuests,
@@ -13,141 +16,201 @@ function QuestBoard({
   questRenderCount,
   onCompleteQuest,
   resetTimer,
-  streakFreezeActive
+  streakFreezeActive,
+  compact = false
 }) {
   const { t } = useTheme();
+  const hasPinned = pinnedQuests.length > 0;
+  const hasOther = otherQuests.length > 0;
+  const tabs = [];
+  if (hasPinned) tabs.push("habits");
+  if (hasOther) tabs.push("daily");
+  const [activeQTab, setActiveQTab] = useState(tabs[0] || "habits");
+  const [selectedRerollId, setSelectedRerollId] = useState(null);
+  const indicatorRef = useRef(null);
+  const tabsRowRef = useRef(null);
+
+  const [pinnedListRef] = useAutoAnimate();
+  const [otherListRef] = useAutoAnimate();
+  const [fallbackListRef] = useAutoAnimate();
+
+  const sortQuests = useCallback((quests) => {
+    return [...quests].sort((a, b) => {
+      const aDone = completedIds.includes(a.id);
+      const bDone = completedIds.includes(b.id);
+      if (aDone === bDone) return 0;
+      return aDone ? 1 : -1;
+    });
+  }, [completedIds]);
+
+  const sortedPinnedQuests = useMemo(() => sortQuests(pinnedQuests), [pinnedQuests, sortQuests]);
+  const sortedOtherQuests = useMemo(() => sortQuests(otherQuests), [otherQuests, sortQuests]);
+
+  useLayoutEffect(() => {
+    if (!tabsRowRef.current || !indicatorRef.current) return;
+    const activeBtn = tabsRowRef.current.querySelector(`[data-qtab="${activeQTab}"]`);
+    if (!activeBtn) return;
+    indicatorRef.current.style.width = `${activeBtn.offsetWidth}px`;
+    indicatorRef.current.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
+  }, [activeQTab, tabs.length]);
+
   const totalQuestCount = pinnedQuests.length + otherQuests.length;
   const remainingQuestCount = Math.max(0, totalQuestCount - completedIds.length);
+  const pinnedDone = pinnedQuests.filter((q) => completedIds.includes(q.id)).length;
+  const otherDone = otherQuests.filter((q) => completedIds.includes(q.id)).length;
 
   return (
-    <div className="lg:col-span-2 relative">
-      <div className="rounded-2xl p-6" style={{ background: "var(--section-quest-bg)", border: "2px solid var(--section-quest-border)" }}>
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-3">
-            <span className="quest-header-icon">🧭</span>
-            <h2 className="cinzel text-2xl text-transparent bg-clip-text tracking-widest" style={{ backgroundImage: "var(--quest-heading-gradient)" }}>
-              {t.availableItems} <span className="text-lg align-middle">({remainingQuestCount}/{totalQuestCount})</span>
-            </h2>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3 sm:justify-end mt-4" />
+    <div className={`relative ${compact ? "" : "lg:col-span-2"}`}>
+      {/* Timer + streak badge row */}
+      <div className="flex items-center justify-between gap-2 mb-3 px-1">
+        <div className="flex items-center gap-2 text-slate-400" style={{ fontSize: "0.72rem" }}>
+          <span>⏰</span>
+          <span className="cinzel">{t.dailyResetLabel}</span>
+          <span className="font-mono font-bold" style={{ color: "var(--color-primary)" }}>{resetTimer}</span>
         </div>
-
-        <div className="text-sm text-slate-300 text-center mb-6 flex justify-center items-center gap-2">
-          <div>
-            ⏰ {t.dailyResetLabel} <span className="font-bold font-mono" style={{ color: "var(--color-primary)" }}>{resetTimer}</span>
-          </div>
-          <div className="relative group inline-block cursor-help z-50">
-            <svg className="w-5 h-5 text-slate-400 hover:text-cyan-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-56 p-3 bg-slate-800 text-xs text-slate-200 rounded border border-slate-600 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all text-left font-sans normal-case tracking-normal shadow-[0_0_15px_rgba(0,0,0,0.5)] pointer-events-none">
-              {t.dailyBoardTooltip || "Ежедневная доска, случайные задания и прогресс стрика обновляются в полночь по локальному времени. Не забывайте выполнять задания, чтобы получать награды и повышать стрик!"}
-            </div>
-          </div>
+        <div className="flex items-center gap-2">
           {streakFreezeActive && (
-            <span className="ml-3 inline-flex items-center gap-1 bg-cyan-900/50 border border-cyan-500/60 rounded-full px-2.5 py-0.5 text-xs text-cyan-300 cinzel">
+            <span className="inline-flex items-center gap-1 bg-cyan-900/40 rounded-full px-2 py-0.5 text-[10px] text-cyan-300 cinzel">
               {t.streakProtectedBadge}
             </span>
           )}
+          <span className="cinzel text-[11px] text-slate-500">{remainingQuestCount}/{totalQuestCount}</span>
         </div>
+      </div>
 
-        {pinnedQuests.length > 0 && (
-          <div className="mb-5 rounded-2xl p-4 shadow-lg" style={{ background: "var(--pinned-section-bg)", border: "2px solid var(--pinned-section-border)", boxShadow: "0 4px 24px rgba(0,0,0,0.2)" }}>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="cinzel text-sm uppercase tracking-[0.2em] font-bold" style={{ color: "var(--pinned-heading)" }}>{t.pinnedSection}</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {pinnedQuests.map((quest, index) => {
+      {/* Animated tab switcher */}
+      {tabs.length > 1 && (
+        <div className="qb-tab-bar mb-4" ref={tabsRowRef}>
+          <div className="qb-tab-indicator" ref={indicatorRef} />
+          <button
+            type="button"
+            data-qtab="habits"
+            className={`qb-tab-btn ${activeQTab === "habits" ? "qb-tab-active" : ""}`}
+            onClick={() => setActiveQTab("habits")}
+          >
+            <span>📌</span> {t.pinnedSection} <span className="qb-tab-count">{pinnedDone}/{pinnedQuests.length}</span>
+          </button>
+          <button
+            type="button"
+            data-qtab="daily"
+            className={`qb-tab-btn ${activeQTab === "daily" ? "qb-tab-active" : ""}`}
+            onClick={() => setActiveQTab("daily")}
+          >
+            <span>🎲</span> {t.otherSection} <span className="qb-tab-count">{otherDone}/{otherQuests.length}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Tab content with crossfade */}
+      <div className="qb-tab-content">
+        {/* Habits / Pinned tab */}
+        {activeQTab === "habits" && hasPinned && (
+          <div className="qb-panel-enter">
+            <div ref={pinnedListRef} className={`grid grid-cols-1 ${compact ? "gap-3" : "md:grid-cols-2 gap-3"}`}>
+              {sortedPinnedQuests.map((quest, index) => {
                 const isDone = completedIds.includes(quest.id);
                 const pinnedProgress = pinnedQuestProgressById?.[quest.id] || { daysCompleted: 0, totalDays: 21 };
                 const progressPercent = Math.max(0, Math.min(100, (pinnedProgress.daysCompleted / pinnedProgress.totalDays) * 100));
 
                 return (
-                  <div
+                  <QuestItem
                     key={`pinned-${quest.id}`}
-                    className={`quest-card p-5 rounded-xl flex flex-col min-h-[15rem] ${isDone ? "completed" : ""}`}
-                    style={Object.assign({ background: "var(--card-pinned-bg)", border: "2px solid var(--card-pinned-border)" }, !isDone && questRenderCount === 0 ? { animationDelay: `${index * 0.1}s` } : {})}
-                    onClick={(event) => onCompleteQuest(quest, event)}
+                    quest={quest}
+                    index={index}
+                    isDone={isDone}
+                    questRenderCount={questRenderCount}
+                    compact={compact}
+                    t={t}
+                    onCompleteQuest={onCompleteQuest}
+                    isLongTapOnly={true}
                   >
-                    <div className="quest-card-meta">
-                      <div className="quest-category-block">
-                        <p className="quest-category-value">{String(quest.category || "Uncategorized").toUpperCase()}</p>
+                    <div className="mt-2.5 pl-9 pointer-events-none">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] cinzel tracking-wider uppercase" style={{ color: "var(--color-primary)" }}>{t.progressLabel || "Progress"}</span>
+                        <span className="cinzel text-xs font-bold text-slate-300">{pinnedProgress.daysCompleted}/{pinnedProgress.totalDays}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="cinzel text-xs md:text-sm font-bold px-3 py-1.5 rounded-full" style={{ background: "var(--xp-badge-bg)", color: "var(--xp-badge-text)" }}>+{quest.xp} {t.xpLabel}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex-grow mt-3">
-                      <h3 className="cinzel text-lg text-white font-bold mb-1">{quest.title}</h3>
-                      <p className="text-slate-300 text-sm">{quest.desc}</p>
-                    </div>
-
-                    <div className="mt-3 pt-2 border-t border-slate-700/60">
-                      <div className="flex items-center justify-between gap-3 mb-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <p className="cinzel text-[11px] tracking-widest uppercase shrink-0" style={{ color: "var(--color-primary)" }}>{t.progressLabel || "Progress"}</p>
-                          <span className="cinzel text-sm font-bold text-white">{pinnedProgress.daysCompleted}/{pinnedProgress.totalDays}</span>
-                        </div>
-                        {isDone && (
-                          <span className="completed-badge" style={{ position: "static", transform: "none", padding: "0.26rem 0.65rem", fontSize: "0.72rem", letterSpacing: "0.12em" }}>
-                            {t.completedLabel}
-                          </span>
-                        )}
-                      </div>
-                      <div className="w-full h-4 bg-black rounded-full border border-yellow-700 overflow-hidden shadow-inner">
-                        <div className="bar-fill h-full rounded-full" style={{ width: `${progressPercent}%` }} />
+                      <div className="qb-progress-track">
+                        <div className="qb-progress-fill" style={{ width: `${progressPercent}%` }} />
                       </div>
                     </div>
-                  </div>
+                  </QuestItem>
                 );
               })}
             </div>
           </div>
         )}
 
-        {otherQuests.length > 0 && (
-          <div className="rounded-2xl p-4 shadow-lg" style={{ background: "var(--pinned-section-bg)", border: "2px solid var(--pinned-section-border)", boxShadow: "0 4px 24px rgba(0,0,0,0.2)" }}>
-            <div className="mb-3">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="cinzel text-sm uppercase tracking-[0.2em] font-bold" style={{ color: "var(--pinned-heading)" }}>{t.otherSection}</h3>
-                <button
-                  type="button"
-                  onClick={onRerollRandom}
-                  disabled={!canRerollRandom}
-                  className="cinzel font-bold px-4 py-2 rounded-lg border transition-all text-[11px] flex justify-center items-center gap-1.5 whitespace-nowrap bg-gradient-to-r from-violet-700 to-purple-700 border-violet-400 text-white hover:from-violet-600 hover:to-purple-600 shadow-md shadow-violet-900/50 disabled:opacity-40 disabled:cursor-not-allowed"
-                  title={rerollButtonTitle}
-                >
-                  <span>🎲</span>
-                  {rerollButtonLabel}
-                </button>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {otherQuests.map((quest, index) => {
+        {/* Daily / Other quests tab */}
+        {activeQTab === "daily" && hasOther && (
+          <div className="qb-panel-enter flex flex-col">
+            <div ref={otherListRef} className={`grid grid-cols-1 ${compact ? "gap-3" : "md:grid-cols-2 gap-3"}`}>
+              {sortedOtherQuests.map((quest, index) => {
                 const isDone = completedIds.includes(quest.id);
                 return (
-                  <div
+                  <QuestItem
                     key={quest.id}
-                    className={`quest-card p-5 rounded-xl flex flex-col justify-between h-48 ${isDone ? "completed" : ""}`}
-                    style={!isDone && questRenderCount === 0 ? { animationDelay: `${(index + 4) * 0.1}s` } : {}}
-                    onClick={(event) => onCompleteQuest(quest, event)}
-                  >
-                    <div className="quest-card-meta">
-                      <div className="quest-category-block">
-                        <p className="quest-category-value">{String(quest.category || "Uncategorized").toUpperCase()}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="cinzel text-xs md:text-sm font-bold px-3 py-1.5 rounded-full" style={{ background: "var(--xp-badge-bg)", color: "var(--xp-badge-text)" }}>+{quest.xp} {t.xpLabel}</span>
-                      </div>
-                    </div>
-                    <div className="flex-grow mt-3">
-                      <h3 className="cinzel text-lg text-white font-bold mb-1">{quest.title}</h3>
-                      <p className="text-slate-300 text-sm">{quest.desc}</p>
-                    </div>
-                    {!isDone && <div className="text-xs cinzel text-slate-400">{t.clickPrompt}</div>}
-                    {isDone && <span className="completed-badge">{t.completedLabel}</span>}
-                  </div>
+                    quest={quest}
+                    index={index}
+                    isDone={isDone}
+                    questRenderCount={questRenderCount}
+                    compact={compact}
+                    t={t}
+                    onCompleteQuest={onCompleteQuest}
+                    isLongTapOnly={true}
+                  />
                 );
               })}
+            </div>
+            <div className="mt-4 flex justify-center">
+              <button
+                type="button"
+                onClick={onRerollRandom}
+                disabled={!canRerollRandom}
+                className="mobile-pressable qb-reroll-btn"
+                title={rerollButtonTitle}
+              >
+                <span>🎲</span>
+                {rerollButtonLabel}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Fallback when only one type exists */}
+        {tabs.length <= 1 && !hasPinned && hasOther && (
+          <div className="qb-panel-enter flex flex-col">
+            <div className="mb-3">
+              <h3 className="cinzel text-sm font-bold tracking-wider" style={{ color: "var(--pinned-heading)" }}>{t.otherSection}</h3>
+            </div>
+            <div ref={fallbackListRef} className={`grid grid-cols-1 ${compact ? "gap-3" : "md:grid-cols-2 gap-3"}`}>
+              {sortedOtherQuests.map((quest, index) => {
+                const isDone = completedIds.includes(quest.id);
+                return (
+                  <QuestItem
+                    key={quest.id}
+                    quest={quest}
+                    index={index}
+                    isDone={isDone}
+                    questRenderCount={questRenderCount}
+                    compact={compact}
+                    t={t}
+                    onCompleteQuest={onCompleteQuest}
+                    isLongTapOnly={true}
+                  />
+                );
+              })}
+            </div>
+            <div className="mt-4 flex justify-center">
+              <button
+                type="button"
+                onClick={onRerollRandom}
+                disabled={!canRerollRandom}
+                className="mobile-pressable qb-reroll-btn"
+                title={rerollButtonTitle}
+              >
+                <span>🎲</span>
+                {rerollButtonLabel}
+              </button>
             </div>
           </div>
         )}
@@ -182,7 +245,8 @@ QuestBoard.propTypes = {
   questRenderCount: PropTypes.number.isRequired,
   onCompleteQuest: PropTypes.func.isRequired,
   resetTimer: PropTypes.string.isRequired,
-  streakFreezeActive: PropTypes.bool.isRequired
+  streakFreezeActive: PropTypes.bool.isRequired,
+  compact: PropTypes.bool
 };
 
 export default QuestBoard;

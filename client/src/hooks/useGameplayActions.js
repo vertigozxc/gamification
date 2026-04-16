@@ -43,7 +43,7 @@ function useGameplayActions({
       .filter((item) => Number.isInteger(item.questId) && item.questId > 0);
   }
 
-  function mergeRerolledQuestsInPlace(currentQuests, rerolledQuests, completedQuestIds) {
+  function mergeRerolledQuestsInPlace(currentQuests, rerolledQuests, completedQuestIds, targetQuestId) {
     if (!Array.isArray(currentQuests) || currentQuests.length === 0) {
       return Array.isArray(rerolledQuests) ? rerolledQuests : [];
     }
@@ -56,7 +56,17 @@ function useGameplayActions({
       const quest = currentQuests[index];
       const isPinnedSlot = index < 4;
       const isCompleted = completedSet.has(quest.id);
-      if (isPinnedSlot || isCompleted) {
+
+      let shouldLock = isPinnedSlot || isCompleted;
+      if (targetQuestId) {
+        if (quest.id !== targetQuestId) {
+          shouldLock = true;
+        } else {
+          shouldLock = false;
+        }
+      }
+
+      if (shouldLock) {
         next[index] = quest;
         lockedQuestIds.add(quest.id);
       }
@@ -222,28 +232,37 @@ function useGameplayActions({
   }
 
   function handleReroll(completedToday, canReroll) {
-    if (completedToday >= 8) return;
+    if (completedToday >= 6) return;
     if (canReroll) setShowRerollConfirm(true);
   }
 
-  async function doReroll() {
+  async function doReroll(targetQuestId) {
     setShowRerollConfirm(false);
     try {
       // Exclude categories already shown by non-pinned quests that stay locked (completed quests).
-      const currentOtherQuests = Array.isArray(quests) ? quests.slice(4) : [];
+      const preferredQuestCount = Array.isArray(state.preferredQuestIds) && state.preferredQuestIds.length > 0 ? state.preferredQuestIds.length : 3;
+      const currentOtherQuests = Array.isArray(quests) ? quests.slice(preferredQuestCount) : [];
       const completedSet = new Set(Array.isArray(state.completed) ? state.completed : []);
       const excludeCategories = currentOtherQuests
         .filter((quest) => completedSet.has(quest?.id))
         .map((quest) => quest?.category)
         .filter((category) => category && category.length > 0);
       
-      const result = await resetDaily(authUser.uid, true, excludeCategories);
+      const keepQuestIds = currentOtherQuests
+        .filter((q) => q && q.id !== targetQuestId)
+        .map((q) => q.id);
+
+      const result = await resetDaily(authUser.uid, true, excludeCategories, targetQuestId, keepQuestIds);
       if (typeof onServerTimeSync === "function") {
         onServerTimeSync(result);
       }
       const nextQuests = Array.isArray(result?.quests) ? result.quests.map(normalizeQuest) : [];
       const nextCompleted = Array.isArray(result?.completedQuestIds) ? result.completedQuestIds : state.completed;
-      setQuests((prevQuests) => mergeRerolledQuestsInPlace(prevQuests, nextQuests, nextCompleted));
+      
+      // Since the server now accurately provides exactly the 3 random quests needed for a total of 90 XP,
+      // and has already preserved the kept quests and replaced the target one, we can just use the results directly!
+      setQuests(nextQuests);
+      
       setState((prev) => ({
         ...prev,
         completed: nextCompleted,

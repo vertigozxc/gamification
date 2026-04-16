@@ -24,7 +24,8 @@ function normalizeQuest(raw) {
     id: Number(raw?.id),
     title: String(raw?.title || "Quest"),
     desc: String(raw?.desc ?? raw?.description ?? ""),
-    xp: Number(raw?.xp ?? raw?.base_xp ?? 0)
+    xp: Number(raw?.xp ?? raw?.base_xp ?? 0),
+    category: String(raw?.category || "Uncategorized")
   };
 }
 
@@ -50,7 +51,8 @@ export default function HomeScreen() {
       xp: Number(gameStateResponse?.user?.xp ?? 0),
       xpNext: Number(gameStateResponse?.user?.xpNext ?? 300),
       streak: Number(gameStateResponse?.streak ?? 0),
-      tokens: Number(gameStateResponse?.user?.tokens ?? 0)
+      tokens: Number(gameStateResponse?.user?.tokens ?? 0),
+      displayName: gameStateResponse?.user?.displayName || targetUsername
     });
 
     setCompleted(Array.isArray(gameStateResponse?.completedQuestIds) ? gameStateResponse.completedQuestIds : []);
@@ -118,6 +120,7 @@ export default function HomeScreen() {
     if (!username || completed.includes(quest.id)) return;
     try {
       await completeQuest(username, quest.id);
+      Alert.alert("Success!", `+${quest.xp} XP`);
       await handleRefresh();
     } catch (error) {
       Alert.alert("Complete failed", error.message);
@@ -129,23 +132,42 @@ export default function HomeScreen() {
       return null;
     }
 
+    const xpPercent = Math.min(100, (state.xp / state.xpNext) * 100);
+    const remainingQuests = quests.length - completed.length;
+
     return (
-      <View style={styles.statsWrap}>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Level</Text>
-          <Text style={styles.statValue}>{state.lvl}</Text>
+      <View style={styles.header}>
+        <View style={styles.statsWrap}>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Level</Text>
+            <Text style={styles.statValue}>{state.lvl}</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Streak</Text>
+            <Text style={styles.statValue}>🔥 {state.streak}</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Tokens</Text>
+            <Text style={styles.statValue}>🪙 {state.tokens}</Text>
+          </View>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Streak</Text>
-          <Text style={styles.statValue}>{state.streak}</Text>
+
+        <View style={styles.progressCard}>
+          <Text style={styles.progressLabel}>XP Progress</Text>
+          <Text style={styles.progressText}>{state.xp}/{state.xpNext}</Text>
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: `${xpPercent}%` }]} />
+          </View>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Tokens</Text>
-          <Text style={styles.statValue}>{state.tokens}</Text>
+
+        <View style={styles.countCard}>
+          <Text style={styles.countText}>
+            {remainingQuests}/{quests.length} quests remaining
+          </Text>
         </View>
       </View>
     );
-  }, [state]);
+  }, [state, quests, completed]);
 
   if (initializing) {
     return (
@@ -162,7 +184,8 @@ export default function HomeScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.authScreenContent}>
-          <Text style={styles.title}>Life RPG Mobile (iOS beta)</Text>
+          <Text style={styles.title}>Life RPG Mobile</Text>
+          <Text style={styles.subtitle}>Enter The Realm</Text>
           <View style={styles.authBox}>
             <TextInput
               value={usernameDraft}
@@ -176,7 +199,11 @@ export default function HomeScreen() {
               returnKeyType="done"
               onSubmitEditing={handleSaveUsername}
             />
-            <Pressable disabled={submitting} style={[styles.saveButton, submitting && styles.saveButtonDisabled]} onPress={handleSaveUsername}>
+            <Pressable
+              disabled={submitting}
+              style={[styles.saveButton, submitting && styles.saveButtonDisabled]}
+              onPress={handleSaveUsername}
+            >
               <Text style={styles.saveButtonText}>{submitting ? "Loading..." : "Load Profile"}</Text>
             </Pressable>
             {!!authError && <Text style={styles.errorText}>{authError}</Text>}
@@ -188,7 +215,10 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Life RPG Mobile (iOS beta)</Text>
+      <View style={styles.headerTop}>
+        <Text style={styles.headerTitle}>Quests</Text>
+        <Text style={styles.headerSubtitle}>{state?.displayName || username}</Text>
+      </View>
 
       <FlatList
         data={quests}
@@ -212,60 +242,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 14,
     backgroundColor: "#0f172a"
   },
-  title: {
+  headerTop: {
+    paddingTop: 14,
+    paddingBottom: 8
+  },
+  headerTitle: {
     color: "#e2e8f0",
-    fontSize: 20,
+    fontSize: 28,
     fontWeight: "800",
-    marginBottom: 12
+    marginBottom: 4
   },
-  authScreenContent: {
-    flexGrow: 1,
-    justifyContent: "center"
+  headerSubtitle: {
+    color: "#94a3b8",
+    fontSize: 14
   },
-  authBox: {
-    backgroundColor: "#111827",
-    borderWidth: 1,
-    borderColor: "#334155",
-    borderRadius: 12,
-    padding: 10,
-    marginBottom: 12,
-    gap: 8
-  },
-  input: {
-    backgroundColor: "#0b1220",
-    borderColor: "#334155",
-    borderWidth: 1,
-    borderRadius: 10,
-    color: "#e2e8f0",
-    paddingHorizontal: 12,
-    paddingVertical: 10
-  },
-  saveButton: {
-    backgroundColor: "#0284c7",
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: "center"
-  },
-  saveButtonDisabled: {
-    backgroundColor: "#334155"
-  },
-  saveButtonText: {
-    color: "#f8fafc",
-    fontWeight: "700"
-  },
-  errorText: {
-    color: "#fda4af",
-    fontSize: 12,
-    lineHeight: 16,
-    marginTop: 2
-  },
-  loadingWrap: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center"
+  header: {
+    marginBottom: 20
   },
   statsWrap: {
     flexDirection: "row",
@@ -278,17 +272,127 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#334155",
-    padding: 10
+    padding: 12,
+    alignItems: "center"
   },
   statLabel: {
     color: "#94a3b8",
-    fontSize: 12
+    fontSize: 11,
+    fontWeight: "600",
+    marginBottom: 4
   },
   statValue: {
     color: "#e2e8f0",
-    marginTop: 4,
     fontWeight: "800",
-    fontSize: 20
+    fontSize: 18
+  },
+  progressCard: {
+    backgroundColor: "#111827",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#334155",
+    padding: 12,
+    marginBottom: 12
+  },
+  progressLabel: {
+    color: "#94a3b8",
+    fontSize: 11,
+    fontWeight: "600",
+    marginBottom: 6
+  },
+  progressText: {
+    color: "#cbd5e1",
+    fontSize: 12,
+    marginBottom: 8
+  },
+  progressBar: {
+    height: 6,
+    backgroundColor: "#0b1220",
+    borderRadius: 3,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#334155"
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: "#22d3ee",
+    borderRadius: 3
+  },
+  countCard: {
+    backgroundColor: "#111827",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#334155",
+    padding: 12,
+    alignItems: "center"
+  },
+  countText: {
+    color: "#cbd5e1",
+    fontSize: 13,
+    fontWeight: "600"
+  },
+  title: {
+    color: "#e2e8f0",
+    fontSize: 32,
+    fontWeight: "800",
+    marginBottom: 4,
+    textAlign: "center"
+  },
+  subtitle: {
+    color: "#cbd5e1",
+    fontSize: 16,
+    marginBottom: 24,
+    textAlign: "center"
+  },
+  authScreenContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: 16
+  },
+  authBox: {
+    backgroundColor: "#111827",
+    borderWidth: 1,
+    borderColor: "#334155",
+    borderRadius: 12,
+    padding: 20,
+    gap: 12
+  },
+  input: {
+    backgroundColor: "#0b1220",
+    borderColor: "#334155",
+    borderWidth: 1,
+    borderRadius: 10,
+    color: "#e2e8f0",
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 16
+  },
+  saveButton: {
+    backgroundColor: "#0284c7",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center"
+  },
+  saveButtonDisabled: {
+    backgroundColor: "#334155",
+    opacity: 0.6
+  },
+  saveButtonText: {
+    color: "#f8fafc",
+    fontWeight: "700",
+    fontSize: 16
+  },
+  errorText: {
+    color: "#fda4af",
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 8
+  },
+  loadingWrap: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#0f172a"
   },
   listContent: {
     paddingBottom: 26

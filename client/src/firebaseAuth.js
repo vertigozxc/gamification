@@ -1,5 +1,5 @@
-import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { initializeApp, getApp, getApps } from "firebase/app";
+import { getAuth, GoogleAuthProvider, browserLocalPersistence, setPersistence } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -25,8 +25,11 @@ if (missingKeys.length > 0) {
   firebaseInitError = `Missing Firebase env vars: ${missingKeys.join(", ")}.`;
 } else {
   try {
-    const app = initializeApp(firebaseConfig);
+    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
+    setPersistence(auth, browserLocalPersistence).catch((err) => {
+      console.warn("Failed to set auth persistence:", err);
+    });
     googleProvider = new GoogleAuthProvider();
     googleProvider.setCustomParameters({ prompt: "select_account" });
   } catch (error) {

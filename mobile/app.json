@@ -2,6 +2,7 @@
   "expo": {
     "name": "Life RPG Mobile",
     "slug": "life-rpg-mobile",
+    "scheme": "liferpgmobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
@@ -11,14 +12,27 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.liferpg.mobile"
+      "bundleIdentifier": "com.liferpg.mobile",
+      "infoPlist": {
+        "NSLocalNetworkUsageDescription": "Allow Life RPG Mobile to connect to your Mac during development.",
+        "NSBonjourServices": [
+          "_expo._tcp",
+          "_expo-dev-client._tcp",
+          "_expo-development-client._tcp"
+        ],
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSAllowsLocalNetworking": true
+        }
+      }
     },
     "android": {
       "package": "com.liferpg.mobile"
     },
     "extra": {
-      "apiBaseUrl": "http://192.168.1.4:4000",
-      "webAppUrl": "http://192.168.1.4:5173"
-    }
+      "apiBaseUrl": "http://192.168.70.243:4000",
+      "webAppUrl": "http://192.168.70.243:5173"
+    },
+    "plugins": []
   }
 }

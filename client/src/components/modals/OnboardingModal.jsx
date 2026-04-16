@@ -34,21 +34,34 @@ function OnboardingModal({
   };
 
   const handleStartRequest = () => {
-    if (onboardingName.trim() === "" || onboardingQuestIds.length !== 4) {
+    if (onboardingName.trim() === "" || onboardingQuestIds.length !== 3) {
       onComplete(); // let parent show error
     } else {
       setShowWarning(true);
     }
   };
 
+  const handleCloseClick = () => {
+    onClose();
+  };
+
   if (!open) return null;
 
   return (
-    <div className="logout-confirm-overlay" style={{ zIndex: 80 }}>
+    <div 
+      className="logout-confirm-overlay" 
+      style={{ zIndex: 80 }}
+      onClick={(e) => {
+        // Close only if clicking on overlay background, not the card
+        if (e.target === e.currentTarget) {
+          handleCloseClick();
+        }
+      }}
+    >
       <div className="logout-confirm-card relative" style={{ maxWidth: "900px", width: "95vw", maxHeight: "90vh", overflowY: "auto" }}>
 
         <button
-          onClick={onClose}
+          onClick={handleCloseClick}
           className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
           style={{ background: "transparent", border: "none", padding: "8px", cursor: "pointer", fontSize: "20px" }}
           title={t.cancelAndLogout}
@@ -76,7 +89,7 @@ function OnboardingModal({
         <div className="mt-5">
           <div className="flex items-center justify-between mb-2">
             <label className="cinzel text-xs tracking-widest uppercase" style={{ color: "var(--color-primary)" }}>{t.onboardingPick}</label>
-            <span className="cinzel text-xs text-slate-300">{onboardingQuestIds.length} / 4 {t.onboardingSelected}</span>
+            <span className="cinzel text-xs text-slate-300">{onboardingQuestIds.length} / 3 {t.onboardingSelected}</span>
           </div>
           <input
             type="text"
@@ -105,7 +118,7 @@ function OnboardingModal({
                   <div className="p-2 grid grid-cols-1 md:grid-cols-2 gap-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
                     {categories[cat].map(quest => {
                       const isSelected = onboardingQuestIds.includes(quest.id);
-                      const blocked = !isSelected && onboardingQuestIds.length >= 4;
+                      const blocked = !isSelected && onboardingQuestIds.length >= 3;
                       return (
                         <button
                           key={quest.id}
@@ -131,15 +144,6 @@ function OnboardingModal({
 
         <div className="logout-confirm-actions mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <button
-            className="text-xs uppercase tracking-widest text-slate-400 hover:text-white transition-colors"
-            onClick={onClose}
-            type="button"
-            style={{ padding: "8px 16px" }}
-          >
-            ← {t.logOutAndCancel}
-          </button>
-
-          <button
             className="logout-confirm-proceed cinzel"
             onClick={handleStartRequest}
             disabled={onboardingSaving}
@@ -149,6 +153,15 @@ function OnboardingModal({
             }}
           >
             {onboardingSaving ? t.onboardingSaving : t.onboardingBegin}
+          </button>
+
+          <button
+            className="text-xs uppercase tracking-widest text-slate-400 hover:text-white transition-colors"
+            onClick={handleCloseClick}
+            type="button"
+            style={{ padding: "8px 16px" }}
+          >
+            ← {t.logOutAndCancel}
           </button>
         </div>
       </div>

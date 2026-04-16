@@ -6,7 +6,7 @@ import WebAppScreen from "./src/screens/WebAppScreen";
 export default function App() {
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+      <SafeAreaView style={styles.container} edges={["left", "right"]}>
         <StatusBar style="light" />
         <WebAppScreen />
       </SafeAreaView>
@@ -17,6 +17,6 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f172a"
+    backgroundColor: "#020617"
   }
 });

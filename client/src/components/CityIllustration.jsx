@@ -314,6 +314,58 @@ function GroundMist({ isRainyDay }) {
   );
 }
 
+/* Grass layer — rendered separately BEFORE buildings so grass hides behind them */
+function GrassLayer({ stage }) {
+  const isPaved = stage >= 5;
+  const isCity = stage >= 12;
+  if (isCity) return null;
+
+  const rng = seededRNG(stage * 3210 + 77);
+  const count = isPaved ? 60 : 200;
+
+  return (
+    <g>
+      {Array.from({ length: count }).map((_, i) => {
+        const gx = rng() * W;
+        const gh = isPaved ? (4 + rng() * 7) : (8 + rng() * 18);
+        const lean = (-3 + rng() * 6) * (isPaved ? 0.5 : 1);
+        const shade = pickRandom(["#4ade80", "#22c55e", "#16a34a", "#86efac", "#15803d", "#a3e635"], rng);
+        const sw = isPaved ? (1.5 + rng() * 1) : (2 + rng() * 2.5);
+        const opacity = isPaved ? 0.45 : (0.7 + rng() * 0.3);
+        return (
+          <path
+            key={`grass-${i}`}
+            d={`M${gx},${GROUND} Q${gx + lean},${GROUND - gh * 0.6} ${gx + lean * 0.6},${GROUND - gh}`}
+            fill="none"
+            stroke={shade}
+            strokeWidth={sw}
+            strokeLinecap="round"
+            opacity={opacity}
+          />
+        );
+      })}
+      {/* Bushy tufts along the ground line */}
+      {!isPaved && Array.from({ length: 60 }).map((_, i) => {
+        const tx = rng() * W;
+        const tw = 10 + rng() * 16;
+        const th = 4 + rng() * 6;
+        const shade = pickRandom(["#4ade80", "#22c55e", "#16a34a", "#86efac", "#15803d"], rng);
+        return (
+          <ellipse
+            key={`tuft-${i}`}
+            cx={tx}
+            cy={GROUND}
+            rx={tw / 2}
+            ry={th / 2}
+            fill={shade}
+            opacity={0.55 + rng() * 0.35}
+          />
+        );
+      })}
+    </g>
+  );
+}
+
 function Ground({ stage, isRainyDay }) {
   const isPaved = stage >= 5;
   const isCity = stage >= 12;
@@ -1224,6 +1276,7 @@ export default function CityIllustration({ height = "500px", stage = 1, weatherC
         
         <BackgroundCity stage={level} />
         <AtmosphereOrnaments stage={level} />
+        <GrassLayer stage={level} />
         {buildings}
         
         {trees}

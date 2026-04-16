@@ -7,7 +7,7 @@ This folder contains the React Native/Expo rewrite start for iPhone, with Androi
 - Expo app scaffold (`mobile/`)
 - API integration with the existing backend (`/api/game-state`, `/api/quests/all`, `/api/quests/complete`)
 - Username-based profile bootstrap (`/api/profiles/upsert`)
-- Basic mobile gameplay shell:
+- Native mobile gameplay shell (default app screen):
   - load profile
   - view level/streak/tokens
   - view quests

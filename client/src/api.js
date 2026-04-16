@@ -1,4 +1,31 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
+function resolveApiBase() {
+  const configured = String(import.meta.env.VITE_API_BASE_URL || "").trim();
+
+  if (typeof window !== "undefined") {
+    const protocol = window.location.protocol || "http:";
+    const host = window.location.hostname || "localhost";
+
+    if (configured) {
+      try {
+        const parsed = new URL(configured);
+        if ((parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") && host !== "localhost" && host !== "127.0.0.1") {
+          parsed.hostname = host;
+          return parsed.toString().replace(/\/$/, "");
+        }
+      } catch {
+        // ignore malformed env URL and fall back below
+      }
+
+      return configured;
+    }
+
+    return `${protocol}//${host}:4000`;
+  }
+
+  return configured || "http://localhost:4000";
+}
+
+const API_BASE = resolveApiBase();
 const LANGUAGE_STORAGE_KEY = "rpg_language";
 
 function getSelectedLanguage() {
@@ -61,10 +88,10 @@ export function completeQuest(username, questId) {
   });
 }
 
-export function resetDaily(username, isReroll = false, excludeCategories = []) {
+export function resetDaily(username, isReroll = false, excludeCategories = [], targetQuestId = null, keepQuestIds = []) {
   return request("/api/reset-daily", {
     method: "POST",
-    body: JSON.stringify({ username, isReroll, excludeCategories })
+    body: JSON.stringify({ username, isReroll, excludeCategories, targetQuestId, keepQuestIds })
   });
 }
 
@@ -131,13 +158,33 @@ export async function rerollPinned(username, useTokens) {
   });
 }
 
-export function submitQuestFeedback(username, questId, rating, textNotes, questionType = 'How useful was this task?') {
-  return request('/api/quest-feedback', {
-    method: 'POST',
-    body: JSON.stringify({ username, questId, rating, textNotes, questionType })
+export function storeMobileAuthToken(user, bridgeId = "") {
+  return request("/api/auth/mobile-token", {
+    method: "POST",
+    body: JSON.stringify({
+      uid: user.uid,
+      displayName: user.displayName || "",
+      email: user.email || "",
+      photoURL: user.photoURL || "",
+      bridgeId: bridgeId || ""
+    })
   });
 }
 
-export function fetchQuestFeedbackAnalytics() {
-  return request('/api/analytics/feedback');
+export function retrieveMobileAuthToken(token) {
+  return request(`/api/auth/mobile-token/${encodeURIComponent(token)}`);
+}
+
+export function retrieveMobileAuthTokenByBridge(bridgeId) {
+  return request(`/api/auth/mobile-bridge/${encodeURIComponent(bridgeId)}`);
+}
+
+export function fetchProfileStats(username) {
+  return request(`/api/profile-stats/${encodeURIComponent(username)}`);
+}
+export function updateTheme(username, theme) {
+  return request("/api/profiles/theme", {
+    method: "POST",
+    body: JSON.stringify({ username, theme })
+  });
 }

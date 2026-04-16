@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { useTheme } from "../ThemeContext";
 
+const PREFERRED_QUEST_LIMIT = 3;
+
 function useOnboardingPinned({
   authUser,
   state,
@@ -124,7 +126,7 @@ function useOnboardingPinned({
       if (prev.includes(questId)) {
         return prev.filter((id) => id !== questId);
       }
-      if (prev.length >= 4) {
+      if (prev.length >= PREFERRED_QUEST_LIMIT) {
         return prev;
       }
       return [...prev, questId];
@@ -136,7 +138,7 @@ function useOnboardingPinned({
       if (prev.includes(questId)) {
         return prev.filter((id) => id !== questId);
       }
-      if (prev.length >= 4) {
+      if (prev.length >= PREFERRED_QUEST_LIMIT) {
         return prev;
       }
       return [...prev, questId];
@@ -147,12 +149,12 @@ function useOnboardingPinned({
     setReplacePinnedError("");
     setReplacePinnedSaving(false);
     setReplacePinnedSearch("");
-    setReplacePinnedQuestIds(Array.isArray(state.preferredQuestIds) ? state.preferredQuestIds.slice(0, 4) : []);
+    setReplacePinnedQuestIds(Array.isArray(state.preferredQuestIds) ? state.preferredQuestIds.slice(0, PREFERRED_QUEST_LIMIT) : []);
     setShowPinnedReplaceModal(true);
   }
 
   async function handleBuyPinnedReplacement() {
-    if (replacePinnedQuestIds.length !== 4) {
+    if (replacePinnedQuestIds.length !== PREFERRED_QUEST_LIMIT) {
       setReplacePinnedError(t.pickExactly4Quests);
       return;
     }
@@ -198,7 +200,7 @@ function useOnboardingPinned({
       setOnboardingError(t.nicknameRequired);
       return;
     }
-    if (onboardingQuestIds.length !== 4) {
+    if (onboardingQuestIds.length !== PREFERRED_QUEST_LIMIT) {
       setOnboardingError(t.pickExactly4PreferredQuests);
       return;
     }

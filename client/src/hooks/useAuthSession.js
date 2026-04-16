@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getRedirectResult,
   onAuthStateChanged,
@@ -6,20 +6,155 @@ import {
   signInWithRedirect,
   signOut
 } from "firebase/auth";
+import { retrieveMobileAuthTokenByBridge, storeMobileAuthToken } from "../api";
+
+function resolveApiBaseForAuth() {
+  if (typeof window === "undefined") {
+    return "http://localhost:4000";
+  }
+  const protocol = window.location.protocol || "http:";
+  const host = window.location.hostname || "localhost";
+  return `${protocol}//${host}:4000`;
+}
+
+const MOBILE_EMBEDDED_SESSION_KEY = "life_rpg_mobile_embedded_session";
+const EXTERNAL_AUTOSTART_MARKER_KEY = "life_rpg_external_autostart_done";
 
 function isEmbeddedBrowser() {
-  if (typeof navigator === "undefined") {
+  if (typeof window === "undefined") {
     return false;
   }
 
-  const ua = String(navigator.userAgent || "").toLowerCase();
-  return (
-    ua.includes("wv") ||
-    ua.includes("fb_iab") ||
-    ua.includes("instagram") ||
-    ua.includes("line/") ||
-    ua.includes("webview")
-  );
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("embed") === "1") {
+      return true;
+    }
+  } catch {
+    // ignore
+  }
+
+  const ua = String(navigator?.userAgent || "").toLowerCase();
+  return ua.includes("wv") || ua.includes("webview") || ua.includes("fb_iab") || ua.includes("instagram");
+}
+
+function isExternalAuthMode() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("authMode") === "external";
+  } catch {
+    return false;
+  }
+}
+
+function getAuthBridgeId() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return String(params.get("bridgeId") || "").trim();
+  } catch {
+    return "";
+  }
+}
+
+function shouldAutostartExternalAuth() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("authMode") === "external" && params.get("autostart") === "1";
+  } catch {
+    return false;
+  }
+}
+
+function getAuthNonce() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return String(params.get("authNonce") || "").trim();
+  } catch {
+    return "";
+  }
+}
+
+function getReturnScheme() {
+  if (typeof window === "undefined") {
+    return "com.liferpg.mobile";
+  }
+
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const value = String(params.get("returnScheme") || "").trim();
+    return value || "com.liferpg.mobile";
+  } catch {
+    return "com.liferpg.mobile";
+  }
+}
+
+function getExternalAutostartMarker(bridgeId, authNonce = "") {
+  return `${EXTERNAL_AUTOSTART_MARKER_KEY}:${bridgeId || "default"}:${authNonce || "none"}`;
+}
+
+function markExternalAutostartDone(bridgeId, authNonce = "") {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(getExternalAutostartMarker(bridgeId, authNonce), "1");
+  } catch {
+    // ignore
+  }
+}
+
+function wasExternalAutostartDone(bridgeId, authNonce = "") {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    return window.sessionStorage.getItem(getExternalAutostartMarker(bridgeId, authNonce)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function clearExternalAutostartMarker(bridgeId, authNonce = "") {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.removeItem(getExternalAutostartMarker(bridgeId, authNonce));
+  } catch {
+    // ignore
+  }
+}
+
+function toSafeAuthUser(userLike) {
+  if (!userLike?.uid) {
+    return null;
+  }
+
+  return {
+    uid: String(userLike.uid),
+    displayName: String(userLike.displayName || userLike.email || "Adventurer"),
+    email: String(userLike.email || ""),
+    photoURL: String(userLike.photoURL || "")
+  };
 }
 
 function toReadableAuthError(error) {
@@ -27,24 +162,96 @@ function toReadableAuthError(error) {
   const message = String(error?.message || "Google sign-in failed.");
 
   if (code.includes("auth/operation-not-supported-in-this-environment")) {
-    return "Google sign-in is not supported in this embedded browser. Open the app in Safari/Chrome.";
+    return "Google sign-in is not supported in embedded browser. Use external auth flow.";
   }
 
   if (code.includes("auth/unauthorized-domain")) {
-    return "Current domain is not authorized in Firebase Auth. Add this host to Firebase Authentication -> Authorized domains.";
+    return "Current domain is not authorized in Firebase Auth. Add this host in Firebase Authentication -> Authorized domains.";
   }
 
-  if (message.toLowerCase().includes("requested action is invalid")) {
-    return "Google rejected this sign-in request in the current browser context. Try again or open in Safari/Chrome.";
+  if (code.includes("auth/popup-blocked")) {
+    return "Popup was blocked. Try again.";
   }
 
   return message;
+}
+
+function readEmbeddedSessionUser() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(MOBILE_EMBEDDED_SESSION_KEY);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw);
+    return toSafeAuthUser(parsed);
+  } catch {
+    return null;
+  }
+}
+
+function saveEmbeddedSessionUser(userLike) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const safeUser = toSafeAuthUser(userLike);
+  if (!safeUser) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(MOBILE_EMBEDDED_SESSION_KEY, JSON.stringify(safeUser));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function clearEmbeddedSessionUser() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(MOBILE_EMBEDDED_SESSION_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+function clearFirebaseStorageArtifacts() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  for (const store of [window.localStorage, window.sessionStorage]) {
+    if (!store) {
+      continue;
+    }
+
+    const keysToRemove = [];
+    for (let i = 0; i < store.length; i += 1) {
+      const key = store.key(i) || "";
+      if (key.startsWith("firebase:authUser:") || key.startsWith("firebase:redirectUser:")) {
+        keysToRemove.push(key);
+      }
+    }
+
+    keysToRemove.forEach((key) => store.removeItem(key));
+  }
 }
 
 function useAuthSession({ auth, googleProvider, firebaseInitError = "" }) {
   const [authUser, setAuthUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState("");
+  const [loggedOut, setLoggedOut] = useState(false);
+
+  const bridgeLookupInFlightRef = useRef(false);
+  const externalRedirectStartedRef = useRef(false);
 
   useEffect(() => {
     if (!auth) {
@@ -55,40 +262,186 @@ function useAuthSession({ auth, googleProvider, firebaseInitError = "" }) {
       return undefined;
     }
 
-    const unsub = onAuthStateChanged(auth, (user) => {
-      setAuthUser(user);
+    setAuthLoading(true);
+
+    if (!loggedOut && isEmbeddedBrowser()) {
+      const persistedUser = readEmbeddedSessionUser();
+      if (persistedUser?.uid) {
+        setAuthUser(persistedUser);
+        setAuthLoading(false);
+      }
+    }
+
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const safeUser = toSafeAuthUser(user);
+        if (isEmbeddedBrowser()) {
+          saveEmbeddedSessionUser(safeUser);
+        }
+
+        if (isExternalAuthMode()) {
+          const bridgeId = getAuthBridgeId();
+          if (bridgeId) {
+            try {
+              await storeMobileAuthToken(safeUser, bridgeId);
+              const returnScheme = getReturnScheme();
+              const apiBase = resolveApiBaseForAuth();
+              // Use server HTTP 302 redirect — reliably intercepted by ASWebAuthenticationSession
+              window.location.replace(`${apiBase}/api/auth/mobile-complete?bridgeId=${encodeURIComponent(bridgeId)}&scheme=${encodeURIComponent(returnScheme)}`);
+            } catch (storeErr) {
+              // Last-resort: try direct deep link
+              try {
+                const returnScheme = getReturnScheme();
+                window.location.replace(`${returnScheme}://auth-complete?bridgeId=${encodeURIComponent(bridgeId)}`);
+              } catch {
+                // ignore
+              }
+            }
+          }
+        }
+
+        setAuthUser(safeUser);
+        setAuthLoading(false);
+        return;
+      }
+
+      if (!loggedOut && isEmbeddedBrowser()) {
+        const persistedUser = readEmbeddedSessionUser();
+        if (persistedUser?.uid) {
+          setAuthUser(persistedUser);
+          setAuthLoading(false);
+          return;
+        }
+
+        const bridgeId = getAuthBridgeId();
+        if (bridgeId && !bridgeLookupInFlightRef.current) {
+          bridgeLookupInFlightRef.current = true;
+          try {
+            const response = await retrieveMobileAuthTokenByBridge(bridgeId);
+            const bridgedUser = toSafeAuthUser(response?.user);
+            if (bridgedUser) {
+              saveEmbeddedSessionUser(bridgedUser);
+              setAuthUser(bridgedUser);
+              setAuthLoading(false);
+              return;
+            }
+          } catch {
+            // nothing yet from external browser, remain unauthenticated
+          } finally {
+            bridgeLookupInFlightRef.current = false;
+          }
+        }
+      }
+
+      setAuthUser(null);
       setAuthLoading(false);
     });
 
-    // Resolve pending redirect sign-in results.
-    getRedirectResult(auth).catch((error) => {
-      setAuthError(toReadableAuthError(error));
-    });
+    const bridgeIdForAutostart = getAuthBridgeId();
+    const authNonceForAutostart = getAuthNonce();
+    if (
+      googleProvider &&
+      shouldAutostartExternalAuth() &&
+      isExternalAuthMode() &&
+      !isEmbeddedBrowser() &&
+      !externalRedirectStartedRef.current &&
+      !wasExternalAutostartDone(bridgeIdForAutostart, authNonceForAutostart)
+    ) {
+      externalRedirectStartedRef.current = true;
+      markExternalAutostartDone(bridgeIdForAutostart, authNonceForAutostart);
+      signInWithRedirect(auth, googleProvider).catch((error) => {
+        externalRedirectStartedRef.current = false;
+        setAuthError(toReadableAuthError(error));
+        setAuthLoading(false);
+      });
+    }
 
-    return () => unsub();
-  }, [auth]);
+    // Resolve pending redirect result first. In external auth mode,
+    // launch redirect only when there is no redirect result user yet.
+    getRedirectResult(auth)
+      .then(async (result) => {
+        const bridgeId = getAuthBridgeId();
+        const authNonce = getAuthNonce();
+        if (result?.user) {
+          const safeUser = toSafeAuthUser(result.user);
+          setAuthUser(safeUser);
+          setAuthLoading(false);
+          externalRedirectStartedRef.current = false;
+          clearExternalAutostartMarker(bridgeId, authNonce);
+
+          // In external auth mode, also trigger the redirect here (redundancy with onAuthStateChanged)
+          if (isExternalAuthMode() && bridgeId) {
+            try {
+              await storeMobileAuthToken(safeUser, bridgeId);
+              const returnScheme = getReturnScheme();
+              const apiBase = resolveApiBaseForAuth();
+              window.location.replace(`${apiBase}/api/auth/mobile-complete?bridgeId=${encodeURIComponent(bridgeId)}&scheme=${encodeURIComponent(returnScheme)}`);
+            } catch {
+              try {
+                const returnScheme = getReturnScheme();
+                window.location.replace(`${returnScheme}://auth-complete?bridgeId=${encodeURIComponent(bridgeId)}`);
+              } catch {
+                // ignore
+              }
+            }
+          }
+          return;
+        }
+      })
+      .catch((error) => {
+        setAuthError(toReadableAuthError(error));
+        setAuthLoading(false);
+      });
+
+    return () => {
+      unsub();
+    };
+  }, [auth, googleProvider, firebaseInitError, loggedOut]);
 
   async function handleGoogleLogin() {
     if (!auth || !googleProvider) {
-      setAuthError(firebaseInitError || "Google sign-in is not configured yet.");
+      setAuthError(firebaseInitError || "Google sign-in is not configured.");
+      return;
+    }
+
+    setAuthError("");
+    setLoggedOut(false);
+
+    if (isEmbeddedBrowser()) {
+      try {
+        const bridge = window.ReactNativeWebView;
+        if (bridge && typeof bridge.postMessage === "function") {
+          bridge.postMessage(JSON.stringify({ type: "google-login-request" }));
+          return;
+        }
+      } catch {
+        // ignore and try redirect fallback
+      }
+
+      try {
+        await signInWithRedirect(auth, googleProvider);
+      } catch (error) {
+        setAuthError(toReadableAuthError(error));
+      }
+      return;
+    }
+
+    if (isExternalAuthMode()) {
+      try {
+        await signInWithRedirect(auth, googleProvider);
+      } catch (error) {
+        setAuthError(toReadableAuthError(error));
+      }
       return;
     }
 
     try {
-      setAuthError("");
-
-      // Popup is unreliable in embedded browsers/WebView, so use redirect there.
-      if (isEmbeddedBrowser()) {
-        await signInWithRedirect(auth, googleProvider);
-        return;
-      }
-
       await signInWithPopup(auth, googleProvider);
-    } catch (error) {
+    } catch (popupError) {
       try {
         await signInWithRedirect(auth, googleProvider);
       } catch (redirectError) {
-        setAuthError(toReadableAuthError(redirectError || error));
+        setAuthError(toReadableAuthError(redirectError || popupError));
       }
     }
   }
@@ -100,12 +453,17 @@ function useAuthSession({ auth, googleProvider, firebaseInitError = "" }) {
     }
 
     try {
+      setLoggedOut(true);
+      setAuthError("");
+      setAuthUser(null);
+      clearEmbeddedSessionUser();
+      clearFirebaseStorageArtifacts();
       await signOut(auth);
       if (typeof onSuccess === "function") {
         onSuccess();
       }
     } catch (error) {
-      setAuthError(error?.message || "Logout failed.");
+      setAuthError(toReadableAuthError(error));
     }
   }
 

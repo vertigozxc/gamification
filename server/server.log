@@ -1,0 +1,5 @@
+
+> life-rpg-server@1.0.0 start
+> node src/index.js
+
+Life RPG API running on http://localhost:4000

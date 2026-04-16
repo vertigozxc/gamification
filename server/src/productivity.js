@@ -29,7 +29,7 @@ export function disciplineFactor(tasksCompleted) {
 export function calculateDailyScore(xpToday, baseTasksCompleted, tasksCompleted) {
   const safeXpToday = clamp(Number(xpToday) || 0, 0, MAX_DAILY_XP);
   const safeBaseCompleted = clamp(Number(baseTasksCompleted) || 0, 0, 4);
-  const safeTasksCompleted = clamp(Number(tasksCompleted) || 0, 0, 8);
+  const safeTasksCompleted = clamp(Number(tasksCompleted) || 0, 0, 6);
 
   const score =
     (safeXpToday / MAX_DAILY_XP) *

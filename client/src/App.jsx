@@ -2,6 +2,7 @@
 import { auth, googleProvider, firebaseInitError } from "./firebaseAuth";
 import {
   upsertProfile,
+  updateTheme,
   syncState as syncStateToServer,
   fetchLeaderboard,
   fetchGameState,
@@ -13,7 +14,8 @@ import {
   freezeStreak,
   buyExtraReroll,
   replacePinnedQuests,
-  rerollPinned
+  rerollPinned,
+  fetchProfileStats
 } from "./api";
 import FreezeSuccessModal from "./components/modals/FreezeSuccessModal";
 import RerollConfirmModal from "./components/modals/RerollConfirmModal";
@@ -23,22 +25,44 @@ import OnboardingModal from "./components/modals/OnboardingModal";
 import PinnedReplacementModal from "./components/modals/PinnedReplacementModal";
 import QuestBoard from "./components/QuestBoard";
 import TokenVault from "./components/TokenVault";
-import PostTaskFeedbackModal from "./components/modals/PostTaskFeedbackModal";
-import AnalyticsPage from "./components/AnalyticsPage";
-import { submitQuestFeedback } from "./api";
 import ProfilePanel from "./components/ProfilePanel";
 import CityIllustration from "./components/CityIllustration";
+import LanguageSelector from "./components/LanguageSelector";
 import SidePanels from "./components/SidePanels";
 import useGameplayActions from "./hooks/useGameplayActions";
 import useAuthSession from "./hooks/useAuthSession";
 import useOnboardingPinned from "./hooks/useOnboardingPinned";
 import { useTheme } from "./ThemeContext";
 import themes, { themeIds } from "./themeConfig";
+import InteractiveMapWrapper from "./components/InteractiveMapWrapper";
 
 const saveKey         = (uid) => `rpg_save_${uid}`;
 const characterNameKey = (uid) => `rpg_character_name_${uid}`;
 const portraitKey      = (uid) => `rpg_portrait_${uid}`;
 const notesKey         = (uid) => `rpg_private_notes_${uid}`;
+const MOBILE_TAB_STORAGE_KEY = "life_rpg_mobile_tab";
+
+function normalizeMobileTab(value) {
+  const normalized = String(value || "").toLowerCase();
+  if (["dashboard", "leaderboard", "city", "store", "profile"].includes(normalized)) {
+    return normalized;
+  }
+  return "dashboard";
+}
+
+function getMobileTabIndex(tab) {
+  const order = ["dashboard", "leaderboard", "city", "store", "profile"];
+  const index = order.indexOf(tab);
+  return index >= 0 ? index : 2;
+}
+
+function getMobileTabTitle(tab, t) {
+  if (tab === "dashboard") return t.mobileDashboardLabel;
+  if (tab === "leaderboard") return t.mobileLeaderboardLabel;
+  if (tab === "store") return t.mobileStoreLabel;
+  if (tab === "profile") return t.mobileProfileLabel;
+  return t.mobileCityLabel;
+}
 
 function getQuestIcon(stat) {
   if (stat === "int") {
@@ -229,10 +253,46 @@ function App() {
     authUser,
     authLoading,
     authError,
-    setAuthError,
     handleGoogleLogin,
     handleLogout
   } = useAuthSession({ auth, googleProvider, firebaseInitError });
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (authUser || authLoading) {
+      return;
+    }
+
+    let authMode = "";
+    let autostart = "";
+    let authNonce = "";
+    try {
+      const params = new URLSearchParams(window.location.search);
+      authMode = String(params.get("authMode") || "");
+      autostart = String(params.get("autostart") || "");
+      authNonce = String(params.get("authNonce") || "");
+    } catch {
+      return;
+    }
+
+    if (authMode !== "external" || autostart !== "1") {
+      return;
+    }
+
+    const markerKey = `life_rpg_app_external_autostart:${authNonce || "default"}`;
+    try {
+      if (window.sessionStorage.getItem(markerKey) === "1") {
+        return;
+      }
+      window.sessionStorage.setItem(markerKey, "1");
+    } catch {
+      // ignore marker failures, still try once
+    }
+
+    handleGoogleLogin();
+  }, [authUser, authLoading, handleGoogleLogin]);
   const {
     t,
     tf,
@@ -249,23 +309,9 @@ function App() {
   const [state, setState] = useState(createDefaultState);
   const [characterName, setCharacterName] = useState("Warrior");
   const [editingName, setEditingName] = useState(false);
-  
-  const [feedbackTask, setFeedbackTask] = useState(null);
-  const [showAnalyticsPage, setShowAnalyticsPage] = useState(false);
 
   const handleQuestCompleteWrapper = (quest, event) => {
     completeQuest(quest, event);
-    const isPinnedQuest = Array.isArray(state.preferredQuestIds) && state.preferredQuestIds.includes(quest.id);
-    if (!isPinnedQuest) {
-      setFeedbackTask(quest);
-    }
-  };
-
-  const handleFeedbackSubmit = (feedbackData) => {
-    if (feedbackTask && authUser) {
-      submitQuestFeedback(authUser.uid, String(feedbackTask.id), feedbackData.rating, feedbackData.textNotes, feedbackData.questionType).catch(console.error);
-    }
-    setFeedbackTask(null);
   };
 
   const [nameDraft, setNameDraft] = useState("Warrior");
@@ -284,6 +330,31 @@ function App() {
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
+  const [profileStats, setProfileStats] = useState(null);
+  const [avatarError, setAvatarError] = useState("");
+  const isEmbeddedApp = typeof window !== "undefined" && (() => {
+    try {
+      return new URLSearchParams(window.location.search).get("embed") === "1";
+    } catch {
+      return false;
+    }
+  })();
+  const [cityFullscreen, setCityFullscreen] = useState(false);
+  const [mobileTab, setMobileTab] = useState(() => {
+    if (typeof window === "undefined") {
+      return "dashboard";
+    }
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("embed") !== "1") {
+        return "dashboard";
+      }
+      return normalizeMobileTab(localStorage.getItem(MOBILE_TAB_STORAGE_KEY));
+    } catch {
+      return "dashboard";
+    }
+  });
   const [privateNotes, setPrivateNotes] = useState("");
   const [notesDraft, setNotesDraft] = useState("");
   const [levelUpLevel, setLevelUpLevel] = useState(0);
@@ -298,6 +369,7 @@ function App() {
   const levelDisplayRef = useRef(null);
   const uidRef = useRef(null);
   const dayMarkerRef = useRef(new Date().toDateString());
+  const previousMobileTabRef = useRef("city");
   const normalizeLocalizedQuest = (quest) => normalizeQuest(quest, translateQuest, translateCategory);
 
   function applyServerTimeSync(payload) {
@@ -363,6 +435,58 @@ function App() {
   }, [authUser]);
 
   useEffect(() => {
+    if (!isEmbeddedApp || typeof window === "undefined") {
+      return undefined;
+    }
+
+    const handleMobileTabChange = (event) => {
+      setMobileTab(normalizeMobileTab(event?.detail));
+    };
+
+    window.addEventListener("life-rpg-mobile-tab", handleMobileTabChange);
+    return () => window.removeEventListener("life-rpg-mobile-tab", handleMobileTabChange);
+  }, [isEmbeddedApp]);
+
+  useEffect(() => {
+    if (!isEmbeddedApp || typeof window === "undefined") {
+      return;
+    }
+
+    try {
+      localStorage.setItem(MOBILE_TAB_STORAGE_KEY, mobileTab);
+    } catch {
+      // ignore storage failures
+    }
+  }, [isEmbeddedApp, mobileTab]);
+
+  useEffect(() => {
+    if (!isEmbeddedApp) {
+      return;
+    }
+
+    if (previousMobileTabRef.current !== mobileTab) {
+      previousMobileTabRef.current = mobileTab;
+    }
+  }, [isEmbeddedApp, mobileTab]);
+
+  useEffect(() => {
+    if (!isEmbeddedApp || typeof window === "undefined") {
+      return;
+    }
+
+    const bridge = window.ReactNativeWebView;
+    if (!bridge || typeof bridge.postMessage !== "function") {
+      return;
+    }
+
+    bridge.postMessage(JSON.stringify({
+      type: "mobile-shell-state",
+      showTabBar: Boolean(authUser) && !showOnboarding && !cityFullscreen,
+      activeTab: mobileTab
+    }));
+  }, [isEmbeddedApp, authUser, showOnboarding, mobileTab, cityFullscreen]);
+
+  useEffect(() => {
     if (!authUser) {
       setState(createDefaultState());
       setQuests([]);
@@ -372,6 +496,7 @@ function App() {
       setShowNotesModal(false);
       setPrivateNotes("");
       setNotesDraft("");
+      setMobileTab("city");
       resetOnLogout();
       questRenderCountRef.current = 0;
       dayMarkerRef.current = String(new Date().getUTCFullYear()) + "-" + String(new Date().getUTCMonth()) + "-" + String(new Date().getUTCDate());
@@ -392,7 +517,7 @@ function App() {
       if (!loaded.logs.length) {
         loaded.logs.push({
           msg: t.welcomeBack,
-          classes: "text-slate-500 italic",
+          classes: "opacity-70 italic",
           timestamp: getTimestamp()
         });
       }
@@ -423,6 +548,7 @@ function App() {
         const preferredQuestIds = applyServerBootstrap(gameStateResponse, characterName);
         if (Array.isArray(gameStateResponse?.completedQuestIds)) {
           const userData = gameStateResponse.user || {};
+        if (userData.theme) setThemeId(userData.theme);
           setState((prev) => ({ 
             ...prev, 
             completed: gameStateResponse.completedQuestIds,
@@ -468,6 +594,7 @@ function App() {
         const nextQuests = Array.isArray(gameStateResponse?.quests) ? gameStateResponse.quests.map(normalizeLocalizedQuest) : [];
         setQuests(nextQuests);
         const userData = gameStateResponse.user || {};
+        if (userData.theme) setThemeId(userData.theme);
         setState((prev) => ({
           ...prev,
           completed: Array.isArray(gameStateResponse?.completedQuestIds) ? gameStateResponse.completedQuestIds : [],
@@ -548,6 +675,13 @@ function App() {
   }, [showLevelUp]);
 
   const xpPercent = (state.xp / state.xpNext) * 100;
+
+  useEffect(() => {
+    if (mobileTab === "profile" && authUser) {
+      fetchProfileStats(authUser.uid).then(setProfileStats).catch(() => {});
+    }
+  }, [mobileTab, authUser]);
+
   const streakMultiplier = state.streak >= 25
     ? 1.30
     : state.streak >= 15
@@ -563,19 +697,21 @@ function App() {
               : 1.00;
   const streakBonusPercent = Math.round((streakMultiplier - 1) * 100);
   const completedToday = state.completed.length;
-  const milestoneProgressPercent = Math.min(100, (completedToday / 8) * 100);
+  const milestoneProgressPercent = Math.min(100, (completedToday / 6) * 100);
   const milestoneSteps = [
-    { target: 4, reward: "+20 " + t.xpLabel + " +1 🔥", rune: t.milestoneRunes[0] },
-    { target: 6, reward: "+30 " + t.xpLabel, rune: t.milestoneRunes[1] },
-    { target: 8, reward: "+50 " + t.xpLabel + " +1" + t.tokenIcon, rune: t.milestoneRunes[2] }
+    { target: 4, reward: `+20 ${t.xpLabel} / +1 ${t.streakIcon}`, rune: t.milestoneRunes[0] },
+    { target: 5, reward: "+25 " + t.xpLabel, rune: t.milestoneRunes[1] },
+    { target: 6, reward: `+25 ${t.xpLabel} / +1 ${t.tokenIcon}`, rune: t.milestoneRunes[2] }
   ];
-  const pinnedQuests = quests.slice(0, 4);
-  const otherQuests = quests.slice(4);
+  const preferredQuestCount = Array.isArray(state.preferredQuestIds) && state.preferredQuestIds.length > 0 ? state.preferredQuestIds.length : 3;
+  const pinnedQuests = quests.slice(0, preferredQuestCount);
+  const otherQuests = quests.slice(preferredQuestCount);
+  const mobileTabTitle = getMobileTabTitle(mobileTab, t);
   const pinnedQuestProgressById = Object.fromEntries(
     normalizePinnedQuestProgress(state.pinnedQuestProgress21d).map((item) => [item.questId, item])
   );
   const allRandomCompleted = otherQuests.length > 0 && otherQuests.every(q => state.completed.includes(q.id));
-  const canReroll = (!state.hasRerolledToday || state.extraRerollsToday > 0) && completedToday < 8 && !allRandomCompleted;
+  const canReroll = (!state.hasRerolledToday || state.extraRerollsToday > 0) && completedToday < 6 && !allRandomCompleted;
   const languageShortLabel = languageId === "ru" ? "RU" : "EN";
   const isFreePinnedReroll = !state.user?.lastFreeTaskRerollAt || (Date.now() - new Date(state.user.lastFreeTaskRerollAt).getTime() >= 30 * 24 * 60 * 60 * 1000);
   let daysUntilFreePinnedReroll = 0;
@@ -630,18 +766,48 @@ function App() {
   function handlePortraitUpload(event) {
     const file = event.target.files?.[0];
     if (!file) return;
+    setAvatarError("");
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/heic", "image/heif"];
+    if (!allowedTypes.includes(file.type) && !file.name.match(/\.(jpg|jpeg|png|gif|webp|heic|heif)$/i)) {
+      setAvatarError("Unsupported image format. Use JPG, PNG, GIF, or WebP.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setAvatarError("Image is too large (max 10 MB).");
+      event.target.value = "";
+      return;
+    }
+
     const reader = new FileReader();
+    reader.onerror = () => {
+      setAvatarError("Failed to read image file. Please try again.");
+      event.target.value = "";
+    };
     reader.onload = async (loadEvent) => {
-      const imageData = loadEvent.target?.result;
-      if (typeof imageData !== "string") return;
-      const compressed = await compressImage(imageData);
-      localStorage.setItem(portraitKey(authUser.uid), compressed);
-      setPortraitData(compressed);
-      addLog(t.characterPortraitUpdated, "text-yellow-400 font-bold");
-      upsertProfile(authUser.uid, characterName || "Warrior", compressed)
-        .then(() => fetchLeaderboard())
-        .then(({ users }) => setLeaderboard(users || []))
-        .catch(() => {});
+      try {
+        const imageData = loadEvent.target?.result;
+        if (typeof imageData !== "string") {
+          setAvatarError("Failed to process image.");
+          return;
+        }
+        const compressed = await compressImage(imageData);
+        if (!compressed) {
+          setAvatarError("Failed to compress image. Try a different photo.");
+          return;
+        }
+        localStorage.setItem(portraitKey(authUser.uid), compressed);
+        setPortraitData(compressed);
+        addLog(t.characterPortraitUpdated, "text-yellow-400 font-bold");
+        upsertProfile(authUser.uid, characterName || "Warrior", compressed)
+          .then(() => fetchLeaderboard())
+          .then(({ users }) => setLeaderboard(users || []))
+          .catch(() => {});
+      } catch {
+        setAvatarError("Something went wrong. Please try a different image.");
+      }
       event.target.value = "";
     };
     reader.readAsDataURL(file);
@@ -678,6 +844,7 @@ function App() {
   }
 
   async function handleLogoutConfirm() {
+    resetOnLogout();
     setShowLogoutConfirm(false);
     await handleLogout(() => {
       setShowLevelUp(false);
@@ -696,73 +863,97 @@ function App() {
 
   if (!authUser) {
     return (
-      <div className="auth-shell" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', overflowY: 'auto' }}>
-        <div className="w-full max-w-5xl px-6 py-12 flex flex-col items-center">
-          <div className="text-center mb-12 animate-fade-in">
-            <h1 className="cinzel text-5xl md:text-7xl font-black text-transparent bg-clip-text tracking-widest leading-tight mb-4" style={{ backgroundImage: "var(--heading-gradient)" }}>{t.appTitle}</h1>
-            <p className="cinzel text-xl tracking-[0.25em] uppercase" style={{ color: "var(--color-primary-dim)" }}>{t.loginHeroTagline}</p>
-          </div>
-
-          <div className="auth-card animate-fade-in w-full max-w-md mx-auto mb-16 text-center">
-            <p className="cinzel text-xs tracking-[0.35em] uppercase mb-4" style={{ color: "var(--color-primary)" }}>{t.appTagline}</p>
-            <h2 className="cinzel text-3xl text-white mb-3">{t.loginTitle}</h2>
-            <p className="text-slate-300 mb-8">{t.loginSubtitle}</p>
-            <button className="google-btn w-full justify-center py-4 text-lg" onClick={handleGoogleLogin}>
-              <span>G</span>
-              <span>{t.loginButton}</span>
-            </button>
-            {authError && <p className="auth-error mt-4">{authError}</p>}
-            {/* Theme Picker Removed */}
-          </div>
-
-          <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-            <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-700/50 text-center shadow-xl">
-              <div className="text-4xl mb-4">📋</div>
-              <h3 className="cinzel text-xl text-white mb-2">{t.landingBuildHabitsTitle}</h3>
-              <p className="text-slate-400 text-sm">{t.landingBuildHabitsDesc}</p>
-            </div>
-            <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-700/50 text-center shadow-xl">
-              <div className="text-4xl mb-4">⭐</div>
-              <h3 className="cinzel text-xl text-white mb-2">{t.landingLevelUpTitle}</h3>
-              <p className="text-slate-400 text-sm">{t.landingLevelUpDesc}</p>
-            </div>
-            <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-700/50 text-center shadow-xl">
-              <div className="text-4xl mb-4">🏙️</div>
-              <h3 className="cinzel text-xl text-white mb-2">{t.landingGrowCityTitle}</h3>
-              <p className="text-slate-400 text-sm">{t.landingGrowCityDesc}</p>
-            </div>
-          </div>
-
-          <div className="w-full mb-12">
-            <h2 className="cinzel text-3xl text-center text-white mb-8">{t.landingWitnessGrowth}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-2xl p-4">
-                <p className="cinzel text-center text-yellow-500 mb-2">{t.levelLabel} 1</p>
-                <div className="w-full h-48 bg-black rounded-lg overflow-hidden relative">
-                  <CityIllustration height="100%" stage={1} />
-                </div>
-              </div>
-              <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-2xl p-4">
-                <p className="cinzel text-center text-yellow-500 mb-2">{t.levelLabel} 10</p>
-                <div className="w-full h-48 bg-black rounded-lg overflow-hidden relative flex items-center justify-center select-none pointer-events-none">
-                  <div className="absolute inset-0 blur-md opacity-40">
-                    <CityIllustration height="100%" stage={10} />
-                  </div>
-                  <span className="cinzel text-6xl font-bold text-slate-500 z-10 opacity-70">?</span>
-                </div>
-              </div>
-              <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-2xl p-4">
-                <p className="cinzel text-center text-yellow-500 mb-2">{t.levelLabel} 20+</p>
-                <div className="w-full h-48 bg-black rounded-lg overflow-hidden relative flex items-center justify-center select-none pointer-events-none">
-                  <div className="absolute inset-0 blur-xl opacity-20">
-                    <CityIllustration height="100%" stage={25} />
-                  </div>
-                  <span className="cinzel text-6xl font-bold text-slate-500 z-10 opacity-70">?</span>
-                </div>
-              </div>
-            </div>
+      <div className="auth-shell relative w-full h-[100dvh] overflow-hidden flex flex-col" style={{ background: "var(--bg-color)" }}>
+        {/* Ambient Background with City Illustration */}
+        <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
+          {/* subtle radial glow */}
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-yellow-500/10 rounded-full blur-[100px] opacity-50" />
+          
+          {/* city illustration scaled up, faded into background */}
+          <div className="absolute top-[10%] inset-x-0 bottom-0 opacity-[0.15] scale-[1.35] origin-top md:scale-[1.1] md:top-[15%] transition-transform duration-1000 ease-out">
+            <CityIllustration height="100%" stage={25} />
           </div>
           
+          {/* rich gradients to blend the illustration */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent h-[60%] top-auto" />
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-950/80 to-transparent h-[30%]" />
+        </div>
+
+        {/* Top Content: Branding */}
+        <div className="relative z-10 flex-col items-center justify-start pt-16 flex-none px-6">
+          <div className="animate-slide-down text-center">
+            <p className="cinzel text-xs tracking-[0.4em] uppercase mb-3" style={{ color: "var(--color-primary-dim)" }}>
+              {t.appTagline || "Journey to Greatness"}
+            </p>
+            <h1 className="cinzel text-5xl md:text-6xl font-black text-transparent bg-clip-text tracking-widest leading-tight" style={{ backgroundImage: "var(--heading-gradient)" }}>
+              {t.appTitle}
+            </h1>
+          </div>
+        </div>
+
+        {/* Middle Content Spacer (pushes everything to bottom) */}
+        <div className="relative z-10 flex-1 flex flex-col justify-center items-center px-8 text-center animate-fade-in" style={{ animationDelay: "200ms" }}>
+           <p className="text-slate-300 text-lg md:text-xl font-light max-w-md mx-auto leading-relaxed shadow-sm">
+             {t.loginHeroTagline || "Turn your daily tasks into an epic adventure. Level up, build habits, and grow your empire."}
+           </p>
+           
+           <div className="flex gap-4 mt-8 opacity-60">
+             <div className="flex flex-col items-center gap-1"><span className="text-2xl">{t.habitsIcon}</span><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Habits</span></div>
+             <div className="flex flex-col items-center gap-1"><span className="text-2xl">{t.levelIcon}</span><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Levels</span></div>
+             <div className="flex flex-col items-center gap-1"><span className="text-2xl">{t.cityIcon}</span><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">City</span></div>
+           </div>
+        </div>
+
+        {/* Bottom Content: Interactive Auth Elements */}
+        <div className="relative z-10 flex-none pb-12 pt-6 px-6 w-full max-w-[420px] mx-auto animate-slide-up" style={{ animationDelay: "300ms", paddingBottom: "calc(2rem + env(safe-area-inset-bottom))" }}>
+          
+          <div className="rounded-[2rem] p-6 border shadow-[0_0_40px_rgba(0,0,0,0.5)] backdrop-blur-md relative overflow-hidden" style={{ background: "linear-gradient(to bottom, rgba(30,41,59,0.7), rgba(15,23,42,0.9))", borderColor: "var(--color-primary-dim)" }}>
+            
+            {/* Soft decorative glow inside the card */}
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-yellow-500/20 rounded-full blur-[50px] pointer-events-none" />
+
+            <div className="relative z-10 text-center mb-6">
+              <h2 className="cinzel text-2xl text-white font-bold mb-1">{t.loginTitle}</h2>
+              <p className="text-slate-400 text-sm">{t.loginSubtitle}</p>
+            </div>
+
+            <div className="relative z-10">
+              <button 
+                className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl text-lg font-bold transition-all active:scale-[0.98] shadow-lg hover:shadow-yellow-500/20"
+                style={{ 
+                  background: "linear-gradient(135deg, #1e293b, #0f172a)",
+                  border: "1px solid var(--color-primary)",
+                  color: "var(--color-primary)"
+                }}
+                onClick={handleGoogleLogin}
+              >
+                <div className="bg-white rounded-full p-1.5 shadow-sm">
+                  <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                  </svg>
+                </div>
+                <span>{t.loginButton}</span>
+              </button>
+              
+              {authError && (
+                <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm text-center animate-fade-in">
+                  <span className="mr-1">⚠️</span> {authError}
+                </div>
+              )}
+            </div>
+
+            <div className="relative z-10 mt-6 pt-4 border-t border-slate-700/50 flex justify-center">
+              <LanguageSelector
+                languageId={languageId}
+                languageIds={languageIds}
+                getLanguageMeta={getLanguageMeta}
+                onChange={setLanguageId}
+              />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -770,19 +961,31 @@ function App() {
 
   return (
     <>
+      {cityFullscreen && (
+        <div className="city-fullscreen-mode" style={{ backgroundColor: "var(--bg-body)", zIndex: 99999 }}>
+          <button
+            onClick={() => setCityFullscreen(false)}
+            className="absolute bottom-6 right-6 z-[99999] rounded-full w-14 h-14 flex items-center justify-center border shadow-2xl transition-all"
+            style={{ background: "rgba(10, 10, 18, 0.8)", borderColor: "var(--color-primary)", backdropFilter: "blur(12px)", color: "var(--color-primary)" }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/>
+            </svg>
+          </button>
+          <InteractiveMapWrapper>
+            <CityIllustration height="100%" stage={Math.max(0, Math.floor(state.lvl) || 0)} />
+          </InteractiveMapWrapper>
+        </div>
+      )}
       
-      <PostTaskFeedbackModal
-        open={!!feedbackTask}
-        quest={feedbackTask}
-        onClose={() => setFeedbackTask(null)}
-        onSubmit={handleFeedbackSubmit}
-      />
       <FreezeSuccessModal open={showFreezeSuccess} onClose={() => setShowFreezeSuccess(false)} />
 
       <RerollConfirmModal
         open={showRerollConfirm}
         onCancel={() => setShowRerollConfirm(false)}
         onConfirm={doReroll}
+        quests={otherQuests}
+        completedIds={state.completed}
       />
 
       <LogoutConfirmModal
@@ -806,7 +1009,7 @@ function App() {
                     borderColor: id === themeId ? "var(--color-primary)" : "var(--card-border-idle)",
                     color: id === themeId ? "var(--color-primary)" : "var(--color-text)"
                   }}
-                  onClick={() => { setThemeId(id); setShowThemePicker(false); }}
+                  onClick={() => { setThemeId(id); setShowThemePicker(false); if(authUser) updateTheme(authUser.uid, id).catch(()=>{}); }}
                 >
                   <span className="text-2xl">{themes[id].icon}</span>
                   <div>
@@ -985,65 +1188,431 @@ function App() {
         </div>
       ))}
 
-      {showAnalyticsPage ? (
-        <AnalyticsPage onBack={() => setShowAnalyticsPage(false)} />
-      ) : (
-      <div className="max-w-7xl mx-auto game-shell relative py-2 px-4">
+      <div className={`mx-auto game-shell relative py-2 px-4 ${isEmbeddedApp ? "max-w-4xl embedded-shell" : "max-w-7xl"}`}>
         <div className="rune-orb rune-orb-left" />
 
-        <header className="flex flex-col items-center gap-3 py-3 mb-4">
-          <div className="w-full flex items-center justify-end gap-2 user-auth-widget flex-wrap">
-            <div className="flex items-center gap-1">
-              <div className="theme-selector" style={{ position: "relative" }}>
-                <button className="theme-picker-trigger" onClick={() => setShowThemePicker(true)}>
-                  <span>{themes[themeId].icon}</span> {t.chooseThemeButtonLabel}
-                  <span className="ml-1 text-xs opacity-60">▾</span>
-                </button>
+        <header className={`flex flex-col items-center ${isEmbeddedApp ? "gap-2 py-0 mb-1" : "gap-3 py-3 mb-4"}`}>
+          <input ref={portraitUploadRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePortraitUpload} />
+          {isEmbeddedApp ? null : (
+            <>
+              <div className="w-full flex items-center justify-end gap-2 user-auth-widget flex-wrap">
+                <div className="flex items-center gap-1">
+                  <div className="theme-selector" style={{ position: "relative" }}>
+                    <button className="theme-picker-trigger" onClick={() => setShowThemePicker(true)}>
+                      <span>{themes[themeId].icon}</span> {t.chooseThemeButtonLabel}
+                      <span className="ml-1 text-xs opacity-60">▾</span>
+                    </button>
+                  </div>
+                  <div className="theme-selector" style={{ position: "relative" }}>
+                    <button className="theme-picker-trigger" onClick={() => setShowLanguagePicker(true)}>
+                      <span>🌐</span> {languageShortLabel}
+                      <span className="ml-1 text-xs opacity-60">▾</span>
+                    </button>
+                  </div>
+                </div>
+                <div 
+                  className="flex items-center gap-2 bg-slate-900/70 rounded-full pl-1 pr-3 py-1 cursor-pointer hover:opacity-80 transition-colors"
+                  style={{ color: "var(--color-text)", borderWidth: 1, borderStyle: "solid", borderColor: "var(--panel-border)" }}
+                  onClick={() => portraitUploadRef.current?.click()}
+                  title={t.changeAvatar}
+                >
+                  <div className="w-6 h-6 rounded-full overflow-hidden bg-slate-800 flex items-center justify-center border" style={{ borderColor: "var(--panel-border)" }}>
+                    {portraitData ? (
+                      <img src={portraitData} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 opacity-60">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-xs font-semibold max-w-[100px] truncate">{characterName || authUser.displayName || authUser.email}</span>
+                </div>
+                <button className="logout-btn" onClick={() => setShowLogoutConfirm(true)}>{t.logoutConfirm}</button>
               </div>
-              <div className="theme-selector" style={{ position: "relative" }}>
-                <button className="theme-picker-trigger" onClick={() => setShowLanguagePicker(true)}>
-                  <span>🌐</span> {languageShortLabel}
-                  <span className="ml-1 text-xs opacity-60">▾</span>
-                </button>
+              <div className="w-full flex items-center justify-center gap-4">
+                <div className="hidden sm:flex flex-1 items-center gap-2">
+                  <div className="h-px flex-1 opacity-60" style={{ background: `linear-gradient(to right, transparent, var(--color-primary))` }} />
+                </div>
+                <div className="text-center">
+                  <h1 className="cinzel text-2xl md:text-3xl font-bold text-transparent bg-clip-text tracking-widest leading-tight" style={{ backgroundImage: "var(--heading-gradient)" }}>{t.appTitle}</h1>
+                  <p className="cinzel text-[10px] tracking-[0.25em] uppercase mt-0.5" style={{ color: "var(--color-primary-dim)" }}>{t.appSubtitle}</p>
+                </div>
+                <div className="hidden sm:flex flex-1 items-center gap-2">
+                  <div className="h-px flex-1 opacity-60" style={{ background: `linear-gradient(to left, transparent, var(--color-primary))` }} />
+                </div>
               </div>
-            </div>
-            <input ref={portraitUploadRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePortraitUpload} />
-            <div 
-              className="flex items-center gap-2 bg-slate-900/70 rounded-full pl-1 pr-3 py-1 cursor-pointer hover:opacity-80 transition-colors"
-              style={{ color: "var(--color-text)", borderWidth: 1, borderStyle: "solid", borderColor: "var(--panel-border)" }}
-              onClick={() => portraitUploadRef.current?.click()}
-              title={t.changeAvatar}
-            >
-              <div className="w-6 h-6 rounded-full overflow-hidden bg-slate-800 flex items-center justify-center border" style={{ borderColor: "var(--panel-border)" }}>
-                {portraitData ? (
-                  <img src={portraitData} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 opacity-60">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                  </svg>
-                )}
-              </div>
-              <span className="text-xs font-semibold max-w-[100px] truncate">{characterName || authUser.displayName || authUser.email}</span>
-            </div>
-            <button className="logout-btn" onClick={() => setShowLogoutConfirm(true)}>{t.logoutConfirm}</button>
-          </div>
-          <div className="w-full flex items-center justify-center gap-4">
-            <div className="hidden sm:flex flex-1 items-center gap-2">
-              <div className="h-px flex-1 opacity-60" style={{ background: `linear-gradient(to right, transparent, var(--color-primary))` }} />
-            </div>
-            <div className="text-center">
-              <h1 className="cinzel text-2xl md:text-3xl font-bold text-transparent bg-clip-text tracking-widest leading-tight" style={{ backgroundImage: "var(--heading-gradient)" }}>{t.appTitle}</h1>
-              <p className="cinzel text-[10px] tracking-[0.25em] uppercase mt-0.5" style={{ color: "var(--color-primary-dim)" }}>{t.appSubtitle}</p>
-            </div>
-            <div className="hidden sm:flex flex-1 items-center gap-2">
-              <div className="h-px flex-1 opacity-60" style={{ background: `linear-gradient(to left, transparent, var(--color-primary))` }} />
-            </div>
-          </div>
+            </>
+          )}
         </header>
 
+        {isEmbeddedApp ? (
+          <div className="w-full max-w-3xl mx-auto embedded-content-safe">
+            {mobileTab === "city" ? (
+              <div className="relative flex flex-col gap-4">
+              <div className="flex flex-row justify-between items-center gap-3 backdrop-blur-md rounded-2xl p-5 border shadow-xl mobile-card" style={{ borderColor: "color-mix(in srgb, var(--color-primary) 30%, transparent)" }}>
+                <div className="flex-1">
+                  <h3 className="cinzel text-xl font-bold tracking-wide mb-2 flex items-center gap-2" style={{ color: "var(--color-primary)" }}>
+                    <span>🏙</span> {t.landingGrowCityTitle || "Your City"}
+                  </h3>
+                  <p className="text-sm leading-relaxed m-0" style={{ color: "var(--color-text)", opacity: 0.85 }}>
+                    {t.cityExpansionText || "Level up by completing quests to expand and upgrade your city."}
+                  </p>
+                </div>
+                <div className="backdrop-blur-xl px-4 py-3 rounded-2xl shadow-lg border text-center shrink-0" style={{ background: "rgba(10, 10, 18, 0.4)", borderColor: "var(--panel-border)" }}>
+                  <p className="text-[10px] font-bold tracking-widest uppercase mb-0.5" style={{ color: "var(--color-text)", opacity: 0.7 }}>{t.mobileCityLabel}</p>
+                  <p className="cinzel text-xl font-bold m-0 flex items-center justify-center gap-1" style={{ color: "var(--color-primary)" }}>
+                    <span className="text-[12px] uppercase opacity-80">{t.levelShort || t.levelLabel}</span> {state.lvl}
+                  </p>
+                </div>
+              </div>
+
+              <div className="w-full h-[55vh] min-h-[350px] max-h-[500px] sm:min-h-[450px] relative rounded-[2rem] overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] animate-fade-in transition-all duration-500 flex-1" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--panel-border)", borderWidth: 1 }}>
+                {!cityFullscreen && (
+                  <>
+                    <button
+                      onClick={() => setCityFullscreen(true)}
+                      className="absolute bottom-4 right-4 z-50 rounded-full w-12 h-12 flex items-center justify-center border shadow-xl transition-all"
+                      style={{ background: "rgba(10, 10, 18, 0.65)", borderColor: "var(--panel-border)", backdropFilter: "blur(12px)", color: "var(--color-primary)" }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>
+                      </svg>
+                    </button>
+                    <InteractiveMapWrapper>
+                      <CityIllustration height="100%" stage={Math.max(0, Math.floor(state.lvl) || 0)} />
+                    </InteractiveMapWrapper>
+                  </>
+                )}
+              </div>
+              </div>
+            ) : null}
+
+            {mobileTab === "dashboard" ? (
+              <div className="flex flex-col gap-4 animate-fade-in">
+                <div className="flex gap-2 justify-center mb-1">
+                  <button onClick={handleResetDaily} className="text-[10px] px-3 py-1 rounded-full border transition-colors font-bold uppercase tracking-wider hover:opacity-80" style={{ borderColor: "var(--color-primary-dim)", background: "var(--card-bg)", color: "var(--color-primary)" }}>{t.resetDaily}</button>
+                  <button onClick={handleHardReset} className="text-[10px] px-3 py-1 rounded-full border transition-colors font-bold uppercase tracking-wider hover:opacity-80" style={{ borderColor: "rgba(220,38,38,0.5)", background: "rgba(127,29,29,0.3)", color: "rgb(239,68,68)" }}>{t.resetProgress}</button>
+                </div>
+                {/* Hero: XP + Level compact row */}
+                <div className="dash-hero">
+                  <div className="dash-hero-top">
+                    <div className="min-w-0 flex-1">
+                      <p className="cinzel text-lg truncate" style={{ color: "var(--color-primary)" }}>{characterName}</p>
+                      <p className="text-xs mt-0.5 cinzel opacity-80" style={{ color: "var(--color-text)" }}>{t.levelShort} {state.lvl}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="cinzel text-sm" style={{ color: "var(--color-text)" }}>{state.xp}<span className="opacity-70" style={{ color: "var(--color-muted)" }}>/{state.xpNext}</span></p>
+                      <p className="text-[10px] opacity-70 cinzel tracking-wider" style={{ color: "var(--color-muted)" }}>{t.xpLabel}</p>
+                    </div>
+                  </div>
+                  <div className="dash-xp-bar">
+                    <div className="dash-xp-fill" style={{ width: `${xpPercent}%` }} />
+                  </div>
+                </div>
+
+                {/* Daily Board Section */}
+                <div className="mobile-card flex flex-col gap-4">
+                  {/* Daily progress strip & Board Title */}
+                  <div className="flex flex-col shrink-0">
+                    <div className="flex items-center justify-between mb-2 px-1">
+                      <span className="cinzel text-[11px] font-bold tracking-[0.15em] uppercase drop-shadow-sm flex items-center gap-1.5" style={{color: "var(--color-primary)"}}>
+                        <span className="text-[12px]">{t.dailyBoardIcon}</span> {t.dailyBoard}
+                      </span>
+                      <span className="cinzel text-[11px] font-bold opacity-80" style={{ color: "var(--color-text)" }}>{completedToday}<span className="opacity-50">/6</span></span>
+                    </div>
+                    <div className="dash-progress-strip">
+                      <div className="flex gap-1 flex-1">
+                        {Array.from({ length: 6 }).map((_, i) => {
+                          const isActive = completedToday > i;
+                          const isMilestone = i + 1 === 4 || i + 1 === 5 || i + 1 === 6;
+                          return (
+                            <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                              <div className="w-full h-1.5 rounded-full transition-all duration-300" style={{ background: isActive ? "var(--color-primary)" : isMilestone ? "var(--card-border-idle)" : "rgba(255,255,255,0.1)", boxShadow: isActive ? "0 0 6px var(--color-primary-glow)" : "none" }} />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Milestones row */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {milestoneSteps.map((step) => {
+                      const unlocked = completedToday >= step.target;
+                      return (
+                        <div key={step.target} className={`dash-milestone mobile-pressable ${unlocked ? "dash-milestone-on" : ""}`}>
+                          <div className={`text-[20px] leading-tight mb-[2px] drop-shadow-md ${unlocked ? "" : "opacity-40 grayscale"}`}>{step.rune}</div>
+                          <div className={"cinzel text-[11px] font-bold tracking-wider mb-0.5"}>
+                            <span style={{ color: unlocked ? "var(--color-primary)" : "var(--color-text)", opacity: unlocked ? 1 : 0.6 }}>{step.target} <span className="text-[9px] uppercase tracking-widest opacity-60">{t.itemLabel}</span></span>
+                          </div>
+                          <div className={"text-[10px] font-extrabold tracking-tight whitespace-nowrap flex flex-wrap items-center justify-center"} style={{ color: unlocked ? "var(--color-text)" : "var(--color-muted)", opacity: unlocked ? 1 : 0.6, filter: unlocked ? "drop-shadow(0 0 2px var(--color-primary-glow))" : "none" }}>
+                            {step.reward.split(new RegExp(`(${t.streakIcon}|${t.tokenIcon})`)).map((part, i) => (
+                              part === t.streakIcon || part === t.tokenIcon ? (
+                                <span key={i} className="text-[13px] leading-none ml-0.5 drop-shadow-sm">{part}</span>
+                              ) : (
+                                <span key={i}>{part}</span>
+                              )
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Quest board with tabs */}
+                <div className="mobile-card">
+                  <QuestBoard pinnedQuests={pinnedQuests} otherQuests={otherQuests} pinnedQuestProgressById={pinnedQuestProgressById} canRerollRandom={canReroll} onRerollRandom={() => handleReroll(completedToday, canReroll)} rerollButtonLabel={completedToday >= 6 || allRandomCompleted ? t.rerollComplete : state.hasRerolledToday && state.extraRerollsToday === 0 ? t.rerollDone : t.rerollButton} rerollButtonTitle={allRandomCompleted ? t.allRandomTasksDone : state.hasRerolledToday && state.extraRerollsToday === 0 ? t.alreadyUsedToday : completedToday >= 6 ? t.allDoneUnavailable : t.oncePerDay} completedIds={state.completed} questRenderCount={questRenderCountRef.current} onCompleteQuest={handleQuestCompleteWrapper} resetTimer={resetTimer} streakFreezeActive={state.streakFreezeActive} compact />
+                </div>
+              </div>
+            ) : null}
+
+            {mobileTab === "leaderboard" ? (
+              <div className="flex flex-col gap-4">
+                <div className="mobile-card">
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <p className="mobile-section-kicker">{t.mobileLeaderboardLabel}</p>
+                      <h2 className="cinzel text-2xl mt-1 text-transparent bg-clip-text" style={{ backgroundImage: "var(--heading-gradient)" }}>{t.leaderboard}</h2>
+                    </div>
+                    
+                  </div>
+                </div>
+                <SidePanels leaderboard={leaderboard} authUser={authUser} logs={state.logs} compact />
+              </div>
+            ) : null}
+
+            {mobileTab === "store" ? (
+              <div className="flex flex-col gap-4">
+                <div className="relative overflow-hidden mobile-card flex flex-col gap-4 border border-yellow-500/30 shadow-[0_0_20px_rgba(234,179,8,0.1)]" style={{ background: "linear-gradient(to bottom right, rgba(30, 41, 59, 0.8), rgba(2, 6, 23, 0.95))" }}>
+                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.05]"></div>
+                  <div className="flex items-center justify-between relative z-10">
+                    <div>
+                      <p className="mobile-section-kicker mb-1 leading-none" style={{ color: "var(--color-primary-dim)" }}>Your Balance</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-4xl drop-shadow-[0_0_15px_rgba(250,204,21,0.4)]">{t.tokenIcon}</span>
+                        <h2 className="cinzel text-5xl font-bold tracking-wide" style={{ color: "var(--color-primary)", textShadow: "0 4px 15px rgba(0,0,0,0.6)" }}>{state.tokens}</h2>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="inline-flex flex-col items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-900/40 border border-emerald-500/40 text-emerald-400 text-[10px] font-bold tracking-wider uppercase shadow-[0_0_12px_rgba(16,185,129,0.15)]">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_5px_#34d399]"></span>
+                          Vault Active
+                        </div>
+                        <p className="text-[9px] tracking-wider uppercase mt-0.5 opacity-80" style={{ color: "var(--color-text)" }}>Daily limits apply</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full h-px my-1" style={{ background: "linear-gradient(to right, transparent, var(--card-border-idle), transparent)" }}></div>
+
+                <TokenVault
+                  tokens={state.tokens}
+                  streakFreezeActive={state.streakFreezeActive}
+                  extraRerollsToday={state.extraRerollsToday}
+                  hasRerolledToday={state.hasRerolledToday}
+                  canRerollPinned={canRerollPinned}
+                  isFreePinnedReroll={isFreePinnedReroll}
+                  daysUntilFreePinnedReroll={daysUntilFreePinnedReroll}
+                  onOpenPinnedReplacement={openPinnedReplacementModal}
+                  onFreezeStreak={handleFreezeStreak}
+                  onBuyExtraReroll={handleBuyExtraReroll}
+                  compact
+                />
+              </div>
+            ) : null}
+
+            {mobileTab === "profile" ? (
+              <div className="mobile-tab-panel flex flex-col gap-4">
+
+                {/* ── Hero Card: Avatar + Name + Level ── */}
+                <div className="relative overflow-hidden mobile-card border border-yellow-500/20 shadow-[0_0_20px_rgba(234,179,8,0.08)]" style={{ background: "linear-gradient(to bottom right, rgba(30, 41, 59, 0.85), rgba(2, 6, 23, 0.95))" }}>
+                  <div className="absolute inset-0 opacity-[0.04] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
+                  <div className="relative z-10 flex items-center gap-4">
+                    <div className="relative group">
+                      <button
+                        type="button"
+                        className="w-24 h-24 rounded-[1.8rem] overflow-hidden bg-slate-900 border-2 flex items-center justify-center shrink-0 mobile-pressable transition-all group-hover:border-yellow-500/70"
+                        style={{ borderColor: "var(--color-primary-dim)" }}
+                        onClick={() => { setAvatarError(""); portraitUploadRef.current?.click(); }}
+                        title={t.changeAvatar}
+                      >
+                        {portraitData ? (
+                          <img src={portraitData} alt="Avatar" className="w-full h-full object-cover" />
+                        ) : (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 opacity-50 text-current">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                          </svg>
+                        )}
+                      </button>
+                      <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-xs text-slate-300 shadow-lg">
+                        📷
+                      </div>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      {!editingName ? (
+                        <div className="flex items-center gap-2">
+                          <h2 className="cinzel text-2xl truncate text-transparent bg-clip-text font-bold" style={{ backgroundImage: "var(--heading-gradient)" }}>
+                            {characterName}
+                          </h2>
+                          <button
+                            className="opacity-70 hover:opacity-100 transition-colors shrink-0" style={{ color: "var(--color-muted)" }}
+                            onClick={() => { setNameDraft(characterName); setEditingName(true); }}
+                            title="Edit name"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                          </button>
+                        </div>
+                      ) : (
+                        <input
+                          type="text"
+                          value={nameDraft}
+                          onChange={(event) => setNameDraft(event.target.value)}
+                          className="w-full max-w-[220px] cinzel text-lg border rounded-xl px-3 py-2" style={{ background: "var(--card-bg)", color: "var(--color-primary)", borderColor: "var(--color-primary)" }}
+                          style={{ borderColor: "var(--color-primary)" }}
+                          maxLength={15}
+                          autoFocus
+                          onBlur={submitNameEdit}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") submitNameEdit();
+                            if (event.key === "Escape") { setNameDraft(characterName); setEditingName(false); }
+                          }}
+                        />
+                      )}
+                      <div className="flex items-center gap-1 mt-2">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shadow-sm" style={{ background: "var(--panel-bg)", borderColor: "var(--color-primary)", color: "var(--color-primary)" }}>
+                          {t.levelShort} {state.lvl}
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shadow-sm" style={{ background: "var(--panel-bg)", borderColor: "var(--color-primary)", color: "var(--color-text)" }}>
+                          {t.streakIcon} {state.streak}
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shadow-sm" style={{ background: "var(--panel-bg)", borderColor: "var(--color-primary)", color: "var(--color-primary)" }}>
+                          {t.tokenIcon} {state.tokens}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  {avatarError && (
+                    <div className="relative z-10 mt-3 flex items-center gap-2 bg-red-900/40 border border-red-500/40 rounded-xl px-3 py-2 text-red-300 text-xs">
+                      <span>⚠️</span> {avatarError}
+                      <button className="ml-auto text-red-400 hover:text-red-200" onClick={() => setAvatarError("")}>✕</button>
+                    </div>
+                  )}
+                </div>
+
+                {/* ── XP Progress ── */}
+                <div className="mobile-card" style={{ background: "var(--panel-bg)" }}>
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="cinzel text-xs font-bold tracking-widest uppercase" style={{ color: "var(--color-primary)" }}>{t.levelProgress}</p>
+                    <span className="cinzel text-xs opacity-80" style={{ color: "var(--color-text)" }}>{state.xp} / {state.xpNext} {t.xpLabel}</span>
+                  </div>
+                  <div className="w-full bg-black/50 rounded-full border border-yellow-700/30 overflow-hidden h-3">
+                    <div className="bar-fill h-full rounded-full transition-all duration-500" style={{ width: `${xpPercent}%` }} />
+                  </div>
+                  <div className="flex justify-between items-center mt-1.5">
+                    <span className="cinzel text-[10px]" style={{ color: "var(--color-primary)" }}>{t.levelShort} {state.lvl}</span>
+                    <span className="cinzel text-[10px] opacity-70" style={{ color: "var(--color-muted)" }}>{t.levelShort} {state.lvl + 1}</span>
+                  </div>
+                </div>
+
+                {/* ── Quick Stats Grid ── */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="mobile-card flex flex-col items-center py-4" style={{ background: "var(--panel-bg)" }}>
+                    <span className="text-2xl mb-1">{t.logsIcon}</span>
+                    <p className="cinzel text-2xl font-bold" style={{ color: "var(--color-primary)" }}>{(() => { 
+                      let total = state.xp; 
+                      let threshold = 300; 
+                      let l = 1;
+                      while(l < state.lvl && l < 1000) { 
+                        total += threshold; 
+                        threshold = Math.floor(threshold * 1.2); 
+                        l++;
+                      } 
+                      return total.toLocaleString(); 
+                    })()}</p>
+                    <p className="text-[10px] uppercase tracking-wider mt-1" style={{ color: "var(--color-muted)" }}>{t.totalXpLabel}</p>
+                  </div>
+                  <div className="mobile-card flex flex-col items-center py-4" style={{ background: "var(--panel-bg)" }}>
+                    <span className="text-2xl mb-1">{t.streakIcon}</span>
+                    <p className="cinzel text-2xl font-bold" style={{ color: "var(--color-primary)" }}>{state.streak}</p>
+                    <p className="text-[10px] uppercase tracking-wider mt-1" style={{ color: "var(--color-muted)" }}>{t.currentStreak}</p>
+                  </div>
+                  <div className="mobile-card flex flex-col items-center py-4" style={{ background: "var(--panel-bg)" }}>
+                    <span className="text-2xl mb-1">{t.tokenIcon}</span>
+                    <p className="cinzel text-2xl font-bold" style={{ color: "var(--color-primary)" }}>{state.tokens}</p>
+                    <p className="text-[10px] uppercase tracking-wider mt-1" style={{ color: "var(--color-muted)" }}>Tokens</p>
+                  </div>
+                  <div className="mobile-card flex flex-col items-center py-4" style={{ background: "var(--panel-bg)" }}>
+                    <span className="text-2xl mb-1">🏆</span>
+                    <p className="cinzel text-2xl font-bold" style={{ color: "var(--color-primary)" }}>{state.lvl}</p>
+                    <p className="text-[10px] uppercase tracking-wider mt-1" style={{ color: "var(--color-muted)" }}>{t.levelLabel}</p>
+                  </div>
+                </div>
+
+                {/* ── Overall Statistics ── */}
+                <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
+                  <p className="cinzel text-xs font-bold tracking-widest uppercase" style={{ color: "var(--color-primary)" }}>Statistics</p>
+                  <div className="flex flex-col gap-2.5 text-[var(--color-text)]">
+                    <div className="flex items-center justify-between py-2 border-b border-[var(--panel-border)]">
+                      <span className="flex items-center gap-2 text-sm"><span className="text-lg">{t.habitsIcon}</span> Quests Completed</span>
+                      <span className="cinzel font-bold text-sm" style={{ color: "var(--color-primary)" }}>{profileStats?.totalQuestsCompleted ?? "—"}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-b border-[var(--panel-border)]">
+                      <span className="flex items-center gap-2 text-sm"><span className="text-lg">{t.streakIcon}</span> Best Streak</span>
+                      <span className="cinzel font-bold text-sm" style={{ color: "var(--color-primary)" }}>{profileStats?.maxStreak ?? "—"}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-b border-[var(--panel-border)]">
+                      <span className="flex items-center gap-2 text-sm"><span className="text-lg">💪</span> Habits Built <span className="text-[9px]" style={{ color: "var(--color-muted)" }}>(21+ days)</span></span>
+                      <span className="cinzel font-bold text-sm" style={{ color: "var(--color-primary)" }}>{profileStats?.builtHabits ?? "—"}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-b border-[var(--panel-border)]">
+                      <span className="flex items-center gap-2 text-sm"><span className="text-lg">📅</span> Joined</span>
+                      <span className="cinzel font-bold text-sm" style={{ color: "var(--color-primary)" }}>{profileStats?.joinedAt ? new Date(profileStats.joinedAt).toLocaleDateString(languageId === "ru" ? "ru-RU" : "en-US", { year: "numeric", month: "short", day: "numeric" }) : "—"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Settings ── */}
+                <div className="mobile-card flex flex-col gap-1" style={{ background: "var(--panel-bg)" }}>
+                  <p className="cinzel text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "var(--color-primary)" }}>Settings</p>
+                  <button className="flex items-center gap-3 w-full rounded-xl px-3 py-3 transition-all hover:bg-[var(--card-hover)] active:scale-[0.98]" onClick={() => setShowThemePicker(true)}>
+                    <span className="text-xl w-8 text-center">{themes[themeId].icon}</span>
+                    <div className="flex-1 text-left">
+                      <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>Theme</p>
+                      <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{getThemeMeta(themeId).label}</p>
+                    </div>
+                    <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
+                  </button>
+                  <button className="flex items-center gap-3 w-full rounded-xl px-3 py-3 transition-all hover:bg-[var(--card-hover)] active:scale-[0.98]" onClick={() => setShowLanguagePicker(true)}>
+                    <span className="text-xl w-8 text-center">🌐</span>
+                    <div className="flex-1 text-left">
+                      <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>Language</p>
+                      <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{getLanguageMeta(languageId).nativeLabel}</p>
+                    </div>
+                    <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
+                  </button>
+                </div>
+
+                {/* ── Logout ── */}
+                <button
+                  onClick={() => setShowLogoutConfirm(true)}
+                  className="mobile-card mobile-pressable flex items-center justify-center gap-2 py-3.5 border border-red-500/30 transition-all hover:bg-red-900/20 active:scale-[0.98]"
+                  style={{ background: "rgba(127,29,29,0.15)" }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-red-400"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                  <span className="cinzel font-bold text-sm text-red-400 tracking-wider uppercase">{t.logoutConfirm}</span>
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+        <>
         {showCity && (
-          <div className="w-full h-80 sm:h-[400px] md:h-[500px] lg:h-[600px] mb-6 relative rounded-xl overflow-hidden border border-[var(--panel-border)] shadow-lg animate-fade-in" style={{ backgroundColor: '#0c131b' }}>
+          <div className="w-full h-80 sm:h-[400px] md:h-[500px] lg:h-[600px] mb-6 relative rounded-xl overflow-hidden border border-[var(--panel-border)] shadow-lg animate-fade-in" style={{ backgroundColor: 'var(--card-bg)' }}>
             <CityIllustration height="100%" stage={Math.max(0, Math.floor(state.lvl) || 0)} />
           </div>
         )}
@@ -1073,7 +1642,7 @@ function App() {
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <QuestBoard pinnedQuests={pinnedQuests} otherQuests={otherQuests} pinnedQuestProgressById={pinnedQuestProgressById} canRerollRandom={canReroll} onRerollRandom={() => handleReroll(completedToday, canReroll)} rerollButtonLabel={completedToday >= 8 || allRandomCompleted ? t.rerollComplete : state.hasRerolledToday && state.extraRerollsToday === 0 ? t.rerollDone : t.rerollButton} rerollButtonTitle={allRandomCompleted ? t.allRandomTasksDone : state.hasRerolledToday && state.extraRerollsToday === 0 ? t.alreadyUsedToday : completedToday >= 8 ? t.allDoneUnavailable : t.oncePerDay} completedIds={state.completed} questRenderCount={questRenderCountRef.current} onCompleteQuest={handleQuestCompleteWrapper} resetTimer={resetTimer} streakFreezeActive={state.streakFreezeActive} />
+          <QuestBoard pinnedQuests={pinnedQuests} otherQuests={otherQuests} pinnedQuestProgressById={pinnedQuestProgressById} canRerollRandom={canReroll} onRerollRandom={() => handleReroll(completedToday, canReroll)} rerollButtonLabel={completedToday >= 6 || allRandomCompleted ? t.rerollComplete : state.hasRerolledToday && state.extraRerollsToday === 0 ? t.rerollDone : t.rerollButton} rerollButtonTitle={allRandomCompleted ? t.allRandomTasksDone : state.hasRerolledToday && state.extraRerollsToday === 0 ? t.alreadyUsedToday : completedToday >= 6 ? t.allDoneUnavailable : t.oncePerDay} completedIds={state.completed} questRenderCount={questRenderCountRef.current} onCompleteQuest={handleQuestCompleteWrapper} resetTimer={resetTimer} streakFreezeActive={state.streakFreezeActive} />
 
           <SidePanels leaderboard={leaderboard} authUser={authUser} logs={state.logs} />
         </div>
@@ -1090,6 +1659,8 @@ function App() {
           onFreezeStreak={handleFreezeStreak}
           onBuyExtraReroll={handleBuyExtraReroll}
         />
+        </>
+        )}
 
         {false && (
         <footer className="mt-8 rounded-2xl border p-4" style={{ borderColor: "var(--panel-border)", background: "var(--panel-bg)" }}>
@@ -1115,18 +1686,11 @@ function App() {
               >
                 {t.resetProgress}
               </button>
-              <button
-                onClick={() => setShowAnalyticsPage(true)}
-                className="text-xs px-3 py-1 rounded-full border border-blue-600 bg-blue-900/30 text-blue-400 hover:bg-blue-600 hover:text-white transition-colors font-bold uppercase tracking-wider"
-              >
-                {t.analyticsButton} 📈
-              </button>
             </div>
           </div>
         </footer>
         )}
       </div>
-      )}
     </>
   );
 }

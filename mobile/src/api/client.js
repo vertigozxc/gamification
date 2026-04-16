@@ -56,3 +56,18 @@ export function upsertProfile(username, displayName, photoUrl) {
     body: JSON.stringify({ username, displayName, photoUrl })
   });
 }
+
+export function freezeStreak(username) {
+  return request("/api/user/freeze-streak", {
+    method: "POST",
+    body: JSON.stringify({ username })
+  });
+}
+
+export function buyExtraReroll(username) {
+  return request("/api/user/buy-extra-reroll", {
+    method: "POST",
+    body: JSON.stringify({ username })
+  });
+}
+

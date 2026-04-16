@@ -16,7 +16,7 @@ function pickBundleHost() {
 }
 
 function toApiBase(host) {
-  if (!host || host === "localhost" || host === "127.0.0.1") {
+  if (!host) {
     return "";
   }
   return `http://${host}:4000`;
@@ -28,14 +28,24 @@ export function getApiBaseUrl() {
   const hostFromBundle = pickBundleHost();
   const inferredFromBundle = toApiBase(hostFromBundle);
 
-  // In Expo Go dev flow this is usually the most reliable host for phone -> laptop API calls.
+  if (configured) {
+    try {
+      const parsed = new URL(configured);
+      const configuredHost = parsed.hostname || "";
+
+      if ((configuredHost === "localhost" || configuredHost === "127.0.0.1") && inferredFromBundle) {
+        return inferredFromBundle;
+      }
+    } catch {
+      // ignore malformed configured URL
+    }
+
+    return configured;
+  }
+
   if (inferredFromBundle) {
     return inferredFromBundle;
   }
 
-  if (configured) {
-    return configured;
-  }
-
-  return "http://localhost:4000";
+  return "http://192.168.70.243:4000";
 }
