@@ -65,6 +65,18 @@ function getAuthBridgeId() {
   }
 }
 
+function isPostAuthMount() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("authComplete") === "1";
+  } catch {
+    return false;
+  }
+}
+
 function readExternalAuthContext() {
   if (typeof window === "undefined") {
     return null;
@@ -386,12 +398,12 @@ function useAuthSession({ auth, googleProvider, firebaseInitError = "" }) {
         const bridgeId = getAuthBridgeId();
         if (bridgeId && !bridgeLookupInFlightRef.current) {
           bridgeLookupInFlightRef.current = true;
-          // Retry up to ~8s — covers the small race window between OAuth
-          // completing and the bridge entry landing on the server. Bridge
-          // is server-side reusable (TTL ~5min) so if user starts a fresh
-          // OAuth from LoginScreen, that flow will still complete.
+          // After OAuth (authComplete=1 in URL): retry up to ~30s — covers
+          // Render free-tier cold start. On first launch: 8s retry then
+          // fall through to LoginScreen so user can start OAuth.
+          const maxAttempts = isPostAuthMount() ? 30 : 8;
           let bridgedUser = null;
-          for (let attempt = 0; attempt < 8 && !bridgedUser; attempt += 1) {
+          for (let attempt = 0; attempt < maxAttempts && !bridgedUser; attempt += 1) {
             try {
               const response = await retrieveMobileAuthTokenByBridge(bridgeId);
               bridgedUser = toSafeAuthUser(response?.user);

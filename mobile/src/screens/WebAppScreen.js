@@ -154,6 +154,7 @@ function resolveApiBase() {
 export default function WebAppScreen() {
   const insets = useSafeAreaInsets();
   const [webKey, setWebKey] = useState(0);
+  const [authCompleted, setAuthCompleted] = useState(false);
   const [errorText, setErrorText] = useState("");
   const [showTabBar, setShowTabBar] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -162,8 +163,9 @@ export default function WebAppScreen() {
   const bridgeId = useMemo(() => createBridgeId(), []);
   const webUrl = useMemo(() => {
     const baseWithParams = resolveWebAppUrl();
-    return `${baseWithParams}&bridgeId=${encodeURIComponent(bridgeId)}`;
-  }, [bridgeId]);
+    const authParam = authCompleted ? "&authComplete=1" : "";
+    return `${baseWithParams}&bridgeId=${encodeURIComponent(bridgeId)}${authParam}`;
+  }, [bridgeId, authCompleted]);
   const webViewRef = useRef(null);
   const authInProgressRef = useRef(false);
   const authReloadTriggeredRef = useRef(false);
@@ -263,6 +265,7 @@ export default function WebAppScreen() {
       return;
     }
     authReloadTriggeredRef.current = true;
+    setAuthCompleted(true);
     setWebKey((k) => k + 1);
     // Allow re-trigger after the WebView has fully remounted and the embedded
     // webapp has had time to consume the bridge entry + persist session.
