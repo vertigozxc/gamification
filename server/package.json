@@ -9,7 +9,7 @@
     "test": "node --test",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init",
-    "prisma:deploy": "prisma migrate deploy"
+    "prisma:deploy": "prisma migrate resolve --rolled-back 20260417154513_add_events 2>/dev/null; prisma migrate deploy"
   },
   "dependencies": {
     "@prisma/client": "^6.6.0",
