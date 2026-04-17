@@ -265,6 +265,89 @@ app.get("/api/admin/health", requireAdmin, async (_req, res) => {
   });
 });
 
+// Admin: A/B experiment overview — assignments, conversions, error rate per variant.
+// Conversion event types are heuristic but capture the funnel we care about.
+const AB_CONVERSION_TYPES = new Set([
+  "auth_login",
+  "quest_completed",
+  "level_up",
+  "extra_reroll_purchased",
+  "streak_freeze_activated",
+  "pinned_quests_rerolled"
+]);
+
+app.get("/api/admin/ab", requireAdmin, async (_req, res) => {
+  const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+  const events = await prisma.event.findMany({
+    where: { createdAt: { gte: since }, NOT: { meta: "" } },
+    orderBy: { createdAt: "asc" },
+    take: 20000
+  });
+
+  // experiments[expKey][variant] = { users:Set, events:0, errors:0, conversions:{type:count}, lastSeen }
+  const experiments = {};
+
+  for (const evt of events) {
+    let meta;
+    try {
+      meta = evt.meta ? JSON.parse(evt.meta) : null;
+    } catch {
+      meta = null;
+    }
+    if (!meta) continue;
+
+    if (evt.type === "ab_assigned" && meta.experiment && meta.variant) {
+      const exp = (experiments[meta.experiment] = experiments[meta.experiment] || {});
+      const v = (exp[meta.variant] = exp[meta.variant] || {
+        users: new Set(),
+        events: 0,
+        errors: 0,
+        conversions: {},
+        lastSeen: null
+      });
+      if (evt.userId) v.users.add(evt.userId);
+      v.events += 1;
+      v.lastSeen = evt.createdAt;
+      continue;
+    }
+
+    if (!meta.ab || typeof meta.ab !== "object") continue;
+    for (const [expKey, variant] of Object.entries(meta.ab)) {
+      if (!variant) continue;
+      const exp = (experiments[expKey] = experiments[expKey] || {});
+      const v = (exp[variant] = exp[variant] || {
+        users: new Set(),
+        events: 0,
+        errors: 0,
+        conversions: {},
+        lastSeen: null
+      });
+      if (evt.userId) v.users.add(evt.userId);
+      v.events += 1;
+      v.lastSeen = evt.createdAt;
+      if (evt.level === "error" || evt.level === "fatal") v.errors += 1;
+      if (AB_CONVERSION_TYPES.has(evt.type)) {
+        v.conversions[evt.type] = (v.conversions[evt.type] || 0) + 1;
+      }
+    }
+  }
+
+  const out = Object.entries(experiments).map(([experiment, variants]) => ({
+    experiment,
+    variants: Object.entries(variants).map(([variant, stats]) => ({
+      variant,
+      users: stats.users.size,
+      events: stats.events,
+      errors: stats.errors,
+      errorRate: stats.events > 0 ? Number((stats.errors / stats.events).toFixed(4)) : 0,
+      conversions: stats.conversions,
+      lastSeen: stats.lastSeen
+    })).sort((a, b) => a.variant.localeCompare(b.variant))
+  })).sort((a, b) => a.experiment.localeCompare(b.experiment));
+
+  res.json({ since: since.toISOString(), experiments: out });
+});
+
 // In-memory store for mobile auth tokens (maps token -> user data)
 const mobileAuthTokens = new Map();
 

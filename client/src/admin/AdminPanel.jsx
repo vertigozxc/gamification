@@ -53,6 +53,7 @@ export default function AdminPanel() {
   const [summary, setSummary] = useState(null);
   const [events, setEvents] = useState([]);
   const [health, setHealth] = useState(null);
+  const [ab, setAb] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [filterType, setFilterType] = useState("");
@@ -72,14 +73,16 @@ export default function AdminPanel() {
       if (filterType) params.set("type", filterType);
       if (filterLevel) params.set("level", filterLevel);
 
-      const [s, e, h] = await Promise.all([
+      const [s, e, h, a] = await Promise.all([
         adminFetch(`/api/admin/summary`, token),
         adminFetch(`/api/admin/events?${params.toString()}`, token),
-        adminFetch(`/api/admin/health`, token)
+        adminFetch(`/api/admin/health`, token),
+        adminFetch(`/api/admin/ab`, token)
       ]);
       setSummary(s);
       setEvents(e.events || []);
       setHealth(h);
+      setAb(a);
       setLastUpdated(new Date());
     } catch (err) {
       if (String(err?.message || err).includes("401")) {
@@ -224,6 +227,51 @@ export default function AdminPanel() {
             </div>
           )}
         </div>
+      </section>
+
+      <section style={styles.panel}>
+        <div style={styles.panelTitle}>A/B experiments (last 14d)</div>
+        {!ab || !ab.experiments || ab.experiments.length === 0 ? (
+          <div style={styles.empty}>No experiment data yet.</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {ab.experiments.map((exp) => (
+              <div key={exp.experiment}>
+                <div style={{ marginBottom: 6, color: "#cbd5e1", fontWeight: 600 }}>{exp.experiment}</div>
+                <div style={styles.tableWrap}>
+                  <table style={styles.table}>
+                    <thead>
+                      <tr>
+                        <th style={styles.th}>Variant</th>
+                        <th style={styles.th}>Users</th>
+                        <th style={styles.th}>Events</th>
+                        <th style={styles.th}>Errors</th>
+                        <th style={styles.th}>Err rate</th>
+                        <th style={styles.th}>Conversions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {exp.variants.map((v) => (
+                        <tr key={v.variant} style={styles.tr}>
+                          <td style={styles.td}>{v.variant}</td>
+                          <td style={styles.td}>{v.users}</td>
+                          <td style={styles.td}>{v.events}</td>
+                          <td style={{ ...styles.td, color: v.errors ? "#ff6b6b" : undefined }}>{v.errors}</td>
+                          <td style={styles.td}>{(v.errorRate * 100).toFixed(2)}%</td>
+                          <td style={styles.tdWide}>
+                            {Object.keys(v.conversions || {}).length === 0
+                              ? "—"
+                              : Object.entries(v.conversions).map(([k, n]) => `${k}:${n}`).join("  ·  ")}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <section style={styles.panel}>

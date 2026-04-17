@@ -7,6 +7,7 @@ const FLUSH_INTERVAL_MS = 5000;
 let apiBase = "";
 let platform = "web";
 let context = { userId: "", username: "" };
+let abVariants = {};
 let queue = [];
 let flushTimer = null;
 let installed = false;
@@ -32,6 +33,20 @@ function resolveDefaultApiBase() {
   return `${protocol}//${host}:4000`;
 }
 
+function detectPlatform(defaultPlatform) {
+  if (typeof window === "undefined") return defaultPlatform;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("embed") === "1") return "mobile-web";
+  } catch {
+    // ignore
+  }
+  if (typeof navigator !== "undefined" && /ReactNative/i.test(navigator.userAgent || "")) {
+    return "mobile-web";
+  }
+  return defaultPlatform;
+}
+
 export function configureEventLogger(options = {}) {
   if (options.apiBase) apiBase = options.apiBase;
   if (options.platform) platform = options.platform;
@@ -43,6 +58,17 @@ export function setEventContext(nextContext = {}) {
     userId: String(nextContext.userId || "").slice(0, 200),
     username: String(nextContext.username || "").slice(0, 200)
   };
+}
+
+export function setExperimentVariants(map = {}) {
+  abVariants = {};
+  for (const [k, v] of Object.entries(map || {})) {
+    if (k && v != null) abVariants[String(k).slice(0, 60)] = String(v).slice(0, 60);
+  }
+}
+
+export function getExperimentVariants() {
+  return { ...abVariants };
 }
 
 function scheduleFlush() {
@@ -80,6 +106,18 @@ export function logEvent(type, data = {}) {
   if (typeof window === "undefined") return;
   if (!apiBase) apiBase = resolveDefaultApiBase();
 
+  let meta;
+  if (data.meta && typeof data.meta === "object" && !Array.isArray(data.meta)) {
+    meta = { ...data.meta };
+  } else if (data.meta != null) {
+    meta = { value: data.meta };
+  } else {
+    meta = {};
+  }
+  if (Object.keys(abVariants).length > 0 && !meta.ab) {
+    meta.ab = { ...abVariants };
+  }
+
   const evt = {
     type: String(type || "unknown").slice(0, 120),
     level: String(data.level || "info").slice(0, 40),
@@ -90,7 +128,7 @@ export function logEvent(type, data = {}) {
     stack: typeof data.stack === "string" ? data.stack.slice(0, 4000) : "",
     url: typeof window !== "undefined" ? String(window.location?.href || "").slice(0, 500) : "",
     userAgent: typeof navigator !== "undefined" ? String(navigator.userAgent || "").slice(0, 400) : "",
-    meta: data.meta || null
+    meta: Object.keys(meta).length > 0 ? meta : null
   };
 
   queue.push(evt);
@@ -111,7 +149,7 @@ export function logError(type, error, extra = {}) {
 export function installGlobalEventLogger({ platform: plat = "web", apiBase: base } = {}) {
   if (installed) return;
   installed = true;
-  configureEventLogger({ platform: plat, apiBase: base });
+  configureEventLogger({ platform: detectPlatform(plat), apiBase: base });
 
   if (typeof window === "undefined") return;
 
@@ -127,6 +165,17 @@ export function installGlobalEventLogger({ platform: plat = "web", apiBase: base
     const reason = event?.reason;
     logError("unhandled_rejection", reason instanceof Error ? reason : { message: String(reason) });
   });
+
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") {
+        logEvent("session_visibility_hidden");
+        flushEvents();
+      } else if (document.visibilityState === "visible") {
+        logEvent("session_visibility_visible");
+      }
+    });
+  }
 
   window.addEventListener("beforeunload", () => {
     if (queue.length > 0 && apiBase && navigator?.sendBeacon) {
@@ -146,5 +195,11 @@ export function installGlobalEventLogger({ platform: plat = "web", apiBase: base
     }
   });
 
-  logEvent("client_session_start", { meta: { ts: Date.now() } });
+  logEvent("client_session_start", {
+    meta: {
+      ts: Date.now(),
+      screen: typeof window !== "undefined" ? `${window.innerWidth}x${window.innerHeight}` : "",
+      lang: typeof navigator !== "undefined" ? navigator.language : ""
+    }
+  });
 }

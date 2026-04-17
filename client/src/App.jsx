@@ -253,15 +253,20 @@ function App() {
 
   useEffect(() => {
     uidRef.current = authUser ? authUser.uid : null;
-    import("./eventLogger.js").then((mod) => {
+    Promise.all([
+      import("./eventLogger.js"),
+      import("./abTesting.js")
+    ]).then(([mod, ab]) => {
       if (authUser) {
         mod.setEventContext({
           userId: authUser.uid,
           username: authUser.displayName || authUser.email || authUser.uid
         });
+        ab.ensureAssignments(authUser.uid);
         mod.logEvent("auth_login", { meta: { provider: "firebase" } });
       } else {
         mod.setEventContext({ userId: "", username: "" });
+        ab.ensureAssignments("");
       }
     }).catch(() => {});
   }, [authUser]);

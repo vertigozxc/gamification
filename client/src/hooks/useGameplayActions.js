@@ -2,6 +2,13 @@ import { useState } from "react";
 
 const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
 
+function trackEvent(type, meta) {
+  if (typeof window === "undefined") return;
+  import("../eventLogger.js")
+    .then((mod) => mod.logEvent(type, { meta }))
+    .catch(() => {});
+}
+
 function useGameplayActions({
   authUser,
   state,
@@ -118,7 +125,8 @@ function useGameplayActions({
     let completionResult;
     try {
       completionResult = await completeQuestOnServer(authUser.uid, quest.id);
-    } catch {
+    } catch (err) {
+      trackEvent("quest_complete_failed", { questId: quest.id, message: err?.message });
       addLog(vocab?.questCompletionFailed || "Quest completion failed. Please try again.", "text-red-400 font-bold");
       return;
     }
@@ -183,7 +191,20 @@ function useGameplayActions({
       );
     }
 
+    trackEvent("quest_completed", {
+      questId: quest.id,
+      category: quest.category,
+      xp: actualXpGain,
+      milestoneBonusXp,
+      milestoneTokens,
+      habitMilestoneReached,
+      streak: response.streak,
+      tokens: gameState.tokens,
+      level: gameState.level
+    });
+
     if (leveledUp) {
+      trackEvent("level_up", { from: state.lvl, to: gameState.level });
       nextState.logs.push({
         msg: (vocab?.levelUpAnnounce || "🎉 ⭐ {prefix} UP! {levelLabel} {level}! ⭐ 🎉")
           .replace("{prefix}", vocab?.levelUpPrefix || "LEVEL")
@@ -241,6 +262,7 @@ function useGameplayActions({
 
   async function doReroll(targetQuestId) {
     setShowRerollConfirm(false);
+    trackEvent("quest_reroll_requested", { targetQuestId });
     try {
       // Exclude categories already shown by non-pinned quests that stay locked (completed quests).
       const preferredQuestCount = Array.isArray(state.preferredQuestIds) && state.preferredQuestIds.length > 0 ? state.preferredQuestIds.length : 3;
@@ -286,7 +308,8 @@ function useGameplayActions({
         ]
       }));
       questRenderCountRef.current = 0;
-    } catch {
+    } catch (err) {
+      trackEvent("quest_reroll_failed", { message: err?.message });
       addLog(vocab?.rerollFailed || "Reroll failed. Please try again.", "text-red-400 font-bold");
     }
   }
@@ -390,7 +413,7 @@ function useGameplayActions({
 
     try {
       const result = await rerollPinned(authUser.uid, !isFree);
-      
+      trackEvent("pinned_quests_rerolled", { paid: !isFree, tokens: result.tokens });
       const costText = isFree ? (vocab?.freeLabel || "Free") : (vocab?.sevenTokens || "7 Tokens");
 
       setQuests(Array.isArray(result.quests) ? result.quests.map(normalizeQuest) : []);
@@ -422,6 +445,7 @@ function useGameplayActions({
   async function handleBuyExtraReroll() {
     try {
       const result = await buyExtraReroll(authUser.uid);
+      trackEvent("extra_reroll_purchased", { tokens: result.tokens, extraRerollsToday: result?.extraRerollsToday });
       setState((prev) => ({
         ...prev,
         tokens: result.tokens,
@@ -448,6 +472,7 @@ function useGameplayActions({
     setFreezeStreakPending(true);
     try {
       const result = await freezeStreak(authUser.uid);
+      trackEvent("streak_freeze_activated", { tokens: result.tokens });
       setState((prev) => ({
         ...prev,
         tokens: result.tokens,
