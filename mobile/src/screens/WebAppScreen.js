@@ -267,23 +267,26 @@ export default function WebAppScreen() {
     }
     authReloadTriggeredRef.current = true;
     setAuthCompleted(true);
-    // Fetch user data from server bridge directly with long retry,
-    // then inject into WebView localStorage so the web app sees a
-    // logged-in session immediately on remount (no polling needed).
-    fetchBridgeUserAndRemount();
+    // Fetch user data from server bridge and inject into running WebView's
+    // localStorage, then reload the WebView so the web app picks up the
+    // session on its next render.
+    fetchBridgeUserAndInject();
     setTimeout(() => {
       authReloadTriggeredRef.current = false;
-    }, 30000);
+    }, 90000);
   }
 
-  async function fetchBridgeUserAndRemount() {
+  async function fetchBridgeUserAndInject() {
     const apiBase = resolveApiBase();
     const url = `${apiBase}/api/auth/mobile-bridge/${encodeURIComponent(bridgeId)}`;
     let user = null;
-    // Up to ~60s — covers Render free-tier cold start of API
-    for (let attempt = 0; attempt < 60 && !user; attempt += 1) {
+    let lastStatus = 0;
+    let lastError = "";
+    // Up to ~90s — covers Render free-tier cold start of API
+    for (let attempt = 0; attempt < 90 && !user; attempt += 1) {
       try {
         const resp = await fetch(url);
+        lastStatus = resp.status;
         if (resp.ok) {
           const body = await resp.json();
           if (body?.user?.uid) {
@@ -291,16 +294,34 @@ export default function WebAppScreen() {
             break;
           }
         }
-      } catch {
-        // network error, retry
+      } catch (e) {
+        lastError = String(e?.message || e || "network");
+      }
+      // Inject heartbeat into webview every few attempts so dev can see polling is alive
+      if (attempt % 5 === 0) {
+        const msg = `auth-poll attempt=${attempt} status=${lastStatus} err=${lastError}`;
+        webViewRef.current?.injectJavaScript(`try{console.log(${JSON.stringify("[mobile] " + msg)});}catch(e){}true;`);
       }
       await new Promise((r) => setTimeout(r, 1000));
     }
     if (user) {
+      // Inject user into localStorage of running WebView and force reload.
+      const userJson = JSON.stringify(user);
+      const script = `
+        try {
+          localStorage.setItem("life_rpg_mobile_embedded_session", ${JSON.stringify(userJson)});
+          console.log("[mobile] auth user injected, reloading");
+          window.location.reload();
+        } catch (e) {
+          console.log("[mobile] inject failed: " + e.message);
+        }
+        true;
+      `;
+      webViewRef.current?.injectJavaScript(script);
       setInjectedUser(user);
-      setWebKey((k) => k + 1);
     } else {
-      // Auth bridge never materialized — just remount; client will show login
+      // Bridge never materialized — just remount so user can retry login.
+      webViewRef.current?.injectJavaScript(`try{console.log("[mobile] auth bridge never arrived (last status=${lastStatus})");}catch(e){}true;`);
       setWebKey((k) => k + 1);
     }
   }
