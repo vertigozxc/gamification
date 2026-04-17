@@ -457,7 +457,10 @@ app.get("/api/auth/mobile-token/:token", (req, res) => {
   res.json({ user: data });
 });
 
-// Retrieve auth by shared bridge id between WebView and external browser
+// Retrieve auth by shared bridge id between WebView and external browser.
+// NOT one-time-use: the embedded webapp may fetch this multiple times (e.g.
+// Firebase fires onAuthStateChanged more than once during init, the WebView
+// is remounted by native after auth, etc.). Entries expire via TTL cleanup.
 app.get("/api/auth/mobile-bridge/:bridgeId", (req, res) => {
   const bridgeId = String(req.params.bridgeId || "").trim();
   if (!bridgeId) {
@@ -470,7 +473,6 @@ app.get("/api/auth/mobile-bridge/:bridgeId", (req, res) => {
     return res.status(404).json({ error: "Bridge auth not found or expired" });
   }
 
-  mobileAuthTokens.delete(key); // one-time use
   res.json({ user: data });
 });
 

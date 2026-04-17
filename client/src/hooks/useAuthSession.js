@@ -386,19 +386,26 @@ function useAuthSession({ auth, googleProvider, firebaseInitError = "" }) {
         const bridgeId = getAuthBridgeId();
         if (bridgeId && !bridgeLookupInFlightRef.current) {
           bridgeLookupInFlightRef.current = true;
-          try {
-            const response = await retrieveMobileAuthTokenByBridge(bridgeId);
-            const bridgedUser = toSafeAuthUser(response?.user);
-            if (bridgedUser) {
-              saveEmbeddedSessionUser(bridgedUser);
-              setAuthUser(bridgedUser);
-              setAuthLoading(false);
-              return;
+          // Retry up to ~12s — covers Render cold starts and the small window
+          // between OAuth redirect completing and the bridge entry landing.
+          let bridgedUser = null;
+          for (let attempt = 0; attempt < 12 && !bridgedUser; attempt += 1) {
+            try {
+              const response = await retrieveMobileAuthTokenByBridge(bridgeId);
+              bridgedUser = toSafeAuthUser(response?.user);
+            } catch {
+              // entry not ready yet, wait and retry
             }
-          } catch {
-            // nothing yet from external browser, remain unauthenticated
-          } finally {
-            bridgeLookupInFlightRef.current = false;
+            if (!bridgedUser) {
+              await new Promise((r) => setTimeout(r, 1000));
+            }
+          }
+          bridgeLookupInFlightRef.current = false;
+          if (bridgedUser) {
+            saveEmbeddedSessionUser(bridgedUser);
+            setAuthUser(bridgedUser);
+            setAuthLoading(false);
+            return;
           }
         }
       }
