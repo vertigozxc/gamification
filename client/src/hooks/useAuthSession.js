@@ -394,37 +394,10 @@ function useAuthSession({ auth, googleProvider, firebaseInitError = "" }) {
           setAuthLoading(false);
           return;
         }
-
-        const bridgeId = getAuthBridgeId();
-        if (bridgeId && !bridgeLookupInFlightRef.current) {
-          bridgeLookupInFlightRef.current = true;
-          // After OAuth (authComplete=1 in URL): retry up to ~30s — covers
-          // Render free-tier cold start. On first launch: 8s retry then
-          // fall through to LoginScreen so user can start OAuth.
-          const maxAttempts = isPostAuthMount() ? 30 : 8;
-          let bridgedUser = null;
-          for (let attempt = 0; attempt < maxAttempts && !bridgedUser; attempt += 1) {
-            try {
-              const response = await retrieveMobileAuthTokenByBridge(bridgeId);
-              bridgedUser = toSafeAuthUser(response?.user);
-            } catch {
-              // entry not ready yet, wait and retry
-            }
-            if (!bridgedUser) {
-              await new Promise((r) => setTimeout(r, 1000));
-            }
-          }
-          bridgeLookupInFlightRef.current = false;
-          if (bridgedUser) {
-            saveEmbeddedSessionUser(bridgedUser);
-            setAuthUser(bridgedUser);
-            setAuthLoading(false);
-            return;
-          }
-          // No bridge entry materialized — fall through to LoginScreen so
-          // the user can start the OAuth flow. (Server-side bridge is now
-          // reusable, so a later successful OAuth will still complete.)
-        }
+        // Embedded mobile WebView: native side is the sole driver of bridge
+        // polling and will inject persisted user into localStorage when
+        // ready, then reload us. Show LoginScreen immediately if no
+        // persisted session exists — no client-side polling.
       }
 
       setAuthUser(null);
