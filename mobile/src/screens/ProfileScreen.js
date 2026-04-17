@@ -27,7 +27,7 @@ export default function ProfileScreen() {
           setState({
             lvl: Number(response?.user?.level ?? 1),
             xp: Number(response?.user?.xp ?? 0),
-            xpNext: Number(response?.user?.xpNext ?? 300),
+            xpNext: Number(response?.user?.xpNext ?? 250),
             streak: Number(response?.streak ?? 0),
             tokens: Number(response?.user?.tokens ?? 0),
             displayName: response?.user?.displayName || saved

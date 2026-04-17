@@ -7,9 +7,11 @@ import { z } from "zod";
 import { prisma } from "./db.js";
 import {
   getDailyQuests,
+  getDailyQuestCount,
   getMilestoneRewardForCount as getConfiguredMilestoneRewardForCount,
   getPreferredQuestCount,
   getQuestPool,
+  getRandomQuestCount,
   getStreakRuleConfig,
   normalizeQuestLanguage
 } from "./quests.js";
@@ -278,30 +280,40 @@ function onboardingStatus(user) {
 }
 
 function assignDynamicXp(quests, preferredQuestIds) {
-  const nonPinned = quests.filter((q) => !preferredQuestIds.includes(q.id));
-  const totalBaseXp = nonPinned.reduce((sum, q) => sum + (q.effortScore || q.baseXp || q.xp || 10), 0);
-  
-  const assigned = {};
-  if (totalBaseXp === 0 || nonPinned.length === 0) {
-    nonPinned.forEach(q => assigned[q.id] = Math.floor(90 / nonPinned.length));
-  } else {
-    // 90 xp distributed across remaining daily quests based on effort/baseXp
-    let remaining = 90;
-    nonPinned.forEach((q, idx) => {
-      if (idx === nonPinned.length - 1) {
-        assigned[q.id] = Math.max(0, remaining);
-      } else {
-        const share = Math.round(90 * ((q.effortScore || q.baseXp || q.xp || 10) / totalBaseXp));
-        assigned[q.id] = share;
-        remaining -= share;
-      }
-    });
+  return quests;
+}
+
+function normalizeCategory(value) {
+  return String(value || "").trim().toUpperCase();
+}
+
+function hasUniqueCategories(quests) {
+  const categories = quests.map((quest) => normalizeCategory(quest?.category));
+  return new Set(categories).size === categories.length;
+}
+
+function sumEffort(quests) {
+  return quests.reduce((sum, quest) => sum + (Number(quest?.effortScore) || 0), 0);
+}
+
+function isValidRandomQuestSet(randomQuests, expectedCount) {
+  if (!Array.isArray(randomQuests)) {
+    return false;
   }
 
-  return quests.map((q) => ({
-    ...q,
-    xp: preferredQuestIds.includes(q.id) ? 30 : Math.max(5, assigned[q.id] || 0)
-  }));
+  if (randomQuests.length !== expectedCount) {
+    return false;
+  }
+
+  if (!hasUniqueCategories(randomQuests)) {
+    return false;
+  }
+
+  if (expectedCount === 3 && sumEffort(randomQuests) !== 9) {
+    return false;
+  }
+
+  return true;
 }
 
 function dailyQuestsForUser(user, date = new Date(), language = "en") {
@@ -331,8 +343,10 @@ function composeDailyQuests(user, completedQuestIds = [], date = new Date(), exc
   });
 
   const totalCount = baseQuests.length;
+  const expectedRandomCount = Math.max(0, Math.min(getRandomQuestCount(), totalCount - preferredQuestIds.length));
   const questPoolById = new Map(getQuestPool({ language }).map((quest) => [quest.id, quest]));
   const selectedQuestIds = [];
+  const pinnedSet = new Set(preferredQuestIds);
 
   for (const questId of preferredQuestIds) {
     if (!selectedQuestIds.includes(questId)) {
@@ -340,27 +354,20 @@ function composeDailyQuests(user, completedQuestIds = [], date = new Date(), exc
     }
   }
 
-  // If we have saved random quests, use them for the remaining slots
+  // If we have saved random quests, use them only when they still satisfy the random constraints.
   const savedRandomIds = user.randomQuestIds ? user.randomQuestIds.split(',').map(Number).filter(Boolean) : [];
-  if (savedRandomIds.length > 0) {
-    // Add valid saved ones
-    for (const rId of savedRandomIds) {
-      if (selectedQuestIds.length >= totalCount) break;
-      if (questPoolById.has(rId) && !selectedQuestIds.includes(rId)) {
-        selectedQuestIds.push(rId);
-      }
-    }
-  }
+  const savedRandomQuests = savedRandomIds
+    .map((id) => questPoolById.get(id))
+    .filter((quest) => Boolean(quest) && !pinnedSet.has(quest.id));
 
-  // Fill remaining space from randomly generated quests if needed
-  for (const quest of baseQuests) {
-    if (selectedQuestIds.length >= totalCount) {
-      break;
-    }
-    if (!selectedQuestIds.includes(quest.id)) {
-      selectedQuestIds.push(quest.id);
-    }
-  }
+  const generatedRandomQuests = baseQuests
+    .filter((quest) => !pinnedSet.has(quest.id))
+    .slice(0, expectedRandomCount);
+
+  const useSavedRandomQuests = isValidRandomQuestSet(savedRandomQuests, expectedRandomCount);
+  const finalRandomQuestIds = (useSavedRandomQuests ? savedRandomQuests : generatedRandomQuests).map((quest) => quest.id);
+
+  selectedQuestIds.push(...finalRandomQuestIds);
 
   const resultQuests = selectedQuestIds
     .map((questId) => questPoolById.get(questId))
@@ -1113,27 +1120,57 @@ app.post("/api/reset-daily", async (req, res) => {
     let newRandomQuestIds = "";
 
     if (parsed.isReroll && parsed.targetQuestId && Array.isArray(parsed.keepQuestIds)) {
-      // Find one new quest from a newly seeded pool to replace the target
       const { preferredQuestIds: pinned } = onboardingStatus(user);
-      const newPool = getDailyQuests({
-        date: now,
-        username,
-        resetSeed: now.getTime(),
-        pinnedQuestIds: pinned,
-        excludeCategories: parsed.excludeCategories || [],
-        streak: user.streak || 0,
-        language
-      });
-      
-      let replacementId = null;
-      for (const q of newPool) {
-        if (!parsed.keepQuestIds.includes(q.id) && q.id !== parsed.targetQuestId) {
-          replacementId = q.id;
-          break;
+      const randomQuestCount = Math.max(0, Math.min(getRandomQuestCount(), getDailyQuestCount() - pinned.length));
+      const questPool = getQuestPool({ language });
+      const questById = new Map(questPool.map((quest) => [quest.id, quest]));
+      const pinnedSet = new Set(pinned);
+      const keepRandomIds = [...new Set(parsed.keepQuestIds
+        .map((id) => Number(id))
+        .filter((id) => Number.isInteger(id) && id > 0 && !pinnedSet.has(id) && id !== parsed.targetQuestId))]
+        .slice(0, Math.max(0, randomQuestCount - 1));
+      const keepRandomQuests = keepRandomIds.map((id) => questById.get(id)).filter(Boolean);
+
+      const excludedCategories = new Set((parsed.excludeCategories || []).map((item) => normalizeCategory(item)));
+      const usedCategories = new Set(keepRandomQuests.map((quest) => normalizeCategory(quest.category)));
+      const keepEffort = sumEffort(keepRandomQuests);
+
+      const requiredEffort = randomQuestCount === 3
+        ? 9 - keepEffort
+        : null;
+
+      const candidates = questPool.filter((quest) => {
+        if (pinnedSet.has(quest.id)) {
+          return false;
         }
+        if (quest.id === parsed.targetQuestId || keepRandomIds.includes(quest.id)) {
+          return false;
+        }
+
+        const category = normalizeCategory(quest.category);
+        if (excludedCategories.has(category) || usedCategories.has(category)) {
+          return false;
+        }
+
+        if (requiredEffort !== null) {
+          return Number(quest.effortScore) === requiredEffort;
+        }
+
+        return true;
+      });
+
+      const replacement = candidates[0] || null;
+      if (!replacement) {
+        return res.status(400).json({ error: "No valid reroll quest found for unique category and effort constraints" });
       }
-      
-      const finalNonPinnedIds = [...parsed.keepQuestIds, replacementId].filter(Boolean);
+
+      const finalNonPinnedIds = [...keepRandomIds, replacement.id].slice(0, randomQuestCount);
+      const finalNonPinnedQuests = finalNonPinnedIds.map((id) => questById.get(id)).filter(Boolean);
+
+      if (!isValidRandomQuestSet(finalNonPinnedQuests, randomQuestCount)) {
+        return res.status(400).json({ error: "Reroll result violates random quest category/effort constraints" });
+      }
+
       newRandomQuestIds = finalNonPinnedIds.join(",");
     }
 

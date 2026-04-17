@@ -33,6 +33,17 @@ export function getPreferredQuestCount() {
   return Math.min(3, getDailyQuestCount());
 }
 
+export function getRandomQuestCount() {
+  const configured = Number(getDesignPrinciples()?.random_quests_per_day);
+  const fallback = Math.max(0, getDailyQuestCount() - getPreferredQuestCount());
+
+  if (Number.isFinite(configured) && configured >= 0) {
+    return Math.min(configured, getDailyQuestCount());
+  }
+
+  return fallback;
+}
+
 export function getStreakRuleConfig() {
   const rule = getDesignPrinciples()?.streak_rule || {};
   return {
@@ -238,6 +249,60 @@ function pickTemplateQuests(quests, count, excludeCategories = new Set()) {
   return selected.slice(0, count);
 }
 
+function buildEffortBalancedCategoryUniqueQuests(quests, count, targetEffort, excludeCategories = new Set()) {
+  if (!Array.isArray(quests) || count <= 0) {
+    return [];
+  }
+
+  const normalizedExclude = new Set([...excludeCategories].map((item) => normalizeCategory(item)));
+  const eligible = quests.filter((quest) => !normalizedExclude.has(normalizeCategory(quest?.category)));
+  const combinations = [];
+
+  function dfs(startIndex, selected, usedCategories, effortSum) {
+    if (selected.length === count) {
+      if (effortSum === targetEffort) {
+        combinations.push([...selected]);
+      }
+      return;
+    }
+
+    for (let index = startIndex; index < eligible.length; index += 1) {
+      const quest = eligible[index];
+      const category = normalizeCategory(quest?.category);
+      const effort = Number(quest?.effortScore) || 0;
+
+      if (usedCategories.has(category)) {
+        continue;
+      }
+
+      const nextEffort = effortSum + effort;
+      if (nextEffort > targetEffort) {
+        continue;
+      }
+
+      selected.push(quest);
+      usedCategories.add(category);
+      dfs(index + 1, selected, usedCategories, nextEffort);
+      selected.pop();
+      usedCategories.delete(category);
+    }
+  }
+
+  dfs(0, [], new Set(), 0);
+
+  if (combinations.length === 0) {
+    return [];
+  }
+
+  const sorted = [...combinations].sort((left, right) => {
+    const leftKey = left.map((quest) => Number(quest.id) || 0).sort((a, b) => a - b).join("-");
+    const rightKey = right.map((quest) => Number(quest.id) || 0).sort((a, b) => a - b).join("-");
+    return leftKey.localeCompare(rightKey);
+  });
+
+  return sorted[0];
+}
+
 function normalizeQuestIds(value) {
   if (!Array.isArray(value)) {
     return [];
@@ -307,8 +372,31 @@ export function getDailyQuests(options = {}) {
     .filter(Boolean);
   const randomQuests = shuffled.filter((quest) => !pinnedSet.has(quest.id));
   const totalCount = Math.min(getDailyQuestCount(), questPool.length);
-  const randomCount = Math.max(0, totalCount - pinnedQuests.length);
-  const finalOtherQuests = pickTemplateQuests(randomQuests, randomCount, excludeCategories);
+  const configuredRandomCount = getRandomQuestCount();
+  const randomCount = Math.max(0, Math.min(totalCount - pinnedQuests.length, configuredRandomCount));
+
+  let finalOtherQuests = [];
+  if (randomCount === 3) {
+    finalOtherQuests = buildEffortBalancedCategoryUniqueQuests(
+      randomQuests,
+      3,
+      9,
+      excludeCategories
+    );
+  }
+
+  if (finalOtherQuests.length < randomCount) {
+    const fallbackExclude = new Set([
+      ...excludeCategories,
+      ...finalOtherQuests.map((quest) => normalizeCategory(quest?.category))
+    ]);
+    const fallback = pickTemplateQuests(
+      randomQuests.filter((quest) => !finalOtherQuests.some((picked) => picked.id === quest.id)),
+      randomCount - finalOtherQuests.length,
+      fallbackExclude
+    );
+    finalOtherQuests = [...finalOtherQuests, ...fallback];
+  }
 
   return [...pinnedQuests, ...finalOtherQuests];
 }

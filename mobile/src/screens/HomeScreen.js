@@ -49,7 +49,7 @@ export default function HomeScreen() {
     setState({
       lvl: Number(gameStateResponse?.user?.level ?? 1),
       xp: Number(gameStateResponse?.user?.xp ?? 0),
-      xpNext: Number(gameStateResponse?.user?.xpNext ?? 300),
+      xpNext: Number(gameStateResponse?.user?.xpNext ?? 250),
       streak: Number(gameStateResponse?.streak ?? 0),
       tokens: Number(gameStateResponse?.user?.tokens ?? 0),
       displayName: gameStateResponse?.user?.displayName || targetUsername

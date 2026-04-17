@@ -335,7 +335,7 @@ function useGameplayActions({
       setState((prev) => ({
         lvl: 1,
         xp: 0,
-        xpNext: 300,
+        xpNext: 250,
         tokens: 0,
         productivity: {
           xpToday: 0,
