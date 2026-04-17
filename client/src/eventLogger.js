@@ -1,0 +1,150 @@
+// Lightweight client-side event logger.
+// Batches events and flushes them to /api/events/ingest.
+
+const BATCH_SIZE = 10;
+const FLUSH_INTERVAL_MS = 5000;
+
+let apiBase = "";
+let platform = "web";
+let context = { userId: "", username: "" };
+let queue = [];
+let flushTimer = null;
+let installed = false;
+
+function resolveDefaultApiBase() {
+  if (typeof window === "undefined") return "";
+  const configured = String(import.meta.env?.VITE_API_BASE_URL || "").trim();
+  const protocol = window.location.protocol || "http:";
+  const host = window.location.hostname || "localhost";
+
+  if (configured) {
+    try {
+      const parsed = new URL(configured);
+      if ((parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") && host !== "localhost" && host !== "127.0.0.1") {
+        parsed.hostname = host;
+        return parsed.toString().replace(/\/$/, "");
+      }
+      return configured;
+    } catch {
+      // fall through
+    }
+  }
+  return `${protocol}//${host}:4000`;
+}
+
+export function configureEventLogger(options = {}) {
+  if (options.apiBase) apiBase = options.apiBase;
+  if (options.platform) platform = options.platform;
+  if (!apiBase) apiBase = resolveDefaultApiBase();
+}
+
+export function setEventContext(nextContext = {}) {
+  context = {
+    userId: String(nextContext.userId || "").slice(0, 200),
+    username: String(nextContext.username || "").slice(0, 200)
+  };
+}
+
+function scheduleFlush() {
+  if (flushTimer) return;
+  flushTimer = setTimeout(() => {
+    flushTimer = null;
+    flushEvents();
+  }, FLUSH_INTERVAL_MS);
+}
+
+async function flushEvents() {
+  if (queue.length === 0) return;
+  if (!apiBase) apiBase = resolveDefaultApiBase();
+  if (!apiBase) return;
+
+  const batch = queue.splice(0, 50);
+  try {
+    await fetch(`${apiBase}/api/events/ingest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: context.userId,
+        username: context.username,
+        platform,
+        events: batch
+      }),
+      keepalive: true
+    });
+  } catch {
+    // Drop on failure — do not re-queue to avoid loops.
+  }
+}
+
+export function logEvent(type, data = {}) {
+  if (typeof window === "undefined") return;
+  if (!apiBase) apiBase = resolveDefaultApiBase();
+
+  const evt = {
+    type: String(type || "unknown").slice(0, 120),
+    level: String(data.level || "info").slice(0, 40),
+    userId: data.userId || context.userId,
+    username: data.username || context.username,
+    platform,
+    message: typeof data.message === "string" ? data.message.slice(0, 2000) : "",
+    stack: typeof data.stack === "string" ? data.stack.slice(0, 4000) : "",
+    url: typeof window !== "undefined" ? String(window.location?.href || "").slice(0, 500) : "",
+    userAgent: typeof navigator !== "undefined" ? String(navigator.userAgent || "").slice(0, 400) : "",
+    meta: data.meta || null
+  };
+
+  queue.push(evt);
+
+  if (queue.length >= BATCH_SIZE) {
+    flushEvents();
+  } else {
+    scheduleFlush();
+  }
+}
+
+export function logError(type, error, extra = {}) {
+  const message = error?.message || (typeof error === "string" ? error : "Unknown error");
+  const stack = error?.stack || "";
+  logEvent(type, { level: "error", message, stack, meta: extra });
+}
+
+export function installGlobalEventLogger({ platform: plat = "web", apiBase: base } = {}) {
+  if (installed) return;
+  installed = true;
+  configureEventLogger({ platform: plat, apiBase: base });
+
+  if (typeof window === "undefined") return;
+
+  window.addEventListener("error", (event) => {
+    logError("window_error", event?.error || { message: event?.message }, {
+      filename: event?.filename,
+      line: event?.lineno,
+      col: event?.colno
+    });
+  });
+
+  window.addEventListener("unhandledrejection", (event) => {
+    const reason = event?.reason;
+    logError("unhandled_rejection", reason instanceof Error ? reason : { message: String(reason) });
+  });
+
+  window.addEventListener("beforeunload", () => {
+    if (queue.length > 0 && apiBase && navigator?.sendBeacon) {
+      try {
+        const blob = new Blob([
+          JSON.stringify({
+            userId: context.userId,
+            username: context.username,
+            platform,
+            events: queue.splice(0, 50)
+          })
+        ], { type: "application/json" });
+        navigator.sendBeacon(`${apiBase}/api/events/ingest`, blob);
+      } catch {
+        // ignore
+      }
+    }
+  });
+
+  logEvent("client_session_start", { meta: { ts: Date.now() } });
+}

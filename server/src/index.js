@@ -59,6 +59,212 @@ app.use(cors({
 }));
 app.use(express.json({ limit: "8mb" }));
 
+// ============================================================================
+// Observability / Analytics — event ingestion + admin panel
+// ============================================================================
+
+const ADMIN_TOKEN = String(process.env.ADMIN_TOKEN || "life-rpg-admin-dev-token");
+const EVENT_INGEST_MAX_PER_MIN = 240;
+const MAX_EVENT_LEN = 8000;
+
+const eventRateLimit = new Map(); // key -> { windowStart, count }
+
+function allowEventIngest(key) {
+  const now = Date.now();
+  const entry = eventRateLimit.get(key) || { windowStart: now, count: 0 };
+  if (now - entry.windowStart > 60_000) {
+    entry.windowStart = now;
+    entry.count = 0;
+  }
+  entry.count += 1;
+  eventRateLimit.set(key, entry);
+  return entry.count <= EVENT_INGEST_MAX_PER_MIN;
+}
+
+function clipString(value, max = 2000) {
+  if (value === undefined || value === null) return "";
+  const s = typeof value === "string" ? value : JSON.stringify(value);
+  return s.length > max ? s.slice(0, max) : s;
+}
+
+function safeJsonStringify(value) {
+  if (value === undefined || value === null) return "";
+  try {
+    const s = typeof value === "string" ? value : JSON.stringify(value);
+    return s.length > MAX_EVENT_LEN ? s.slice(0, MAX_EVENT_LEN) : s;
+  } catch {
+    return "";
+  }
+}
+
+async function recordEvent(partial = {}) {
+  try {
+    await prisma.event.create({
+      data: {
+        type: clipString(partial.type || "unknown", 120),
+        level: clipString(partial.level || "info", 40),
+        userId: clipString(partial.userId || "", 200),
+        username: clipString(partial.username || "", 200),
+        platform: clipString(partial.platform || "", 60),
+        message: clipString(partial.message || "", 2000),
+        stack: clipString(partial.stack || "", 4000),
+        url: clipString(partial.url || "", 500),
+        userAgent: clipString(partial.userAgent || "", 400),
+        meta: safeJsonStringify(partial.meta)
+      }
+    });
+  } catch (err) {
+    console.error("Failed to persist event:", err?.message || err);
+  }
+}
+
+function requireAdmin(req, res, next) {
+  const header = String(req.headers["x-admin-token"] || "").trim();
+  const query = String(req.query?.token || "").trim();
+  const provided = header || query;
+  if (!provided || provided !== ADMIN_TOKEN) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
+}
+
+// Public event ingestion (rate-limited per IP/userId)
+app.post("/api/events/ingest", async (req, res) => {
+  const ip = String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "unknown").split(",")[0].trim();
+  const body = req.body || {};
+  const key = String(body.userId || ip);
+
+  if (!allowEventIngest(key)) {
+    return res.status(429).json({ error: "rate_limited" });
+  }
+
+  const ua = String(req.headers["user-agent"] || "");
+  const events = Array.isArray(body.events) ? body.events : [body];
+
+  await Promise.all(events.slice(0, 50).map((evt) =>
+    recordEvent({
+      type: evt.type,
+      level: evt.level,
+      userId: evt.userId || body.userId,
+      username: evt.username || body.username,
+      platform: evt.platform || body.platform,
+      message: evt.message,
+      stack: evt.stack,
+      url: evt.url,
+      userAgent: evt.userAgent || ua,
+      meta: evt.meta
+    })
+  ));
+
+  res.json({ ok: true, count: events.length });
+});
+
+// Admin: list recent events (filterable)
+app.get("/api/admin/events", requireAdmin, async (req, res) => {
+  const limit = Math.min(500, Math.max(1, Number(req.query.limit) || 100));
+  const type = String(req.query.type || "").trim();
+  const level = String(req.query.level || "").trim();
+  const userId = String(req.query.userId || "").trim();
+  const since = req.query.since ? new Date(String(req.query.since)) : null;
+
+  const where = {};
+  if (type) where.type = type;
+  if (level) where.level = level;
+  if (userId) where.userId = userId;
+  if (since && !Number.isNaN(since.getTime())) where.createdAt = { gte: since };
+
+  const events = await prisma.event.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    take: limit
+  });
+
+  res.json({ events });
+});
+
+// Admin: aggregate summary for dashboard
+app.get("/api/admin/summary", requireAdmin, async (_req, res) => {
+  const now = new Date();
+  const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  const [
+    totalUsers,
+    totalEvents,
+    eventsLast24h,
+    eventsLast7d,
+    errorsLast24h,
+    byType,
+    byLevel,
+    activeUsers24h,
+    recentErrors
+  ] = await Promise.all([
+    prisma.user.count(),
+    prisma.event.count(),
+    prisma.event.count({ where: { createdAt: { gte: dayAgo } } }),
+    prisma.event.count({ where: { createdAt: { gte: weekAgo } } }),
+    prisma.event.count({ where: { createdAt: { gte: dayAgo }, level: { in: ["error", "fatal"] } } }),
+    prisma.event.groupBy({
+      by: ["type"],
+      where: { createdAt: { gte: dayAgo } },
+      _count: { _all: true },
+      orderBy: { type: "asc" },
+      take: 50
+    }),
+    prisma.event.groupBy({
+      by: ["level"],
+      where: { createdAt: { gte: dayAgo } },
+      _count: { _all: true },
+      orderBy: { level: "asc" }
+    }),
+    prisma.event.findMany({
+      where: { createdAt: { gte: dayAgo }, userId: { not: "" } },
+      distinct: ["userId"],
+      select: { userId: true, username: true }
+    }),
+    prisma.event.findMany({
+      where: { createdAt: { gte: dayAgo }, level: { in: ["error", "fatal"] } },
+      orderBy: { createdAt: "desc" },
+      take: 20
+    })
+  ]);
+
+  res.json({
+    now: now.toISOString(),
+    totals: {
+      users: totalUsers,
+      events: totalEvents,
+      eventsLast24h,
+      eventsLast7d,
+      errorsLast24h,
+      activeUsers24h: activeUsers24h.length
+    },
+    byType: byType
+      .map((b) => ({ type: b.type, count: b._count._all }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 20),
+    byLevel: byLevel.map((b) => ({ level: b.level, count: b._count._all })),
+    recentErrors,
+    activeUsers: activeUsers24h
+  });
+});
+
+// Admin: basic server health
+app.get("/api/admin/health", requireAdmin, async (_req, res) => {
+  const mem = process.memoryUsage();
+  res.json({
+    ok: true,
+    pid: process.pid,
+    uptimeSec: Math.round(process.uptime()),
+    node: process.version,
+    memory: {
+      rssMB: Math.round(mem.rss / 1024 / 1024),
+      heapUsedMB: Math.round(mem.heapUsed / 1024 / 1024),
+      heapTotalMB: Math.round(mem.heapTotal / 1024 / 1024)
+    }
+  });
+});
+
 // In-memory store for mobile auth tokens (maps token -> user data)
 const mobileAuthTokens = new Map();
 
@@ -2093,9 +2299,41 @@ app.post("/api/admin/reset-all-users", async (req, res) => {
   }
 });
 
-app.use((err, _req, res, _next) => {
+app.use((err, req, res, _next) => {
   console.error(err);
+  recordEvent({
+    type: "server_error",
+    level: "error",
+    platform: "server",
+    message: String(err?.message || err),
+    stack: String(err?.stack || ""),
+    url: `${req.method} ${req.originalUrl || req.url || ""}`,
+    userAgent: String(req.headers?.["user-agent"] || ""),
+    meta: { status: 500 }
+  });
   res.status(500).json({ error: "Internal server error" });
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("unhandledRejection", reason);
+  recordEvent({
+    type: "unhandled_rejection",
+    level: "fatal",
+    platform: "server",
+    message: String(reason?.message || reason),
+    stack: String(reason?.stack || "")
+  });
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("uncaughtException", err);
+  recordEvent({
+    type: "uncaught_exception",
+    level: "fatal",
+    platform: "server",
+    message: String(err?.message || err),
+    stack: String(err?.stack || "")
+  });
 });
 
 const isMainModule = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];

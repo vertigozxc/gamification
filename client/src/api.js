@@ -41,19 +41,54 @@ function getSelectedLanguage() {
 
 async function request(path, options = {}) {
   const selectedLanguage = getSelectedLanguage();
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      "x-language": selectedLanguage,
-      ...(options.headers || {})
-    },
-    cache: "no-store",
-    ...options
-  });
+  let response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      headers: {
+        "Content-Type": "application/json",
+        "x-language": selectedLanguage,
+        ...(options.headers || {})
+      },
+      cache: "no-store",
+      ...options
+    });
+  } catch (networkError) {
+    try {
+      const mod = await import("./eventLogger.js");
+      mod.logError("api_network_error", networkError, {
+        path,
+        method: (options && options.method) || "GET"
+      });
+    } catch {
+      // ignore
+    }
+    throw networkError;
+  }
 
-  const data = await response.json();
+  let data = null;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+
   if (!response.ok) {
-    throw new Error(data.error || "Request failed");
+    const errorMessage = (data && data.error) || `Request failed (${response.status})`;
+    try {
+      const mod = await import("./eventLogger.js");
+      mod.logEvent("api_error", {
+        level: response.status >= 500 ? "error" : "warn",
+        message: errorMessage,
+        meta: {
+          path,
+          status: response.status,
+          method: (options && options.method) || "GET"
+        }
+      });
+    } catch {
+      // ignore
+    }
+    throw new Error(errorMessage);
   }
 
   return data;

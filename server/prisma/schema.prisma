@@ -36,13 +36,13 @@ model User {
   lastDailyResetAt      DateTime          @default(now())
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
+  customQuests          CustomQuest[]
   dailyScores           DailyScore[]
   friendshipsB          Friendship[]      @relation("friendB")
   friendshipsA          Friendship[]      @relation("friendA")
   invitesReceived       Invite[]          @relation("invitesReceived")
   invitesSent           Invite[]          @relation("invitesSent")
   completions           QuestCompletion[]
-  customQuests          CustomQuest[]
 }
 
 model CustomQuest {
@@ -123,4 +123,24 @@ model QuestFeedback {
   createdAt    DateTime @default(now())
 
   @@index([userId, questId])
+}
+
+model Event {
+  id        String   @id @default(cuid())
+  type      String
+  level     String   @default("info")
+  userId    String   @default("")
+  username  String   @default("")
+  platform  String   @default("")
+  message   String   @default("")
+  stack     String   @default("")
+  url       String   @default("")
+  userAgent String   @default("")
+  meta      String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([type])
+  @@index([level])
+  @@index([userId])
 }
