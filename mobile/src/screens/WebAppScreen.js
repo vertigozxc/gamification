@@ -154,7 +154,6 @@ function resolveApiBase() {
 export default function WebAppScreen() {
   const insets = useSafeAreaInsets();
   const [webKey, setWebKey] = useState(0);
-  const [authCompleted, setAuthCompleted] = useState(false);
   const [injectedUser, setInjectedUser] = useState(null);
   const [errorText, setErrorText] = useState("");
   const [showTabBar, setShowTabBar] = useState(false);
@@ -164,9 +163,8 @@ export default function WebAppScreen() {
   const bridgeId = useMemo(() => createBridgeId(), []);
   const webUrl = useMemo(() => {
     const baseWithParams = resolveWebAppUrl();
-    const authParam = authCompleted ? "&authComplete=1" : "";
-    return `${baseWithParams}&bridgeId=${encodeURIComponent(bridgeId)}${authParam}`;
-  }, [bridgeId, authCompleted]);
+    return `${baseWithParams}&bridgeId=${encodeURIComponent(bridgeId)}`;
+  }, [bridgeId]);
   const webViewRef = useRef(null);
   const authInProgressRef = useRef(false);
   const authReloadTriggeredRef = useRef(false);
@@ -266,10 +264,9 @@ export default function WebAppScreen() {
       return;
     }
     authReloadTriggeredRef.current = true;
-    setAuthCompleted(true);
-    // Fetch user data from server bridge and inject into running WebView's
-    // localStorage, then reload the WebView so the web app picks up the
-    // session on its next render.
+    // Mobile is sole driver: poll bridge in background, then inject user
+    // into running WebView's localStorage and reload it. Do NOT change
+    // webUrl or remount — that would cause spurious page transitions.
     fetchBridgeUserAndInject();
     setTimeout(() => {
       authReloadTriggeredRef.current = false;
