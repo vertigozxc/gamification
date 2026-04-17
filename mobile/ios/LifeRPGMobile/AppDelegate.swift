@@ -63,10 +63,15 @@ class ReactNativeDelegate: ExpoReactNativeFactoryDelegate {
   }
 
   override func bundleURL() -> URL? {
+    // Prefer the embedded jsbundle whenever it is present in the .app — this
+    // makes the binary work on real devices without Metro/local-network access.
+    if let embedded = Bundle.main.url(forResource: "main", withExtension: "jsbundle") {
+      return embedded
+    }
 #if DEBUG
     return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: ".expo/.virtual-metro-entry")
 #else
-    return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
+    return nil
 #endif
   }
 }
