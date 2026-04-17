@@ -30,8 +30,8 @@
       "package": "com.liferpg.mobile"
     },
     "extra": {
-      "apiBaseUrl": "http://192.168.70.243:4000",
-      "webAppUrl": "http://192.168.70.243:5173"
+      "apiBaseUrl": "https://life-rpg-api.onrender.com",
+      "webAppUrl": "https://life-rpg-client.onrender.com"
     },
     "plugins": []
   }

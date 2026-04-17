@@ -47,5 +47,5 @@ export function getApiBaseUrl() {
     return inferredFromBundle;
   }
 
-  return "http://192.168.70.243:4000";
+  return "https://life-rpg-api.onrender.com";
 }

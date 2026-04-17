@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { getApiBaseUrl } from "../config/env";
 
 const MOBILE_TAB_STORAGE_KEY = "life_rpg_mobile_tab";
 const TAB_ITEMS = [
@@ -143,7 +144,11 @@ function createBridgeId() {
 }
 
 function resolveApiBase() {
-  return "http://192.168.70.243:4000";
+  try {
+    return getApiBaseUrl();
+  } catch {
+    return "https://life-rpg-api.onrender.com";
+  }
 }
 
 export default function WebAppScreen() {
@@ -161,6 +166,7 @@ export default function WebAppScreen() {
   }, [bridgeId]);
   const webViewRef = useRef(null);
   const authInProgressRef = useRef(false);
+  const authReloadTriggeredRef = useRef(false);
   const pollTimerRef = useRef(null);
   const authSessionModule = NativeModules?.AuthSessionModule;
   const tabBarAnim = useRef(new Animated.Value(0)).current;
@@ -210,7 +216,7 @@ export default function WebAppScreen() {
         stopBridgePolling();
         authInProgressRef.current = false;
         setShowTabBar(false);
-        setWebKey((k) => k + 1);
+        triggerAuthReload();
       }
     };
 
@@ -252,6 +258,19 @@ export default function WebAppScreen() {
     }
   }
 
+  function triggerAuthReload() {
+    if (authReloadTriggeredRef.current) {
+      return;
+    }
+    authReloadTriggeredRef.current = true;
+    setWebKey((k) => k + 1);
+    // Allow re-trigger after the WebView has fully remounted and the embedded
+    // webapp has had time to consume the bridge entry + persist session.
+    setTimeout(() => {
+      authReloadTriggeredRef.current = false;
+    }, 5000);
+  }
+
   function startBridgePolling() {
     stopBridgePolling();
     const apiBase = resolveApiBase();
@@ -269,7 +288,7 @@ export default function WebAppScreen() {
           if (body.exists) {
             stopBridgePolling();
             authInProgressRef.current = false;
-            setWebKey((k) => k + 1);
+            triggerAuthReload();
           }
         }
       } catch {
@@ -287,7 +306,7 @@ export default function WebAppScreen() {
       }
       if (data?.type === "google-login-request") {
         const returnScheme = "com.liferpg.mobile";
-        const redirectUri = "http://localhost:4000/api/auth/google-callback";
+        const redirectUri = `${resolveApiBase()}/api/auth/google-callback`;
         const clientId = "381152713640-o1cnhofvud2lna05gbor9o5cnplfm2e1.apps.googleusercontent.com";
         const nonce = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
         const state = JSON.stringify({ bridgeId, returnScheme });
@@ -315,7 +334,7 @@ export default function WebAppScreen() {
             stopBridgePolling();
             authInProgressRef.current = false;
             if (!result?.cancelled) {
-              setWebKey((k) => k + 1);
+              triggerAuthReload();
             }
             return;
           } catch {

@@ -38,3 +38,7 @@ services:
         value: life-rpg-83c0a
       - key: VITE_FIREBASE_APP_ID
         value: 1:381152713640:web:4afcec9538a39acf0d1b9d
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
