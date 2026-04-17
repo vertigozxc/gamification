@@ -49,6 +49,16 @@ app.use(cors({
       return;
     }
 
+    // Allow same-origin (this server's own host) — needed by OAuth callback HTML
+    // which fetches /api/auth/mobile-token from itself.
+    try {
+      const u = new URL(origin);
+      if (u.hostname === "life-rpg-api.onrender.com" || u.hostname === "localhost" || u.hostname === "127.0.0.1") {
+        callback(null, true);
+        return;
+      }
+    } catch (_) {}
+
     if (allowedOrigins.includes("*") || allowedOrigins.includes(origin) || isAllowedLanOrigin(origin)) {
       callback(null, true);
       return;
