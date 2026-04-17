@@ -155,6 +155,7 @@ export default function WebAppScreen() {
   const insets = useSafeAreaInsets();
   const [webKey, setWebKey] = useState(0);
   const [authCompleted, setAuthCompleted] = useState(false);
+  const [injectedUser, setInjectedUser] = useState(null);
   const [errorText, setErrorText] = useState("");
   const [showTabBar, setShowTabBar] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -266,12 +267,42 @@ export default function WebAppScreen() {
     }
     authReloadTriggeredRef.current = true;
     setAuthCompleted(true);
-    setWebKey((k) => k + 1);
-    // Allow re-trigger after the WebView has fully remounted and the embedded
-    // webapp has had time to consume the bridge entry + persist session.
+    // Fetch user data from server bridge directly with long retry,
+    // then inject into WebView localStorage so the web app sees a
+    // logged-in session immediately on remount (no polling needed).
+    fetchBridgeUserAndRemount();
     setTimeout(() => {
       authReloadTriggeredRef.current = false;
-    }, 5000);
+    }, 30000);
+  }
+
+  async function fetchBridgeUserAndRemount() {
+    const apiBase = resolveApiBase();
+    const url = `${apiBase}/api/auth/mobile-bridge/${encodeURIComponent(bridgeId)}`;
+    let user = null;
+    // Up to ~60s — covers Render free-tier cold start of API
+    for (let attempt = 0; attempt < 60 && !user; attempt += 1) {
+      try {
+        const resp = await fetch(url);
+        if (resp.ok) {
+          const body = await resp.json();
+          if (body?.user?.uid) {
+            user = body.user;
+            break;
+          }
+        }
+      } catch {
+        // network error, retry
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    if (user) {
+      setInjectedUser(user);
+      setWebKey((k) => k + 1);
+    } else {
+      // Auth bridge never materialized — just remount; client will show login
+      setWebKey((k) => k + 1);
+    }
   }
 
   function startBridgePolling() {
@@ -392,6 +423,7 @@ export default function WebAppScreen() {
           try {
             window.__LIFE_RPG_MOBILE_TAB__ = ${JSON.stringify(activeTab)};
             localStorage.setItem(${JSON.stringify(MOBILE_TAB_STORAGE_KEY)}, ${JSON.stringify(activeTab)});
+            ${injectedUser ? `localStorage.setItem("life_rpg_mobile_embedded_session", ${JSON.stringify(JSON.stringify(injectedUser))});` : ""}
             document.documentElement.style.setProperty("--mobile-footer-offset", "${Math.round(footerOffsetPx)}px");
             document.documentElement.style.setProperty("--mobile-safe-bottom", "${Math.max(0, Math.round(safeBottomPx))}px");
             document.documentElement.style.setProperty("--mobile-safe-top", "${Math.max(0, Math.round(safeTopPx))}px");
