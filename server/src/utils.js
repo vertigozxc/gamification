@@ -1,11 +1,8 @@
 import { getStreakXpMultiplier } from "./quests.js";
 
 export function slugifyUsername(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9_\-]/g, "")
-    .slice(0, 24);
+  // Keep identity stable across web and mobile by preserving the exact auth key (Firebase UID).
+  return String(value || "").trim().slice(0, 128);
 }
 
 export function getDateKey(date = new Date()) {

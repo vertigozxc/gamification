@@ -120,10 +120,10 @@ export function fetchFriends(username) {
   return request(`/api/friends/${encodeURIComponent(username)}`);
 }
 
-export function syncState(username, { level, xp, xpNext }) {
+export function syncState(username, { level, xp, xpNext, tokens }) {
   return request("/api/sync-state", {
     method: "POST",
-    body: JSON.stringify({ username, level, xp, xpNext })
+    body: JSON.stringify({ username, level, xp, xpNext, tokens })
   });
 }
 
@@ -155,6 +155,36 @@ export async function rerollPinned(username, useTokens) {
   return request("/api/quests/reroll-pinned", {
     method: "POST",
     body: JSON.stringify({ username, useTokens })
+  });
+}
+
+// ── Custom habits ──
+export function fetchCustomQuests(username) {
+  return request(`/api/custom-quests/${encodeURIComponent(username)}`);
+}
+
+export function createCustomQuest(username, { title, description, stat }) {
+  return request("/api/custom-quests", {
+    method: "POST",
+    body: JSON.stringify({ username, title, description, stat })
+  });
+}
+
+export function updateCustomQuest(username, id, { title, description, stat }) {
+  const virtualId = Number(id);
+  const dbId = virtualId >= 1_000_000 ? virtualId - 1_000_000 : virtualId;
+  return request(`/api/custom-quests/${dbId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ username, title, description, stat })
+  });
+}
+
+export function deleteCustomQuest(username, id) {
+  const virtualId = Number(id);
+  const dbId = virtualId >= 1_000_000 ? virtualId - 1_000_000 : virtualId;
+  return request(`/api/custom-quests/${dbId}`, {
+    method: "DELETE",
+    body: JSON.stringify({ username })
   });
 }
 

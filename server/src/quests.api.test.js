@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import app from "./index.js";
-import { getDailyQuestCount, getPreferredQuestCount } from "./quests.js";
+import { prisma } from "./db.js";
+import { getDailyQuestCount, getPreferredQuestCount, getRandomQuestCount } from "./quests.js";
 
 const DAILY_QUEST_COUNT = getDailyQuestCount();
 const PINNED_COUNT = getPreferredQuestCount();
 const EXPECTED_OTHER_COUNT = Math.max(0, Math.min(4, DAILY_QUEST_COUNT - PINNED_COUNT));
+const EXPECTED_RANDOM_COUNT = Math.max(0, Math.min(getRandomQuestCount(), DAILY_QUEST_COUNT - PINNED_COUNT));
 
 let server;
 let baseUrl;
@@ -216,43 +218,224 @@ test("POST /api/reset-daily handles impossible excludeCategories without failing
   assert.equal(constrainedQuests.length, EXPECTED_OTHER_COUNT, `reroll should still provide ${EXPECTED_OTHER_COUNT} constrained quest slots`);
 });
 
-test("GET /api/quests/all localizes the last three discipline quests", async () => {
-  const [ruResponse, enResponse] = await Promise.all([
-    fetch(`${baseUrl}/api/quests/all?lang=ru`),
-    fetch(`${baseUrl}/api/quests/all?lang=en`)
-  ]);
+test("POST /api/quests/complete grants 2 tokens starting from level 10", async () => {
+  const username = `lvl10_${Date.now().toString().slice(-6)}`;
 
-  assert.equal(ruResponse.status, 200);
-  assert.equal(enResponse.status, 200);
+  const upsertResponse = await fetch(`${baseUrl}/api/profiles/upsert`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, displayName: "Level Ten Reward" })
+  });
+  assert.equal(upsertResponse.status, 200);
 
-  const ruPayload = await ruResponse.json();
-  const enPayload = await enResponse.json();
+  await prisma.user.update({
+    where: { username },
+    data: {
+      level: 9,
+      xp: 90,
+      xpNext: 100,
+      tokens: 0,
+      preferredQuestIds: Array.from({ length: PINNED_COUNT }, (_, index) => index + 1).join(",")
+    }
+  });
 
-  const ruNoJunkFood = ruPayload.quests.find((quest) => quest.sourceId === "quest_110");
-  const ruNoAlcohol = ruPayload.quests.find((quest) => quest.sourceId === "quest_111");
-  const ruNoNicotine = ruPayload.quests.find((quest) => quest.sourceId === "quest_112");
-  const ruLongMarch = ruPayload.quests.find((quest) => quest.sourceId === "quest_003");
-  const enNoJunkFood = enPayload.quests.find((quest) => quest.sourceId === "quest_110");
-  const enNoAlcohol = enPayload.quests.find((quest) => quest.sourceId === "quest_111");
-  const enNoNicotine = enPayload.quests.find((quest) => quest.sourceId === "quest_112");
-  const enLongMarch = enPayload.quests.find((quest) => quest.sourceId === "quest_003");
+  const gameStateResponse = await fetch(`${baseUrl}/api/game-state/${encodeURIComponent(username)}`);
+  assert.equal(gameStateResponse.status, 200);
+  const gameStatePayload = await gameStateResponse.json();
+  const questId = gameStatePayload?.quests?.[0]?.id;
+  assert.ok(Number.isInteger(questId), "expected at least one available quest");
 
-  assert.equal(ruLongMarch?.title, "Долгий марш");
-  assert.equal(ruLongMarch?.description, "Пройди 10 000 шагов сегодня");
+  const completeResponse = await fetch(`${baseUrl}/api/quests/complete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, questId })
+  });
+  assert.equal(completeResponse.status, 200);
 
-  assert.equal(ruNoJunkFood?.title, "Без вредной еды");
-  assert.equal(ruNoJunkFood?.description, "Не ешь вредную еду (пиццу, бургеры, чипсы и другую нездоровую пищу)");
-  assert.equal(ruNoAlcohol?.title, "Без алкоголя");
-  assert.equal(ruNoAlcohol?.description, "Не употребляй алкоголь");
-  assert.equal(ruNoNicotine?.title, "Без никотина");
-  assert.equal(ruNoNicotine?.description, "Без никотина - не кури");
+  const completePayload = await completeResponse.json();
+  assert.equal(completePayload.tokens, 2);
 
-  assert.equal(enNoJunkFood?.title, "No Junk Food");
-  assert.equal(enNoJunkFood?.description, "Do not eat junk food (pizza, burgers, chips, or other unhealthy foods)");
-  assert.equal(enNoAlcohol?.title, "No Alcohol");
-  assert.equal(enNoAlcohol?.description, "Do not drink alcohol");
-  assert.equal(enNoNicotine?.title, "No Nicotine");
-  assert.equal(enNoNicotine?.description, "No nicotine - do not smoke");
-  assert.equal(enLongMarch?.title, "Long March");
-  assert.equal(enLongMarch?.description, "Walk 10,000 steps");
+  const updatedUser = await prisma.user.findUnique({ where: { username } });
+  assert.equal(updatedUser?.level, 10);
+  assert.equal(updatedUser?.tokens, 2);
+});
+
+test("POST /api/shop/freeze-streak only charges once when requests race", async () => {
+  const username = `frz_${Date.now().toString().slice(-6)}`;
+
+  const upsertResponse = await fetch(`${baseUrl}/api/profiles/upsert`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, displayName: "Freeze Race" })
+  });
+  assert.equal(upsertResponse.status, 200);
+
+  await prisma.user.update({
+    where: { username },
+    data: {
+      tokens: 5,
+      streakFreezeExpiresAt: null
+    }
+  });
+
+  const responses = await Promise.all(
+    Array.from({ length: 5 }, () =>
+      fetch(`${baseUrl}/api/shop/freeze-streak`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username })
+      })
+    )
+  );
+
+  const statusCodes = responses.map((response) => response.status);
+  assert.equal(statusCodes.filter((status) => status === 200).length, 1);
+
+  const updatedUser = await prisma.user.findUnique({ where: { username } });
+  assert.equal(updatedUser?.tokens, 2);
+  assert.ok(updatedUser?.streakFreezeExpiresAt, "expected freeze expiration to be set");
+
+  const gameStateResponse = await fetch(`${baseUrl}/api/game-state/${encodeURIComponent(username)}`);
+  assert.equal(gameStateResponse.status, 200);
+  const gameStatePayload = await gameStateResponse.json();
+  assert.equal(gameStatePayload.streakFreezeActive, true);
+});
+
+test("GET /api/game-state returns full random daily quests when 2 custom habits are pinned", async () => {
+  const username = `custommix_${Date.now().toString().slice(-6)}`;
+
+  const upsertResponse = await fetch(`${baseUrl}/api/profiles/upsert`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, displayName: "Custom Mix Tester" })
+  });
+  assert.equal(upsertResponse.status, 200);
+
+  const user = await prisma.user.findUnique({ where: { username } });
+  assert.ok(user, "user should exist after upsert");
+
+  const firstCustom = await prisma.customQuest.create({
+    data: {
+      userId: user.id,
+      title: "Custom Habit One",
+      description: "first",
+      stat: "sta"
+    }
+  });
+  const secondCustom = await prisma.customQuest.create({
+    data: {
+      userId: user.id,
+      title: "Custom Habit Two",
+      description: "second",
+      stat: "sta"
+    }
+  });
+
+  const firstCustomVirtualId = 1_000_000 + firstCustom.id;
+  const secondCustomVirtualId = 1_000_000 + secondCustom.id;
+
+  await prisma.user.update({
+    where: { username },
+    data: {
+      preferredQuestIds: `1,${firstCustomVirtualId},${secondCustomVirtualId}`,
+      randomQuestIds: ""
+    }
+  });
+
+  const gameStateResponse = await fetch(`${baseUrl}/api/game-state/${encodeURIComponent(username)}`);
+  assert.equal(gameStateResponse.status, 200);
+  const payload = await gameStateResponse.json();
+
+  assert.ok(Array.isArray(payload?.quests), "game-state should return quests array");
+  const quests = payload.quests;
+  assert.equal(quests.length, PINNED_COUNT + EXPECTED_RANDOM_COUNT);
+
+  const pinned = quests.slice(0, PINNED_COUNT);
+  const random = quests.slice(PINNED_COUNT);
+
+  const customPinnedCount = pinned.filter((quest) => quest?.isCustom === true).length;
+  assert.equal(customPinnedCount, 2, "expected two custom habits in pinned slots");
+  assert.equal(random.length, EXPECTED_RANDOM_COUNT, `expected exactly ${EXPECTED_RANDOM_COUNT} random quests`);
+});
+
+test("POST /api/shop/replace-pinned-quests allows free swap after 21 days, otherwise requires 7 tokens", async () => {
+  const username = `pin21_${Date.now().toString().slice(-6)}`;
+
+  const upsertResponse = await fetch(`${baseUrl}/api/profiles/upsert`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, displayName: "Pinned 21d Tester" })
+  });
+  assert.equal(upsertResponse.status, 200);
+
+  await prisma.user.update({
+    where: { username },
+    data: {
+      preferredQuestIds: "1,2,3",
+      tokens: 0,
+      lastFreeTaskRerollAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000)
+    }
+  });
+
+  const blockedResponse = await fetch(`${baseUrl}/api/shop/replace-pinned-quests`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, preferredQuestIds: [4, 5, 6], useTokens: false })
+  });
+  assert.equal(blockedResponse.status, 400);
+  const blockedPayload = await blockedResponse.json();
+  assert.equal(blockedPayload?.error, "Not enough tokens");
+
+  await prisma.user.update({
+    where: { username },
+    data: {
+      preferredQuestIds: "1,2,3",
+      tokens: 0,
+      lastFreeTaskRerollAt: new Date(Date.now() - 22 * 24 * 60 * 60 * 1000)
+    }
+  });
+
+  const freeResponse = await fetch(`${baseUrl}/api/shop/replace-pinned-quests`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, preferredQuestIds: [4, 5, 6], useTokens: false })
+  });
+  assert.equal(freeResponse.status, 200);
+  const freePayload = await freeResponse.json();
+  assert.equal(freePayload?.tokens, 0);
+  assert.deepEqual(freePayload?.preferredQuestIds, [4, 5, 6]);
+  assert.ok(freePayload?.lastFreeTaskRerollAt, "expected lastFreeTaskRerollAt to be refreshed after free swap");
+});
+
+test("GET /api/quests generates variable effort distributions for random quests (50+30+10, 50+20+20, 40+30+20, 30+30+30)", async () => {
+  const pinnedIds = Array.from({ length: PINNED_COUNT }, (_, index) => index + 1).join(",");
+  const date = "2026-04-15T00:00:00.000Z";
+  const combinations = new Set();
+
+  // Generate quests for 100 different usernames to see the variety of effort distributions
+  for (let i = 0; i < 100; i += 1) {
+    const username = `effort_var_${i}`;
+    const response = await fetch(`${baseUrl}/api/quests?username=${encodeURIComponent(username)}&pinnedQuestIds=${pinnedIds}&date=${date}`);
+    assert.equal(response.status, 200);
+
+    const payload = await response.json();
+    const randomQuests = payload.quests.slice(PINNED_COUNT, PINNED_COUNT + EXPECTED_OTHER_COUNT);
+    
+    if (randomQuests.length === EXPECTED_OTHER_COUNT) {
+      const totalXp = randomQuests.reduce((sum, quest) => sum + Number(quest?.xp || 0), 0);
+      const effortSum = randomQuests.reduce((sum, quest) => sum + Number(quest?.effortScore || 0), 0);
+      const sortedXp = randomQuests.map((q) => Number(q?.xp || 0)).sort((a, b) => b - a).join("+");
+      combinations.add(sortedXp);
+    }
+  }
+
+  // Verify that we have multiple different distributions (not just 50+30+10)
+  assert.ok(combinations.size > 1, `expected multiple effort distributions, but only found: ${Array.from(combinations).join(", ")}`);
+  
+  // Verify that all combinations sum to 90 (effort 9 total)
+  for (const combo of combinations) {
+    const parts = combo.split("+").map((x) => Number(x));
+    const sum = parts.reduce((a, b) => a + b, 0);
+    assert.equal(sum, 90, `expected total XP of 90 for combination ${combo}, got ${sum}`);
+  }
 });

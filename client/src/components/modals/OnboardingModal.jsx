@@ -1,5 +1,8 @@
-﻿import { useTheme } from "../../ThemeContext";
-import { useState, useMemo } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
+import { useTheme } from "../../ThemeContext";
+import CustomHabitManager from "./CustomHabitManager";
+
+const SELECTION_LIMIT = 3;
 
 function OnboardingModal({
   open,
@@ -13,28 +16,40 @@ function OnboardingModal({
   onToggleOnboardingQuest,
   onboardingError,
   onboardingSaving,
-  onComplete
+  onComplete,
+  customQuests,
+  customSaving,
+  customError,
+  onClearCustomError,
+  onCreateCustomQuest,
+  onUpdateCustomQuest,
+  onDeleteCustomQuest
 }) {
   const { t } = useTheme();
   const [showWarning, setShowWarning] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState({});
+  const [sheetAnim, setSheetAnim] = useState(false);
 
-  const categories = useMemo(() => {
-    const grouped = {};
-    filteredOnboardingQuests.forEach(q => {
-      const cat = q.category || 'UNCATEGORIZED';
-      if(!grouped[cat]) grouped[cat] = [];
-      grouped[cat].push(q);
-    });
-    return grouped;
-  }, [filteredOnboardingQuests]);
+  useEffect(() => {
+    if (open) {
+      const id = requestAnimationFrame(() => setSheetAnim(true));
+      return () => cancelAnimationFrame(id);
+    }
+    setSheetAnim(false);
+    return undefined;
+  }, [open]);
 
-  const toggleCategory = (cat) => {
-    setExpandedCategories(prev => ({...prev, [cat]: !prev[cat]}));
-  };
+  const nonCustomQuests = useMemo(
+    () => (Array.isArray(filteredOnboardingQuests) ? filteredOnboardingQuests.filter((q) => !q.isCustom) : []),
+    [filteredOnboardingQuests]
+  );
+
+  const selectedCount = Array.isArray(onboardingQuestIds) ? onboardingQuestIds.length : 0;
+  const selectionComplete = selectedCount === SELECTION_LIMIT;
+  const primaryDisabled = onboardingSaving || !onboardingName.trim() || !selectionComplete;
+  const progressPct = Math.min(100, Math.round((selectedCount / SELECTION_LIMIT) * 100));
 
   const handleStartRequest = () => {
-    if (onboardingName.trim() === "" || onboardingQuestIds.length !== 3) {
+    if (onboardingName.trim() === "" || selectedCount !== SELECTION_LIMIT) {
       onComplete(); // let parent show error
     } else {
       setShowWarning(true);
@@ -48,130 +63,350 @@ function OnboardingModal({
   if (!open) return null;
 
   return (
-    <div 
-      className="logout-confirm-overlay" 
-      style={{ zIndex: 80 }}
+    <div
+      className="logout-confirm-overlay"
+      style={{ zIndex: 84, alignItems: "flex-end", justifyContent: "center", padding: 0, background: "rgba(0,0,0,0.55)" }}
       onClick={(e) => {
-        // Close only if clicking on overlay background, not the card
-        if (e.target === e.currentTarget) {
-          handleCloseClick();
-        }
+        if (e.target === e.currentTarget) handleCloseClick();
       }}
     >
-      <div className="logout-confirm-card relative" style={{ maxWidth: "900px", width: "95vw", maxHeight: "90vh", overflowY: "auto" }}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "100%",
+          maxWidth: 640,
+          maxHeight: "92dvh",
+          background: "var(--card-bg, #0f172a)",
+          border: "1px solid var(--card-border-idle)",
+          borderBottom: "none",
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          boxShadow: "0 -20px 60px rgba(0,0,0,0.5)",
+          display: "flex",
+          flexDirection: "column",
+          transform: sheetAnim ? "translateY(0)" : "translateY(100%)",
+          transition: "transform 220ms cubic-bezier(0.32, 0.72, 0, 1)",
+          overflow: "hidden"
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "center", paddingTop: 8, paddingBottom: 4 }}>
+          <div style={{ width: 40, height: 4, borderRadius: 999, background: "rgba(255,255,255,0.25)" }} />
+        </div>
 
-        <button
-          onClick={handleCloseClick}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
-          style={{ background: "transparent", border: "none", padding: "8px", cursor: "pointer", fontSize: "20px" }}
-          title={t.cancelAndLogout}
+        <div style={{ padding: "4px 16px 12px", borderBottom: "1px solid var(--card-border-idle)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <h2
+                className="cinzel"
+                style={{
+                  color: "var(--color-primary)",
+                  fontSize: 18,
+                  fontWeight: 700,
+                  margin: 0,
+                  lineHeight: 1.2,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                {t.onboardingTitle}
+              </h2>
+              <p style={{ fontSize: 12, color: "#94a3b8", margin: "4px 0 0" }}>
+                {t.onboardingIntro}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleCloseClick}
+              title={t.cancelAndLogout}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 999,
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid var(--card-border-idle)",
+                color: "#e2e8f0",
+                cursor: "pointer",
+                fontSize: 18,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#cbd5e1" }}>
+                  {t.onboardingSelected
+                    ? `${selectedCount} / ${SELECTION_LIMIT} ${t.onboardingSelected}`
+                    : `${selectedCount} / ${SELECTION_LIMIT}`}
+                </span>
+              </div>
+              <div style={{ height: 6, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+                <div
+                  style={{
+                    width: `${progressPct}%`,
+                    height: "100%",
+                    background: selectionComplete ? "var(--color-accent)" : "var(--color-primary)",
+                    transition: "width 200ms ease"
+                  }}
+                />
+              </div>
+            </div>
+            <div
+              style={{
+                padding: "6px 10px",
+                borderRadius: 10,
+                border: "1px solid var(--card-border-idle)",
+                background: "rgba(0,0,0,0.25)",
+                color: "#cbd5e1",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                flexShrink: 0,
+                fontSize: 12
+              }}
+            >
+              <span style={{ fontSize: 14 }}>🧭</span>
+              <span className="cinzel" style={{ fontWeight: 700 }}>
+                {t.onboardingPick || "Pick preferred quests"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            WebkitOverflowScrolling: "touch",
+            padding: "12px 16px 16px"
+          }}
         >
-          ✕
-        </button>
-
-        <div className="text-4xl mb-2">🧭</div>
-        <h2 className="cinzel logout-confirm-title" style={{ color: "var(--color-primary)" }}>{t.onboardingTitle}</h2>
-        <p className="logout-confirm-msg" style={{ whiteSpace: "pre-line" }}>{t.onboardingIntro}</p>
-
-        <div className="mt-4">
-          <label className="cinzel text-xs tracking-widest uppercase block mb-2" style={{ color: "var(--color-primary)" }}>{t.onboardingNickname}</label>
+          <label
+            className="cinzel"
+            style={{
+              display: "block",
+              marginBottom: 6,
+              fontSize: 11,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "var(--color-primary)"
+            }}
+          >
+            {t.onboardingNickname || "Nickname"}
+          </label>
           <input
             type="text"
             value={onboardingName}
             onChange={(event) => onOnboardingNameChange(event.target.value)}
             maxLength={32}
-            className="w-full rounded-lg px-3 py-2 cinzel"
-            style={{ background: "var(--card-bg)", border: "1px solid var(--card-border-idle)", color: "var(--color-primary)" }}
+            className="cinzel"
+            style={{
+              width: "100%",
+              padding: "12px 14px",
+              borderRadius: 12,
+              background: "rgba(0,0,0,0.35)",
+              border: "1px solid var(--card-border-idle)",
+              color: "#e2e8f0",
+              fontSize: 16,
+              minHeight: 44,
+              outline: "none"
+            }}
             placeholder={t.onboardingNicknamePlaceholder}
           />
-        </div>
 
-        <div className="mt-5">
-          <div className="flex items-center justify-between mb-2">
-            <label className="cinzel text-xs tracking-widest uppercase" style={{ color: "var(--color-primary)" }}>{t.onboardingPick}</label>
-            <span className="cinzel text-xs text-slate-300">{onboardingQuestIds.length} / 3 {t.onboardingSelected}</span>
+          <div style={{ marginTop: 14 }}>
+            <input
+              type="text"
+              value={onboardingQuestSearch}
+              onChange={(event) => onOnboardingQuestSearchChange(event.target.value)}
+              placeholder={t.onboardingSearch}
+              style={{
+                width: "100%",
+                padding: "12px 14px",
+                borderRadius: 12,
+                background: "rgba(0,0,0,0.35)",
+                border: "1px solid var(--card-border-idle)",
+                color: "#e2e8f0",
+                fontSize: 16,
+                minHeight: 44,
+                outline: "none"
+              }}
+            />
           </div>
-          <input
-            type="text"
-            value={onboardingQuestSearch}
-            onChange={(event) => onOnboardingQuestSearchChange(event.target.value)}
-            className="w-full mb-2 rounded-lg px-3 py-2 text-slate-200"
-            style={{ background: "var(--card-bg)", border: "1px solid var(--card-border-idle)" }}
-            placeholder={t.onboardingSearch}
+
+          <CustomHabitManager
+            customQuests={customQuests}
+            selectedIds={onboardingQuestIds}
+            onToggleSelect={onToggleOnboardingQuest}
+            selectionLimitReached={selectedCount >= SELECTION_LIMIT}
+            accentVar="--color-primary"
+            allowDelete={true}
+            onCreateCustomQuest={onCreateCustomQuest}
+            onUpdateCustomQuest={onUpdateCustomQuest}
+            onDeleteCustomQuest={onDeleteCustomQuest}
+            customSaving={customSaving}
+            customError={customError}
+            onClearCustomError={onClearCustomError}
           />
-          <div className="max-h-64 overflow-y-auto pr-1">
-            {Object.keys(categories).length === 0 && (
-              <p className="text-xs text-slate-500 mt-2">{t.onboardingNoMatch}</p>
-            )}
-            {Object.keys(categories).map(cat => (
-              <div key={cat} className="mb-2 border rounded-lg overflow-hidden" style={{ borderColor: 'var(--card-border-idle)' }}>
-                <button
-                  type="button"
-                  onClick={() => toggleCategory(cat)}
-                  className="w-full text-left p-3 font-bold cinzel text-sm flex justify-between items-center"
-                  style={{ background: 'var(--card-bg)', color: 'var(--color-primary)' }}
-                >
-                  <span>{cat} ({categories[cat].length})</span>
-                  <span>{expandedCategories[cat] ? '▲' : '▼'}</span>
-                </button>
-                {expandedCategories[cat] && (
-                  <div className="p-2 grid grid-cols-1 md:grid-cols-2 gap-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
-                    {categories[cat].map(quest => {
-                      const isSelected = onboardingQuestIds.includes(quest.id);
-                      const blocked = !isSelected && onboardingQuestIds.length >= 3;
-                      return (
-                        <button
-                          key={quest.id}
-                          type="button"
-                          onClick={() => onToggleOnboardingQuest(quest.id)}
-                          disabled={blocked}
-                          className="text-left rounded-lg border p-3 transition h-full"
-                          style={isSelected ? { borderColor: "var(--color-primary)", background: "var(--color-accent-dim)" } : blocked ? { borderColor: "var(--card-border-idle)", background: "var(--card-bg)", opacity: 0.4, cursor: "not-allowed" } : { borderColor: "var(--card-border-idle)", background: "var(--card-bg)" }}
-                        >
-                          <p className="cinzel text-sm text-slate-100 font-bold">{quest.title}</p>
-                          <p className="text-xs text-slate-400 mt-1">{quest.desc}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+
+          <div style={{ marginTop: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <span
+                className="cinzel"
+                style={{
+                  fontSize: 11,
+                  letterSpacing: "0.15em",
+                  textTransform: "uppercase",
+                  color: "var(--color-primary)"
+                }}
+              >
+                {t.browseHabitsSection || "Browse habits"}
+              </span>
+              <span style={{ fontSize: 11, color: "#64748b" }}>{nonCustomQuests.length}</span>
+            </div>
+
+            {nonCustomQuests.length === 0 ? (
+              <p style={{ fontSize: 12, color: "#64748b", textAlign: "center", padding: "16px 0" }}>
+                {t.onboardingNoMatch || "No quests matched your search."}
+              </p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {nonCustomQuests.map((quest) => {
+                  const isSelected = onboardingQuestIds.includes(quest.id);
+                  const blocked = !isSelected && selectedCount >= SELECTION_LIMIT;
+                  return (
+                    <button
+                      key={`onboarding-${quest.id}`}
+                      type="button"
+                      onClick={() => onToggleOnboardingQuest(quest.id)}
+                      disabled={blocked}
+                      style={{
+                        position: "relative",
+                        textAlign: "left",
+                        padding: "12px 44px 12px 14px",
+                        borderRadius: 12,
+                        minHeight: 56,
+                        border: isSelected ? "1px solid var(--color-primary)" : "1px solid var(--card-border-idle)",
+                        background: isSelected ? "var(--color-accent-dim)" : "rgba(255,255,255,0.03)",
+                        color: "#e2e8f0",
+                        cursor: blocked ? "not-allowed" : "pointer",
+                        opacity: blocked ? 0.45 : 1,
+                        transition: "background 150ms ease, border-color 150ms ease"
+                      }}
+                    >
+                      <p
+                        className="cinzel"
+                        style={{ fontSize: 13, fontWeight: 700, color: "#f1f5f9", margin: 0, lineHeight: 1.3 }}
+                      >
+                        {quest.title}
+                      </p>
+                      {quest.desc ? (
+                        <p style={{ fontSize: 12, color: "#94a3b8", margin: "4px 0 0", lineHeight: 1.35 }}>
+                          {quest.desc}
+                        </p>
+                      ) : null}
+                      <span
+                        aria-hidden
+                        style={{
+                          position: "absolute",
+                          top: "50%",
+                          right: 12,
+                          transform: "translateY(-50%)",
+                          width: 22,
+                          height: 22,
+                          borderRadius: 999,
+                          border: `2px solid ${isSelected ? "var(--color-primary)" : "rgba(255,255,255,0.2)"}`,
+                          background: isSelected ? "var(--color-primary)" : "transparent",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#0f172a",
+                          fontSize: 12,
+                          fontWeight: 900
+                        }}
+                      >
+                        {isSelected ? "✓" : ""}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-            ))}
+            )}
           </div>
         </div>
 
-        {onboardingError ? <p className="text-red-400 text-sm mt-3 font-bold">{onboardingError}</p> : null}
-
-        <div className="logout-confirm-actions mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <button
-            className="logout-confirm-proceed cinzel"
-            onClick={handleStartRequest}
-            disabled={onboardingSaving}
-            style={{
-              opacity: onboardingSaving ? 0.6 : 1,
-              cursor: onboardingSaving ? "not-allowed" : "pointer"
-            }}
-          >
-            {onboardingSaving ? t.onboardingSaving : t.onboardingBegin}
-          </button>
-
-          <button
-            className="text-xs uppercase tracking-widest text-slate-400 hover:text-white transition-colors"
-            onClick={handleCloseClick}
-            type="button"
-            style={{ padding: "8px 16px" }}
-          >
-            ← {t.logOutAndCancel}
-          </button>
+        <div
+          style={{
+            padding: "12px 16px calc(12px + env(safe-area-inset-bottom, 0px))",
+            borderTop: "1px solid var(--card-border-idle)",
+            background: "rgba(0,0,0,0.35)"
+          }}
+        >
+          {onboardingError ? (
+            <p style={{ color: "#fca5a5", fontSize: 12, margin: "0 0 8px", textAlign: "center", fontWeight: 600 }}>
+              {onboardingError}
+            </p>
+          ) : null}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              type="button"
+              onClick={handleCloseClick}
+              className="cinzel"
+              style={{
+                flex: 1,
+                minHeight: 48,
+                borderRadius: 12,
+                background: "transparent",
+                border: "1px solid var(--card-border-idle)",
+                color: "#cbd5e1",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                letterSpacing: "0.05em"
+              }}
+            >
+              {t.logOutAndCancel || t.cancelLabel || "Cancel"}
+            </button>
+            <button
+              type="button"
+              onClick={handleStartRequest}
+              disabled={primaryDisabled}
+              className="cinzel"
+              style={{
+                flex: 2,
+                minHeight: 48,
+                borderRadius: 12,
+                background: primaryDisabled
+                  ? "rgba(255,255,255,0.08)"
+                  : "linear-gradient(90deg, var(--color-primary), var(--color-accent))",
+                border: "none",
+                color: primaryDisabled ? "#64748b" : "#0b1120",
+                fontSize: 13,
+                fontWeight: 800,
+                cursor: primaryDisabled ? "not-allowed" : "pointer",
+                letterSpacing: "0.05em",
+                boxShadow: primaryDisabled ? "none" : "0 8px 20px rgba(56,189,248,0.2)"
+              }}
+            >
+              {onboardingSaving ? (t.onboardingSaving || "Saving...") : (t.onboardingBegin || "Start Adventure")}
+            </button>
+          </div>
         </div>
       </div>
 
       {showWarning && (
-        <div className="logout-confirm-overlay" style={{ zIndex: 100 }}>
-          <div className="logout-confirm-card" style={{ maxWidth: "400px" }}>
-            <div className="text-4xl mt-1 mb-5 text-center">⚠️</div>
-            <h2 className="cinzel text-center text-2xl mb-5" style={{ color: "var(--color-primary)" }}>{t.confirmTitle}</h2>
-            <div className="mb-7 px-3 py-4  text-center" style={{ borderColor: "var(--card-border-idle)",  }}>
+        <div className="logout-confirm-overlay" style={{ zIndex: 100, background: "rgba(0,0,0,0.6)" }}>
+          <div className="logout-confirm-card" style={{ maxWidth: 400 }}>
+            <div className="text-4xl mt-1 mb-4 text-center">⚠️</div>
+            <h2 className="cinzel text-center text-2xl mb-4" style={{ color: "var(--color-primary)" }}>{t.confirmTitle}</h2>
+            <div className="mb-5 px-3 py-2 text-center">
               <p className="text-lg text-slate-100 font-medium leading-relaxed mb-3">
                 {t.confirmPinnedMessage}
               </p>
@@ -179,16 +414,34 @@ function OnboardingModal({
                 {t.confirmPinnedSub}
               </p>
             </div>
-            <div className="flex justify-center gap-4">
+            <div className="flex justify-center gap-3">
               <button
-                className="px-4 py-2 rounded border border-slate-600 text-slate-300 hover:bg-slate-800 transition"
+                className="cinzel"
                 onClick={() => setShowWarning(false)}
+                style={{
+                  minHeight: 44,
+                  padding: "8px 14px",
+                  borderRadius: 10,
+                  border: "1px solid var(--card-border-idle)",
+                  background: "transparent",
+                  color: "#cbd5e1",
+                  cursor: "pointer"
+                }}
               >
                 {t.cancelLabel}
               </button>
               <button
-                className="px-4 py-2 rounded cinzel font-bold text-slate-900 transition"
-                style={{ background: "var(--color-primary)" }}
+                className="cinzel"
+                style={{
+                  minHeight: 44,
+                  padding: "8px 14px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: "linear-gradient(90deg, var(--color-primary), var(--color-accent))",
+                  color: "#0b1120",
+                  fontWeight: 800,
+                  cursor: "pointer"
+                }}
                 onClick={() => {
                   setShowWarning(false);
                   onComplete();

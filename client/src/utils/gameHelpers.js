@@ -13,7 +13,7 @@ export function normalizeMobileTab(value) {
 }
 
 export function getMobileTabIndex(tab) {
-  const order = ["dashboard", "leaderboard", "city", "store", "profile"];
+  const order = ["city", "leaderboard", "dashboard", "store", "profile"];
   const index = order.indexOf(tab);
   return index >= 0 ? index : 2;
 }
@@ -51,7 +51,8 @@ export function normalizeQuest(quest, translateQuest, translateCategory) {
     xp: Number.isFinite(xp) ? xp : 0,
     stat,
     category: translateCategory ? translateCategory(rawCategory) : rawCategory,
-    icon: String(quest?.icon || getQuestIcon(stat))
+    icon: String(quest?.icon || getQuestIcon(stat)),
+    isCustom: Boolean(quest?.isCustom) || sourceId.startsWith("custom_") || Number(quest?.id) >= 1_000_000
   };
 }
 
@@ -148,9 +149,9 @@ export function normalizeState(rawState) {
   state.logs = Array.isArray(rawState.logs) ? rawState.logs : [];
   state.streak = typeof rawState.streak === "number" ? rawState.streak : 0;
   state.lastReset = typeof rawState.lastReset === "number" ? rawState.lastReset : Date.now();
-  state.hasRerolledToday = rawState.hasRerolledToday === true;
+  state.hasRerolledToday = false;
   state.streakFreezeActive = rawState.streakFreezeActive === true;
-  state.extraRerollsToday = typeof rawState.extraRerollsToday === "number" ? rawState.extraRerollsToday : 0;
+  state.extraRerollsToday = 0;
   state.user = {
     ...state.user,
     ...(rawState.user && typeof rawState.user === "object" ? rawState.user : {})

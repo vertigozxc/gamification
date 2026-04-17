@@ -19,6 +19,7 @@ function resolveApiBaseForAuth() {
 
 const MOBILE_EMBEDDED_SESSION_KEY = "life_rpg_mobile_embedded_session";
 const EXTERNAL_AUTOSTART_MARKER_KEY = "life_rpg_external_autostart_done";
+const EXTERNAL_AUTH_CONTEXT_KEY = "life_rpg_external_auth_context";
 
 function isEmbeddedBrowser() {
   if (typeof window === "undefined") {
@@ -64,6 +65,58 @@ function getAuthBridgeId() {
   }
 }
 
+function readExternalAuthContext() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(EXTERNAL_AUTH_CONTEXT_KEY);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
+    return {
+      bridgeId: String(parsed.bridgeId || "").trim(),
+      returnScheme: String(parsed.returnScheme || "com.liferpg.mobile").trim() || "com.liferpg.mobile",
+      authNonce: String(parsed.authNonce || "").trim()
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeExternalAuthContext({ bridgeId = "", returnScheme = "com.liferpg.mobile", authNonce = "" } = {}) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(EXTERNAL_AUTH_CONTEXT_KEY, JSON.stringify({
+      bridgeId: String(bridgeId || "").trim(),
+      returnScheme: String(returnScheme || "com.liferpg.mobile").trim() || "com.liferpg.mobile",
+      authNonce: String(authNonce || "").trim()
+    }));
+  } catch {
+    // ignore
+  }
+}
+
+function clearExternalAuthContext() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(EXTERNAL_AUTH_CONTEXT_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 function shouldAutostartExternalAuth() {
   if (typeof window === "undefined") {
     return false;
@@ -102,6 +155,19 @@ function getReturnScheme() {
   } catch {
     return "com.liferpg.mobile";
   }
+}
+
+function getResolvedExternalAuthContext() {
+  const bridgeId = getAuthBridgeId();
+  const returnScheme = getReturnScheme();
+  const authNonce = getAuthNonce();
+  const stored = readExternalAuthContext();
+
+  return {
+    bridgeId: bridgeId || stored?.bridgeId || "",
+    returnScheme: returnScheme || stored?.returnScheme || "com.liferpg.mobile",
+    authNonce: authNonce || stored?.authNonce || ""
+  };
 }
 
 function getExternalAutostartMarker(bridgeId, authNonce = "") {
@@ -279,19 +345,23 @@ function useAuthSession({ auth, googleProvider, firebaseInitError = "" }) {
           saveEmbeddedSessionUser(safeUser);
         }
 
-        if (isExternalAuthMode()) {
-          const bridgeId = getAuthBridgeId();
+        const externalContext = getResolvedExternalAuthContext();
+
+        if (isExternalAuthMode() || externalContext.bridgeId) {
+          const bridgeId = externalContext.bridgeId;
           if (bridgeId) {
             try {
               await storeMobileAuthToken(safeUser, bridgeId);
-              const returnScheme = getReturnScheme();
+              const returnScheme = externalContext.returnScheme;
               const apiBase = resolveApiBaseForAuth();
               // Use server HTTP 302 redirect — reliably intercepted by ASWebAuthenticationSession
+              clearExternalAuthContext();
               window.location.replace(`${apiBase}/api/auth/mobile-complete?bridgeId=${encodeURIComponent(bridgeId)}&scheme=${encodeURIComponent(returnScheme)}`);
             } catch (storeErr) {
               // Last-resort: try direct deep link
               try {
-                const returnScheme = getReturnScheme();
+                const returnScheme = externalContext.returnScheme;
+                clearExternalAuthContext();
                 window.location.replace(`${returnScheme}://auth-complete?bridgeId=${encodeURIComponent(bridgeId)}`);
               } catch {
                 // ignore
@@ -337,8 +407,9 @@ function useAuthSession({ auth, googleProvider, firebaseInitError = "" }) {
       setAuthLoading(false);
     });
 
-    const bridgeIdForAutostart = getAuthBridgeId();
-    const authNonceForAutostart = getAuthNonce();
+    const externalContextForAutostart = getResolvedExternalAuthContext();
+    const bridgeIdForAutostart = externalContextForAutostart.bridgeId;
+    const authNonceForAutostart = externalContextForAutostart.authNonce;
     if (
       googleProvider &&
       shouldAutostartExternalAuth() &&
@@ -348,6 +419,7 @@ function useAuthSession({ auth, googleProvider, firebaseInitError = "" }) {
       !wasExternalAutostartDone(bridgeIdForAutostart, authNonceForAutostart)
     ) {
       externalRedirectStartedRef.current = true;
+      writeExternalAuthContext(externalContextForAutostart);
       markExternalAutostartDone(bridgeIdForAutostart, authNonceForAutostart);
       signInWithRedirect(auth, googleProvider).catch((error) => {
         externalRedirectStartedRef.current = false;
@@ -360,8 +432,9 @@ function useAuthSession({ auth, googleProvider, firebaseInitError = "" }) {
     // launch redirect only when there is no redirect result user yet.
     getRedirectResult(auth)
       .then(async (result) => {
-        const bridgeId = getAuthBridgeId();
-        const authNonce = getAuthNonce();
+        const externalContext = getResolvedExternalAuthContext();
+        const bridgeId = externalContext.bridgeId;
+        const authNonce = externalContext.authNonce;
         if (result?.user) {
           const safeUser = toSafeAuthUser(result.user);
           setAuthUser(safeUser);
@@ -370,15 +443,17 @@ function useAuthSession({ auth, googleProvider, firebaseInitError = "" }) {
           clearExternalAutostartMarker(bridgeId, authNonce);
 
           // In external auth mode, also trigger the redirect here (redundancy with onAuthStateChanged)
-          if (isExternalAuthMode() && bridgeId) {
+          if ((isExternalAuthMode() || bridgeId) && bridgeId) {
             try {
               await storeMobileAuthToken(safeUser, bridgeId);
-              const returnScheme = getReturnScheme();
+              const returnScheme = externalContext.returnScheme;
               const apiBase = resolveApiBaseForAuth();
+              clearExternalAuthContext();
               window.location.replace(`${apiBase}/api/auth/mobile-complete?bridgeId=${encodeURIComponent(bridgeId)}&scheme=${encodeURIComponent(returnScheme)}`);
             } catch {
               try {
-                const returnScheme = getReturnScheme();
+                const returnScheme = externalContext.returnScheme;
+                clearExternalAuthContext();
                 window.location.replace(`${returnScheme}://auth-complete?bridgeId=${encodeURIComponent(bridgeId)}`);
               } catch {
                 // ignore
@@ -428,6 +503,7 @@ function useAuthSession({ auth, googleProvider, firebaseInitError = "" }) {
 
     if (isExternalAuthMode()) {
       try {
+        writeExternalAuthContext(getResolvedExternalAuthContext());
         await signInWithRedirect(auth, googleProvider);
       } catch (error) {
         setAuthError(toReadableAuthError(error));

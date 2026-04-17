@@ -139,6 +139,13 @@ function ProfilePanel({
                 <span className="cinzel text-xs" style={{ color: "var(--color-primary)" }}>{t.levelShort} {state.lvl}</span>
                 <span className="cinzel text-xs text-slate-500">{t.levelShort} {state.lvl + 1}</span>
               </div>
+              <div className="flex justify-between items-center mt-2 pt-2 border-t border-yellow-700/30">
+                <span className="cinzel text-[11px] tracking-widest uppercase" style={{ color: "var(--color-muted)" }}>{t.currentStreak}</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="text-lg">🔥</span>
+                  <span className="cinzel text-sm font-bold" style={{ color: "var(--streak-text)" }}>{state.streak}</span>
+                </span>
+              </div>
             </div>
 
             {/* Streak Section */}

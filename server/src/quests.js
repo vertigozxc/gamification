@@ -249,7 +249,7 @@ function pickTemplateQuests(quests, count, excludeCategories = new Set()) {
   return selected.slice(0, count);
 }
 
-function buildEffortBalancedCategoryUniqueQuests(quests, count, targetEffort, excludeCategories = new Set()) {
+function buildEffortBalancedCategoryUniqueQuests(quests, count, targetEffort, excludeCategories = new Set(), seed = 0) {
   if (!Array.isArray(quests) || count <= 0) {
     return [];
   }
@@ -300,7 +300,14 @@ function buildEffortBalancedCategoryUniqueQuests(quests, count, targetEffort, ex
     return leftKey.localeCompare(rightKey);
   });
 
-  return sorted[0];
+  // Randomly select one of the valid combinations using seeded RNG
+  let state = seed >>> 0;
+  const rand = () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 0x100000000;
+  };
+  const selectedIndex = Math.floor(rand() * sorted.length);
+  return sorted[selectedIndex];
 }
 
 function normalizeQuestIds(value) {
@@ -377,11 +384,14 @@ export function getDailyQuests(options = {}) {
 
   let finalOtherQuests = [];
   if (randomCount === 3) {
+    // Generate a seed for combination selection
+    const combinationSeed = hashString(`${baseSeed}_combo`);
     finalOtherQuests = buildEffortBalancedCategoryUniqueQuests(
       randomQuests,
       3,
       9,
-      excludeCategories
+      excludeCategories,
+      combinationSeed
     );
   }
 

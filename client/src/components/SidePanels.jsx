@@ -4,6 +4,8 @@ import { useTheme } from "../ThemeContext";
 function SidePanels({ leaderboard, authUser, compact = false }) {
   const { t } = useTheme();
   const sluggedUid = authUser.uid.toLowerCase().replace(/[^a-z0-9_\-]/g, "").slice(0, 24);
+  const userRank = leaderboard.findIndex((entry) => entry.username === sluggedUid) + 1;
+  const rankLabel = userRank > 0 ? `#${userRank}` : "#-";
 
   const renderEntry = (entry, idx) => {
     const isMe = entry.username === sluggedUid;
@@ -82,7 +84,7 @@ function SidePanels({ leaderboard, authUser, compact = false }) {
       ) : (
         <div className="rounded-2xl flex flex-col shadow-2xl p-5" style={{ flex: "7", background: "var(--leaderboard-bg)", border: "2px solid var(--leaderboard-border)" }}>
           <div className="flex items-center justify-between mb-4 pb-3" style={{ borderBottom: "2px solid var(--leaderboard-border)" }}>
-            <h2 className="cinzel text-lg text-transparent bg-clip-text uppercase tracking-[0.18em] font-bold" style={{ backgroundImage: "var(--heading-gradient)" }}>{t.leaderboard}</h2>
+            <h2 className="cinzel text-lg text-transparent bg-clip-text uppercase tracking-[0.18em] font-bold" style={{ backgroundImage: "var(--heading-gradient)" }}>{t.leaderboard} · {rankLabel}</h2>
           </div>
           <div className="flex flex-col gap-2">
             {leaderboard.length === 0 ? (

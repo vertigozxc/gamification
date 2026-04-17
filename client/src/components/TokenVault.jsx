@@ -4,6 +4,7 @@ import { useTheme } from "../ThemeContext";
 function TokenVault({
   tokens,
   streakFreezeActive,
+  freezeStreakPending = false,
   extraRerollsToday,
   hasRerolledToday,
   canRerollPinned,
@@ -24,7 +25,7 @@ function TokenVault({
     <>
       {compact ? (
         <div className="flex flex-col gap-4">
-          <div className={`mobile-card flex flex-col gap-3 \${streakFreezeActive ? "border-cyan-500/60 shadow-[0_0_18px_rgba(6,182,212,0.15)]" : ""}`} style={streakFreezeActive ? { background: "rgba(8, 51, 68, 0.4)" } : { background: "var(--panel-bg)" }}>
+          <div className={`mobile-card flex flex-col gap-3 ${streakFreezeActive ? "border-cyan-500/60 shadow-[0_0_18px_rgba(6,182,212,0.15)]" : ""}`} style={streakFreezeActive ? { background: "rgba(8, 51, 68, 0.4)" } : { background: "var(--panel-bg)" }}>
             <div className="flex items-center gap-3">
               <span className="text-3xl">🧊</span>
               <div className="flex-1">
@@ -47,15 +48,15 @@ function TokenVault({
             ) : (
               <button
                 onClick={onFreezeStreak}
-                disabled={tokens < 3}
-                className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 \${
-                  tokens >= 3
+                disabled={tokens < 3 || freezeStreakPending}
+                className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 ${
+                  tokens >= 3 && !freezeStreakPending
                     ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:from-cyan-600 hover:to-blue-600 shadow-md"
                     : "bg-slate-800/80 text-slate-500 cursor-not-allowed"
                 }`}
               >
                 <span>{t.tokenIcon}</span>
-                {tokens < 3 ? t.notEnough : `\${t.buyPrefix} 3 \${getPluralizedToken(3)}`}
+                {freezeStreakPending ? "Processing..." : tokens < 3 ? t.notEnough : `${t.buyPrefix} 3 ${getPluralizedToken(3)}`}
               </button>
             )}
           </div>
@@ -84,14 +85,14 @@ function TokenVault({
             <button
               onClick={onBuyExtraReroll}
               disabled={tokens < 1 || !hasRerolledToday}
-              className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 \${
+              className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 ${
                 tokens >= 1 && hasRerolledToday
                   ? "bg-gradient-to-r from-violet-500 to-purple-500 text-white hover:from-violet-600 hover:to-purple-600 shadow-md"
                   : "bg-slate-800/80 text-slate-500 cursor-not-allowed"
               }`}
             >
               <span>{t.tokenIcon}</span>
-              {!hasRerolledToday ? t.rerollFreeFirst : tokens < 1 ? t.notEnough : `\${t.buyPrefix} 1 \${getPluralizedToken(1)}`}
+              {!hasRerolledToday ? t.rerollFreeFirst : tokens < 1 ? t.notEnough : `${t.buyPrefix} 1 ${getPluralizedToken(1)}`}
             </button>
           </div>
 
@@ -118,14 +119,14 @@ function TokenVault({
             <button
               onClick={onOpenPinnedReplacement}
               disabled={!canRerollPinned}
-              className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 \${
+              className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 ${
                 canRerollPinned
                   ? "bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:from-fuchsia-700 hover:to-violet-700 shadow-md"
                   : "bg-slate-800/80 text-slate-500 cursor-not-allowed"
               }`}
             >
               <span>⟳</span>
-              {isFreePinnedReroll ? t.rerollFree : tokens < 7 ? t.notEnough : `\${t.buyPrefix} 7 \${getPluralizedToken(7)}`}
+              {isFreePinnedReroll ? t.rerollFree : tokens < 7 ? t.notEnough : `${t.buyPrefix} 7 ${getPluralizedToken(7)}`}
             </button>
           </div>
 
@@ -223,6 +224,7 @@ function TokenVault({
 TokenVault.propTypes = {
   tokens: PropTypes.number.isRequired,
   streakFreezeActive: PropTypes.bool.isRequired,
+  freezeStreakPending: PropTypes.bool,
   extraRerollsToday: PropTypes.number.isRequired,
   hasRerolledToday: PropTypes.bool.isRequired,
   canRerollPinned: PropTypes.bool.isRequired,

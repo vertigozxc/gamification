@@ -66,6 +66,17 @@ body[data-theme="adventure"] {
     --pinned-heading: #a5f3fc;
     --xp-badge-bg: #b45309;
     --xp-badge-text: #fef3c7;
+    --quest-item-bg: linear-gradient(135deg, #312e81d9, #1e1b4bf2);
+    --quest-item-border: #818cf880;
+    --quest-item-active-bg: linear-gradient(135deg, #4338cad9, #312e81f2);
+    --quest-item-active-border: #a5b4fcb3;
+    --quest-item-done-bg: #0f172a4d;
+    --quest-item-done-border: #ffffff0d;
+    --quest-tab-bar-bg: #192131b3;
+    --quest-tab-bar-border: #ffffff26;
+    --quest-progress-track-bg: #0f172acc;
+    --quest-progress-fill-bg: linear-gradient(90deg, #fbbf24, #f59e0b);
+    --quest-check-done-bg: #34c759;
     --border-radius-card: 0.75rem;
     --border-radius-panel: 1.5rem;
     --mobile-tab-bg: rgba(8, 15, 30, 0.88);
@@ -135,6 +146,17 @@ body[data-theme="focus"] {
     --pinned-heading: #93c5fd;
     --xp-badge-bg: #1e40af;
     --xp-badge-text: #dbeafe;
+    --quest-item-bg: linear-gradient(135deg, #1e293b, #1a2e40);
+    --quest-item-border: #4b5563;
+    --quest-item-active-bg: linear-gradient(135deg, #2d3f52, #1e293b);
+    --quest-item-active-border: #60a5fa80;
+    --quest-item-done-bg: #111318CC;
+    --quest-item-done-border: #374151;
+    --quest-tab-bar-bg: #18191FCC;
+    --quest-tab-bar-border: #4b5563;
+    --quest-progress-track-bg: #1a1c24;
+    --quest-progress-fill-bg: linear-gradient(90deg, #60a5fa, #93c5fd);
+    --quest-check-done-bg: #2dd4bf;
     --border-radius-card: 0.5rem;
     --border-radius-panel: 1rem;
     --mobile-tab-bg: rgba(12, 14, 20, 0.90);
@@ -208,6 +230,17 @@ body[data-theme="balance"] {
     --pinned-heading: #86efac;
     --xp-badge-bg: #166534;
     --xp-badge-text: #bbf7d0;
+    --quest-item-bg: linear-gradient(135deg, #1a2e25, #1a2e28);
+    --quest-item-border: #2d6a4f;
+    --quest-item-active-bg: linear-gradient(135deg, #2d5f47, #1a2e25);
+    --quest-item-active-border: #86efac80;
+    --quest-item-done-bg: #0f1f1add;
+    --quest-item-done-border: #2d3f37;
+    --quest-tab-bar-bg: #111F1ACC;
+    --quest-tab-bar-border: #2d6a4f;
+    --quest-progress-track-bg: #1a2e28;
+    --quest-progress-fill-bg: linear-gradient(90deg, #86efac, #4ade80);
+    --quest-check-done-bg: #22c55e;
     --border-radius-card: 1rem;
     --border-radius-panel: 1.5rem;
     --mobile-tab-bg: rgba(10, 22, 18, 0.90);
@@ -948,21 +981,21 @@ body::before {
 .dash-progress-strip{align-items:center;gap:.65rem;padding:0 .15rem;display:flex}
 .dash-milestone{-webkit-backdrop-filter:blur(12px);background:#1e293b73;border:1px solid #ffffff14;border-radius:1rem;flex-direction:column;justify-content:center;align-items:center;gap:.25rem;padding:.65rem .25rem;transition:all .3s cubic-bezier(.2,.8,.2,1);display:flex;position:relative;overflow:hidden}
 .dash-milestone-on{background:#eab30826;border-color:#fbbf2440;box-shadow:inset 0 0 12px #fbbf241a}
-.qb-tab-bar{background:#192131b3;border:1.5px solid #ffffff26;border-radius:999px;gap:0;margin-bottom:1.25rem;padding:0;display:flex;position:relative;overflow:hidden}
+.qb-tab-bar{background:var(--quest-tab-bar-bg);border:1.5px solid var(--quest-tab-bar-border);border-radius:999px;gap:0;margin-bottom:1.25rem;padding:0;display:flex;position:relative;overflow:hidden}
 .qb-tab-indicator{box-sizing:border-box;pointer-events:none;z-index:0;background:#6366f173;border:1.5px solid #818cf899;border-radius:999px;height:100%;transition:transform .32s cubic-bezier(.22,1,.36,1),width .32s cubic-bezier(.22,1,.36,1);position:absolute;top:0;left:0;box-shadow:0 4px 12px #6366f14d}
 .qb-tab-btn{z-index:1;font-family:var(--font-heading);letter-spacing:.02em;color:#94a3b8;cursor:pointer;white-space:nowrap;background:0 0;border:none;border-radius:999px;flex:1;justify-content:center;align-items:center;gap:.4rem;padding:.6rem .5rem;font-size:.75rem;font-weight:700;transition:color .25s;display:flex;position:relative}
 .qb-tab-btn:hover{color:#e2e8f0}
 .qb-tab-active{color:#f8fafc}
 .qb-tab-count{opacity:.5;font-variant-numeric:tabular-nums;font-size:.62rem}
-.qb-quest-item{-webkit-backdrop-filter:blur(16px);cursor:pointer;background:linear-gradient(135deg,#312e81d9,#1e1b4bf2);border:1.5px solid #818cf880;border-radius:1.25rem;padding:1.15rem;transition:all .22s;animation:.35s cubic-bezier(.22,1,.36,1) both qbItemIn;position:relative;box-shadow:0 4px 16px #0006,inset 0 1px #ffffff0d}
-.qb-quest-item:active{filter:brightness(1.15);background:linear-gradient(135deg,#4338cad9,#312e81f2);border-color:#a5b4fcb3;transform:scale(.96)}
-.qb-quest-done{opacity:.5;box-shadow:none;background:#0f172a4d;border-color:#ffffff0d!important}
+.qb-quest-item{-webkit-backdrop-filter:blur(16px);cursor:pointer;background:var(--quest-item-bg);border:1.5px solid var(--quest-item-border);border-radius:1.25rem;padding:1.15rem;transition:all .22s;animation:.35s cubic-bezier(.22,1,.36,1) both qbItemIn;position:relative;box-shadow:0 4px 16px #0006,inset 0 1px #ffffff0d}
+.qb-quest-item:active{filter:brightness(1.15);background:var(--quest-item-active-bg);border-color:var(--quest-item-active-border);transform:scale(.96)}
+.qb-quest-done{opacity:.5;box-shadow:none;background:var(--quest-item-done-bg);border-color:var(--quest-item-done-border)!important}
 .qb-check{color:#0000;border:1.5px solid #ffffff26;border-radius:999px;flex-shrink:0;justify-content:center;align-items:center;width:26px;height:26px;margin-top:1px;font-size:12px;font-weight:800;transition:all .25s;display:flex}
-.qb-check-done{color:#fff;background:#34c759;border-color:#34c759;box-shadow:0 2px 8px #34c75966}
+.qb-check-done{color:#fff;background:var(--quest-check-done-bg);border-color:var(--quest-check-done-bg);box-shadow:0 2px 8px rgba(52,199,89,.4)}
 .qb-cat{font-family:var(--font-heading);letter-spacing:.08em;color:#e2e8f0;background:#ffffff0f;border:.5px solid #ffffff1a;border-radius:999px;padding:.2rem .6rem;font-size:.68rem;font-weight:800;display:inline-block}
 .qb-xp{font-family:var(--font-heading);color:#fc0;letter-spacing:.04em;font-size:.85rem;font-weight:800;position:absolute;top:1.15rem;right:1.15rem}
-.qb-progress-track{background:#0f172acc;border-radius:99px;width:100%;height:5px;overflow:hidden}
-.qb-progress-fill{background:linear-gradient(90deg,#fbbf24,#f59e0b);border-radius:99px;height:100%;transition:width .4s}
+.qb-progress-track{background:var(--quest-progress-track-bg);border-radius:99px;width:100%;height:5px;overflow:hidden}
+.qb-progress-fill{background:var(--quest-progress-fill-bg);border-radius:99px;height:100%;transition:width .4s}
 .qb-reroll-btn{font-family:var(--font-heading);color:#fff;cursor:pointer;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:1px solid #a78bfa4d;border-radius:.65rem;align-items:center;gap:.35rem;padding:.42rem .85rem;font-size:.68rem;font-weight:700;transition:all .2s;display:inline-flex}
 .qb-reroll-btn:hover{filter:brightness(1.12)}
 .qb-reroll-btn:disabled{opacity:.35;cursor:not-allowed}

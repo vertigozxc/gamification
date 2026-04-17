@@ -60,6 +60,8 @@ import LeaderboardTab from "./components/tabs/LeaderboardTab";
 import StoreTab from "./components/tabs/StoreTab";
 import ProfileTab from "./components/tabs/ProfileTab";
 
+const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
+
 function App() {
   const {
     authUser,
@@ -160,7 +162,7 @@ function App() {
       if (params.get("embed") !== "1") {
         return "dashboard";
       }
-      return normalizeMobileTab(localStorage.getItem(MOBILE_TAB_STORAGE_KEY));
+      return "dashboard";
     } catch {
       return "dashboard";
     }
@@ -179,7 +181,7 @@ function App() {
   const levelDisplayRef = useRef(null);
   const uidRef = useRef(null);
   const dayMarkerRef = useRef(new Date().toDateString());
-  const previousMobileTabRef = useRef("city");
+  const previousMobileTabRef = useRef("dashboard");
   const normalizeLocalizedQuest = (quest) => normalizeQuest(quest, translateQuest, translateCategory);
 
   const { resetTimer, weekResetTimer } = useTimers(serverOffsetMs, nextWeekResetAtMs);
@@ -222,7 +224,14 @@ function App() {
     handleBuyPinnedReplacement,
     handleCompleteOnboarding,
     seedAllQuestOptions,
-    applyServerBootstrap
+    applyServerBootstrap,
+    customQuests,
+    customSaving,
+    customError,
+    setCustomError,
+    handleCreateCustomQuest,
+    handleUpdateCustomQuest,
+    handleDeleteCustomQuest
   } = useOnboardingPinned({
     authUser,
     state,
@@ -293,10 +302,10 @@ function App() {
 
     bridge.postMessage(JSON.stringify({
       type: "mobile-shell-state",
-      showTabBar: Boolean(authUser) && !showOnboarding && !cityFullscreen,
+      showTabBar: Boolean(authUser) && !showOnboarding && !cityFullscreen && !showPinnedReplaceModal,
       activeTab: mobileTab
     }));
-  }, [isEmbeddedApp, authUser, showOnboarding, mobileTab, cityFullscreen]);
+  }, [isEmbeddedApp, authUser, showOnboarding, mobileTab, cityFullscreen, showPinnedReplaceModal]);
 
   useEffect(() => {
     if (!authUser) {
@@ -308,17 +317,17 @@ function App() {
       setShowNotesModal(false);
       setPrivateNotes("");
       setNotesDraft("");
-      setMobileTab("city");
+      setMobileTab("dashboard");
       resetOnLogout();
       questRenderCountRef.current = 0;
       dayMarkerRef.current = String(new Date().getUTCFullYear()) + "-" + String(new Date().getUTCMonth()) + "-" + String(new Date().getUTCDate());
       return;
     }
     const uid = authUser.uid;
-    const name = localStorage.getItem(characterNameKey(uid)) || "Warrior";
+    const name = authUser.displayName || "Warrior";
     setCharacterName(name);
     setNameDraft(name);
-    setPortraitData(localStorage.getItem(portraitKey(uid)) || "");
+    setPortraitData(authUser.photoURL || "");
     const savedNotes = localStorage.getItem(notesKey(uid)) || "";
     setPrivateNotes(savedNotes);
     setNotesDraft(savedNotes);
@@ -344,28 +353,41 @@ function App() {
       setDataLoading(false);
       return;
     }
-    const profileName = localStorage.getItem(characterNameKey(authUser.uid)) || authUser.displayName || "Warrior";
-    const profilePortrait = localStorage.getItem(portraitKey(authUser.uid)) || "";
+    const profileName = authUser.displayName || "Warrior";
+    const profilePortrait = authUser.photoURL || "";
     setDataLoading(true);
     setDataLoadError("");
-    upsertProfile(authUser.uid, profileName, profilePortrait)
-      .catch(() => upsertProfile(authUser.uid, profileName, ""))
-      .then(() => Promise.all([fetchGameState(authUser.uid), fetchLeaderboard(), fetchAllQuests()]))
+    Promise.resolve()
+      .then(() => fetchGameState(authUser.uid))
+      .catch((err) => {
+        if ((err?.message || "") !== "User not found") {
+          throw err;
+        }
+        return upsertProfile(authUser.uid, profileName, profilePortrait)
+          .catch(() => upsertProfile(authUser.uid, profileName, ""))
+          .then(() => fetchGameState(authUser.uid));
+      })
+      .then((gameStateResponse) => Promise.all([Promise.resolve(gameStateResponse), fetchLeaderboard(), fetchAllQuests()]))
       .then(([gameStateResponse, { users }, allQuestsResponse]) => {
         setDataLoading(false);
         applyServerTimeSync(gameStateResponse);
         const nextQuests = Array.isArray(gameStateResponse?.quests) ? gameStateResponse.quests.map(normalizeLocalizedQuest) : [];
         setQuests(nextQuests);
         seedAllQuestOptions(allQuestsResponse);
+        const userData = gameStateResponse.user || {};
+        setCharacterName(userData.displayName || profileName);
+        setNameDraft(userData.displayName || profileName);
+        setPortraitData(userData.photoUrl || "");
         const preferredQuestIds = applyServerBootstrap(gameStateResponse, characterName);
         if (Array.isArray(gameStateResponse?.completedQuestIds)) {
-          const userData = gameStateResponse.user || {};
         if (userData.theme) setThemeId(userData.theme);
           setState((prev) => ({ 
             ...prev, 
             completed: gameStateResponse.completedQuestIds,
             streak: Number(gameStateResponse?.streak ?? prev.streak),
             streakFreezeActive: gameStateResponse?.streakFreezeActive ?? prev.streakFreezeActive,
+            hasRerolledToday: gameStateResponse?.hasRerolledToday ?? prev.hasRerolledToday,
+            extraRerollsToday: Number(gameStateResponse?.extraRerollsToday ?? userData?.extraRerollsToday ?? prev.extraRerollsToday),
             lvl: userData.level ?? prev.lvl,
             xp: userData.xp ?? prev.xp,
             xpNext: userData.xpNext ?? prev.xpNext,
@@ -385,7 +407,7 @@ function App() {
         setDataLoading(false);
         setDataLoadError(err?.message || "Не удалось загрузить данные. Сервер просыпается (~1 мин). Нажмите «Повторить».");
       });
-  }, [authUser, characterName, languageId]);
+  }, [authUser, languageId]);
 
   useEffect(() => {
     if (!authUser) return;
@@ -410,6 +432,8 @@ function App() {
           completed: Array.isArray(gameStateResponse?.completedQuestIds) ? gameStateResponse.completedQuestIds : [],
           streak: Number(gameStateResponse?.streak ?? prev.streak),
           streakFreezeActive: gameStateResponse?.streakFreezeActive ?? false,
+          hasRerolledToday: gameStateResponse?.hasRerolledToday ?? prev.hasRerolledToday,
+          extraRerollsToday: Number(gameStateResponse?.extraRerollsToday ?? userData?.extraRerollsToday ?? prev.extraRerollsToday),
           lvl: userData.level ?? prev.lvl,
           xp: userData.xp ?? prev.xp,
           xpNext: userData.xpNext ?? prev.xpNext,
@@ -443,11 +467,11 @@ function App() {
 
   useEffect(() => {
     if (!uidRef.current) return;
-    syncStateToServer(uidRef.current, { level: state.lvl, xp: state.xp, xpNext: state.xpNext })
+    syncStateToServer(uidRef.current, { level: state.lvl, xp: state.xp, xpNext: state.xpNext, tokens: state.tokens })
       .then(() => fetchLeaderboard())
       .then(({ users }) => setLeaderboard(users || []))
       .catch(() => {});
-  }, [state.lvl, state.xp]);
+  }, [state.lvl, state.xp, state.xpNext, state.tokens]);
 
   useEffect(() => {
     // Intentionally removed auto-close for level up. Must be closed manually.
@@ -483,7 +507,7 @@ function App() {
     { target: 6, reward: `+25 ${t.xpLabel} / +1 ${t.tokenIcon}`, rune: t.milestoneRunes[2] }
   ];
   const preferredQuestCount = Array.isArray(state.preferredQuestIds) && state.preferredQuestIds.length > 0 ? state.preferredQuestIds.length : 3;
-  const pinnedQuests = quests.slice(0, preferredQuestCount);
+  const pinnedQuests = quests.slice(0, preferredQuestCount).map((q) => ({ ...q, xp: 30 }));
   const otherQuests = quests.slice(preferredQuestCount);
   const mobileTabTitle = getMobileTabTitle(mobileTab, t);
   const pinnedQuestProgressById = Object.fromEntries(
@@ -492,14 +516,14 @@ function App() {
   const allRandomCompleted = otherQuests.length > 0 && otherQuests.every(q => state.completed.includes(q.id));
   const canReroll = (!state.hasRerolledToday || state.extraRerollsToday > 0) && completedToday < 6 && !allRandomCompleted;
   const languageShortLabel = languageId === "ru" ? "RU" : "EN";
-  const isFreePinnedReroll = !state.user?.lastFreeTaskRerollAt || (Date.now() - new Date(state.user.lastFreeTaskRerollAt).getTime() >= 30 * 24 * 60 * 60 * 1000);
+  const isFreePinnedReroll = !state.user?.lastFreeTaskRerollAt || (Date.now() - new Date(state.user.lastFreeTaskRerollAt).getTime() >= FREE_PINNED_REROLL_INTERVAL_MS);
   let daysUntilFreePinnedReroll = 0;
   if (!isFreePinnedReroll) {
     const elapsedMs = Date.now() - new Date(state.user?.lastFreeTaskRerollAt).getTime();
-    const remainingMs = 30 * 24 * 60 * 60 * 1000 - elapsedMs;
+    const remainingMs = FREE_PINNED_REROLL_INTERVAL_MS - elapsedMs;
     daysUntilFreePinnedReroll = Number.isFinite(remainingMs)
       ? Math.max(1, Math.ceil(remainingMs / (24 * 60 * 60 * 1000)))
-      : 30;
+      : 21;
   }
   const canRerollPinned = isFreePinnedReroll || state.tokens >= 7;
 
@@ -513,7 +537,8 @@ function App() {
     handleHardReset,
     handleBuyExtraReroll,
     handleRerollPinned,
-    handleFreezeStreak
+    handleFreezeStreak,
+    freezeStreakPending
   } = useGameplayActions({
     authUser,
     state,
@@ -547,16 +572,24 @@ function App() {
       let xp = prev.xp + amount;
       let lvl = prev.lvl;
       let xpNext = prev.xpNext;
+      let tokenGain = 0;
       while (xp >= xpNext) {
         xp -= xpNext;
         lvl += 1;
+        tokenGain += lvl >= 10 ? 2 : 1;
         xpNext = Math.floor(xpNext * 1.1);
       }
       if (lvl > prev.lvl) {
         setLevelUpLevel(lvl);
         setShowLevelUp(true);
       }
-      return { ...prev, xp, lvl, xpNext };
+      return {
+        ...prev,
+        xp,
+        lvl,
+        xpNext,
+        tokens: prev.tokens + tokenGain
+      };
     });
   }
 
@@ -606,7 +639,6 @@ function App() {
           setAvatarError("Failed to compress image. Try a different photo.");
           return;
         }
-        localStorage.setItem(portraitKey(authUser.uid), compressed);
         setPortraitData(compressed);
         addLog(t.characterPortraitUpdated, "text-yellow-400 font-bold");
         upsertProfile(authUser.uid, characterName || "Warrior", compressed)
@@ -622,7 +654,6 @@ function App() {
   }
 
   function saveCharacterName(nextName) {
-    localStorage.setItem(characterNameKey(authUser.uid), nextName);
     setCharacterName(nextName);
   }
 
@@ -743,6 +774,13 @@ function App() {
         onboardingError={onboardingError}
         onboardingSaving={onboardingSaving}
         onComplete={handleCompleteOnboarding}
+        customQuests={customQuests}
+        customSaving={customSaving}
+        customError={customError}
+        onClearCustomError={() => setCustomError("")}
+        onCreateCustomQuest={handleCreateCustomQuest}
+        onUpdateCustomQuest={handleUpdateCustomQuest}
+        onDeleteCustomQuest={handleDeleteCustomQuest}
       />
 
       <PinnedReplacementModal
@@ -758,6 +796,13 @@ function App() {
         tokens={state.tokens}
         isFreePinnedReroll={isFreePinnedReroll}
         onBuy={handleBuyPinnedReplacement}
+        customQuests={customQuests}
+        customSaving={customSaving}
+        customError={customError}
+        onClearCustomError={() => setCustomError("")}
+        onCreateCustomQuest={handleCreateCustomQuest}
+        onUpdateCustomQuest={handleUpdateCustomQuest}
+        onDeleteCustomQuest={handleDeleteCustomQuest}
       />
 
       <NotesModal
@@ -826,6 +871,8 @@ function App() {
                 xpPercent={xpPercent}
                 completedToday={completedToday}
                 milestoneSteps={milestoneSteps}
+                streakFreezeActive={state.streakFreezeActive}
+                streakBonusPercent={streakBonusPercent}
                 pinnedQuests={pinnedQuests}
                 otherQuests={otherQuests}
                 pinnedQuestProgressById={pinnedQuestProgressById}
@@ -863,6 +910,7 @@ function App() {
                 daysUntilFreePinnedReroll={daysUntilFreePinnedReroll}
                 onOpenPinnedReplacement={openPinnedReplacementModal}
                 onFreezeStreak={handleFreezeStreak}
+                freezeStreakPending={freezeStreakPending}
                 onBuyExtraReroll={handleBuyExtraReroll}
                 t={t}
               />

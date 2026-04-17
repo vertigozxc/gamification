@@ -3,6 +3,7 @@ import QuestBoard from "../QuestBoard";
 export default function DashboardTab({
   state, characterName, t,
   xpPercent, completedToday, milestoneSteps,
+  streakFreezeActive, streakBonusPercent = 0,
   pinnedQuests, otherQuests, pinnedQuestProgressById,
   canReroll, allRandomCompleted, questRenderCount,
   resetTimer,
@@ -26,13 +27,18 @@ export default function DashboardTab({
       {/* Hero: XP + Level compact row */}
       <div className="dash-hero">
         <div className="dash-hero-top">
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 flex flex-col gap-0">
             <p className="cinzel text-lg truncate" style={{ color: "var(--color-primary)" }}>{characterName}</p>
-            <p className="text-xs mt-0.5 cinzel opacity-80" style={{ color: "var(--color-text)" }}>{t.levelShort} {state.lvl}</p>
-          </div>
-          <div className="text-right shrink-0">
+            <p className="text-xs cinzel opacity-80" style={{ color: "var(--color-text)" }}>{t.levelShort} {state.lvl}</p>
             <p className="cinzel text-sm" style={{ color: "var(--color-text)" }}>{state.xp}<span className="opacity-70" style={{ color: "var(--color-muted)" }}>/{state.xpNext}</span></p>
-            <p className="text-[10px] opacity-70 cinzel tracking-wider" style={{ color: "var(--color-muted)" }}>{t.xpLabel}</p>
+          </div>
+          <div className="text-right shrink-0 flex flex-col gap-0.5">
+            <div className="flex items-center justify-end gap-1">
+              <p className="text-xs cinzel opacity-80" style={{ color: "var(--color-text)" }}>{t.currentStreak}</p>
+              <span className="text-base">🔥</span>
+              <p className="text-xs cinzel font-bold" style={{ color: "var(--streak-text)" }}>{state.streak}</p>
+            </div>
+            <p className="text-[10px] opacity-70 cinzel tracking-wider" style={{ color: "var(--color-muted)" }}>+{streakBonusPercent}% exp bonus</p>
           </div>
         </div>
         <div className="dash-xp-bar">

@@ -55,7 +55,7 @@ function QuestBoard({
   }, [activeQTab, tabs.length]);
 
   const totalQuestCount = pinnedQuests.length + otherQuests.length;
-  const remainingQuestCount = Math.max(0, totalQuestCount - completedIds.length);
+  const completedTodayCount = Math.min(6, completedIds.length);
   const pinnedDone = pinnedQuests.filter((q) => completedIds.includes(q.id)).length;
   const otherDone = otherQuests.filter((q) => completedIds.includes(q.id)).length;
 
@@ -70,11 +70,11 @@ function QuestBoard({
         </div>
         <div className="flex items-center gap-2">
           {streakFreezeActive && (
-            <span className="inline-flex items-center gap-1 bg-cyan-900/40 rounded-full px-2 py-0.5 text-[10px] text-cyan-300 cinzel">
+            <span className="inline-flex items-center justify-center text-center gap-1 bg-cyan-900/40 rounded-full px-2 py-0.5 text-[10px] text-cyan-300 cinzel">
               {t.streakProtectedBadge}
             </span>
           )}
-          <span className="cinzel text-[11px] text-slate-500">{remainingQuestCount}/{totalQuestCount}</span>
+          <span className="cinzel text-[11px] text-slate-500">{completedTodayCount}/6</span>
         </div>
       </div>
 

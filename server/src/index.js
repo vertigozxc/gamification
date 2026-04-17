@@ -26,6 +26,7 @@ import {
 } from "./productivity.js";
 const app = express();
 const port = Number(process.env.PORT || 4000);
+const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
 
 function getAllowedOrigins() {
   const raw = process.env.CLIENT_ORIGIN || "http://localhost:5173,http://127.0.0.1:5173";
@@ -60,6 +61,79 @@ app.use(express.json({ limit: "8mb" }));
 
 // In-memory store for mobile auth tokens (maps token -> user data)
 const mobileAuthTokens = new Map();
+
+// Firebase Web API key (public) — used to exchange Google id_token for Firebase UID
+// via Identity Toolkit REST API, so mobile and web share the same Firebase UID.
+const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY || "AIzaSyBpG0jinIwaHgF2h1oOA45xyG0bs0kOSos";
+
+async function exchangeGoogleIdTokenForFirebaseUser(idToken) {
+  if (!idToken || typeof idToken !== "string") {
+    throw new Error("id_token is required");
+  }
+
+  const endpoint = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${encodeURIComponent(FIREBASE_API_KEY)}`;
+  const body = {
+    postBody: `id_token=${encodeURIComponent(idToken)}&providerId=google.com`,
+    requestUri: "http://localhost",
+    returnSecureToken: true,
+    returnIdpCredential: true
+  };
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => "");
+    throw new Error(`Firebase signInWithIdp failed: ${response.status} ${errText}`);
+  }
+
+  const data = await response.json();
+  if (!data || typeof data.localId !== "string" || !data.localId) {
+    throw new Error("Firebase signInWithIdp returned no localId");
+  }
+
+  return {
+    uid: data.localId,
+    displayName: data.displayName || data.fullName || data.email || "Adventurer",
+    email: data.email || "",
+    photoURL: data.photoUrl || ""
+  };
+}
+
+// Exchange Google id_token -> Firebase user and store in bridge (mobile flow).
+app.post("/api/auth/mobile-google-exchange", async (req, res) => {
+  try {
+    const { id_token: idToken, bridgeId } = req.body || {};
+    if (!idToken || typeof idToken !== "string") {
+      return res.status(400).json({ error: "id_token is required" });
+    }
+
+    const user = await exchangeGoogleIdTokenForFirebaseUser(idToken);
+    const key = (typeof bridgeId === "string" && bridgeId.trim())
+      ? `bridge:${bridgeId.trim()}`
+      : (Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2) + Date.now().toString(36));
+
+    mobileAuthTokens.set(key, {
+      uid: user.uid,
+      displayName: user.displayName,
+      email: user.email,
+      photoURL: user.photoURL,
+      createdAt: Date.now()
+    });
+
+    for (const [k, v] of mobileAuthTokens) {
+      if (Date.now() - v.createdAt > 300000) mobileAuthTokens.delete(k);
+    }
+
+    res.json({ ok: true, bridgeId: bridgeId || null });
+  } catch (error) {
+    console.error("mobile-google-exchange failed:", error?.message || error);
+    res.status(500).json({ error: "Exchange failed" });
+  }
+});
 
 // Store auth result from external browser login
 app.post("/api/auth/mobile-token", (req, res) => {
@@ -195,16 +269,29 @@ app.get("/api/auth/google-callback", (req, res) => {
     return;
   }
 
-  fetch(serverOrigin + "/api/auth/mobile-token", {
+  fetch(serverOrigin + "/api/auth/mobile-google-exchange", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      uid: user.sub,
-      displayName: user.name || user.email || "Adventurer",
-      email: user.email || "",
-      photoURL: user.picture || "",
+      id_token: idToken,
       bridgeId: bridgeId
     })
+  }).then(function(resp) {
+    if (!resp.ok) {
+      // Fallback: store Google sub so user at least gets into the app
+      return fetch(serverOrigin + "/api/auth/mobile-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: user.sub,
+          displayName: user.name || user.email || "Adventurer",
+          email: user.email || "",
+          photoURL: user.picture || "",
+          bridgeId: bridgeId
+        })
+      });
+    }
+    return resp;
   }).then(function() {
     location.replace(serverOrigin + "/api/auth/mobile-complete?bridgeId=" + encodeURIComponent(bridgeId) + "&scheme=" + encodeURIComponent(returnScheme));
   }).catch(function() {
@@ -256,27 +343,77 @@ function getRequestLanguage(req) {
   return "en";
 }
 
-function parsePreferredQuestIds(rawValue) {
+function parsePreferredQuestIds(rawValue, allowedCustomIds = []) {
   if (!rawValue) {
     return [];
   }
   const validQuestIds = new Set(getQuestPool().map((quest) => quest.id));
+  const customAllow = new Set(allowedCustomIds.filter((id) => Number.isInteger(id) && id >= CUSTOM_QUEST_ID_OFFSET));
   return [...new Set(String(rawValue)
     .split(",")
     .map((item) => Number(item.trim()))
-    .filter((item) => Number.isInteger(item) && item > 0 && validQuestIds.has(item)))].slice(0, getPreferredQuestCount());
+    .filter((item) => Number.isInteger(item) && item > 0 && (validQuestIds.has(item) || customAllow.has(item))))].slice(0, getPreferredQuestCount());
+}
+
+const CUSTOM_QUEST_ID_OFFSET = 1_000_000;
+const CUSTOM_QUEST_TITLE_MAX = 40;
+const CUSTOM_QUEST_DESC_MAX = 120;
+
+function isCustomQuestVirtualId(id) {
+  return Number.isInteger(id) && id >= CUSTOM_QUEST_ID_OFFSET;
+}
+
+function toCustomVirtualId(dbId) {
+  return CUSTOM_QUEST_ID_OFFSET + Number(dbId);
+}
+
+function fromCustomVirtualId(virtualId) {
+  return Number(virtualId) - CUSTOM_QUEST_ID_OFFSET;
+}
+
+function buildCustomQuestEntry(customQuest) {
+  return {
+    id: toCustomVirtualId(customQuest.id),
+    title: customQuest.title,
+    desc: customQuest.description || "",
+    xp: 30,
+    baseXp: 30,
+    stat: customQuest.stat || "sta",
+    category: "CUSTOM",
+    effortScore: 3,
+    icon: "",
+    isCustom: true,
+    sourceId: `custom_${customQuest.id}`
+  };
+}
+
+async function fetchUserCustomQuests(userId) {
+  if (!userId) return [];
+  return prisma.customQuest.findMany({
+    where: { userId },
+    orderBy: { createdAt: "asc" }
+  });
 }
 
 function serializePreferredQuestIds(questIds) {
   return [...new Set(questIds.map((item) => Number(item)).filter((item) => Number.isInteger(item) && item > 0))].join(",");
 }
 
-function onboardingStatus(user) {
-  const preferredQuestIds = parsePreferredQuestIds(user.preferredQuestIds).slice(0, getPreferredQuestCount());
+function onboardingStatus(user, customQuests = []) {
+  const customIds = customQuests.map((cq) => toCustomVirtualId(cq.id));
+  const preferredQuestIds = parsePreferredQuestIds(user.preferredQuestIds, customIds).slice(0, getPreferredQuestCount());
   return {
     preferredQuestIds,
     needsOnboarding: preferredQuestIds.length < getPreferredQuestCount()
   };
+}
+
+function hasUsedDailyRerollToday(user, now = new Date()) {
+  if (!user?.lastDailyRerollAt) {
+    return false;
+  }
+
+  return getDateKey(new Date(user.lastDailyRerollAt)) === getDateKey(now);
 }
 
 function assignDynamicXp(quests, preferredQuestIds) {
@@ -330,31 +467,44 @@ function dailyQuestsForUser(user, date = new Date(), language = "en") {
   return assignDynamicXp(quests, preferredQuestIds);
 }
 
-function composeDailyQuests(user, completedQuestIds = [], date = new Date(), excludeCategories = [], language = "en") {
-  const preferredQuestIds = parsePreferredQuestIds(user.preferredQuestIds);
+function composeDailyQuests(user, completedQuestIds = [], date = new Date(), excludeCategories = [], language = "en", customQuests = []) {
+  const customById = new Map(customQuests.map((cq) => [toCustomVirtualId(cq.id), cq]));
+  const allPreferredIds = parsePreferredQuestIds(user.preferredQuestIds, [...customById.keys()]);
+  const regularPinnedIds = allPreferredIds.filter((id) => !isCustomQuestVirtualId(id));
+  const customPinnedIds = allPreferredIds.filter(isCustomQuestVirtualId);
+
   let baseQuests = getDailyQuests({
     date,
     username: user.username,
     resetSeed: user.lastDailyResetAt?.getTime?.() ?? 0,
-    pinnedQuestIds: preferredQuestIds,
+    pinnedQuestIds: regularPinnedIds,
     excludeCategories,
     streak: user.streak || 0,
     language
   });
 
-  const totalCount = baseQuests.length;
-  const expectedRandomCount = Math.max(0, Math.min(getRandomQuestCount(), totalCount - preferredQuestIds.length));
+  // `baseQuests` is composed using only regular pinned ids. Keep the random-slot
+  // count anchored to those regular slots so custom pinned habits do not reduce
+  // daily random quest count.
+  const expectedRandomCount = Math.max(
+    0,
+    Math.min(getRandomQuestCount(), baseQuests.length - regularPinnedIds.length)
+  );
   const questPoolById = new Map(getQuestPool({ language }).map((quest) => [quest.id, quest]));
-  const selectedQuestIds = [];
-  const pinnedSet = new Set(preferredQuestIds);
+  const pinnedSet = new Set(allPreferredIds);
 
-  for (const questId of preferredQuestIds) {
-    if (!selectedQuestIds.includes(questId)) {
-      selectedQuestIds.push(questId);
-    }
-  }
+  // Build ordered pinned entries exactly as user saved them.
+  const pinnedEntries = allPreferredIds
+    .map((id) => {
+      if (isCustomQuestVirtualId(id)) {
+        const cq = customById.get(id);
+        return cq ? buildCustomQuestEntry(cq) : null;
+      }
+      return questPoolById.get(id) || null;
+    })
+    .filter(Boolean);
 
-  // If we have saved random quests, use them only when they still satisfy the random constraints.
+  // Random-quest selection as before, excluding any pinned ids.
   const savedRandomIds = user.randomQuestIds ? user.randomQuestIds.split(',').map(Number).filter(Boolean) : [];
   const savedRandomQuests = savedRandomIds
     .map((id) => questPoolById.get(id))
@@ -365,15 +515,11 @@ function composeDailyQuests(user, completedQuestIds = [], date = new Date(), exc
     .slice(0, expectedRandomCount);
 
   const useSavedRandomQuests = isValidRandomQuestSet(savedRandomQuests, expectedRandomCount);
-  const finalRandomQuestIds = (useSavedRandomQuests ? savedRandomQuests : generatedRandomQuests).map((quest) => quest.id);
+  const randomQuests = useSavedRandomQuests ? savedRandomQuests : generatedRandomQuests;
 
-  selectedQuestIds.push(...finalRandomQuestIds);
+  const resultQuests = [...pinnedEntries, ...randomQuests];
 
-  const resultQuests = selectedQuestIds
-    .map((questId) => questPoolById.get(questId))
-    .filter(Boolean);
-    
-  return assignDynamicXp(resultQuests, preferredQuestIds);
+  return assignDynamicXp(resultQuests, allPreferredIds);
 }
 
 function calculateStreak(completedCount, currentStreak) {
@@ -425,6 +571,47 @@ function buildServerTimeMeta(now = new Date()) {
     serverNowMs: current.getTime(),
     nextWeekResetAtMs: getNextWeekResetAt(current).getTime()
   };
+}
+
+function getXpNextForLevel(level) {
+  const safeLevel = Math.max(1, Number(level) || 1);
+  let xpNext = 250;
+  for (let currentLevel = 1; currentLevel < safeLevel; currentLevel += 1) {
+    xpNext = Math.floor(xpNext * 1.1);
+  }
+  return xpNext;
+}
+
+async function ensureLeaderboardTestUsers() {
+  const baseLevel = 10;
+  const totalUsers = 10;
+
+  for (let index = 0; index < totalUsers; index += 1) {
+    const userNumber = String(index + 1).padStart(2, "0");
+    const level = baseLevel + index;
+    const username = `leader_test_${userNumber}`;
+
+    await prisma.user.upsert({
+      where: { username },
+      create: {
+        username,
+        displayName: `Leaderboard Test ${userNumber}`,
+        photoUrl: "",
+        level,
+        xp: 0,
+        xpNext: getXpNextForLevel(level),
+        streak: Math.max(0, index - 1),
+        tokens: 0
+      },
+      update: {
+        displayName: `Leaderboard Test ${userNumber}`,
+        level,
+        xp: 0,
+        xpNext: getXpNextForLevel(level),
+        streak: Math.max(0, index - 1)
+      }
+    });
+  }
 }
 
 function buildRecentDayKeys(totalDays, endDate = new Date()) {
@@ -528,8 +715,10 @@ async function computeTodayProgress(user, date = new Date()) {
   });
 
   const completionIds = completions.map((item) => item.questId);
-  const preferredQuestIds = parsePreferredQuestIds(user.preferredQuestIds);
-  const todaysQuests = composeDailyQuests(user, completionIds, date);
+  const customQuests = await fetchUserCustomQuests(user.id);
+  const customVirtualIds = customQuests.map((cq) => toCustomVirtualId(cq.id));
+  const preferredQuestIds = parsePreferredQuestIds(user.preferredQuestIds, customVirtualIds);
+  const todaysQuests = composeDailyQuests(user, completionIds, date, [], "en", customQuests);
   const questById = new Map(todaysQuests.map((quest) => [quest.id, quest]));
   const completedQuests = completionIds.map((id) => questById.get(id)).filter(Boolean);
   const progress = summarizeTodayProgress(completedQuests, preferredQuestIds);
@@ -635,7 +824,7 @@ async function updateAndReadProductivity(user, date = new Date(), options = {}) 
 
 app.get("/api/profile-stats/:username", async (req, res) => {
   try {
-    const username = req.params.username.toLowerCase().replace(/[^a-z0-9_\-]/g, "").slice(0, 24);
+    const username = slugifyUsername(req.params.username);
     const user = await prisma.user.findUnique({ where: { username } });
     if (!user) return res.status(404).json({ error: "Not found" });
 
@@ -759,6 +948,130 @@ app.get("/api/quests/all", (req, res) => {
   res.json({ quests: getQuestPool({ language }) });
 });
 
+// ── Custom habit CRUD ──
+const customQuestSchema = z.object({
+  username: z.string().min(2).max(64),
+  title: z.string().trim().min(1).max(CUSTOM_QUEST_TITLE_MAX),
+  description: z.string().trim().max(CUSTOM_QUEST_DESC_MAX).optional().default(""),
+  stat: z.enum(["str", "int", "sta"]).optional().default("sta")
+});
+
+app.get("/api/custom-quests/:username", async (req, res) => {
+  try {
+    const username = slugifyUsername(req.params.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+    const customQuests = await fetchUserCustomQuests(user.id);
+    res.json({ customQuests: customQuests.map(buildCustomQuestEntry) });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+app.post("/api/custom-quests", async (req, res) => {
+  try {
+    const parsed = customQuestSchema.parse(req.body);
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const existingCount = await prisma.customQuest.count({ where: { userId: user.id } });
+    if (existingCount >= 20) {
+      return res.status(400).json({ error: "Custom habit limit reached (max 20)" });
+    }
+
+    const created = await prisma.customQuest.create({
+      data: {
+        userId: user.id,
+        title: parsed.title,
+        description: parsed.description || "",
+        stat: parsed.stat
+      }
+    });
+    res.json({ ok: true, customQuest: buildCustomQuestEntry(created) });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+app.patch("/api/custom-quests/:id", async (req, res) => {
+  try {
+    const schema = z.object({
+      username: z.string().min(2).max(64),
+      title: z.string().trim().min(1).max(CUSTOM_QUEST_TITLE_MAX).optional(),
+      description: z.string().trim().max(CUSTOM_QUEST_DESC_MAX).optional(),
+      stat: z.enum(["str", "int", "sta"]).optional()
+    });
+    const parsed = schema.parse(req.body);
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const existing = await prisma.customQuest.findUnique({ where: { id } });
+    if (!existing || existing.userId !== user.id) {
+      return res.status(404).json({ error: "Custom quest not found" });
+    }
+
+    const data = {};
+    if (parsed.title !== undefined) data.title = parsed.title;
+    if (parsed.description !== undefined) data.description = parsed.description;
+    if (parsed.stat !== undefined) data.stat = parsed.stat;
+
+    const updated = await prisma.customQuest.update({ where: { id }, data });
+    res.json({ ok: true, customQuest: buildCustomQuestEntry(updated) });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+app.delete("/api/custom-quests/:id", async (req, res) => {
+  try {
+    const schema = z.object({ username: z.string().min(2).max(64) });
+    const parsed = schema.parse(req.body || {});
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const existing = await prisma.customQuest.findUnique({ where: { id } });
+    if (!existing || existing.userId !== user.id) {
+      return res.status(404).json({ error: "Custom quest not found" });
+    }
+
+    // Remove this virtual id from user's preferredQuestIds if present.
+    const virtualId = toCustomVirtualId(id);
+    const currentCsv = user.preferredQuestIds || "";
+    const filtered = currentCsv
+      .split(",")
+      .map((s) => Number(s.trim()))
+      .filter((n) => Number.isInteger(n) && n > 0 && n !== virtualId);
+    const nextCsv = filtered.join(",");
+
+    await prisma.$transaction([
+      prisma.customQuest.delete({ where: { id } }),
+      ...(nextCsv !== currentCsv
+        ? [prisma.user.update({ where: { id: user.id }, data: { preferredQuestIds: nextCsv } })]
+        : [])
+    ]);
+
+    const remaining = await fetchUserCustomQuests(user.id);
+    res.json({
+      ok: true,
+      customQuests: remaining.map(buildCustomQuestEntry),
+      preferredQuestIds: filtered
+    });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
 app.post("/api/profiles/upsert", async (req, res) => {
   const upsertBody = z.object({
     username: z.string().min(2).max(64),
@@ -804,7 +1117,8 @@ app.get("/api/game-state/:username", async (req, res) => {
   const streakFreezeActive = user.streakFreezeExpiresAt
     ? getDateKey(new Date(user.streakFreezeExpiresAt)) >= todayKey
     : false;
-  const { preferredQuestIds, needsOnboarding } = onboardingStatus(user);
+  const customQuests = await fetchUserCustomQuests(user.id);
+  const { preferredQuestIds, needsOnboarding } = onboardingStatus(user, customQuests);
   const pinnedQuestProgress21d = await getPinnedQuestProgress21d(user, preferredQuestIds, now);
   const { productivity } = await updateAndReadProductivity(user, now, { updateTierState: false });
 
@@ -813,12 +1127,15 @@ app.get("/api/game-state/:username", async (req, res) => {
     dateKey,
     completedQuestIds: completions.map((item) => item.questId),
     streak: user.streak,
-    quests: composeDailyQuests(user, completions.map((item) => item.questId), now, [], language),
+    hasRerolledToday: hasUsedDailyRerollToday(user, now),
+    extraRerollsToday: Number(user.extraRerollsToday || 0),
+    quests: composeDailyQuests(user, completions.map((item) => item.questId), now, [], language, customQuests),
     streakFreezeActive,
     preferredQuestIds,
     pinnedQuestProgress21d,
     needsOnboarding,
     allQuests: needsOnboarding ? getQuestPool({ language }) : [],
+    customQuests: customQuests.map(buildCustomQuestEntry),
     productivity,
     ...buildServerTimeMeta(now)
   });
@@ -841,7 +1158,10 @@ app.post("/api/onboarding/complete", async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const existingPreferred = parsePreferredQuestIds(user.preferredQuestIds);
+    const customQuests = await fetchUserCustomQuests(user.id);
+    const customVirtualIds = new Set(customQuests.map((cq) => toCustomVirtualId(cq.id)));
+
+    const existingPreferred = parsePreferredQuestIds(user.preferredQuestIds, [...customVirtualIds]);
     if (existingPreferred.length >= getPreferredQuestCount()) {
       return res.status(409).json({ error: "Preferred quests are already locked" });
     }
@@ -852,7 +1172,7 @@ app.post("/api/onboarding/complete", async (req, res) => {
     }
 
     const allQuestIds = new Set(getQuestPool().map((quest) => quest.id));
-    const invalidQuestId = uniquePreferredQuestIds.find((id) => !allQuestIds.has(id));
+    const invalidQuestId = uniquePreferredQuestIds.find((id) => !allQuestIds.has(id) && !customVirtualIds.has(id));
     if (invalidQuestId) {
       return res.status(400).json({ error: `Invalid quest id: ${invalidQuestId}` });
     }
@@ -886,11 +1206,14 @@ app.post("/api/onboarding/complete", async (req, res) => {
       user: updatedUser,
       completedQuestIds: completions.map((item) => item.questId),
       streak: updatedUser.streak,
-      quests: composeDailyQuests(updatedUser, completions.map((item) => item.questId), now, [], language),
+      hasRerolledToday: hasUsedDailyRerollToday(updatedUser, now),
+      extraRerollsToday: Number(updatedUser.extraRerollsToday || 0),
+      quests: composeDailyQuests(updatedUser, completions.map((item) => item.questId), now, [], language, customQuests),
       streakFreezeActive,
       preferredQuestIds: uniquePreferredQuestIds,
       pinnedQuestProgress21d,
       needsOnboarding: false,
+      customQuests: customQuests.map(buildCustomQuestEntry),
       productivity,
       ...buildServerTimeMeta(now)
     });
@@ -921,7 +1244,8 @@ app.post("/api/quests/complete", async (req, res) => {
       orderBy: { completedAt: "asc" },
       select: { questId: true }
     });
-    const availableQuests = composeDailyQuests(user, todayCompletions.map((item) => item.questId), new Date(), [], language);
+    const customQuests = await fetchUserCustomQuests(user.id);
+    const availableQuests = composeDailyQuests(user, todayCompletions.map((item) => item.questId), new Date(), [], language, customQuests);
     const quest = availableQuests.find((item) => item.id === parsed.questId);
 
     if (!quest) {
@@ -942,8 +1266,11 @@ app.post("/api/quests/complete", async (req, res) => {
       return res.status(409).json({ error: "Quest already completed today" });
     }
 
-    const pinnedQuestIds = parsePreferredQuestIds(user.preferredQuestIds);
-    const xpState = xpAfterQuest(user, quest, user.streak || 0);
+    const customIds = customQuests.map((cq) => toCustomVirtualId(cq.id));
+    const pinnedQuestIds = parsePreferredQuestIds(user.preferredQuestIds, customIds);
+    const isHabit = pinnedQuestIds.includes(quest.id) || isCustomQuestVirtualId(quest.id);
+    const questForXp = isHabit ? { ...quest, xp: 30 } : quest;
+    const xpState = xpAfterQuest(user, questForXp, user.streak || 0);
     const previousPinnedQuestStreak = pinnedQuestIds.includes(quest.id)
       ? await getQuestConsecutiveDaysForUser(user.id, quest.id)
       : 0;
@@ -976,7 +1303,7 @@ app.post("/api/quests/complete", async (req, res) => {
     if (xpStateWithMilestone.level > user.level) {
       const levelsGained = xpStateWithMilestone.level - user.level;
       for (let lvl = user.level + 1; lvl <= xpStateWithMilestone.level; lvl++) {
-        if (lvl > 10) {
+        if (lvl >= 10) {
           tokenIncrement += 2;
         } else {
           tokenIncrement += 1;
@@ -1119,8 +1446,10 @@ app.post("/api/reset-daily", async (req, res) => {
 
     let newRandomQuestIds = "";
 
+    const userCustomQuests = await fetchUserCustomQuests(user.id);
+
     if (parsed.isReroll && parsed.targetQuestId && Array.isArray(parsed.keepQuestIds)) {
-      const { preferredQuestIds: pinned } = onboardingStatus(user);
+      const { preferredQuestIds: pinned } = onboardingStatus(user, userCustomQuests);
       const randomQuestCount = Math.max(0, Math.min(getRandomQuestCount(), getDailyQuestCount() - pinned.length));
       const questPool = getQuestPool({ language });
       const questById = new Map(questPool.map((quest) => [quest.id, quest]));
@@ -1174,12 +1503,26 @@ app.post("/api/reset-daily", async (req, res) => {
       newRandomQuestIds = finalNonPinnedIds.join(",");
     }
 
+    const hasRerolledToday = hasUsedDailyRerollToday(user, now);
+    const extraRerollsToday = Number(user.extraRerollsToday || 0);
+
+    if (parsed.isReroll && hasRerolledToday && extraRerollsToday <= 0) {
+      return res.status(400).json({ error: "Daily reroll already used" });
+    }
+
+    const rerollStateData = parsed.isReroll
+      ? (hasRerolledToday
+          ? { extraRerollsToday: { decrement: 1 } }
+          : { lastDailyRerollAt: now })
+      : { lastDailyRerollAt: null, extraRerollsToday: 0 };
+
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         lastDailyResetAt: now,
         lastStreakIncreaseAt: parsed.isReroll ? user.lastStreakIncreaseAt : null,
         randomQuestIds: newRandomQuestIds, // Always replace or clear it!
+        ...rerollStateData,
         ...streakDecayData
       }
     });
@@ -1193,15 +1536,18 @@ app.post("/api/reset-daily", async (req, res) => {
 
     const productivityState = await updateAndReadProductivity(updatedUser, now, { updateTierState: true });
     const finalUser = productivityState.user;
-    const { preferredQuestIds } = onboardingStatus(finalUser);
+    const { preferredQuestIds } = onboardingStatus(finalUser, userCustomQuests);
     const pinnedQuestProgress21d = await getPinnedQuestProgress21d(finalUser, preferredQuestIds, now);
 
     res.json({
       ok: true,
       user: finalUser,
-      quests: composeDailyQuests(finalUser, completedQuestIds, now, parsed.excludeCategories, language),
+      hasRerolledToday: hasUsedDailyRerollToday(finalUser, now),
+      extraRerollsToday: Number(finalUser.extraRerollsToday || 0),
+      quests: composeDailyQuests(finalUser, completedQuestIds, now, parsed.excludeCategories, language, userCustomQuests),
       completedQuestIds,
       pinnedQuestProgress21d,
+      customQuests: userCustomQuests.map(buildCustomQuestEntry),
       productivity: productivityState.productivity,
       ...buildServerTimeMeta(now)
     });
@@ -1218,24 +1564,54 @@ app.post("/api/shop/freeze-streak", async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    const today = getDateKey(new Date());
-    const alreadyFrozen = user.streakFreezeExpiresAt
-      ? getDateKey(new Date(user.streakFreezeExpiresAt)) >= today
-      : false;
-    if (alreadyFrozen) {
-      return res.status(400).json({ error: "Streak is already frozen for today" });
-    }
-    if (user.tokens < 3) {
-      return res.status(400).json({ error: "Not enough tokens" });
-    }
-    const tomorrow = new Date();
+    const now = new Date();
+    const today = getDateKey(now);
+    const todayStart = new Date(now);
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const tomorrow = new Date(now);
     tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
     tomorrow.setUTCHours(0, 0, 0, 0);
-    const updatedUser = await prisma.user.update({
-      where: { id: user.id },
+
+    // One guarded write prevents multi-tap races from charging repeatedly.
+    const guardedUpdate = await prisma.user.updateMany({
+      where: {
+        id: user.id,
+        tokens: { gte: 3 },
+        OR: [
+          { streakFreezeExpiresAt: null },
+          { streakFreezeExpiresAt: { lt: todayStart } }
+        ]
+      },
       data: { tokens: { decrement: 3 }, streakFreezeExpiresAt: tomorrow }
     });
-    res.json({ ok: true, tokens: updatedUser.tokens, streakFreezeActive: true });
+
+    if (guardedUpdate.count === 0) {
+      const latestUser = await prisma.user.findUnique({ where: { id: user.id } });
+      if (!latestUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const alreadyFrozen = latestUser.streakFreezeExpiresAt
+        ? getDateKey(new Date(latestUser.streakFreezeExpiresAt)) >= today
+        : false;
+
+      if (alreadyFrozen) {
+        return res.status(400).json({ error: "Streak is already frozen for today" });
+      }
+      if (latestUser.tokens < 3) {
+        return res.status(400).json({ error: "Not enough tokens" });
+      }
+
+      return res.status(409).json({ error: "Freeze purchase conflicted, please retry" });
+    }
+
+    const updatedUser = await prisma.user.findUnique({ where: { id: user.id } });
+    res.json({
+      ok: true,
+      tokens: updatedUser?.tokens ?? Math.max(0, user.tokens - 3),
+      streakFreezeActive: true,
+      streakFreezeExpiresAt: tomorrow.toISOString()
+    });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
   }
@@ -1276,27 +1652,30 @@ app.post("/api/quests/reroll-pinned", async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const preferredList = parsePreferredQuestIds(user.preferredQuestIds);
+    const preferredList = parsePreferredQuestIds(user.preferredQuestIds, (await fetchUserCustomQuests(user.id)).map((cq) => toCustomVirtualId(cq.id)));
     if (preferredList.length === 0) {
       return res.status(400).json({ error: "No pinned quests to reroll" });
     }
 
     const now = new Date();
-    const msIn30Days = 30 * 24 * 60 * 60 * 1000;
-    const isFreeAvailable = !user.lastFreeTaskRerollAt || (now.getTime() - new Date(user.lastFreeTaskRerollAt).getTime() >= msIn30Days);
+    const isFreeAvailable = !user.lastFreeTaskRerollAt || (now.getTime() - new Date(user.lastFreeTaskRerollAt).getTime() >= FREE_PINNED_REROLL_INTERVAL_MS);
     const shouldUseTokens = parsed.useTokens || !isFreeAvailable;
 
     if (shouldUseTokens && user.tokens < 7) {
       return res.status(400).json({ error: "Not enough tokens" });
     }
     if (!shouldUseTokens && !isFreeAvailable) {
-      return res.status(400).json({ error: "Free reroll used in the last 30 days" });
+      return res.status(400).json({ error: "Free reroll used in the last 21 days" });
     }
 
     const questPool = getQuestPool();
     const currentPinnedSet = new Set(preferredList);
     const usedNewIds = new Set();
     const rerolledPreferredQuestIds = preferredList.map((oldId) => {
+      // Custom habits are user-authored — reroll does not replace them.
+      if (isCustomQuestVirtualId(oldId)) {
+        return oldId;
+      }
       const oldQuest = questPool.find((quest) => quest.id === oldId);
       let candidates = questPool.filter((quest) => !currentPinnedSet.has(quest.id) && !usedNewIds.has(quest.id) && quest.category === oldQuest?.category);
       if (candidates.length === 0) {
@@ -1335,14 +1714,8 @@ app.post("/api/quests/reroll-pinned", async (req, res) => {
     });
     const completedQuestIds = completions.map((c) => c.questId);
     
-    const resetSeed = user.lastDailyResetAt?.getTime?.() ?? 0;
-    const quests = getDailyQuests({
-      date: now,
-      username: user.username,
-      resetSeed,
-      pinnedQuestIds: rerolledPreferredQuestIds,
-      language
-    });
+    const customQuestsForResult = await fetchUserCustomQuests(user.id);
+    const quests = composeDailyQuests(updatedUser, completedQuestIds, now, [], language, customQuestsForResult);
 
     res.json({
       success: true,
@@ -1351,7 +1724,8 @@ app.post("/api/quests/reroll-pinned", async (req, res) => {
       preferredQuestIds: rerolledPreferredQuestIds,
       pinnedQuestProgress21d: await getPinnedQuestProgress21d(updatedUser, rerolledPreferredQuestIds, now),
       completedQuestIds,
-      quests
+      quests,
+      customQuests: customQuestsForResult.map(buildCustomQuestEntry)
     });
 
   } catch (err) {
@@ -1380,9 +1754,8 @@ app.post("/api/shop/replace-pinned-quests", async (req, res) => {
     }
 
     const now = new Date();
-    const msIn30Days = 30 * 24 * 60 * 60 * 1000;
-    const isFreeAvailable = !user.lastFreeTaskRerollAt || (now.getTime() - new Date(user.lastFreeTaskRerollAt).getTime() >= msIn30Days);
-    // If free monthly reroll is available, always use it regardless of client flag.
+    const isFreeAvailable = !user.lastFreeTaskRerollAt || (now.getTime() - new Date(user.lastFreeTaskRerollAt).getTime() >= FREE_PINNED_REROLL_INTERVAL_MS);
+    // If free reroll is available, always use it regardless of client flag.
     const shouldUseTokens = !isFreeAvailable;
 
     if (shouldUseTokens && user.tokens < 7) {
@@ -1394,8 +1767,10 @@ app.post("/api/shop/replace-pinned-quests", async (req, res) => {
       return res.status(400).json({ error: "Preferred quests must be different" });
     }
 
+    const customQuests = await fetchUserCustomQuests(user.id);
+    const customVirtualIds = new Set(customQuests.map((cq) => toCustomVirtualId(cq.id)));
     const allQuestIds = new Set(getQuestPool().map((quest) => quest.id));
-    const invalidQuestId = uniquePreferredQuestIds.find((id) => !allQuestIds.has(id));
+    const invalidQuestId = uniquePreferredQuestIds.find((id) => !allQuestIds.has(id) && !customVirtualIds.has(id));
     if (invalidQuestId) {
       return res.status(400).json({ error: `Invalid quest id: ${invalidQuestId}` });
     }
@@ -1426,8 +1801,9 @@ app.post("/api/shop/replace-pinned-quests", async (req, res) => {
       lastFreeTaskRerollAt: updatedUser.lastFreeTaskRerollAt,
       preferredQuestIds: uniquePreferredQuestIds,
       pinnedQuestProgress21d: await getPinnedQuestProgress21d(updatedUser, uniquePreferredQuestIds, now),
-      quests: composeDailyQuests(updatedUser, completions.map((item) => item.questId), now, [], language),
-      completedQuestIds: completions.map((item) => item.questId)
+      quests: composeDailyQuests(updatedUser, completions.map((item) => item.questId), now, [], language, customQuests),
+      completedQuestIds: completions.map((item) => item.questId),
+      customQuests: customQuests.map(buildCustomQuestEntry)
     });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
@@ -1454,6 +1830,9 @@ app.post("/api/reset-hard", async (req, res) => {
       where: { userId: user.id }
     });
 
+    const customQuests = await fetchUserCustomQuests(user.id);
+    const customVirtualIds = customQuests.map((cq) => toCustomVirtualId(cq.id));
+
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -1470,6 +1849,8 @@ app.post("/api/reset-hard", async (req, res) => {
         lastTierWeekKey: "",
         lastStreakIncreaseAt: null,
         streakFreezeExpiresAt: null,
+        lastDailyRerollAt: null,
+        extraRerollsToday: 0,
         lastDailyResetAt: now
       }
     });
@@ -1478,8 +1859,9 @@ app.post("/api/reset-hard", async (req, res) => {
       ok: true,
       user: updatedUser,
       completedQuestIds: [],
-      quests: composeDailyQuests(updatedUser, [], now, [], language),
-      preferredQuestIds: parsePreferredQuestIds(updatedUser.preferredQuestIds),
+      quests: composeDailyQuests(updatedUser, [], now, [], language, customQuests),
+      preferredQuestIds: parsePreferredQuestIds(updatedUser.preferredQuestIds, customVirtualIds),
+      customQuests: customQuests.map(buildCustomQuestEntry),
       pinnedQuestProgress21d: [],
       ...buildServerTimeMeta(now)
     });
@@ -1607,14 +1989,19 @@ app.post("/api/sync-state", async (req, res) => {
     level: z.number().int().min(1),
     xp: z.number().int().min(0),
     xpNext: z.number().int().min(1),
+    tokens: z.number().int().min(0).optional(),
   });
   try {
     const parsed = schema.parse(req.body);
     const username = slugifyUsername(parsed.username);
     if (!username) return res.status(400).json({ error: "Invalid username" });
+    const updateData = { level: parsed.level, xp: parsed.xp, xpNext: parsed.xpNext };
+    if (typeof parsed.tokens === "number") {
+      updateData.tokens = parsed.tokens;
+    }
     await prisma.user.update({
       where: { username },
-      data: { level: parsed.level, xp: parsed.xp, xpNext: parsed.xpNext },
+      data: updateData,
     });
     res.json({ ok: true });
   } catch {
@@ -1714,8 +2101,16 @@ app.use((err, _req, res, _next) => {
 const isMainModule = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 
 if (isMainModule) {
-  app.listen(port, () => {
-    console.log(`Life RPG API running on http://localhost:${port}`);
+  const bootstrap = async () => {
+    await ensureLeaderboardTestUsers();
+    app.listen(port, () => {
+      console.log(`Life RPG API running on http://localhost:${port}`);
+    });
+  };
+
+  bootstrap().catch((error) => {
+    console.error("Failed to bootstrap server", error);
+    process.exit(1);
   });
 }
 

@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
+
 function useGameplayActions({
   authUser,
   state,
@@ -28,6 +30,7 @@ function useGameplayActions({
   vocab
 }) {
   const [floatingTexts, setFloatingTexts] = useState([]);
+  const [freezeStreakPending, setFreezeStreakPending] = useState(false);
 
   function normalizePinnedQuestProgress(items) {
     if (!Array.isArray(items)) {
@@ -270,8 +273,8 @@ function useGameplayActions({
         pinnedQuestProgress21d: Array.isArray(result?.pinnedQuestProgress21d)
           ? normalizePinnedQuestProgress(result?.pinnedQuestProgress21d)
           : prev.pinnedQuestProgress21d,
-        hasRerolledToday: true,
-        extraRerollsToday: prev.hasRerolledToday && prev.extraRerollsToday > 0 ? prev.extraRerollsToday - 1 : prev.extraRerollsToday,
+        hasRerolledToday: result?.hasRerolledToday ?? prev.hasRerolledToday,
+        extraRerollsToday: Number(result?.extraRerollsToday ?? result?.user?.extraRerollsToday ?? prev.extraRerollsToday),
         lastReset: Date.now(),
         logs: [
           ...prev.logs,
@@ -363,6 +366,10 @@ function useGameplayActions({
         hasRerolledToday: false,
         streakFreezeActive: false,
         extraRerollsToday: 0,
+        user: {
+          ...prev.user,
+          lastFreeTaskRerollAt: result?.user?.lastFreeTaskRerollAt ?? null
+        },
         preferredQuestIds: Array.isArray(result?.preferredQuestIds) ? result.preferredQuestIds : prev.preferredQuestIds,
         pinnedQuestProgress21d: normalizePinnedQuestProgress(result?.pinnedQuestProgress21d)
       }));
@@ -373,7 +380,7 @@ function useGameplayActions({
   }
 
     async function handleRerollPinned() {
-    const isFree = !state.user?.lastFreeTaskRerollAt || (Date.now() - new Date(state.user.lastFreeTaskRerollAt).getTime() >= 30 * 24 * 60 * 60 * 1000);
+    const isFree = !state.user?.lastFreeTaskRerollAt || (Date.now() - new Date(state.user.lastFreeTaskRerollAt).getTime() >= FREE_PINNED_REROLL_INTERVAL_MS);
     if (!isFree && state.tokens < 7) {
       addLog(vocab?.notEnoughTokensPinned || "Not enough tokens to reroll pinned quests.", "text-red-400 font-bold");
       return;
@@ -418,7 +425,7 @@ function useGameplayActions({
       setState((prev) => ({
         ...prev,
         tokens: result.tokens,
-        extraRerollsToday: prev.extraRerollsToday + 1,
+        extraRerollsToday: Number(result?.extraRerollsToday ?? prev.extraRerollsToday + 1),
         logs: [
           ...prev.logs,
           {
@@ -434,6 +441,11 @@ function useGameplayActions({
   }
 
   async function handleFreezeStreak() {
+    if (freezeStreakPending || state.streakFreezeActive) {
+      return;
+    }
+
+    setFreezeStreakPending(true);
     try {
       const result = await freezeStreak(authUser.uid);
       setState((prev) => ({
@@ -452,6 +464,8 @@ function useGameplayActions({
       setShowFreezeSuccess(true);
     } catch (err) {
       addLog(err?.message || vocab?.purchaseFailed || "Purchase failed. Please try again.", "text-red-400 font-bold");
+    } finally {
+      setFreezeStreakPending(false);
     }
   }
 
@@ -465,7 +479,8 @@ function useGameplayActions({
     handleHardReset,
     handleRerollPinned,
     handleBuyExtraReroll,
-    handleFreezeStreak
+    handleFreezeStreak,
+    freezeStreakPending
   };
 }
 

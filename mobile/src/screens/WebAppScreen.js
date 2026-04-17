@@ -1,6 +1,6 @@
 import Constants from "expo-constants";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import {
   ActivityIndicator,
   Animated,
@@ -18,9 +18,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const MOBILE_TAB_STORAGE_KEY = "life_rpg_mobile_tab";
 const TAB_ITEMS = [
-  { key: "dashboard", icon: "grid", iconOutline: "grid-outline", size: 24 },
+  { key: "city", icon: "business", iconOutline: "business-outline", size: 24 },
   { key: "leaderboard", icon: "trophy", iconOutline: "trophy-outline", size: 24 },
-  { key: "city", icon: "castle", size: 28, center: true },
+  { key: "dashboard", icon: "grid", iconOutline: "grid-outline", size: 28, center: true },
   { key: "store", icon: "bag-handle", iconOutline: "bag-handle-outline", size: 24 },
   { key: "profile", icon: "person-circle", iconOutline: "person-circle-outline", size: 26 }
 ];
@@ -292,7 +292,8 @@ export default function WebAppScreen() {
         const nonce = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
         const state = JSON.stringify({ bridgeId, returnScheme });
 
-        // Build Google OAuth URL directly — iOS will show "google.com wants to sign in"
+        // Build Google OAuth URL directly — iOS prompt shows "google.com wants to sign in".
+        // Server exchanges the returned id_token for a Firebase UID so mobile and web share identity.
         const googleParams = new URLSearchParams({
           client_id: clientId,
           redirect_uri: redirectUri,
@@ -441,7 +442,7 @@ export default function WebAppScreen() {
                     {item.center ? (
                       <View style={styles.centerTabWrap}>
                         <View style={[styles.centerTabOrb, { backgroundColor: theme.orb }, isActive ? { backgroundColor: theme.orb } : null, pressedTab === item.key ? styles.centerTabOrbPressed : null]}>
-                          <MaterialCommunityIcons name="city-variant" size={item.size} color={isActive ? theme.orbText : theme.orbText} />
+                          <Ionicons name={isActive ? item.icon : (item.iconOutline || item.icon)} size={item.size} color={theme.orbText} />
                         </View>
                       </View>
                     ) : (
@@ -521,7 +522,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 0,
     backgroundColor: "rgba(8, 15, 30, 0.88)",
@@ -533,13 +534,13 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     flex: 1,
-    minHeight: 50,
+    minHeight: 45,
     alignItems: "center",
     justifyContent: "center"
   },
   iconSlot: {
     width: 44,
-    height: 34,
+    height: 31,
     alignItems: "center",
     justifyContent: "center"
   },
@@ -549,31 +550,31 @@ const styles = StyleSheet.create({
   activePill: {
     position: "absolute",
     width: 42,
-    height: 34,
-    borderRadius: 17,
+    height: 31,
+    borderRadius: 15.5,
     backgroundColor: "rgba(251, 191, 36, 0.14)",
     borderWidth: 1,
     borderColor: "rgba(251, 191, 36, 0.28)"
   },
   centerTabButton: {
-    flex: 1.1
+    flex: 1.05
   },
   centerTabWrap: {
-    width: 58,
-    height: 64,
+    width: 54,
+    height: 60,
     alignItems: "center",
     justifyContent: "center"
   },
   centerTabOrb: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.2,
     borderColor: "rgba(251, 191, 36, 0.48)",
     backgroundColor: "#111827",
-    transform: [{ translateY: -12 }],
+    transform: [{ translateY: -10 }],
     shadowColor: "#000000",
     shadowOpacity: 0.1,
     shadowRadius: 5,
@@ -582,7 +583,7 @@ const styles = StyleSheet.create({
   },
   centerTabOrbPressed: {
     opacity: 0.9,
-    transform: [{ translateY: -10 }, { scale: 0.98 }]
+    transform: [{ translateY: -8 }, { scale: 0.98 }]
   },
   centerTabOrbActive: {
     backgroundColor: "#fbbf24",

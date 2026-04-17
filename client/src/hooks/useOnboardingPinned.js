@@ -1,7 +1,22 @@
 import { useMemo, useState } from "react";
 import { useTheme } from "../ThemeContext";
+import {
+  fetchCustomQuests as apiFetchCustomQuests,
+  createCustomQuest as apiCreateCustomQuest,
+  updateCustomQuest as apiUpdateCustomQuest,
+  deleteCustomQuest as apiDeleteCustomQuest,
+  fetchGameState as apiFetchGameState
+} from "../api";
 
 const PREFERRED_QUEST_LIMIT = 3;
+export const CUSTOM_QUEST_TITLE_MAX = 40;
+export const CUSTOM_QUEST_DESC_MAX = 120;
+const CUSTOM_QUEST_ID_OFFSET = 1_000_000;
+const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
+
+export function isCustomQuestId(id) {
+  return Number.isInteger(Number(id)) && Number(id) >= CUSTOM_QUEST_ID_OFFSET;
+}
 
 function useOnboardingPinned({
   authUser,
@@ -34,34 +49,44 @@ function useOnboardingPinned({
   const [onboardingError, setOnboardingError] = useState("");
   const [onboardingSaving, setOnboardingSaving] = useState(false);
   const [allQuestOptions, setAllQuestOptions] = useState([]);
+  const [customQuests, setCustomQuests] = useState([]);
+  const [customSaving, setCustomSaving] = useState(false);
+  const [customError, setCustomError] = useState("");
+
+  const combinedQuestOptions = useMemo(() => {
+    const customEntries = Array.isArray(customQuests) ? customQuests.map((cq) => ({
+      ...cq,
+      // Custom quests always show 30 XP and are tagged for UI affordances.
+      xp: 30,
+      category: cq.category || "CUSTOM",
+      isCustom: true
+    })) : [];
+    return [...customEntries, ...allQuestOptions];
+  }, [allQuestOptions, customQuests]);
 
   const filteredOnboardingQuests = useMemo(() => {
     const normalizedQuestSearch = onboardingQuestSearch.trim().toLowerCase();
-    return allQuestOptions.filter((quest) => {
+    return combinedQuestOptions.filter((quest) => {
       if (!normalizedQuestSearch) return true;
 
-      const stat = String(quest?.stat || "").toLowerCase();
       const searchableText = [
         String(quest?.title || "").toLowerCase(),
         String(quest?.desc || "").toLowerCase(),
-        stat,
-        stat === "str" ? "strength body power muscle 💪 ⚔" : "",
-        stat === "int" ? "intelligence mind focus brain 🧠 📘" : "",
-        stat === "sta" ? "stamina endurance recovery shield 🛡 ❤️" : ""
+        quest?.isCustom ? "custom мои own personal" : ""
       ].join(" ");
 
       return searchableText.includes(normalizedQuestSearch);
     });
-  }, [allQuestOptions, onboardingQuestSearch]);
+  }, [combinedQuestOptions, onboardingQuestSearch]);
 
   const filteredReplacePinnedQuests = useMemo(() => {
     const normalizedPinnedSearch = replacePinnedSearch.trim().toLowerCase();
-    return allQuestOptions.filter((quest) => {
+    return combinedQuestOptions.filter((quest) => {
       if (!normalizedPinnedSearch) return true;
       const searchableText = `${String(quest?.title || "").toLowerCase()} ${String(quest?.desc || "").toLowerCase()}`;
       return searchableText.includes(normalizedPinnedSearch);
     });
-  }, [allQuestOptions, replacePinnedSearch]);
+  }, [combinedQuestOptions, replacePinnedSearch]);
 
   function normalizePinnedQuestProgress(items) {
     if (!Array.isArray(items)) {
@@ -90,6 +115,111 @@ function useOnboardingPinned({
     setOnboardingError("");
     setOnboardingSaving(false);
     setAllQuestOptions([]);
+    setCustomQuests([]);
+    setCustomError("");
+    setCustomSaving(false);
+  }
+
+  function applyCustomQuestsFromResponse(response) {
+    if (Array.isArray(response?.customQuests)) {
+      setCustomQuests(response.customQuests);
+    }
+  }
+
+  async function handleCreateCustomQuest({ title, description, stat }) {
+    const cleanTitle = String(title || "").trim().slice(0, CUSTOM_QUEST_TITLE_MAX);
+    const cleanDesc = String(description || "").trim().slice(0, CUSTOM_QUEST_DESC_MAX);
+    if (!cleanTitle) {
+      setCustomError(t.customHabitTitleRequired || "Enter a title");
+      return null;
+    }
+    setCustomSaving(true);
+    setCustomError("");
+    try {
+      const result = await apiCreateCustomQuest(authUser.uid, {
+        title: cleanTitle,
+        description: cleanDesc,
+        stat: stat || "sta"
+      });
+      const created = result?.customQuest;
+      if (created) {
+        setCustomQuests((prev) => [...prev, created]);
+      }
+      return created;
+    } catch (err) {
+      setCustomError(err?.message || (t.customHabitSaveFailed || "Failed to save"));
+      return null;
+    } finally {
+      setCustomSaving(false);
+    }
+  }
+
+  async function handleUpdateCustomQuest(id, { title, description, stat }) {
+    const cleanTitle = title !== undefined ? String(title || "").trim().slice(0, CUSTOM_QUEST_TITLE_MAX) : undefined;
+    const cleanDesc = description !== undefined ? String(description || "").trim().slice(0, CUSTOM_QUEST_DESC_MAX) : undefined;
+    if (cleanTitle !== undefined && !cleanTitle) {
+      setCustomError(t.customHabitTitleRequired || "Enter a title");
+      return null;
+    }
+    setCustomSaving(true);
+    setCustomError("");
+    try {
+      const result = await apiUpdateCustomQuest(authUser.uid, id, {
+        title: cleanTitle,
+        description: cleanDesc,
+        stat
+      });
+      const updated = result?.customQuest;
+      if (updated) {
+        setCustomQuests((prev) => prev.map((cq) => (cq.id === updated.id ? updated : cq)));
+      }
+      return updated;
+    } catch (err) {
+      setCustomError(err?.message || (t.customHabitSaveFailed || "Failed to save"));
+      return null;
+    } finally {
+      setCustomSaving(false);
+    }
+  }
+
+  async function handleDeleteCustomQuest(id) {
+    setCustomSaving(true);
+    setCustomError("");
+    try {
+      const result = await apiDeleteCustomQuest(authUser.uid, id);
+      if (Array.isArray(result?.customQuests)) {
+        setCustomQuests(result.customQuests);
+      } else {
+        setCustomQuests((prev) => prev.filter((cq) => cq.id !== Number(id)));
+      }
+      // If it was currently selected in onboarding/replace modal, drop it.
+      setOnboardingQuestIds((prev) => prev.filter((qid) => qid !== Number(id)));
+      setReplacePinnedQuestIds((prev) => prev.filter((qid) => qid !== Number(id)));
+      // Update preferredQuestIds in parent state too if server returned it.
+      if (Array.isArray(result?.preferredQuestIds)) {
+        setState((prev) => ({
+          ...prev,
+          preferredQuestIds: result.preferredQuestIds
+        }));
+      }
+      return true;
+    } catch (err) {
+      setCustomError(err?.message || (t.customHabitDeleteFailed || "Failed to delete"));
+      return false;
+    } finally {
+      setCustomSaving(false);
+    }
+  }
+
+  async function refreshCustomQuests() {
+    try {
+      const result = await apiFetchCustomQuests(authUser.uid);
+      if (Array.isArray(result?.customQuests)) {
+        setCustomQuests(result.customQuests);
+      }
+    } catch {
+      /* noop */
+    }
   }
 
   function applyServerBootstrap(gameStateResponse, fallbackName) {
@@ -98,6 +228,10 @@ function useOnboardingPinned({
       : [];
     if (allQuests.length) {
       setAllQuestOptions(allQuests);
+    }
+
+    if (Array.isArray(gameStateResponse?.customQuests)) {
+      setCustomQuests(gameStateResponse.customQuests);
     }
 
     const preferredQuestIds = Array.isArray(gameStateResponse?.preferredQuestIds)
@@ -134,6 +268,8 @@ function useOnboardingPinned({
   }
 
   function toggleReplacePinnedQuest(questId) {
+    // Any selection change invalidates a previous "Not enough tokens" / server error.
+    setReplacePinnedError("");
     setReplacePinnedQuestIds((prev) => {
       if (prev.includes(questId)) {
         return prev.filter((id) => id !== questId);
@@ -145,12 +281,43 @@ function useOnboardingPinned({
     });
   }
 
-  function openPinnedReplacementModal() {
+  async function openPinnedReplacementModal() {
     setReplacePinnedError("");
-    setReplacePinnedSaving(false);
+    setReplacePinnedSaving(true);
     setReplacePinnedSearch("");
     setReplacePinnedQuestIds(Array.isArray(state.preferredQuestIds) ? state.preferredQuestIds.slice(0, PREFERRED_QUEST_LIMIT) : []);
+
+    // Fetch authoritative state before showing the modal so token-dependent UI
+    // does not flash stale values from persisted local state.
+    if (authUser?.uid) {
+      try {
+        const resp = await apiFetchGameState(authUser.uid);
+        if (resp) {
+          if (Array.isArray(resp.customQuests)) {
+            setCustomQuests(resp.customQuests);
+          }
+          const nextPreferred = Array.isArray(resp.preferredQuestIds)
+            ? resp.preferredQuestIds.slice(0, PREFERRED_QUEST_LIMIT)
+            : (Array.isArray(state.preferredQuestIds) ? state.preferredQuestIds.slice(0, PREFERRED_QUEST_LIMIT) : []);
+          setReplacePinnedQuestIds(nextPreferred);
+          setState((prev) => ({
+            ...prev,
+            tokens: typeof resp.user?.tokens === "number" ? resp.user.tokens : prev.tokens,
+            preferredQuestIds: Array.isArray(resp.preferredQuestIds) ? resp.preferredQuestIds : prev.preferredQuestIds,
+            user: {
+              ...prev.user,
+              lastFreeTaskRerollAt: resp.user?.lastFreeTaskRerollAt ?? prev.user?.lastFreeTaskRerollAt ?? null,
+              tokens: typeof resp.user?.tokens === "number" ? resp.user.tokens : prev.user?.tokens
+            }
+          }));
+        }
+      } catch {
+        /* non-fatal — keep current state */
+      }
+    }
+
     setShowPinnedReplaceModal(true);
+    setReplacePinnedSaving(false);
   }
 
   async function handleBuyPinnedReplacement() {
@@ -162,10 +329,11 @@ function useOnboardingPinned({
     setReplacePinnedSaving(true);
     setReplacePinnedError("");
     try {
-      const isFreePinnedReroll = !state.user?.lastFreeTaskRerollAt || (Date.now() - new Date(state.user.lastFreeTaskRerollAt).getTime() >= 30 * 24 * 60 * 60 * 1000);
+      const isFreePinnedReroll = !state.user?.lastFreeTaskRerollAt || (Date.now() - new Date(state.user.lastFreeTaskRerollAt).getTime() >= FREE_PINNED_REROLL_INTERVAL_MS);
       const result = await replacePinnedQuests(authUser.uid, replacePinnedQuestIds, !isFreePinnedReroll);
       const costText = isFreePinnedReroll ? t.freeLabel : t.sevenTokens;
       const nextQuests = Array.isArray(result?.quests) ? result.quests.map(normalizeQuest) : [];
+      applyCustomQuestsFromResponse(result);
       setQuests(nextQuests);
       setState((prev) => ({
         ...prev,
@@ -189,6 +357,23 @@ function useOnboardingPinned({
       setShowPinnedReplaceModal(false);
     } catch (err) {
       setReplacePinnedError(err?.message || t.purchaseFailed);
+      // Re-sync tokens/free-reroll state so the UI reflects reality after a failed purchase.
+      if (authUser?.uid) {
+        apiFetchGameState(authUser.uid)
+          .then((resp) => {
+            if (!resp) return;
+            setState((prev) => ({
+              ...prev,
+              tokens: typeof resp.user?.tokens === "number" ? resp.user.tokens : prev.tokens,
+              user: {
+                ...prev.user,
+                lastFreeTaskRerollAt: resp.user?.lastFreeTaskRerollAt ?? prev.user?.lastFreeTaskRerollAt ?? null,
+                tokens: typeof resp.user?.tokens === "number" ? resp.user.tokens : prev.user?.tokens
+              }
+            }));
+          })
+          .catch(() => {});
+      }
     } finally {
       setReplacePinnedSaving(false);
     }
@@ -213,18 +398,19 @@ function useOnboardingPinned({
         onServerTimeSync(result);
       }
       const nextQuests = Array.isArray(result?.quests) ? result.quests.map(normalizeQuest) : [];
+      applyCustomQuestsFromResponse(result);
       setQuests(nextQuests);
-      localStorage.setItem(`rpg_character_name_${authUser.uid}`, trimmedName);
-      setCharacterName(trimmedName);
-      setNameDraft(trimmedName);
+      setCharacterName(result?.user?.displayName || trimmedName);
+      setNameDraft(result?.user?.displayName || trimmedName);
       const nextPortrait = result?.user?.photoUrl || portraitData || "";
       setPortraitData(nextPortrait);
-      localStorage.setItem(portraitKey(authUser.uid), nextPortrait);
       setState((prev) => ({
         ...prev,
         completed: Array.isArray(result?.completedQuestIds) ? result.completedQuestIds : prev.completed,
         streak: Number(result?.streak ?? prev.streak),
         streakFreezeActive: result?.streakFreezeActive ?? prev.streakFreezeActive,
+        hasRerolledToday: result?.hasRerolledToday ?? prev.hasRerolledToday,
+        extraRerollsToday: Number(result?.extraRerollsToday ?? result?.user?.extraRerollsToday ?? prev.extraRerollsToday),
         lvl: result?.user?.level ?? prev.lvl,
         xp: result?.user?.xp ?? prev.xp,
         xpNext: result?.user?.xpNext ?? prev.xpNext,
@@ -273,6 +459,15 @@ function useOnboardingPinned({
     onboardingSaving,
     allQuestOptions,
     setAllQuestOptions,
+    customQuests,
+    setCustomQuests,
+    customSaving,
+    customError,
+    setCustomError,
+    handleCreateCustomQuest,
+    handleUpdateCustomQuest,
+    handleDeleteCustomQuest,
+    refreshCustomQuests,
     filteredOnboardingQuests,
     filteredReplacePinnedQuests,
     resetOnLogout,
