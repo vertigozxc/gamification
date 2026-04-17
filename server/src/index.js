@@ -560,33 +560,67 @@ app.get("/api/auth/google-callback", (req, res) => {
     return;
   }
 
-  fetch(serverOrigin + "/api/auth/mobile-google-exchange", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      id_token: idToken,
-      bridgeId: bridgeId
-    })
-  }).then(function(resp) {
-    if (!resp.ok) {
-      // Fallback: store Google sub so user at least gets into the app
-      return fetch(serverOrigin + "/api/auth/mobile-token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          uid: user.sub,
-          displayName: user.name || user.email || "Adventurer",
-          email: user.email || "",
-          photoURL: user.picture || "",
-          bridgeId: bridgeId
-        })
+  function setMsg(text) {
+    var el = document.getElementById("msg");
+    if (el) el.textContent = text;
+  }
+
+  function storeViaToken() {
+    return fetch(serverOrigin + "/api/auth/mobile-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        uid: user.sub,
+        displayName: user.name || user.email || "Adventurer",
+        email: user.email || "",
+        photoURL: user.picture || "",
+        bridgeId: bridgeId
+      })
+    });
+  }
+
+  function storeViaExchange() {
+    return fetch(serverOrigin + "/api/auth/mobile-google-exchange", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id_token: idToken, bridgeId: bridgeId })
+    });
+  }
+
+  // Verify bridge entry actually landed on server before redirecting to deep link
+  function verify() {
+    return fetch(serverOrigin + "/api/auth/mobile-bridge-check/" + encodeURIComponent(bridgeId))
+      .then(function(r){ return r.ok ? r.json() : { exists: false }; })
+      .then(function(b){ return !!(b && b.exists); })
+      .catch(function(){ return false; });
+  }
+
+  function attempt(n) {
+    setMsg("Completing sign-in... (" + n + "/8)");
+    // Always call storeViaToken first — it's fast and guaranteed to work
+    // (no Identity Toolkit hop). Then optionally try exchange to upgrade UID.
+    return storeViaToken()
+      .catch(function(){ return null; })
+      .then(function(){ return storeViaExchange().catch(function(){ return null; }); })
+      .then(verify)
+      .then(function(ok){
+        if (ok) return true;
+        if (n >= 8) return false;
+        return new Promise(function(res){ setTimeout(res, 1500); }).then(function(){ return attempt(n + 1); });
       });
+  }
+
+  attempt(1).then(function(ok){
+    if (ok) {
+      setMsg("Signed in — returning to app...");
+      location.replace(serverOrigin + "/api/auth/mobile-complete?bridgeId=" + encodeURIComponent(bridgeId) + "&scheme=" + encodeURIComponent(returnScheme));
+    } else {
+      setMsg("Sign-in failed — please close this and try again");
+      // Also redirect to deep link so user isn't stuck — mobile will show the failure
+      setTimeout(function(){
+        location.replace(serverOrigin + "/api/auth/mobile-complete?bridgeId=" + encodeURIComponent(bridgeId) + "&scheme=" + encodeURIComponent(returnScheme));
+      }, 2000);
     }
-    return resp;
-  }).then(function() {
-    location.replace(serverOrigin + "/api/auth/mobile-complete?bridgeId=" + encodeURIComponent(bridgeId) + "&scheme=" + encodeURIComponent(returnScheme));
-  }).catch(function() {
-    location.replace(serverOrigin + "/api/auth/mobile-complete?bridgeId=" + encodeURIComponent(bridgeId) + "&scheme=" + encodeURIComponent(returnScheme));
   });
 })();
 </script>
