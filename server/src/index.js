@@ -518,13 +518,26 @@ app.get("/api/auth/google-callback", (req, res) => {
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Completing sign-in...</title>
-<style>body{margin:0;background:#020617;display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui;color:#94a3b8}
-.spinner{width:32px;height:32px;border:3px solid #334155;border-top-color:#22d3ee;border-radius:50%;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}</style>
+<style>body{margin:0;background:#020617;color:#cbd5e1;font-family:system-ui;padding:16px;font-size:13px}
+.spinner{width:32px;height:32px;border:3px solid #334155;border-top-color:#22d3ee;border-radius:50%;animation:spin .8s linear infinite;margin:24px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+#log{margin-top:16px;font-family:Menlo,monospace;font-size:11px;color:#94a3b8;white-space:pre-wrap;word-break:break-all}
+#msg{text-align:center;font-size:14px;color:#fde68a}</style>
 </head><body>
-<div style="text-align:center"><div class="spinner" style="margin:0 auto 16px"></div><div id="msg">Completing sign-in...</div></div>
+<div class="spinner"></div>
+<div id="msg">Completing sign-in...</div>
+<div id="log"></div>
 <script>
 (function(){
+  var logEl = document.getElementById("log");
+  function log(s) {
+    try { logEl.textContent += "\\n" + s; } catch(e) {}
+  }
+  function setMsg(text) {
+    var el = document.getElementById("msg");
+    if (el) el.textContent = text;
+  }
+
   function decodeJwt(token) {
     var parts = token.split(".");
     if (parts.length !== 3) return null;
@@ -548,6 +561,112 @@ app.get("/api/auth/google-callback", (req, res) => {
   var bridgeId = state.bridgeId || "";
   var returnScheme = state.returnScheme || "com.liferpg.mobile";
   var serverOrigin = location.origin;
+
+  log("origin=" + serverOrigin);
+  log("bridgeId=" + bridgeId);
+  log("scheme=" + returnScheme);
+  log("idToken=" + (idToken ? (idToken.substring(0,20) + "...") : "MISSING"));
+
+  if (!idToken) {
+    setMsg("Auth failed — no token received");
+    return;
+  }
+  if (!bridgeId) {
+    setMsg("Auth failed — no bridgeId in state");
+    return;
+  }
+
+  var user = decodeJwt(idToken);
+  log("user.sub=" + (user && user.sub ? user.sub : "MISSING"));
+  log("user.email=" + (user && user.email ? user.email : "MISSING"));
+
+  if (!user || !user.sub) {
+    setMsg("Auth failed — invalid token");
+    return;
+  }
+
+  function storeViaToken() {
+    log("POST /mobile-token...");
+    return fetch(serverOrigin + "/api/auth/mobile-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        uid: user.sub,
+        displayName: user.name || user.email || "Adventurer",
+        email: user.email || "",
+        photoURL: user.picture || "",
+        bridgeId: bridgeId
+      })
+    }).then(function(r){
+      log("mobile-token status=" + r.status);
+      return r;
+    }).catch(function(e){
+      log("mobile-token ERR=" + (e && e.message ? e.message : e));
+      throw e;
+    });
+  }
+
+  function storeViaExchange() {
+    log("POST /mobile-google-exchange...");
+    return fetch(serverOrigin + "/api/auth/mobile-google-exchange", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id_token: idToken, bridgeId: bridgeId })
+    }).then(function(r){
+      log("mobile-google-exchange status=" + r.status);
+      return r;
+    }).catch(function(e){
+      log("exchange ERR=" + (e && e.message ? e.message : e));
+      return null;
+    });
+  }
+
+  function verify() {
+    return fetch(serverOrigin + "/api/auth/mobile-bridge-check/" + encodeURIComponent(bridgeId))
+      .then(function(r){
+        log("bridge-check status=" + r.status);
+        return r.ok ? r.json() : { exists: false };
+      })
+      .then(function(b){
+        log("bridge-check exists=" + !!(b && b.exists));
+        return !!(b && b.exists);
+      })
+      .catch(function(e){
+        log("bridge-check ERR=" + (e && e.message ? e.message : e));
+        return false;
+      });
+  }
+
+  function attempt(n) {
+    setMsg("Completing sign-in... (" + n + "/8)");
+    log("--- attempt " + n + " ---");
+    return storeViaToken()
+      .catch(function(){ return null; })
+      .then(function(){ return storeViaExchange(); })
+      .then(verify)
+      .then(function(ok){
+        if (ok) return true;
+        if (n >= 8) return false;
+        return new Promise(function(res){ setTimeout(res, 1500); }).then(function(){ return attempt(n + 1); });
+      });
+  }
+
+  attempt(1).then(function(ok){
+    if (ok) {
+      setMsg("Signed in — returning to app...");
+      setTimeout(function(){
+        location.replace(serverOrigin + "/api/auth/mobile-complete?bridgeId=" + encodeURIComponent(bridgeId) + "&scheme=" + encodeURIComponent(returnScheme));
+      }, 300);
+    } else {
+      setMsg("Sign-in failed (see log below)");
+    }
+  });
+})();
+</script>
+</body></html>`;
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.send(html);
+});
 
   if (!idToken) {
     document.getElementById("msg").textContent = "Auth failed — no token received";
