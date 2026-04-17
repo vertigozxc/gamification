@@ -386,10 +386,11 @@ function useAuthSession({ auth, googleProvider, firebaseInitError = "" }) {
         const bridgeId = getAuthBridgeId();
         if (bridgeId && !bridgeLookupInFlightRef.current) {
           bridgeLookupInFlightRef.current = true;
-          // Retry up to ~12s — covers Render cold starts and the small window
-          // between OAuth redirect completing and the bridge entry landing.
+          // Retry up to ~60s — covers Render free-tier cold starts (up to 30s)
+          // plus the small window between OAuth redirect completing and the
+          // bridge entry landing on the server.
           let bridgedUser = null;
-          for (let attempt = 0; attempt < 12 && !bridgedUser; attempt += 1) {
+          for (let attempt = 0; attempt < 60 && !bridgedUser; attempt += 1) {
             try {
               const response = await retrieveMobileAuthTokenByBridge(bridgeId);
               bridgedUser = toSafeAuthUser(response?.user);
@@ -407,6 +408,10 @@ function useAuthSession({ auth, googleProvider, firebaseInitError = "" }) {
             setAuthLoading(false);
             return;
           }
+          // Stay on loading screen rather than kicking back to login —
+          // a future bridge entry may still arrive in the same WebView.
+          setAuthLoading(true);
+          return;
         }
       }
 
