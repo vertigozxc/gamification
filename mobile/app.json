@@ -33,6 +33,8 @@
       "apiBaseUrl": "https://life-rpg-api-router.evgeny-mahnach.workers.dev",
       "webAppUrl": "https://life-rpg-client.onrender.com"
     },
-    "plugins": []
+    "plugins": [
+      "expo-font"
+    ]
   }
 }

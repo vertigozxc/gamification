@@ -1,7 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   KeyboardAvoidingView,
@@ -14,6 +13,7 @@ import {
   TextInput,
   View
 } from "react-native";
+import PortalPreloader from "../components/PortalPreloader";
 import QuestItem from "../components/QuestItem";
 import { completeQuest, fetchAllQuests, fetchGameState, upsertProfile } from "../api/client";
 
@@ -170,11 +170,7 @@ export default function HomeScreen() {
   }, [state, quests, completed]);
 
   if (initializing) {
-    return (
-      <View style={styles.loadingWrap}>
-        <ActivityIndicator size="large" color="#22d3ee" />
-      </View>
-    );
+    return <PortalPreloader title="Summoning Portal..." />;
   }
 
   if (!username) {

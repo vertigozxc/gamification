@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchGameState, freezeStreak, buyExtraReroll } from "../api/client";
+import PortalPreloader from "../components/PortalPreloader";
 
 const USERNAME_KEY = "mobile_username";
 
@@ -93,11 +94,7 @@ export default function VaultScreen() {
   }
 
   if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#22d3ee" />
-      </View>
-    );
+    return <PortalPreloader title="Summoning Portal..." />;
   }
 
   if (!state) {

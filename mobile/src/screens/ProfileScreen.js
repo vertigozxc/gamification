@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchGameState } from "../api/client";
+import PortalPreloader from "../components/PortalPreloader";
 
 const USERNAME_KEY = "mobile_username";
 
@@ -44,11 +45,7 @@ export default function ProfileScreen() {
   }, []);
 
   if (loading) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.loadingText}>Loading profile...</Text>
-      </View>
-    );
+    return <PortalPreloader title="Summoning Portal..." />;
   }
 
   if (!state) {
