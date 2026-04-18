@@ -40,7 +40,9 @@ export default {
 
     const req = new Request(targetUrl.toString(), request);
     const res = await fetch(req, {
-      redirect: "follow",
+      // OAuth mobile completion returns 302 to a custom app scheme.
+      // Pass redirects through to the client; do not resolve them at the edge.
+      redirect: "manual",
       cf: {
         cacheTtl: 0,
         cacheEverything: false
