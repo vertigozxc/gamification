@@ -47,6 +47,105 @@ function levelColor(level) {
   return "#60a5fa";
 }
 
+function levelLabel(level) {
+  const l = String(level || "info").toLowerCase();
+  if (l === "fatal") return "Critical";
+  if (l === "error") return "Problem";
+  if (l === "warn") return "Warning";
+  if (l === "debug") return "Technical";
+  return "Info";
+}
+
+function safeJson(meta) {
+  if (meta == null) return "";
+  if (typeof meta === "string") return meta;
+  try {
+    return JSON.stringify(meta);
+  } catch {
+    return String(meta);
+  }
+}
+
+function humanizeType(type) {
+  return String(type || "unknown")
+    .replace(/[._-]+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+function describeEvent(event) {
+  const type = String(event?.type || "").toLowerCase();
+  const level = String(event?.level || "info").toLowerCase();
+  const message = String(event?.message || "").toLowerCase();
+  const meta = safeJson(event?.meta).toLowerCase();
+  const body = `${message} ${meta}`;
+
+  if (type.includes("mobile-token") || type.includes("mobile-bridge") || type.includes("google") || type.includes("auth")) {
+    return {
+      title: "Login flow issue",
+      meaning: "Users may be unable to complete sign-in on mobile.",
+      action: "Open latest auth events, check HTTP status and bridge creation. Prioritize if repeated.",
+      impact: "High"
+    };
+  }
+
+  if (type === "window_error" || type === "unhandled_rejection" || type === "server_error" || type === "uncaught_exception") {
+    return {
+      title: "Application crash/error",
+      meaning: "Part of the app failed unexpectedly.",
+      action: "Open stack details and group by type. Escalate immediately if count is growing.",
+      impact: level === "fatal" ? "Critical" : "High"
+    };
+  }
+
+  if (body.includes("cors blocked")) {
+    return {
+      title: "Access policy blocked request",
+      meaning: "The app tried to call backend, but request was rejected by security policy.",
+      action: "Check allowed origins and environment URLs on backend deployment.",
+      impact: "High"
+    };
+  }
+
+  if (body.includes("timeout") || body.includes("timed out")) {
+    return {
+      title: "Slow response / timeout",
+      meaning: "A backend request took too long and failed.",
+      action: "Check backend load and recent deploy health. Monitor if this repeats.",
+      impact: "Medium"
+    };
+  }
+
+  if (type === "client_session_start") {
+    return {
+      title: "User opened app",
+      meaning: "Normal session start signal.",
+      action: "No action needed.",
+      impact: "Low"
+    };
+  }
+
+  if (type.includes("session_visibility")) {
+    return {
+      title: "App moved foreground/background",
+      meaning: "Normal app lifecycle event.",
+      action: "No action needed unless paired with errors.",
+      impact: "Low"
+    };
+  }
+
+  return {
+    title: humanizeType(type),
+    meaning: level === "error" || level === "fatal"
+      ? "An operational problem was recorded."
+      : "Operational telemetry event.",
+    action: level === "error" || level === "fatal"
+      ? "Open details and check whether it affects many users."
+      : "No immediate action unless frequency is high.",
+    impact: level === "fatal" ? "Critical" : level === "error" ? "High" : level === "warn" ? "Medium" : "Low"
+  };
+}
+
 export default function AdminPanel() {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || "");
   const [tokenInput, setTokenInput] = useState("");
@@ -113,6 +212,7 @@ export default function AdminPanel() {
   const byLevel = summary?.byLevel || [];
 
   const totals = summary?.totals || {};
+  const healthStatus = (totals.errorsLast24h || 0) > 0 ? "Needs attention" : "Stable";
 
   const uniqueTypes = useMemo(() => {
     const set = new Set();
@@ -193,6 +293,7 @@ export default function AdminPanel() {
       </header>
 
       <section style={styles.cards}>
+        <StatCard label="System status" value={healthStatus} tone={healthStatus === "Stable" ? "ok" : "danger"} />
         <StatCard label="Users" value={totals.users ?? "—"} />
         <StatCard label="Active 24h" value={totals.activeUsers24h ?? "—"} />
         <StatCard label="Events 24h" value={totals.eventsLast24h ?? "—"} />
@@ -202,12 +303,12 @@ export default function AdminPanel() {
 
       <section style={styles.twoCol}>
         <div style={styles.panel}>
-          <div style={styles.panelTitle}>Events by type (24h)</div>
+          <div style={styles.panelTitle}>What happened most (last 24h)</div>
           {byType.length === 0 ? <div style={styles.empty}>No events yet.</div> : (
             <div>
               {byType.map((b) => (
                 <div key={b.type} style={styles.row}>
-                  <span>{b.type}</span>
+                  <span>{humanizeType(b.type)}</span>
                   <span style={styles.count}>{b.count}</span>
                 </div>
               ))}
@@ -215,12 +316,12 @@ export default function AdminPanel() {
           )}
         </div>
         <div style={styles.panel}>
-          <div style={styles.panelTitle}>By level (24h)</div>
+          <div style={styles.panelTitle}>Severity overview (last 24h)</div>
           {byLevel.length === 0 ? <div style={styles.empty}>No events.</div> : (
             <div>
               {byLevel.map((b) => (
                 <div key={b.level} style={styles.row}>
-                  <span style={{ color: levelColor(b.level) }}>{b.level}</span>
+                  <span style={{ color: levelColor(b.level) }}>{levelLabel(b.level)}</span>
                   <span style={styles.count}>{b.count}</span>
                 </div>
               ))}
@@ -275,7 +376,10 @@ export default function AdminPanel() {
       </section>
 
       <section style={styles.panel}>
-        <div style={styles.panelTitle}>Recent events</div>
+        <div style={styles.panelTitle}>Recent events with plain-language explanation</div>
+        <div style={styles.helpText}>
+          Tip: focus first on rows marked Critical or Problem, then follow the suggested action in each row.
+        </div>
         <div style={styles.filters}>
           <select value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)} style={styles.select}>
             <option value="">all levels</option>
@@ -301,8 +405,10 @@ export default function AdminPanel() {
               <thead>
                 <tr>
                   <th style={styles.th}>Time</th>
-                  <th style={styles.th}>Level</th>
-                  <th style={styles.th}>Type</th>
+                  <th style={styles.th}>Severity</th>
+                  <th style={styles.th}>Event</th>
+                  <th style={styles.th}>Meaning</th>
+                  <th style={styles.th}>Recommended action</th>
                   <th style={styles.th}>User</th>
                   <th style={styles.th}>Platform</th>
                   <th style={styles.th}>Message</th>
@@ -311,26 +417,36 @@ export default function AdminPanel() {
               <tbody>
                 {events.map((e) => (
                   <tr key={e.id} style={styles.tr}>
+                    {(() => {
+                      const d = describeEvent(e);
+                      return (
+                        <>
                     <td style={styles.td}>{fmtTime(e.createdAt)}</td>
-                    <td style={{ ...styles.td, color: levelColor(e.level) }}>{e.level}</td>
-                    <td style={styles.td}>{e.type}</td>
+                    <td style={{ ...styles.td, color: levelColor(e.level), fontWeight: 700 }}>{levelLabel(e.level)}</td>
+                    <td style={styles.td}>{d.title}</td>
+                    <td style={styles.tdMeaning}>{d.meaning}<div style={styles.impactTag}>Impact: {d.impact}</div></td>
+                    <td style={styles.tdMeaning}>{d.action}</td>
                     <td style={styles.td}>{e.username || e.userId || "—"}</td>
                     <td style={styles.td}>{e.platform || "—"}</td>
                     <td style={styles.tdWide}>
                       <div style={{ whiteSpace: "pre-wrap" }}>{e.message || "—"}</div>
+                      <div style={styles.rawType}>raw type: {e.type || "—"}</div>
                       {e.stack ? (
                         <details>
-                          <summary style={styles.stackSummary}>stack</summary>
+                          <summary style={styles.stackSummary}>technical stack trace</summary>
                           <pre style={styles.pre}>{e.stack}</pre>
                         </details>
                       ) : null}
                       {e.meta ? (
                         <details>
-                          <summary style={styles.stackSummary}>meta</summary>
-                          <pre style={styles.pre}>{e.meta}</pre>
+                          <summary style={styles.stackSummary}>technical meta data</summary>
+                          <pre style={styles.pre}>{safeJson(e.meta)}</pre>
                         </details>
                       ) : null}
                     </td>
+                        </>
+                      );
+                    })()}
                   </tr>
                 ))}
               </tbody>
@@ -346,9 +462,9 @@ export default function AdminPanel() {
 
 function StatCard({ label, value, tone = "default" }) {
   return (
-    <div style={{ ...styles.statCard, borderColor: tone === "danger" ? "#ff6b6b" : "rgba(255,255,255,0.1)" }}>
+    <div style={{ ...styles.statCard, borderColor: tone === "danger" ? "#ff6b6b" : tone === "ok" ? "#34d399" : "rgba(255,255,255,0.1)" }}>
       <div style={styles.statLabel}>{label}</div>
-      <div style={{ ...styles.statValue, color: tone === "danger" ? "#ff6b6b" : "#f1f5f9" }}>{value}</div>
+      <div style={{ ...styles.statValue, color: tone === "danger" ? "#ff6b6b" : tone === "ok" ? "#34d399" : "#f1f5f9" }}>{value}</div>
     </div>
   );
 }
@@ -398,6 +514,7 @@ const styles = {
   twoCol: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 12, marginBottom: 16 },
   panel: { background: "#0f172a", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 16, marginBottom: 16 },
   panelTitle: { fontSize: 14, color: "#cbd5e1", marginBottom: 10, fontWeight: 600 },
+  helpText: { color: "#94a3b8", fontSize: 12, marginBottom: 12 },
   row: { display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.05)", fontSize: 13 },
   count: { color: "#60a5fa", fontWeight: 600 },
   empty: { color: "#64748b", fontSize: 13, padding: "8px 0" },
@@ -408,7 +525,10 @@ const styles = {
   th: { textAlign: "left", padding: "8px 10px", color: "#94a3b8", fontWeight: 600, borderBottom: "1px solid rgba(255,255,255,0.08)" },
   tr: { verticalAlign: "top" },
   td: { padding: "8px 10px", borderBottom: "1px solid rgba(255,255,255,0.05)", whiteSpace: "nowrap" },
+  tdMeaning: { padding: "8px 10px", borderBottom: "1px solid rgba(255,255,255,0.05)", minWidth: 220, maxWidth: 320, whiteSpace: "normal", lineHeight: 1.35 },
   tdWide: { padding: "8px 10px", borderBottom: "1px solid rgba(255,255,255,0.05)", maxWidth: 560 },
+  impactTag: { display: "inline-block", marginTop: 6, padding: "2px 8px", borderRadius: 999, background: "rgba(96,165,250,0.16)", color: "#93c5fd", fontSize: 11, fontWeight: 600 },
+  rawType: { marginTop: 6, color: "#64748b", fontSize: 11 },
   stackSummary: { cursor: "pointer", color: "#64748b", fontSize: 11, marginTop: 4 },
   pre: { whiteSpace: "pre-wrap", fontSize: 11, color: "#94a3b8", background: "#020617", padding: 8, borderRadius: 6, marginTop: 4, maxHeight: 220, overflow: "auto" },
   errorBar: { position: "fixed", bottom: 16, right: 16, background: "#7f1d1d", color: "#fff", padding: "8px 12px", borderRadius: 8, fontSize: 12 },
