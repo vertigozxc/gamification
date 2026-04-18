@@ -725,17 +725,46 @@ app.get("/api/auth/google-callback", (req, res) => {
       });
   }
 
+  function writeBridge() {
+    // Prefer Firebase UID alignment via exchange; if it fails, fall back to direct token write.
+    return storeViaExchange().then(function(r) {
+      if (r && r.ok) {
+        log("bridge-write mode=exchange");
+        return true;
+      }
+      return storeViaToken().then(function(r2) {
+        var ok = !!(r2 && r2.ok);
+        log("bridge-write mode=token fallback ok=" + ok);
+        return ok;
+      }).catch(function() {
+        log("bridge-write mode=token fallback ok=false");
+        return false;
+      });
+    }).catch(function() {
+      return storeViaToken().then(function(r2) {
+        var ok = !!(r2 && r2.ok);
+        log("bridge-write mode=token fallback ok=" + ok);
+        return ok;
+      }).catch(function() {
+        log("bridge-write mode=token fallback ok=false");
+        return false;
+      });
+    });
+  }
+
   function attempt(n) {
-    setMsg("Completing sign-in... (" + n + "/8)");
+    var maxAttempts = 4;
+    var retryDelayMs = 500;
+    setMsg("Completing sign-in... (" + n + "/" + maxAttempts + ")");
     log("--- attempt " + n + " ---");
-    return storeViaToken()
-      .catch(function(){ return null; })
-      .then(function(){ return storeViaExchange(); })
+    // Do bridge write once, then mostly poll for visibility.
+    var writePromise = n === 1 ? writeBridge() : Promise.resolve(false);
+    return writePromise
       .then(verify)
       .then(function(ok){
         if (ok) return true;
-        if (n >= 8) return false;
-        return new Promise(function(res){ setTimeout(res, 1500); }).then(function(){ return attempt(n + 1); });
+        if (n >= maxAttempts) return false;
+        return new Promise(function(res){ setTimeout(res, retryDelayMs); }).then(function(){ return attempt(n + 1); });
       });
   }
 
