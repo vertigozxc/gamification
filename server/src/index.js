@@ -1862,24 +1862,20 @@ app.post("/api/reset-daily", async (req, res) => {
     const now = new Date();
     const today = getDateKey(now);
     const streakDecayData = {};
+    let todayRows = [];
 
     if (!parsed.isReroll) {
-      const todayCompletions = await prisma.questCompletion.count({
-        where: { userId: user.id, dayKey: today }
-      });
-      const freezeActive = user.streakFreezeExpiresAt
-        ? getDateKey(new Date(user.streakFreezeExpiresAt)) >= today
-        : false;
-      if (todayCompletions < 3 && !freezeActive && user.streak > 0) {
-        streakDecayData.streak = 0;
-      }
-    }
-
-    if (!parsed.isReroll) {
-      const todayRows = await prisma.questCompletion.findMany({
+      todayRows = await prisma.questCompletion.findMany({
         where: { userId: user.id, dayKey: today },
         select: { id: true, questId: true }
       });
+
+      const freezeActive = user.streakFreezeExpiresAt
+        ? getDateKey(new Date(user.streakFreezeExpiresAt)) >= today
+        : false;
+      if (todayRows.length < 3 && !freezeActive && user.streak > 0) {
+        streakDecayData.streak = 0;
+      }
 
       if (todayRows.length > 0) {
         const questIds = [...new Set(todayRows.map((row) => row.questId))];
@@ -2008,17 +2004,24 @@ app.post("/api/reset-daily", async (req, res) => {
       }
     });
 
-    const completions = await prisma.questCompletion.findMany({
-      where: { userId: user.id, dayKey: today },
-      orderBy: { completedAt: "asc" },
-      select: { questId: true }
-    });
-    const completedQuestIds = completions.map((item) => item.questId);
+    const completedQuestIdsPromise = parsed.isReroll
+      ? prisma.questCompletion.findMany({
+          where: { userId: user.id, dayKey: today },
+          orderBy: { completedAt: "asc" },
+          select: { questId: true }
+        }).then((rows) => rows.map((item) => item.questId))
+      : Promise.resolve([]);
 
-    const productivityState = await updateAndReadProductivity(updatedUser, now, { updateTierState: true });
+    const [productivityState, completedQuestIds] = await Promise.all([
+      updateAndReadProductivity(updatedUser, now, { updateTierState: true }),
+      completedQuestIdsPromise
+    ]);
+
     const finalUser = productivityState.user;
     const { preferredQuestIds } = onboardingStatus(finalUser, userCustomQuests);
-    const pinnedQuestProgress21d = await getPinnedQuestProgress21d(finalUser, preferredQuestIds, now);
+    const pinnedQuestProgress21d = preferredQuestIds.length > 0
+      ? await getPinnedQuestProgress21d(finalUser, preferredQuestIds, now)
+      : [];
 
     res.json({
       ok: true,
