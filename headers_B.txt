@@ -1,0 +1,15 @@
+HTTP/2 200 
+date: Sat, 18 Apr 2026 11:23:32 GMT
+content-type: application/json; charset=utf-8
+etag: W/"b-Ai2R8hgEarLmHKwesT1qcY913ys"
+rndr-id: 758b875a-bbb5-49ea
+vary: Origin
+vary: Accept-Encoding
+x-powered-by: Express
+x-render-origin-server: Render
+cf-cache-status: DYNAMIC
+server: cloudflare
+cf-ray: 9ee34c49df79b81d-VNO
+alt-svc: h3=":443"; ma=86400
+
+{"ok":true}

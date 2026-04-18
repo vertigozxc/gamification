@@ -1,0 +1,20 @@
+HTTP/2 404 
+date: Sat, 18 Apr 2026 11:24:31 GMT
+content-type: text/html; charset=utf-8
+cf-ray: 9ee34db6a95bcc2e-VNO
+cf-cache-status: DYNAMIC
+access-control-allow-origin: https://life-rpg-api-router.evgeny-mahnach.workers.dev
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+server: cloudflare
+vary: Origin, Accept-Encoding
+access-control-expose-headers: x-liferpg-origin, x-liferpg-country
+alt-svc: h3=":443"; ma=86400
+content-security-policy: default-src 'none'
+rndr-id: 21d3c78b-53d6-42c0
+x-content-type-options: nosniff
+x-liferpg-country: LT
+x-liferpg-geo-enabled: 1
+x-liferpg-origin: https://life-rpg-api-eu.onrender.com
+x-powered-by: Express
+x-render-origin-server: Render
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=UoEfo0%2BVmsXtDql2bUvKRQUU1DDrTNPlFbc1QVztMRYBxaOL40VBLySZJhePxqtPfHtjO%2Be6lV3LByAhRWY2vrMyB1iYFaS21ykE03UVSn3wdO0o0sVQs7QdN8uWiYn6X%2FUg8WrscxcgHz8KX0Ld8Qy5bkAYRqzZsaufQcMMXQgZ"}]}

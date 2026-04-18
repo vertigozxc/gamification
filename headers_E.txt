@@ -1,0 +1,20 @@
+HTTP/2 404 
+date: Sat, 18 Apr 2026 11:25:01 GMT
+content-type: text/html; charset=utf-8
+access-control-allow-origin: https://life-rpg-api-router.evgeny-mahnach.workers.dev
+content-security-policy: default-src 'none'
+rndr-id: 77e61089-3593-44b7
+vary: Origin
+vary: Accept-Encoding
+x-content-type-options: nosniff
+x-powered-by: Express
+x-render-origin-server: Render
+cf-cache-status: DYNAMIC
+server: cloudflare
+cf-ray: 9ee34e734878b81d-VNO
+alt-svc: h3=":443"; ma=86400
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
