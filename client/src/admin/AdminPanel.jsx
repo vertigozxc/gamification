@@ -72,27 +72,30 @@ function firstEmail(text) {
   return m ? m[0] : "";
 }
 
+function parseMetaObject(metaRaw) {
+  if (!metaRaw) return null;
+  if (metaRaw && typeof metaRaw === "object" && !Array.isArray(metaRaw)) return metaRaw;
+  if (typeof metaRaw !== "string") return null;
+  try {
+    const parsed = JSON.parse(metaRaw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 function resolveEventEmail(event) {
   const metaRaw = event?.meta;
-  if (metaRaw && typeof metaRaw === "object" && !Array.isArray(metaRaw)) {
-    if (metaRaw.actorEmail) return String(metaRaw.actorEmail);
-    if (metaRaw.email) return String(metaRaw.email);
-    if (metaRaw.userEmail) return String(metaRaw.userEmail);
+  const metaObj = parseMetaObject(metaRaw);
+  if (metaObj) {
+    if (metaObj.actorEmail) return String(metaObj.actorEmail);
+    if (metaObj.email) return String(metaObj.email);
+    if (metaObj.userEmail) return String(metaObj.userEmail);
   }
 
   let metaText = "";
   if (typeof metaRaw === "string") {
     metaText = metaRaw;
-    try {
-      const parsed = JSON.parse(metaRaw);
-      if (parsed && typeof parsed === "object") {
-        if (parsed.actorEmail) return String(parsed.actorEmail);
-        if (parsed.email) return String(parsed.email);
-        if (parsed.userEmail) return String(parsed.userEmail);
-      }
-    } catch {
-      // ignore parse error
-    }
   }
 
   return (
@@ -101,6 +104,23 @@ function resolveEventEmail(event) {
     firstEmail(metaText) ||
     ""
   );
+}
+
+function resolveEventUserId(event) {
+  const direct = String(event?.userId || "").trim();
+  if (direct) return direct;
+  const metaObj = parseMetaObject(event?.meta);
+  if (!metaObj) return "";
+  const fromMeta = metaObj.actorUserId || metaObj.userId || metaObj.uid || "";
+  return String(fromMeta || "").trim();
+}
+
+function resolveActorIdentity(event) {
+  const userId = resolveEventUserId(event);
+  const email = resolveEventEmail(event);
+  const hasIdentity = Boolean(userId || email);
+  const isSystemEvent = !hasIdentity && String(event?.platform || "").toLowerCase() === "server";
+  return { userId, email, hasIdentity, isSystemEvent };
 }
 
 function humanizeType(type) {
@@ -193,7 +213,8 @@ export default function AdminPanel() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [filterType, setFilterType] = useState("");
-  const [filterLevel, setFilterLevel] = useState("");
+  const [filterSeverity, setFilterSeverity] = useState("");
+  const [filterActor, setFilterActor] = useState("all");
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
 
@@ -207,7 +228,7 @@ export default function AdminPanel() {
       const params = new URLSearchParams();
       params.set("limit", "200");
       if (filterType) params.set("type", filterType);
-      if (filterLevel) params.set("level", filterLevel);
+      if (filterSeverity) params.set("level", filterSeverity);
 
       const [s, e, h, a] = await Promise.all([
         adminFetch(`/api/admin/summary`, token),
@@ -236,14 +257,14 @@ export default function AdminPanel() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, filterType, filterLevel]);
+  }, [token, filterType, filterSeverity]);
 
   useEffect(() => {
     if (!authenticated || !autoRefresh) return undefined;
     const id = setInterval(load, 10_000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authenticated, autoRefresh, filterType, filterLevel]);
+  }, [authenticated, autoRefresh, filterType, filterSeverity]);
 
   const byType = summary?.byType || [];
   const byLevel = summary?.byLevel || [];
@@ -257,6 +278,14 @@ export default function AdminPanel() {
     for (const b of byType) set.add(b.type);
     return Array.from(set).sort();
   }, [events, byType]);
+
+  const filteredEvents = useMemo(() => {
+    if (filterActor === "all") return events;
+    return events.filter((evt) => {
+      const identity = resolveActorIdentity(evt);
+      return filterActor === "user" ? identity.hasIdentity : identity.isSystemEvent;
+    });
+  }, [events, filterActor]);
 
   if (!authenticated) {
     return (
@@ -418,13 +447,13 @@ export default function AdminPanel() {
           Tip: focus first on rows marked Critical or Problem, then follow the suggested action in each row.
         </div>
         <div style={styles.filters}>
-          <select value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)} style={styles.select}>
-            <option value="">all levels</option>
-            <option value="info">info</option>
-            <option value="warn">warn</option>
-            <option value="error">error</option>
-            <option value="fatal">fatal</option>
-            <option value="debug">debug</option>
+          <select value={filterSeverity} onChange={(e) => setFilterSeverity(e.target.value)} style={styles.select}>
+            <option value="">all severity</option>
+            <option value="fatal">Critical</option>
+            <option value="error">Problem</option>
+            <option value="warn">Warning</option>
+            <option value="info">Info</option>
+            <option value="debug">Technical</option>
           </select>
           <select value={filterType} onChange={(e) => setFilterType(e.target.value)} style={styles.select}>
             <option value="">all types</option>
@@ -432,9 +461,14 @@ export default function AdminPanel() {
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
+          <select value={filterActor} onChange={(e) => setFilterActor(e.target.value)} style={styles.select}>
+            <option value="all">all sources</option>
+            <option value="user">user-linked only</option>
+            <option value="system">system events only</option>
+          </select>
         </div>
 
-        {events.length === 0 ? (
+        {filteredEvents.length === 0 ? (
           <div style={styles.empty}>No events for current filter.</div>
         ) : (
           <div style={styles.tableWrap}>
@@ -453,11 +487,11 @@ export default function AdminPanel() {
                 </tr>
               </thead>
               <tbody>
-                {events.map((e) => (
+                {filteredEvents.map((e) => (
                   <tr key={e.id} style={styles.tr}>
                     {(() => {
                       const d = describeEvent(e);
-                      const email = resolveEventEmail(e);
+                      const identity = resolveActorIdentity(e);
                       return (
                         <>
                     <td style={styles.td}>{fmtTime(e.createdAt)}</td>
@@ -465,8 +499,23 @@ export default function AdminPanel() {
                     <td style={styles.td}>{d.title}</td>
                     <td style={styles.tdMeaning}>{d.meaning}<div style={styles.impactTag}>Impact: {d.impact}</div></td>
                     <td style={styles.tdMeaning}>{d.action}</td>
-                    <td style={styles.td}>{e.username || e.userId || "—"}</td>
-                    <td style={styles.tdEmail}>{email || "not provided"}</td>
+                    <td style={styles.tdIdentity}>
+                      {identity.isSystemEvent ? (
+                        <span style={styles.systemTag}>System event</span>
+                      ) : (
+                        <>
+                          <div style={styles.identityPrimary}>{identity.userId || "unknown userId"}</div>
+                          <div style={styles.identitySecondary}>{e.username || ""}</div>
+                        </>
+                      )}
+                    </td>
+                    <td style={styles.tdEmail}>
+                      {identity.email ? (
+                        <span style={styles.emailText}>{identity.email}</span>
+                      ) : (
+                        <span style={styles.emailMissing}>not provided</span>
+                      )}
+                    </td>
                     <td style={styles.td}>{e.platform || "—"}</td>
                     <td style={styles.tdWide}>
                       <div style={{ whiteSpace: "pre-wrap" }}>{e.message || "—"}</div>
@@ -565,7 +614,14 @@ const styles = {
   th: { textAlign: "left", padding: "8px 10px", color: "#94a3b8", fontWeight: 600, borderBottom: "1px solid rgba(255,255,255,0.08)" },
   tr: { verticalAlign: "top" },
   td: { padding: "8px 10px", borderBottom: "1px solid rgba(255,255,255,0.05)", whiteSpace: "nowrap" },
+  tdIdentity: { padding: "8px 10px", borderBottom: "1px solid rgba(255,255,255,0.05)", minWidth: 170 },
+  identityPrimary: { color: "#e2e8f0", fontWeight: 600, fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: 11 },
+  identitySecondary: { color: "#94a3b8", fontSize: 11, marginTop: 2, maxWidth: 220, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  systemTag: { display: "inline-block", padding: "2px 8px", borderRadius: 999, background: "rgba(148,163,184,0.2)", color: "#cbd5e1", fontSize: 11, fontWeight: 600 },
   tdMeaning: { padding: "8px 10px", borderBottom: "1px solid rgba(255,255,255,0.05)", minWidth: 220, maxWidth: 320, whiteSpace: "normal", lineHeight: 1.35 },
+  tdEmail: { padding: "8px 10px", borderBottom: "1px solid rgba(255,255,255,0.05)", minWidth: 220, maxWidth: 280, whiteSpace: "normal", wordBreak: "break-word" },
+  emailText: { color: "#86efac", fontWeight: 600 },
+  emailMissing: { color: "#94a3b8" },
   tdWide: { padding: "8px 10px", borderBottom: "1px solid rgba(255,255,255,0.05)", maxWidth: 560 },
   impactTag: { display: "inline-block", marginTop: 6, padding: "2px 8px", borderRadius: 999, background: "rgba(96,165,250,0.16)", color: "#93c5fd", fontSize: 11, fontWeight: 600 },
   rawType: { marginTop: 6, color: "#64748b", fontSize: 11 },
