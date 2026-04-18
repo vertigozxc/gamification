@@ -318,15 +318,10 @@ function App() {
       return;
     }
 
-    // Don't signal ready while auth or data is still loading — mobile preloader stays visible
-    if (authLoading) return;
-    if (dataLoading) return;
-    // If user is logged in, only signal once data has actually been fetched (quests loaded)
-    // authUser present + dataLoading just became false means data is ready
-
     bridge.postMessage(JSON.stringify({
       type: "mobile-shell-state",
-      showTabBar: Boolean(authUser) && !showOnboarding && !cityFullscreen && !showPinnedReplaceModal,
+      showTabBar: Boolean(authUser) && !authLoading && !dataLoading && !showOnboarding && !cityFullscreen && !showPinnedReplaceModal,
+      loading: Boolean(authLoading || dataLoading),
       activeTab: mobileTab
     }));
   }, [isEmbeddedApp, authUser, authLoading, dataLoading, showOnboarding, mobileTab, cityFullscreen, showPinnedReplaceModal]);

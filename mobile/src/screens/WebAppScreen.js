@@ -156,7 +156,6 @@ export default function WebAppScreen() {
   const [webKey, setWebKey] = useState(0);
   const [showPreloader, setShowPreloader] = useState(true);
   const [injectedUser, setInjectedUser] = useState(null);
-  const [authStatus, setAuthStatus] = useState("");
   const [errorText, setErrorText] = useState("");
   const [showTabBar, setShowTabBar] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -294,7 +293,6 @@ export default function WebAppScreen() {
     let user = null;
     let lastStatus = 0;
     let lastError = "";
-    setAuthStatus("Auth: starting poll...");
     // Up to ~90s — covers Render free-tier cold start of API
     for (let attempt = 0; attempt < 90 && !user; attempt += 1) {
       try {
@@ -310,7 +308,6 @@ export default function WebAppScreen() {
       } catch (e) {
         lastError = String(e?.message || e || "network");
       }
-      setAuthStatus(`Auth: poll ${attempt + 1}/90 status=${lastStatus}${lastError ? " err=" + lastError : ""}`);
       // Inject heartbeat into webview every few attempts so dev can see polling is alive
       if (attempt % 5 === 0) {
         const msg = `auth-poll attempt=${attempt} status=${lastStatus} err=${lastError}`;
@@ -319,7 +316,6 @@ export default function WebAppScreen() {
       await new Promise((r) => setTimeout(r, 1000));
     }
     if (user) {
-      setAuthStatus(`Auth: got user ${user.email || user.uid}, reloading...`);
       // Inject user into localStorage of running WebView and force reload.
       const userJson = JSON.stringify(user);
       const script = `
@@ -334,13 +330,10 @@ export default function WebAppScreen() {
       `;
       webViewRef.current?.injectJavaScript(script);
       setInjectedUser(user);
-      setTimeout(() => setAuthStatus(""), 4000);
     } else {
-      setAuthStatus(`Auth FAILED: bridge never arrived (last status=${lastStatus})`);
       // Bridge never materialized — just remount so user can retry login.
       webViewRef.current?.injectJavaScript(`try{console.log("[mobile] auth bridge never arrived (last status=${lastStatus})");}catch(e){}true;`);
       setWebKey((k) => k + 1);
-      setTimeout(() => setAuthStatus(""), 8000);
     }
   }
 
@@ -403,21 +396,15 @@ export default function WebAppScreen() {
 
         if (authSessionModule && typeof authSessionModule.openAuthSession === "function") {
           try {
-            setAuthStatus("Auth: opening Google...");
             const result = await authSessionModule.openAuthSession(authUrl, returnScheme);
             stopBridgePolling();
             authInProgressRef.current = false;
             if (!result?.cancelled) {
-              setAuthStatus("Auth: Google done, fetching session...");
               triggerAuthReload();
             } else {
-              setAuthStatus("Auth: cancelled");
-              setTimeout(() => setAuthStatus(""), 3000);
             }
             return;
           } catch (e) {
-            setAuthStatus(`Auth ERROR: ${String(e?.message || e)}`);
-            setTimeout(() => setAuthStatus(""), 5000);
             // fallback to Linking below
           }
         }
@@ -431,7 +418,7 @@ export default function WebAppScreen() {
           preloaderTimerRef.current = null;
         }
         setShowPreloader(false);
-        setShowTabBar(Boolean(data?.showTabBar));
+        setShowTabBar(Boolean(data?.showTabBar) && !Boolean(data?.loading));
         if (data?.activeTab) {
           setActiveTab(normalizeMobileTab(data.activeTab));
         }
@@ -470,6 +457,7 @@ export default function WebAppScreen() {
             clearTimeout(preloaderTimerRef.current);
           }
           setShowPreloader(true);
+          setShowTabBar(false);
         }}
         onLoadEnd={() => {
           if (preloaderTimerRef.current) {
@@ -529,7 +517,7 @@ export default function WebAppScreen() {
         </View>
       ) : null}
 
-      {showTabBar ? (
+      {showTabBar && !showPreloader && !errorText ? (
         <>
           <Animated.View
             style={[

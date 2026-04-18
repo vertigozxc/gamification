@@ -21,7 +21,7 @@ export default function LoginScreen({ t, handleGoogleLogin, authError, languageI
             {t.appTagline || "Journey to Greatness"}
           </p>
           <h1 className="cinzel text-5xl md:text-6xl font-black text-transparent bg-clip-text tracking-widest leading-tight" style={{ backgroundImage: "var(--heading-gradient)" }}>
-            {t.appTitle}
+            LIFE RPG
           </h1>
         </div>
       </div>

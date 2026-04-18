@@ -128,7 +128,7 @@ export default function PortalPreloader({ title = "Summoning Portal...", caption
       <View style={styles.scene}>
         <View style={[styles.aurora, styles.auroraLeft]} />
         <View style={[styles.aurora, styles.auroraRight]} />
-        <View style={styles.stars} />
+        <View style={styles.beam} />
         <View style={styles.cityline}>
           <Tower height={42} width={18} />
           <Tower height={58} width={22} style={{ marginLeft: 6 }} />
@@ -139,10 +139,9 @@ export default function PortalPreloader({ title = "Summoning Portal...", caption
         </View>
 
         <View style={styles.platform} />
-        <View style={styles.beam} />
 
-        <Animated.View style={[styles.ring, styles.ringOuter, { transform: [{ rotate: outerSpin }] }]} />
-        <Animated.View style={[styles.ring, styles.ringMiddle, { transform: [{ rotate: middleSpin }] }]} />
+        <Animated.View style={[styles.ring, styles.ringOuter, { transform: [{ translateX: -34 }, { translateY: -28 }, { rotate: outerSpin }] }]} />
+        <Animated.View style={[styles.ring, styles.ringMiddle, { transform: [{ translateX: -18 }, { translateY: -8 }, { rotate: middleSpin }] }]} />
         <Animated.View style={[styles.ring, styles.ringInner, { transform: [{ rotate: innerSpin }] }]} />
 
         <Animated.View style={[styles.coreWrap, { transform: [{ scale: pulse }] }]}>
@@ -152,15 +151,12 @@ export default function PortalPreloader({ title = "Summoning Portal...", caption
           </View>
         </Animated.View>
 
-        <Animated.View style={[styles.orbit, styles.orbitA, { transform: [{ rotate: orbitASpin }] }]}>
-          <View style={[styles.orbitDot, styles.orbitDotA]} />
-        </Animated.View>
-        <Animated.View style={[styles.orbit, styles.orbitB, { transform: [{ rotate: orbitBSpin }] }]}>
-          <View style={[styles.orbitDot, styles.orbitDotB]} />
-        </Animated.View>
-        <Animated.View style={[styles.orbit, styles.orbitC, { transform: [{ rotate: orbitCSpin }] }]}>
-          <View style={[styles.orbitDot, styles.orbitDotC]} />
-        </Animated.View>
+        <Animated.View style={[styles.particle, styles.particleA, { transform: [{ rotate: orbitASpin }] }]}><View style={[styles.particleDot, styles.particleDotA]} /></Animated.View>
+        <Animated.View style={[styles.particle, styles.particleB, { transform: [{ rotate: orbitBSpin }] }]}><View style={[styles.particleDot, styles.particleDotB]} /></Animated.View>
+        <Animated.View style={[styles.particle, styles.particleC, { transform: [{ rotate: orbitCSpin }] }]}><View style={[styles.particleDot, styles.particleDotC]} /></Animated.View>
+        <View style={styles.speck} />
+        <View style={[styles.speck, styles.speckBlue]} />
+        <View style={[styles.speck, styles.speckWhite]} />
       </View>
 
       <Text style={styles.title}>{title}</Text>
@@ -178,45 +174,48 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24
   },
   scene: {
-    width: 320,
-    height: 320,
+    width: 280,
+    height: 280,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 22
+    marginBottom: 18
   },
   aurora: {
     position: "absolute",
-    width: 160,
-    height: 160,
+    width: 146,
+    height: 146,
     borderRadius: 999,
-    opacity: 0.65
+    opacity: 0.32
   },
   auroraLeft: {
-    left: "14%",
-    top: "12%",
-    backgroundColor: "rgba(56, 189, 248, 0.24)"
+    left: 48,
+    top: 76,
+    backgroundColor: "rgba(56, 189, 248, 0.18)"
   },
   auroraRight: {
-    right: "14%",
-    top: "8%",
-    backgroundColor: "rgba(251, 191, 36, 0.18)"
+    right: 26,
+    top: 88,
+    backgroundColor: "rgba(251, 191, 36, 0.14)"
   },
-  stars: {
+  beam: {
     position: "absolute",
-    width: "45%",
-    height: "45%",
-    top: "18%",
-    backgroundColor: "rgba(148, 163, 184, 0.12)",
+    width: 86,
+    height: 156,
+    top: 54,
     borderRadius: 999,
-    opacity: 0.2
+    backgroundColor: "rgba(56, 189, 248, 0.10)",
+    shadowColor: "#38bdf8",
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 }
   },
   cityline: {
     position: "absolute",
-    bottom: "18%",
+    bottom: 38,
     flexDirection: "row",
     alignItems: "flex-end",
     gap: 7,
-    opacity: 0.9
+    opacity: 0.84
   },
   tower: {
     backgroundColor: "rgba(15, 23, 42, 0.95)",
@@ -228,24 +227,13 @@ const styles = StyleSheet.create({
   },
   platform: {
     position: "absolute",
-    bottom: "13%",
-    width: "56%",
-    height: "6%",
+    bottom: 22,
+    width: 142,
+    height: 16,
     borderRadius: 999,
     backgroundColor: "rgba(15, 23, 42, 0.96)",
     borderWidth: 1,
     borderColor: "rgba(251, 191, 36, 0.22)"
-  },
-  beam: {
-    position: "absolute",
-    width: "28%",
-    height: "62%",
-    borderRadius: 999,
-    backgroundColor: "rgba(56, 189, 248, 0.14)",
-    shadowColor: "#38bdf8",
-    shadowOpacity: 0.16,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 0 }
   },
   ring: {
     position: "absolute",
@@ -253,27 +241,27 @@ const styles = StyleSheet.create({
     borderStyle: "solid"
   },
   ringOuter: {
-    width: "58%",
-    height: "58%",
+    width: 208,
+    height: 208,
     borderWidth: 2,
-    borderColor: "rgba(251, 191, 36, 0.34)",
-    borderTopColor: "rgba(251, 191, 36, 0.98)",
-    borderBottomColor: "rgba(56, 189, 248, 0.72)"
+    borderColor: "rgba(251, 191, 36, 0.35)",
+    borderTopColor: "rgba(251, 191, 36, 0.96)",
+    borderBottomColor: "rgba(56, 189, 248, 0.18)"
   },
   ringMiddle: {
-    width: "41%",
-    height: "41%",
+    width: 172,
+    height: 172,
     borderWidth: 2,
-    borderColor: "rgba(56, 189, 248, 0.22)",
+    borderColor: "rgba(56, 189, 248, 0.28)",
     borderLeftColor: "rgba(56, 189, 248, 0.98)",
-    borderRightColor: "rgba(251, 191, 36, 0.62)"
+    borderRightColor: "rgba(56, 189, 248, 0.18)"
   },
   ringInner: {
-    width: "23%",
-    height: "23%",
+    width: 112,
+    height: 112,
     borderWidth: 1,
-    borderColor: "rgba(248, 250, 252, 0.14)",
-    borderTopColor: "rgba(248, 250, 252, 0.75)"
+    borderColor: "rgba(248, 250, 252, 0.18)",
+    borderTopColor: "rgba(248, 250, 252, 0.28)"
   },
   coreWrap: {
     alignItems: "center",
@@ -281,18 +269,18 @@ const styles = StyleSheet.create({
   },
   coreGlow: {
     position: "absolute",
-    width: 80,
-    height: 80,
+    width: 56,
+    height: 56,
     borderRadius: 999,
-    backgroundColor: "rgba(251, 191, 36, 0.18)",
-    shadowColor: "#fbbf24",
-    shadowOpacity: 0.3,
-    shadowRadius: 18,
+    backgroundColor: "rgba(251, 191, 36, 0.16)",
+    shadowColor: "#f8fafc",
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
     shadowOffset: { width: 0, height: 0 }
   },
   core: {
-    width: 68,
-    height: 68,
+    width: 50,
+    height: 50,
     borderRadius: 999,
     borderWidth: 2,
     borderColor: "rgba(251, 191, 36, 0.72)",
@@ -301,45 +289,41 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   sigilInner: {
-    width: 26,
-    height: 26,
-    borderRadius: 999,
+    width: 18,
+    height: 18,
+    borderRadius: 4,
     borderWidth: 1.5,
-    borderColor: "rgba(56, 189, 248, 0.7)",
-    backgroundColor: "rgba(56, 189, 248, 0.12)"
+    borderColor: "rgba(248, 250, 252, 0.88)",
+    transform: [{ rotate: "45deg" }]
   },
-  orbit: {
+  particle: {
     position: "absolute",
     left: "50%",
     top: "50%",
-    borderWidth: 1,
-    borderColor: "rgba(148, 163, 184, 0.1)",
-    borderRadius: 999,
-    alignItems: "center"
+    alignItems: "center",
+    justifyContent: "flex-start"
   },
-  orbitA: {
-    width: 200,
-    height: 200,
-    marginLeft: -100,
-    marginTop: -100
+  particleA: {
+    width: 188,
+    height: 188,
+    marginLeft: -30,
+    marginTop: -86
   },
-  orbitB: {
-    width: 228,
-    height: 228,
-    marginLeft: -114,
-    marginTop: -114
+  particleB: {
+    width: 230,
+    height: 230,
+    marginLeft: -4,
+    marginTop: -86
   },
-  orbitC: {
-    width: 252,
-    height: 252,
-    marginLeft: -126,
-    marginTop: -126
+  particleC: {
+    width: 138,
+    height: 138,
+    marginLeft: -68,
+    marginTop: -30
   },
-  orbitDot: {
+  particleDot: {
     position: "absolute",
-    top: -3,
-    left: "50%",
-    marginLeft: -3,
+    top: 0,
     width: 6,
     height: 6,
     borderRadius: 999,
@@ -349,29 +333,47 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 0 }
   },
-  orbitDotA: {
+  particleDotA: {
     backgroundColor: "#38bdf8"
   },
-  orbitDotB: {
+  particleDotB: {
     width: 5,
     height: 5,
-    top: -2.5,
-    marginLeft: -2.5,
+    top: 2,
     backgroundColor: "#fbbf24"
   },
-  orbitDotC: {
+  particleDotC: {
     width: 4,
     height: 4,
-    top: -2,
-    marginLeft: -2,
-    backgroundColor: "rgba(251, 191, 36, 0.7)"
+    top: 6,
+    backgroundColor: "rgba(248, 250, 252, 0.85)"
+  },
+  speck: {
+    position: "absolute",
+    right: 38,
+    top: 116,
+    width: 3,
+    height: 3,
+    borderRadius: 999,
+    backgroundColor: "rgba(251, 191, 36, 0.5)"
+  },
+  speckBlue: {
+    left: 74,
+    top: 116,
+    backgroundColor: "rgba(56, 189, 248, 0.45)"
+  },
+  speckWhite: {
+    left: 134,
+    top: 96,
+    backgroundColor: "rgba(248, 250, 252, 0.4)"
   },
   title: {
     color: "#f8fafc",
-    fontSize: 24,
-    fontWeight: "800",
+    fontSize: 18,
+    fontWeight: "500",
     textAlign: "center",
-    letterSpacing: 0.5
+    letterSpacing: 2.4,
+    textTransform: "uppercase"
   },
   caption: {
     marginTop: 8,
