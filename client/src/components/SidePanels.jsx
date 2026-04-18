@@ -3,7 +3,7 @@ import { useTheme } from "../ThemeContext";
 
 function SidePanels({ leaderboard, authUser, compact = false }) {
   const { t } = useTheme();
-  const sluggedUid = authUser.uid.toLowerCase().replace(/[^a-z0-9_\-]/g, "").slice(0, 24);
+  const sluggedUid = String(authUser?.uid || "").trim().slice(0, 128);
   const userRank = leaderboard.findIndex((entry) => entry.username === sluggedUid) + 1;
   const rankLabel = userRank > 0 ? `#${userRank}` : "#-";
 

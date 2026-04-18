@@ -1,7 +1,7 @@
 import SidePanels from "../SidePanels";
 
 export default function LeaderboardTab({ leaderboard, authUser, logs, t }) {
-  const sluggedUid = String(authUser?.uid || "").toLowerCase().replace(/[^a-z0-9_\-]/g, "").slice(0, 24);
+  const sluggedUid = String(authUser?.uid || "").trim().slice(0, 128);
   const userRank = leaderboard.findIndex((entry) => entry.username === sluggedUid) + 1;
   const rankLabel = userRank > 0 ? `#${userRank}` : "—";
   const userEntry = leaderboard.find((e) => e.username === sluggedUid);
