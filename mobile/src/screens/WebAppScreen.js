@@ -15,6 +15,7 @@ import {
 import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getApiBaseUrl } from "../config/env";
+import PortalPreloader from "../components/PortalPreloader";
 
 const MOBILE_TAB_STORAGE_KEY = "life_rpg_mobile_tab";
 const TAB_ITEMS = [
@@ -153,6 +154,7 @@ function resolveApiBase() {
 export default function WebAppScreen() {
   const insets = useSafeAreaInsets();
   const [webKey, setWebKey] = useState(0);
+  const [showPreloader, setShowPreloader] = useState(true);
   const [injectedUser, setInjectedUser] = useState(null);
   const [authStatus, setAuthStatus] = useState("");
   const [errorText, setErrorText] = useState("");
@@ -169,6 +171,7 @@ export default function WebAppScreen() {
   const authInProgressRef = useRef(false);
   const authReloadTriggeredRef = useRef(false);
   const pollTimerRef = useRef(null);
+  const preloaderTimerRef = useRef(null);
   const authSessionModule = NativeModules?.AuthSessionModule;
   const tabBarAnim = useRef(new Animated.Value(0)).current;
   const safeTopPx = Math.max(0, insets.top);
@@ -209,6 +212,18 @@ export default function WebAppScreen() {
   useEffect(() => {
     webViewRef.current?.injectJavaScript(buildMobileInsetsScript(footerOffsetPx, safeBottomPx, safeTopPx));
   }, [footerOffsetPx, safeBottomPx, safeTopPx]);
+
+  useEffect(() => {
+    return () => {
+      if (preloaderTimerRef.current) {
+        clearTimeout(preloaderTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    setShowPreloader(true);
+  }, [webKey]);
 
   useEffect(() => {
     const handleDeepLink = ({ url }) => {
@@ -411,6 +426,11 @@ export default function WebAppScreen() {
       }
 
       if (data?.type === "mobile-shell-state") {
+        if (preloaderTimerRef.current) {
+          clearTimeout(preloaderTimerRef.current);
+          preloaderTimerRef.current = null;
+        }
+        setShowPreloader(false);
         setShowTabBar(Boolean(data?.showTabBar));
         if (data?.activeTab) {
           setActiveTab(normalizeMobileTab(data.activeTab));
@@ -445,7 +465,21 @@ export default function WebAppScreen() {
         automaticallyAdjustContentInsets={false}
         onMessage={handleWebViewMessage}
         onShouldStartLoadWithRequest={() => true}
+        onLoadStart={() => {
+          if (preloaderTimerRef.current) {
+            clearTimeout(preloaderTimerRef.current);
+          }
+          setShowPreloader(true);
+        }}
         onLoadEnd={() => {
+          if (preloaderTimerRef.current) {
+            clearTimeout(preloaderTimerRef.current);
+          }
+          // Fallback: hide preloader after 12s if mobile-shell-state never arrives
+          preloaderTimerRef.current = setTimeout(() => {
+            setShowPreloader(false);
+            preloaderTimerRef.current = null;
+          }, 12000);
           webViewRef.current?.injectJavaScript(buildMobileTabScript(activeTab));
           webViewRef.current?.injectJavaScript(buildMobileInsetsScript(footerOffsetPx, safeBottomPx, safeTopPx));
           webViewRef.current?.injectJavaScript(buildThemeObserverScript());
@@ -480,9 +514,20 @@ export default function WebAppScreen() {
           true;
         `}
         onError={(event) => {
+          if (preloaderTimerRef.current) {
+            clearTimeout(preloaderTimerRef.current);
+            preloaderTimerRef.current = null;
+          }
+          setShowPreloader(false);
           setErrorText(event.nativeEvent?.description || "Failed to load web app");
         }}
       />
+
+      {showPreloader && !errorText ? (
+        <View style={styles.preloaderOverlay} pointerEvents="auto">
+          <PortalPreloader title="Summoning Portal..." />
+        </View>
+      ) : null}
 
       {showTabBar ? (
         <>
@@ -583,6 +628,11 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1,
+    backgroundColor: "#020617"
+  },
+  preloaderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 40,
     backgroundColor: "#020617"
   },
   tabBarWrap: {

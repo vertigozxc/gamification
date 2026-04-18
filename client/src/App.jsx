@@ -54,6 +54,7 @@ import FullscreenCity from "./components/FullscreenCity";
 import FloatingTexts from "./components/FloatingTexts";
 import AppHeader from "./components/AppHeader";
 import DesktopLayout from "./components/DesktopLayout";
+import PortalPreloader from "./components/PortalPreloader";
 import CityTab from "./components/tabs/CityTab";
 import DashboardTab from "./components/tabs/DashboardTab";
 import LeaderboardTab from "./components/tabs/LeaderboardTab";
@@ -317,12 +318,15 @@ function App() {
       return;
     }
 
+    // Don't signal ready while data is still loading — mobile preloader stays visible
+    if (dataLoading) return;
+
     bridge.postMessage(JSON.stringify({
       type: "mobile-shell-state",
       showTabBar: Boolean(authUser) && !showOnboarding && !cityFullscreen && !showPinnedReplaceModal,
       activeTab: mobileTab
     }));
-  }, [isEmbeddedApp, authUser, showOnboarding, mobileTab, cityFullscreen, showPinnedReplaceModal]);
+  }, [isEmbeddedApp, authUser, dataLoading, showOnboarding, mobileTab, cityFullscreen, showPinnedReplaceModal]);
 
   useEffect(() => {
     if (!authUser) {
@@ -712,11 +716,7 @@ function App() {
 
   if (authLoading) {
     return (
-      <div className="auth-shell">
-        <div className="auth-card text-center">
-          <p className="cinzel tracking-widest" style={{ color: "var(--color-primary)" }}>{t.loadingText}</p>
-        </div>
-      </div>
+      <PortalPreloader title={t.loadingText} fullscreen />
     );
   }
 
@@ -736,6 +736,8 @@ function App() {
 
   return (
     <>
+      {dataLoading ? <PortalPreloader title={t.loadingText} overlay /> : null}
+
       {cityFullscreen && (
         <FullscreenCity
           stage={Math.max(0, Math.floor(state.lvl) || 0)}
