@@ -594,6 +594,84 @@ function App() {
     vocab: t
   });
 
+  useEffect(() => {
+    if (typeof window === "undefined" || !import.meta.env.DEV) {
+      return;
+    }
+
+    const runHabitStress = async (options = {}) => {
+      const {
+        count = 3,
+        delayMs = 25,
+        mode = "burst"
+      } = options || {};
+
+      if (dataLoading) {
+        console.warn("[LifeRPG debug] data is still loading; wait until quests are ready");
+        return {
+          ok: false,
+          reason: "data-loading"
+        };
+      }
+
+      const availableHabits = pinnedQuests.filter((q) => !state.completed.includes(q.id));
+      const targets = availableHabits.slice(0, Math.max(1, Number(count) || 1));
+
+      if (targets.length === 0) {
+        console.warn("[LifeRPG debug] no incomplete habits available for stress test");
+        return {
+          ok: false,
+          reason: "no-targets"
+        };
+      }
+
+      const mockEvent = {
+        clientX: Math.max(100, Math.floor(window.innerWidth * 0.5)),
+        clientY: Math.max(120, Math.floor(window.innerHeight * 0.35))
+      };
+
+      if (mode === "sequential") {
+        for (let index = 0; index < targets.length; index += 1) {
+          handleQuestCompleteWrapper(targets[index], mockEvent);
+          if (delayMs > 0 && index < targets.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+          }
+        }
+      } else {
+        targets.forEach((quest, index) => {
+          const wait = Math.max(0, Number(delayMs) || 0) * index;
+          setTimeout(() => {
+            handleQuestCompleteWrapper(quest, mockEvent);
+          }, wait);
+        });
+      }
+
+      return {
+        ok: true,
+        mode,
+        count: targets.length,
+        targetQuestIds: targets.map((q) => q.id)
+      };
+    };
+
+    window.__lifeRpgStressCompleteHabits = runHabitStress;
+    window.__lifeRpgDebug = {
+      ...(window.__lifeRpgDebug || {}),
+      stressCompleteHabits: runHabitStress
+    };
+
+    return () => {
+      if (window.__lifeRpgStressCompleteHabits === runHabitStress) {
+        delete window.__lifeRpgStressCompleteHabits;
+      }
+      if (window.__lifeRpgDebug?.stressCompleteHabits === runHabitStress) {
+        const nextDebug = { ...window.__lifeRpgDebug };
+        delete nextDebug.stressCompleteHabits;
+        window.__lifeRpgDebug = nextDebug;
+      }
+    };
+  }, [dataLoading, pinnedQuests, state.completed, handleQuestCompleteWrapper]);
+
   function handleAddXp(amount) {
     setState((prev) => {
       let xp = prev.xp + amount;
