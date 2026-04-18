@@ -1247,7 +1247,7 @@ body::before {
 }
 
 /* RESTORED MOBILE STYLES */
-.embedded-content-safe{padding-top:30px;padding-bottom:var(--mobile-footer-offset,98px)}
+.embedded-content-safe{padding-top:60px;padding-bottom:var(--mobile-footer-offset,98px)}
 .embedded-shell{padding-top:calc(var(--mobile-safe-top,0px) + 20px)}
 .embedded-shell:before{display:none}
 .embedded-shell:after{display:none}
