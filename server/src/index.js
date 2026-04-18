@@ -596,70 +596,85 @@ app.get("/api/auth/google-callback", (req, res) => {
 <title>Summoning Portal...</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#020617;color:#cbd5e1;font-family:system-ui;min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;overflow:hidden}
-.scene{position:relative;width:260px;height:260px;display:flex;align-items:center;justify-content:center;margin-bottom:20px}
-.aurora{position:absolute;border-radius:50%;filter:blur(48px);pointer-events:none}
-.aurora-l{width:150px;height:150px;left:14px;top:22px;background:rgba(56,189,248,.18)}
-.aurora-r{width:140px;height:140px;right:14px;top:8px;background:rgba(251,191,36,.15)}
-.stars{position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse at 30% 20%,rgba(148,163,184,.13) 0%,transparent 60%),radial-gradient(ellipse at 70% 70%,rgba(148,163,184,.08) 0%,transparent 55%)}
-.cityline{position:absolute;bottom:44px;left:50%;transform:translateX(-50%);display:flex;align-items:flex-end;gap:5px;opacity:.85}
-.tower{background:rgba(15,23,42,.95);border:1px solid rgba(148,163,184,.18);border-radius:8px 8px 0 0}
-.platform{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);width:160px;height:18px;border-radius:999px;background:rgba(15,23,42,.92);border:1px solid rgba(251,191,36,.24)}
-.beam{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:80px;height:180px;border-radius:999px;background:rgba(56,189,248,.07);box-shadow:0 0 40px 8px rgba(56,189,248,.12)}
-.ring{position:absolute;left:50%;top:50%;border-radius:50%;border-style:solid}
-.ring-outer{width:170px;height:170px;margin:-85px 0 0 -85px;border-width:2px;border-color:rgba(251,191,36,.4);border-top-color:rgba(251,191,36,.92);border-bottom-color:rgba(56,189,248,.5);animation:spin-cw 7.2s linear infinite}
-.ring-middle{width:130px;height:130px;margin:-65px 0 0 -65px;border-width:1.5px;border-color:rgba(56,189,248,.28);border-top-color:rgba(56,189,248,.8);border-bottom-color:rgba(251,191,36,.4);animation:spin-ccw 5.2s linear infinite}
-.ring-inner{width:90px;height:90px;margin:-45px 0 0 -45px;border-width:1.5px;border-color:rgba(251,191,36,.22);border-top-color:rgba(251,191,36,.7);animation:spin-cw 3.8s linear infinite}
-.core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);animation:breathe 3s ease-in-out infinite}
-.core-glow{width:44px;height:44px;border-radius:50%;background:radial-gradient(ellipse,rgba(56,189,248,.55) 0%,rgba(251,191,36,.25) 50%,transparent 72%);filter:blur(6px);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
-.core-sigil{width:28px;height:28px;border-radius:50%;border:2px solid rgba(251,191,36,.75);background:rgba(15,23,42,.92);position:relative}
-.core-sigil::before{content:'';position:absolute;inset:5px;border-radius:50%;border:1.5px solid rgba(56,189,248,.7);background:rgba(56,189,248,.12)}
-.orbit{position:absolute;left:50%;top:50%;border-radius:50%;border:1px solid rgba(148,163,184,.1)}
-.orbit-a{width:200px;height:200px;margin:-100px 0 0 -100px;animation:spin-cw 18s linear infinite}
-.orbit-a::after{content:'';position:absolute;width:6px;height:6px;border-radius:50%;background:rgba(56,189,248,.85);box-shadow:0 0 6px rgba(56,189,248,.7);top:-3px;left:50%;margin-left:-3px}
-.orbit-b{width:228px;height:228px;margin:-114px 0 0 -114px;animation:spin-ccw 24s linear infinite}
-.orbit-b::after{content:'';position:absolute;width:5px;height:5px;border-radius:50%;background:rgba(251,191,36,.85);box-shadow:0 0 6px rgba(251,191,36,.7);top:-2.5px;left:50%;margin-left:-2.5px}
-.orbit-c{width:252px;height:252px;margin:-126px 0 0 -126px;animation:spin-cw 30s linear infinite}
-.orbit-c::after{content:'';position:absolute;width:4px;height:4px;border-radius:50%;background:rgba(251,191,36,.7);box-shadow:0 0 4px rgba(251,191,36,.6);top:-2px;left:50%;margin-left:-2px}
-@keyframes spin-cw{to{transform:rotate(360deg)}}
-@keyframes spin-ccw{to{transform:rotate(-360deg)}}
-@keyframes breathe{0%,100%{transform:translate(-50%,-50%) scale(.92)}50%{transform:translate(-50%,-50%) scale(1.05)}}
-#msg{font-size:15px;color:#fde68a;letter-spacing:.08em;font-variant:small-caps;text-shadow:0 0 12px rgba(251,191,36,.4)}
+body{background:#020617;color:#cbd5e1;font-family:system-ui;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.portal-preloader-shell{display:flex;align-items:center;justify-content:center;min-height:100vh;width:100%;padding:32px 20px;background:radial-gradient(circle at top,rgba(251,191,36,.12),transparent 24%),radial-gradient(circle at 80% 20%,rgba(56,189,248,.10),transparent 22%),linear-gradient(180deg,rgba(2,6,23,.98),rgba(15,23,42,.99))}
+.portal-preloader{display:flex;flex-direction:column;align-items:center;gap:18px;width:min(100%,420px);text-align:center}
+.portal-preloader__scene{position:relative;width:min(72vw,320px);aspect-ratio:1;display:grid;place-items:center;overflow:hidden}
+.portal-preloader__aurora,.portal-preloader__stars,.portal-preloader__beam,.portal-preloader__ring,.portal-preloader__core,.portal-preloader__orbit,.portal-preloader__cityline,.portal-preloader__platform{position:absolute}
+.portal-preloader__aurora{width:52%;height:52%;border-radius:50%;filter:blur(24px);opacity:.65;animation:portal-breathe 5s ease-in-out infinite}
+.portal-preloader__aurora--left{left:14%;top:12%;background:rgba(56,189,248,.24)}
+.portal-preloader__aurora--right{right:14%;top:8%;background:rgba(251,191,36,.18);animation-delay:-2.2s}
+.portal-preloader__stars{inset:18% 18% auto;height:45%;background-image:radial-gradient(circle,rgba(255,255,255,.9) 0 1px,transparent 1.5px),radial-gradient(circle,rgba(255,255,255,.65) 0 1px,transparent 1.5px),radial-gradient(circle,rgba(251,191,36,.7) 0 1px,transparent 1.5px);background-position:0 0,38px 28px,74px 12px;background-size:108px 72px;opacity:.4;animation:portal-stars 8s linear infinite}
+.portal-preloader__cityline{bottom:18%;display:flex;align-items:flex-end;gap:7px}
+.portal-preloader__cityline span{display:block;background:linear-gradient(180deg,rgba(30,41,59,.75),rgba(15,23,42,.96));border:1px solid rgba(148,163,184,.14);border-bottom:none;border-top-left-radius:10px;border-top-right-radius:10px}
+.portal-preloader__cityline span:nth-child(1){width:16px;height:48px}
+.portal-preloader__cityline span:nth-child(2){width:21px;height:64px}
+.portal-preloader__cityline span:nth-child(3){width:14px;height:38px}
+.portal-preloader__cityline span:nth-child(4){width:24px;height:82px}
+.portal-preloader__cityline span:nth-child(5){width:17px;height:54px}
+.portal-preloader__cityline span:nth-child(6){width:19px;height:66px}
+.portal-preloader__platform{bottom:13%;width:56%;height:6%;border-radius:999px;background:rgba(15,23,42,.96);border:1px solid rgba(251,191,36,.22);box-shadow:0 0 0 1px rgba(56,189,248,.08) inset}
+.portal-preloader__beam{width:28%;height:62%;border-radius:999px;background:linear-gradient(180deg,rgba(56,189,248,.02),rgba(56,189,248,.18),rgba(251,191,36,.08));filter:blur(4px)}
+.portal-preloader__ring{border-radius:50%;inset:50%;translate:-50% -50%}
+.portal-preloader__ring--outer{width:58%;height:58%;border:2px solid rgba(251,191,36,.34);border-top-color:rgba(251,191,36,.98);border-bottom-color:rgba(56,189,248,.72);animation:portal-spin 7s linear infinite}
+.portal-preloader__ring--middle{width:41%;height:41%;border:2px solid rgba(56,189,248,.22);border-left-color:rgba(56,189,248,.98);border-right-color:rgba(251,191,36,.62);animation:portal-spin-reverse 5.2s linear infinite}
+.portal-preloader__ring--inner{width:23%;height:23%;border:1px solid rgba(248,250,252,.14);border-top-color:rgba(248,250,252,.75);animation:portal-spin 3.8s linear infinite}
+.portal-preloader__core{width:21%;height:21%;inset:50%;translate:-50% -50%;border-radius:50%;background:radial-gradient(circle,rgba(251,191,36,.18),rgba(15,23,42,.96) 62%);border:2px solid rgba(251,191,36,.72);display:grid;place-items:center;box-shadow:0 0 28px rgba(251,191,36,.24),0 0 18px rgba(56,189,248,.18)}
+.portal-preloader__core-glow{position:absolute;inset:-20%;border-radius:50%;background:radial-gradient(circle,rgba(251,191,36,.24),transparent 62%);animation:portal-breathe 3s ease-in-out infinite}
+.portal-preloader__sigil{width:32%;height:32%;border-radius:4px;border:2px solid rgba(248,250,252,.85);rotate:45deg}
+.portal-preloader__orbit{width:10px;height:10px;border-radius:50%;left:50%;top:50%;margin-left:-5px;margin-top:-5px;box-shadow:0 0 14px currentColor}
+.portal-preloader__orbit--a{color:#38bdf8;background:currentColor;animation:portal-orbit-a 3.2s ease-in-out infinite}
+.portal-preloader__orbit--b{color:#fbbf24;background:currentColor;animation:portal-orbit-b 4s ease-in-out infinite}
+.portal-preloader__orbit--c{color:#f8fafc;background:currentColor;animation:portal-orbit-c 2.8s ease-in-out infinite}
+.portal-preloader__title{margin:0;color:#f8fafc;font-size:clamp(22px,2.6vw,30px);font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+@keyframes portal-spin{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes portal-spin-reverse{from{transform:translate(-50%,-50%) rotate(360deg)}to{transform:translate(-50%,-50%) rotate(0deg)}}
+@keyframes portal-breathe{0%,100%{transform:scale(.92);opacity:.45}50%{transform:scale(1.06);opacity:.78}}
+@keyframes portal-stars{from{transform:translateY(0);opacity:.28}50%{opacity:.46}to{transform:translateY(8px);opacity:.28}}
+@keyframes portal-orbit-a{0%,100%{transform:translate(-74px,-22px) scale(.86);opacity:.55}50%{transform:translate(-90px,-40px) scale(1.08);opacity:1}}
+@keyframes portal-orbit-b{0%,100%{transform:translate(78px,-12px) scale(.82);opacity:.52}50%{transform:translate(94px,-34px) scale(1.06);opacity:1}}
+@keyframes portal-orbit-c{0%,100%{transform:translate(0,-92px) scale(.8);opacity:.42}50%{transform:translate(0,-114px) scale(1.02);opacity:.95}}
+@media (max-width:640px){.portal-preloader__scene{width:min(82vw,280px)}.portal-preloader__title{font-size:21px}}
 #log{display:none}
 </style>
 </head><body>
-<div class="scene">
-  <div class="aurora aurora-l"></div>
-  <div class="aurora aurora-r"></div>
-  <div class="stars"></div>
-  <div class="cityline">
-    <div class="tower" style="width:16px;height:38px"></div>
-    <div class="tower" style="width:20px;height:54px"></div>
-    <div class="tower" style="width:13px;height:30px"></div>
-    <div class="tower" style="width:24px;height:68px"></div>
-    <div class="tower" style="width:15px;height:44px"></div>
-    <div class="tower" style="width:18px;height:52px"></div>
-  </div>
-  <div class="platform"></div>
-  <div class="beam"></div>
-  <div class="ring ring-outer"></div>
-  <div class="ring ring-middle"></div>
-  <div class="ring ring-inner"></div>
-  <div class="orbit orbit-a"></div>
-  <div class="orbit orbit-b"></div>
-  <div class="orbit orbit-c"></div>
-  <div class="core">
-    <div class="core-glow"></div>
-    <div class="core-sigil"></div>
+<div class="portal-preloader-shell">
+  <div class="portal-preloader">
+    <div class="portal-preloader__scene">
+      <div class="portal-preloader__aurora portal-preloader__aurora--left"></div>
+      <div class="portal-preloader__aurora portal-preloader__aurora--right"></div>
+      <div class="portal-preloader__stars"></div>
+      <div class="portal-preloader__cityline">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <div class="portal-preloader__platform"></div>
+      <div class="portal-preloader__beam"></div>
+      <div class="portal-preloader__ring portal-preloader__ring--outer"></div>
+      <div class="portal-preloader__ring portal-preloader__ring--middle"></div>
+      <div class="portal-preloader__ring portal-preloader__ring--inner"></div>
+      <div class="portal-preloader__core">
+        <div class="portal-preloader__core-glow"></div>
+        <div class="portal-preloader__sigil"></div>
+      </div>
+      <div class="portal-preloader__orbit portal-preloader__orbit--a"></div>
+      <div class="portal-preloader__orbit portal-preloader__orbit--b"></div>
+      <div class="portal-preloader__orbit portal-preloader__orbit--c"></div>
+    </div>
+    <div id="msg" class="portal-preloader__title">Summoning Portal...</div>
+    <div id="log"></div>
   </div>
 </div>
-<div id="msg">Summoning Portal...</div>
-<div id="log"></div>
 <script>
 (function(){
   var logEl = document.getElementById("log");
   function log(s) {
-    try { logEl.textContent += "\\n" + s; } catch(e) {}
+    void s;
+    void logEl;
   }
   function setMsg(text) {
     var el = document.getElementById("msg");
@@ -696,11 +711,9 @@ body{background:#020617;color:#cbd5e1;font-family:system-ui;min-height:100vh;dis
   log("idToken=" + (idToken ? (idToken.substring(0,20) + "...") : "MISSING"));
 
   if (!idToken) {
-    setMsg("Auth failed — no token received");
     return;
   }
   if (!bridgeId) {
-    setMsg("Auth failed — no bridgeId in state");
     return;
   }
 
@@ -709,7 +722,6 @@ body{background:#020617;color:#cbd5e1;font-family:system-ui;min-height:100vh;dis
   log("user.email=" + (user && user.email ? user.email : "MISSING"));
 
   if (!user || !user.sub) {
-    setMsg("Auth failed — invalid token");
     return;
   }
 
@@ -807,7 +819,6 @@ body{background:#020617;color:#cbd5e1;font-family:system-ui;min-height:100vh;dis
   function attempt(n) {
     var maxAttempts = 4;
     var retryDelayMs = 500;
-    setMsg("Completing sign-in... (" + n + "/" + maxAttempts + ")");
     log("--- attempt " + n + " ---");
     // Do bridge write once, then mostly poll for visibility.
     var writePromise = n === 1 ? writeBridge() : Promise.resolve(false);
@@ -822,12 +833,9 @@ body{background:#020617;color:#cbd5e1;font-family:system-ui;min-height:100vh;dis
 
   attempt(1).then(function(ok){
     if (ok) {
-      setMsg("Signed in — returning to app...");
       setTimeout(function(){
         location.replace(serverOrigin + "/api/auth/mobile-complete?bridgeId=" + encodeURIComponent(bridgeId) + "&scheme=" + encodeURIComponent(returnScheme));
       }, 300);
-    } else {
-      setMsg("Sign-in failed (see log below)");
     }
   });
 })();
