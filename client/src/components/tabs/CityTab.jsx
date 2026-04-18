@@ -68,14 +68,18 @@ export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen })
               onClick={() => setCityFullscreen(true)}
               className="city-action-btn"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>
-              </svg>
-              <span>Expand</span>
+              <span className="city-action-btn__icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>
+                </svg>
+              </span>
+              <span className="city-action-btn__label">Expand</span>
             </button>
-            <InteractiveMapWrapper>
-              <CityIllustration height="100%" stage={stage} />
-            </InteractiveMapWrapper>
+            <div className="city-canvas-inner">
+              <InteractiveMapWrapper>
+                <CityIllustration height="100%" stage={stage} />
+              </InteractiveMapWrapper>
+            </div>
           </>
         )}
         {cityFullscreen && (
