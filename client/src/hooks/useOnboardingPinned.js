@@ -38,6 +38,7 @@ function useOnboardingPinned({
   portraitKey
 }) {
   const { t, tf } = useTheme();
+  const resolvedUsername = username || authUser?.uid || null;
   const [showPinnedReplaceModal, setShowPinnedReplaceModal] = useState(false);
   const [replacePinnedQuestIds, setReplacePinnedQuestIds] = useState([]);
   const [replacePinnedSearch, setReplacePinnedSearch] = useState("");
@@ -137,7 +138,7 @@ function useOnboardingPinned({
     setCustomSaving(true);
     setCustomError("");
     try {
-      const result = await apiCreateCustomQuest(username, {
+      const result = await apiCreateCustomQuest(resolvedUsername, {
         title: cleanTitle,
         description: cleanDesc,
         stat: stat || "sta"
@@ -165,7 +166,7 @@ function useOnboardingPinned({
     setCustomSaving(true);
     setCustomError("");
     try {
-      const result = await apiUpdateCustomQuest(username, id, {
+      const result = await apiUpdateCustomQuest(resolvedUsername, id, {
         title: cleanTitle,
         description: cleanDesc,
         stat
@@ -187,7 +188,7 @@ function useOnboardingPinned({
     setCustomSaving(true);
     setCustomError("");
     try {
-      const result = await apiDeleteCustomQuest(username, id);
+      const result = await apiDeleteCustomQuest(resolvedUsername, id);
       if (Array.isArray(result?.customQuests)) {
         setCustomQuests(result.customQuests);
       } else {
@@ -214,7 +215,7 @@ function useOnboardingPinned({
 
   async function refreshCustomQuests() {
     try {
-      const result = await apiFetchCustomQuests(username);
+      const result = await apiFetchCustomQuests(resolvedUsername);
       if (Array.isArray(result?.customQuests)) {
         setCustomQuests(result.customQuests);
       }
@@ -292,7 +293,7 @@ function useOnboardingPinned({
     // does not flash stale values from persisted local state.
     if (authUser?.uid) {
       try {
-        const resp = await apiFetchGameState(username);
+        const resp = await apiFetchGameState(resolvedUsername);
         if (resp) {
           if (Array.isArray(resp.customQuests)) {
             setCustomQuests(resp.customQuests);
@@ -331,7 +332,7 @@ function useOnboardingPinned({
     setReplacePinnedError("");
     try {
       const isFreePinnedReroll = !state.user?.lastFreeTaskRerollAt || (Date.now() - new Date(state.user.lastFreeTaskRerollAt).getTime() >= FREE_PINNED_REROLL_INTERVAL_MS);
-        const result = await replacePinnedQuests(username, replacePinnedQuestIds, !isFreePinnedReroll);
+        const result = await replacePinnedQuests(resolvedUsername, replacePinnedQuestIds, !isFreePinnedReroll);
       const costText = isFreePinnedReroll ? t.freeLabel : t.sevenTokens;
       const nextQuests = Array.isArray(result?.quests) ? result.quests.map(normalizeQuest) : [];
       applyCustomQuestsFromResponse(result);
@@ -360,7 +361,7 @@ function useOnboardingPinned({
       setReplacePinnedError(err?.message || t.purchaseFailed);
       // Re-sync tokens/free-reroll state so the UI reflects reality after a failed purchase.
       if (authUser?.uid) {
-        apiFetchGameState(username)
+        apiFetchGameState(resolvedUsername)
           .then((resp) => {
             if (!resp) return;
             setState((prev) => ({
@@ -394,7 +395,7 @@ function useOnboardingPinned({
     setOnboardingSaving(true);
     setOnboardingError("");
     try {
-      const result = await completeOnboarding(username, trimmedName, onboardingQuestIds, portraitData || undefined);
+      const result = await completeOnboarding(resolvedUsername, trimmedName, onboardingQuestIds, portraitData || undefined);
       if (typeof onServerTimeSync === "function") {
         onServerTimeSync(result);
       }

@@ -65,7 +65,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
 
   function getUsername(authUser) {
     if (!authUser) return null;
-    return authUser.displayName || authUser.email || authUser.uid;
+    return authUser.uid || null;
   }
 
   function App() {
