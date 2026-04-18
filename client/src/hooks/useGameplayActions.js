@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
 
@@ -40,6 +40,8 @@ function useGameplayActions({
   const [freezeStreakPending, setFreezeStreakPending] = useState(false);
   const [rerollingQuestId, setRerollingQuestId] = useState(null);
   const [rerollingPinned, setRerollingPinned] = useState(false);
+  const completionQueueRef = useRef(Promise.resolve());
+  const completionInFlightRef = useRef(new Set());
 
   function normalizePinnedQuestProgress(items) {
     if (!Array.isArray(items)) {
@@ -122,150 +124,176 @@ function useGameplayActions({
   }
 
   async function completeQuest(quest, event) {
-    if (state.completed.includes(quest.id)) return;
-
-    // Optimistic: mark as completed immediately + show estimated XP
-    setState(prev => ({
-      ...prev,
-      completed: [...prev.completed, quest.id]
-    }));
-    spawnFloatingText(event.clientX, event.clientY, `+${quest.xp} ${vocab?.xpLabel || "XP"}`, "text-yellow-300 text-lg");
-
-    let completionResult;
-    try {
-      completionResult = await completeQuestOnServer(authUser.uid, quest.id);
-    } catch (err) {
-      // Rollback optimistic update
-      setState(prev => ({
-        ...prev,
-        completed: prev.completed.filter(id => id !== quest.id)
-      }));
-      trackEvent("quest_complete_failed", { questId: quest.id, message: err?.message });
-      addLog(vocab?.questCompletionFailed || "Quest completion failed. Please try again.", "text-red-400 font-bold");
+    const questId = Number(quest?.id);
+    if (!Number.isInteger(questId)) {
       return;
     }
 
-    const response = await fetchGameState(authUser.uid);
-    if (typeof onServerTimeSync === "function") {
-      onServerTimeSync(response);
-    }
-    const gameState = response.user;
-    const actualXpGain = Number(completionResult?.totalAwardedXp ?? completionResult?.awardedXp ?? quest.xp);
-    const milestoneBonusXp = Number(completionResult?.milestoneBonusXp ?? 0);
-    const milestoneTokens = Number(completionResult?.milestoneTokens ?? 0);
-    const habitMilestoneReached = completionResult?.habitMilestoneReached === true;
-    const habitMilestoneTokens = Number(completionResult?.habitMilestoneTokens ?? 0);
-    const leveledUp = gameState.level > state.lvl;
-    const streakIncreased = response.streak > state.streak;
-
-    // Show milestone bonus XP/tokens (base XP already shown optimistically)
-    if (milestoneBonusXp > 0) {
-      spawnFloatingText(event.clientX, event.clientY - 80, `🏅 +${milestoneBonusXp} ${vocab?.xpLabel || "XP"}`, "text-cyan-300 text-sm font-bold");
-    }
-    if (milestoneTokens > 0) {
-      const tokenLabel = milestoneTokens === 1 ? (vocab?.tokenSingular || "Token") : (vocab?.tokenPlural || "Tokens");
-      spawnFloatingText(event.clientX, event.clientY - 110, `🪙 +${milestoneTokens} ${tokenLabel}`, "text-amber-300 text-sm font-bold");
-    }
-    if (habitMilestoneReached && habitMilestoneTokens > 0) {
-      const tokenLabel = habitMilestoneTokens === 1 ? (vocab?.tokenSingular || "Token") : (vocab?.tokenPlural || "Tokens");
-      spawnFloatingText(event.clientX, event.clientY - 140, `🏆 +${habitMilestoneTokens} ${tokenLabel}`, "text-emerald-300 text-sm font-bold");
-      if (typeof setHabitMilestoneTitle === "function") {
-        setHabitMilestoneTitle(quest.title);
+    let shouldStart = false;
+    setState((prev) => {
+      const alreadyCompleted = Array.isArray(prev.completed) && prev.completed.includes(questId);
+      const alreadyInFlight = completionInFlightRef.current.has(questId);
+      if (alreadyCompleted || alreadyInFlight) {
+        return prev;
       }
-      if (typeof setHabitMilestoneTokens === "function") {
-        setHabitMilestoneTokens(habitMilestoneTokens);
-      }
-      if (typeof setShowHabitMilestone === "function") {
-        setShowHabitMilestone(true);
-      }
-    }
-
-    if (streakIncreased) {
-      spawnFloatingText(
-        event.clientX,
-        event.clientY - 50,
-        (vocab?.streakGainFloating || "🔥 {label} +1! ({streak})")
-          .replace("{label}", vocab?.streakUnit || "Streak")
-          .replace("{streak}", String(response.streak)),
-        "text-orange-300 text-lg font-bold"
-      );
-    }
-
-    trackEvent("quest_completed", {
-      questId: quest.id,
-      category: quest.category,
-      xp: actualXpGain,
-      milestoneBonusXp,
-      milestoneTokens,
-      habitMilestoneReached,
-      streak: response.streak,
-      tokens: gameState.tokens,
-      level: gameState.level
+      shouldStart = true;
+      return {
+        ...prev,
+        completed: [...prev.completed, questId]
+      };
     });
 
-    const newLogEntries = [];
+    if (!shouldStart) {
+      return;
+    }
 
-    if (leveledUp) {
-      trackEvent("level_up", { from: state.lvl, to: gameState.level });
-      newLogEntries.push({
-        msg: (vocab?.levelUpAnnounce || "🎉 ⭐ {prefix} UP! {levelLabel} {level}! ⭐ 🎉")
-          .replace("{prefix}", vocab?.levelUpPrefix || "LEVEL")
-          .replace("{levelLabel}", vocab?.levelLabel || "Level")
-          .replace("{level}", String(gameState.level)),
-        classes: "text-yellow-400 font-bold cinzel",
-        timestamp: getTimestamp()
-      });
-      setLevelUpLevel(gameState.level);
-      setShowLevelUp(true);
-      spawnFloatingText(window.innerWidth / 2, window.innerHeight / 2, vocab?.levelUpFloating || "LEVEL UP!", "text-yellow-300 text-2xl cinzel");
+    completionInFlightRef.current.add(questId);
 
-      if (levelDisplayRef.current) {
-        levelDisplayRef.current.style.animation = "none";
-        setTimeout(() => {
-          if (levelDisplayRef.current) {
-            levelDisplayRef.current.style.animation = "levelUpPulse 0.6s ease-out";
+    // Optimistic: mark as completed immediately + show estimated XP
+    spawnFloatingText(event.clientX, event.clientY, `+${quest.xp} ${vocab?.xpLabel || "XP"}`, "text-yellow-300 text-lg");
+
+    completionQueueRef.current = completionQueueRef.current
+      .catch(() => {})
+      .then(async () => {
+        let completionResult;
+        try {
+          completionResult = await completeQuestOnServer(authUser.uid, questId);
+        } catch (err) {
+          // Rollback optimistic update
+          setState(prev => ({
+            ...prev,
+            completed: prev.completed.filter(id => id !== questId)
+          }));
+          trackEvent("quest_complete_failed", { questId, message: err?.message });
+          addLog(vocab?.questCompletionFailed || "Quest completion failed. Please try again.", "text-red-400 font-bold");
+          return;
+        }
+
+        const response = await fetchGameState(authUser.uid);
+        if (typeof onServerTimeSync === "function") {
+          onServerTimeSync(response);
+        }
+        const gameState = response.user;
+        const actualXpGain = Number(completionResult?.totalAwardedXp ?? completionResult?.awardedXp ?? quest.xp);
+        const milestoneBonusXp = Number(completionResult?.milestoneBonusXp ?? 0);
+        const milestoneTokens = Number(completionResult?.milestoneTokens ?? 0);
+        const habitMilestoneReached = completionResult?.habitMilestoneReached === true;
+        const habitMilestoneTokens = Number(completionResult?.habitMilestoneTokens ?? 0);
+        const leveledUp = gameState.level > state.lvl;
+        const streakIncreased = response.streak > state.streak;
+
+        // Show milestone bonus XP/tokens (base XP already shown optimistically)
+        if (milestoneBonusXp > 0) {
+          spawnFloatingText(event.clientX, event.clientY - 80, `🏅 +${milestoneBonusXp} ${vocab?.xpLabel || "XP"}`, "text-cyan-300 text-sm font-bold");
+        }
+        if (milestoneTokens > 0) {
+          const tokenLabel = milestoneTokens === 1 ? (vocab?.tokenSingular || "Token") : (vocab?.tokenPlural || "Tokens");
+          spawnFloatingText(event.clientX, event.clientY - 110, `🪙 +${milestoneTokens} ${tokenLabel}`, "text-amber-300 text-sm font-bold");
+        }
+        if (habitMilestoneReached && habitMilestoneTokens > 0) {
+          const tokenLabel = habitMilestoneTokens === 1 ? (vocab?.tokenSingular || "Token") : (vocab?.tokenPlural || "Tokens");
+          spawnFloatingText(event.clientX, event.clientY - 140, `🏆 +${habitMilestoneTokens} ${tokenLabel}`, "text-emerald-300 text-sm font-bold");
+          if (typeof setHabitMilestoneTitle === "function") {
+            setHabitMilestoneTitle(quest.title);
           }
-        }, 10);
-      }
-    }
+          if (typeof setHabitMilestoneTokens === "function") {
+            setHabitMilestoneTokens(habitMilestoneTokens);
+          }
+          if (typeof setShowHabitMilestone === "function") {
+            setShowHabitMilestone(true);
+          }
+        }
 
-    const milestoneSuffix = milestoneBonusXp > 0
-      ? (vocab?.milestoneSuffix || ", Milestone: +{xp} XP{tokenPart}")
-          .replace("{xp}", String(milestoneBonusXp))
-          .replace(
-            "{tokenPart}",
-            milestoneTokens > 0
-              ? (vocab?.milestoneTokenPart || ", +{count} {label}")
-                  .replace("{count}", String(milestoneTokens))
-                  .replace("{label}", milestoneTokens === 1 ? (vocab?.tokenSingular || "token") : (vocab?.tokenPlural || "tokens"))
-              : ""
-          )
-      : "";
-    newLogEntries.push({
-      msg: (vocab?.questCompletionLog || "✔️ {title} (+{xp} {xpLabel}, {streakLabel}: {streak}{milestoneSuffix})")
-        .replace("{title}", quest.title)
-        .replace("{xp}", String(actualXpGain))
-        .replace("{xpLabel}", vocab?.xpLabel || "XP")
-        .replace("{streakLabel}", vocab?.streakUnit || "Streak")
-        .replace("{streak}", String(response.streak))
-        .replace("{milestoneSuffix}", milestoneSuffix),
-      classes: "text-slate-400",
-      timestamp: getTimestamp()
-    });
+        if (streakIncreased) {
+          spawnFloatingText(
+            event.clientX,
+            event.clientY - 50,
+            (vocab?.streakGainFloating || "🔥 {label} +1! ({streak})")
+              .replace("{label}", vocab?.streakUnit || "Streak")
+              .replace("{streak}", String(response.streak)),
+            "text-orange-300 text-lg font-bold"
+          );
+        }
 
-    setState(prev => ({
-      ...prev,
-      xp: gameState.xp,
-      lvl: gameState.level,
-      xpNext: gameState.xpNext,
-      streak: response.streak,
-      tokens: gameState.tokens,
-      productivity: response?.productivity ?? prev.productivity,
-      pinnedQuestProgress21d: normalizePinnedQuestProgress(response?.pinnedQuestProgress21d),
-      completed: prev.completed.includes(quest.id) ? prev.completed : [...prev.completed, quest.id],
-      logs: [...prev.logs, ...newLogEntries]
-    }));
-    questRenderCountRef.current += 1;
+        trackEvent("quest_completed", {
+          questId,
+          category: quest.category,
+          xp: actualXpGain,
+          milestoneBonusXp,
+          milestoneTokens,
+          habitMilestoneReached,
+          streak: response.streak,
+          tokens: gameState.tokens,
+          level: gameState.level
+        });
+
+      const newLogEntries = [];
+
+        if (leveledUp) {
+          trackEvent("level_up", { from: state.lvl, to: gameState.level });
+          newLogEntries.push({
+            msg: (vocab?.levelUpAnnounce || "🎉 ⭐ {prefix} UP! {levelLabel} {level}! ⭐ 🎉")
+              .replace("{prefix}", vocab?.levelUpPrefix || "LEVEL")
+              .replace("{levelLabel}", vocab?.levelLabel || "Level")
+              .replace("{level}", String(gameState.level)),
+            classes: "text-yellow-400 font-bold cinzel",
+            timestamp: getTimestamp()
+          });
+          setLevelUpLevel(gameState.level);
+          setShowLevelUp(true);
+          spawnFloatingText(window.innerWidth / 2, window.innerHeight / 2, vocab?.levelUpFloating || "LEVEL UP!", "text-yellow-300 text-2xl cinzel");
+
+          if (levelDisplayRef.current) {
+            levelDisplayRef.current.style.animation = "none";
+            setTimeout(() => {
+              if (levelDisplayRef.current) {
+                levelDisplayRef.current.style.animation = "levelUpPulse 0.6s ease-out";
+              }
+            }, 10);
+          }
+        }
+
+        const milestoneSuffix = milestoneBonusXp > 0
+          ? (vocab?.milestoneSuffix || ", Milestone: +{xp} XP{tokenPart}")
+              .replace("{xp}", String(milestoneBonusXp))
+              .replace(
+                "{tokenPart}",
+                milestoneTokens > 0
+                  ? (vocab?.milestoneTokenPart || ", +{count} {label}")
+                      .replace("{count}", String(milestoneTokens))
+                      .replace("{label}", milestoneTokens === 1 ? (vocab?.tokenSingular || "token") : (vocab?.tokenPlural || "tokens"))
+                  : ""
+              )
+          : "";
+        newLogEntries.push({
+          msg: (vocab?.questCompletionLog || "✔️ {title} (+{xp} {xpLabel}, {streakLabel}: {streak}{milestoneSuffix})")
+            .replace("{title}", quest.title)
+            .replace("{xp}", String(actualXpGain))
+            .replace("{xpLabel}", vocab?.xpLabel || "XP")
+            .replace("{streakLabel}", vocab?.streakUnit || "Streak")
+            .replace("{streak}", String(response.streak))
+            .replace("{milestoneSuffix}", milestoneSuffix),
+          classes: "text-slate-400",
+          timestamp: getTimestamp()
+        });
+
+        setState(prev => ({
+          ...prev,
+          xp: gameState.xp,
+          lvl: gameState.level,
+          xpNext: gameState.xpNext,
+          streak: response.streak,
+          tokens: gameState.tokens,
+          productivity: response?.productivity ?? prev.productivity,
+          pinnedQuestProgress21d: normalizePinnedQuestProgress(response?.pinnedQuestProgress21d),
+          completed: prev.completed.includes(questId) ? prev.completed : [...prev.completed, questId],
+          logs: [...prev.logs, ...newLogEntries]
+        }));
+        questRenderCountRef.current += 1;
+      })
+      .finally(() => {
+        completionInFlightRef.current.delete(questId);
+      });
   }
 
   function handleReroll(completedToday, canReroll) {
