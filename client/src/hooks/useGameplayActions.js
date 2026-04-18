@@ -43,7 +43,8 @@ function useGameplayActions({
   const [rerollingPinned, setRerollingPinned] = useState(false);
   const resolvedUsername = username || authUser?.uid || null;
   const completionInFlightRef = useRef(new Set());
-  const completionQueueRef = useRef(Promise.resolve());
+  const completionQueueRef = useRef([]);
+  const completionRunningRef = useRef(false);
 
   function normalizePinnedQuestProgress(items) {
     if (!Array.isArray(items)) {
@@ -329,8 +330,21 @@ function useGameplayActions({
       }
     };
 
-    completionQueueRef.current = completionQueueRef.current.then(runCompletion, runCompletion);
-    await completionQueueRef.current;
+    completionQueueRef.current.push(runCompletion);
+    if (!completionRunningRef.current) {
+      completionRunningRef.current = true;
+      (async () => {
+        while (completionQueueRef.current.length > 0) {
+          const task = completionQueueRef.current.shift();
+          try {
+            await task();
+          } catch (_) {
+            // individual task errors are handled inside runCompletion
+          }
+        }
+        completionRunningRef.current = false;
+      })();
+    }
   }
 
   async function doReroll(targetQuestId) {
