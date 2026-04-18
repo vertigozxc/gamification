@@ -9,7 +9,7 @@ installMobileEventLogger();
 export default function App() {
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+      <SafeAreaView style={styles.container} edges={["left", "right"]}>
         <StatusBar style="light" />
         <WebAppScreen />
       </SafeAreaView>

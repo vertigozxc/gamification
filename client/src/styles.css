@@ -1247,7 +1247,7 @@ body::before {
 
 /* RESTORED MOBILE STYLES */
 .embedded-content-safe{padding-bottom:var(--mobile-footer-offset,98px)}
-.embedded-shell{padding-top:8px}
+.embedded-shell{padding-top:calc(var(--mobile-safe-top,0px) + 8px)}
 .embedded-shell:before{display:none}
 .embedded-shell:after{display:none}
 .mobile-card{-webkit-backdrop-filter:blur(24px);background:#1e293b73;border:.5px solid #ffffff14;border-radius:1.5rem;padding:1.25rem;box-shadow:0 8px 32px #0003}
