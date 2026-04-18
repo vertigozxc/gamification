@@ -4,7 +4,7 @@ import InteractiveMapWrapper from "../InteractiveMapWrapper";
 export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen }) {
   const normalizedStage = Math.max(1, Number(stage) || 1);
   const stageCap = 20;
-  const stageProgress = Math.min(100, Math.round((normalizedStage / stageCap) * 100));
+  const stageProgress = normalizedStage <= 1 ? 0 : Math.min(100, 10 + (normalizedStage - 2) * 5);
   const nextMilestone = Math.min(stageCap, Math.ceil(normalizedStage / 4) * 4);
   const eraLabel =
     normalizedStage <= 3
@@ -19,7 +19,7 @@ export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen })
 
   return (
     <div className="mobile-tab-panel flex flex-col gap-4" style={{ minHeight: "calc(100dvh - var(--mobile-footer-offset, 98px) - 100px)" }}>
-      <div className="city-hero-surface mobile-card p-4">
+      <div className="city-hero-surface mobile-card top-screen-block p-4">
         <div className="relative z-10 flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] uppercase tracking-[0.2em] mb-1" style={{ color: "var(--color-muted)" }}>

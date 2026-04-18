@@ -15,7 +15,7 @@ export default function DashboardTab({
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
       {/* Hero: XP + Level compact row */}
-      <div className="dash-hero">
+      <div className="dash-hero top-screen-block">
         <div className="dash-hero-top">
           <div className="min-w-0 flex-1 flex flex-col gap-0">
             <p className="cinzel text-lg truncate" style={{ color: "var(--color-primary)" }}>{characterName}</p>

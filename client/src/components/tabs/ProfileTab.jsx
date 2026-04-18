@@ -13,7 +13,7 @@ export default function ProfileTab({
     <div className="mobile-tab-panel flex flex-col gap-4">
 
       {/* Hero Card: Avatar + Name + Level */}
-      <div className="relative overflow-hidden mobile-card shadow-[0_0_20px_rgba(234,179,8,0.08)]" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
+      <div className="relative overflow-hidden mobile-card top-screen-block shadow-[0_0_20px_rgba(234,179,8,0.08)]" style={{ background: "var(--card-bg)" }}>
         <div className="absolute inset-0 opacity-[0.04] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
         <div className="relative z-10 flex items-center gap-4">
           <div className="relative group">

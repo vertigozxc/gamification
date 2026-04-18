@@ -8,7 +8,7 @@ export default function StoreTab({
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <div className="relative overflow-hidden mobile-card flex flex-col gap-4 shadow-[0_0_20px_rgba(234,179,8,0.1)]" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
+      <div className="relative overflow-hidden mobile-card top-screen-block flex flex-col gap-4 shadow-[0_0_20px_rgba(234,179,8,0.1)]" style={{ background: "var(--card-bg)" }}>
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.05]"></div>
         <div className="flex items-center justify-between relative z-10">
           <div>
