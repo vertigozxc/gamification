@@ -3,7 +3,6 @@ import { auth, googleProvider, firebaseInitError } from "./firebaseAuth";
 import {
   upsertProfile,
   updateTheme,
-  syncState as syncStateToServer,
   fetchLeaderboard,
   fetchGameState,
   fetchAllQuests,
@@ -496,14 +495,6 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     if (!uidRef.current) return;
     saveState(uidRef.current, state);
   }, [state]);
-
-  useEffect(() => {
-    if (!uidRef.current) return;
-    syncStateToServer(uidRef.current, { level: state.lvl, xp: state.xp, xpNext: state.xpNext, tokens: state.tokens })
-      .then(() => fetchLeaderboard())
-      .then(({ users }) => setLeaderboard(users || []))
-      .catch(() => {});
-  }, [state.lvl, state.xp, state.xpNext, state.tokens]);
 
   useEffect(() => {
     // Intentionally removed auto-close for level up. Must be closed manually.
