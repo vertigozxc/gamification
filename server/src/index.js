@@ -1824,6 +1824,8 @@ app.post("/api/quests/complete", async (req, res) => {
       where: { userId: user.id, dayKey }
     });
 
+    console.error(`[Quest Complete] questId: ${quest.id}, title: ${quest.title}, baseXp: ${questForXp.xp}, streak: ${user.streak}, multiplier: ${xpState.multiplier}, awardedXp: ${xpState.awardedXp}`);
+
     const milestoneReward = milestoneRewardForCount(todayCompletionsCount);
     const xpStateWithMilestone = applyBonusXpProgress(xpState, milestoneReward.bonusXp);
 
@@ -1882,7 +1884,7 @@ app.post("/api/quests/complete", async (req, res) => {
     const productivityState = await updateAndReadProductivity(updatedUser, now, { updateTierState: true });
     const finalUser = productivityState.user;
 
-    res.json({
+    const responsePayload = {
       ok: true,
       streak: finalUser.streak,
       awardedXp: xpState.awardedXp,
@@ -1896,8 +1898,13 @@ app.post("/api/quests/complete", async (req, res) => {
       tokens: finalUser.tokens,
       productivity: productivityState.productivity,
       ...buildServerTimeMeta(now)
-    });
+    };
+
+    console.error(`[Quest Complete Response] totalAwardedXp: ${responsePayload.totalAwardedXp}, awardedXp: ${responsePayload.awardedXp}, user.xp: ${finalUser.xp}, user.level: ${finalUser.level}`);
+
+    res.json(responsePayload);
   } catch (error) {
+    console.error(`[Quest Complete Error] ${error?.message || error}`, error);
     res.status(400).json({ error: "Invalid request", detail: error.message });
   }
 });

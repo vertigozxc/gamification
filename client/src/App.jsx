@@ -63,51 +63,57 @@ import ProfileTab from "./components/tabs/ProfileTab";
 
 const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
 
-function App() {
-  const {
-    authUser,
-    authLoading,
-    authError,
-    handleGoogleLogin,
-    handleLogout
-  } = useAuthSession({ auth, googleProvider, firebaseInitError });
+  function getUsername(authUser) {
+    if (!authUser) return null;
+    return authUser.displayName || authUser.email || authUser.uid;
+  }
 
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    if (authUser || authLoading) {
-      return;
-    }
+  function App() {
+    const {
+      authUser,
+      authLoading,
+      authError,
+      handleGoogleLogin,
+      handleLogout
+    } = useAuthSession({ auth, googleProvider, firebaseInitError });
+    const username = getUsername(authUser);
 
-    let authMode = "";
-    let autostart = "";
-    let authNonce = "";
-    try {
-      const params = new URLSearchParams(window.location.search);
-      authMode = String(params.get("authMode") || "");
-      autostart = String(params.get("autostart") || "");
-      authNonce = String(params.get("authNonce") || "");
-    } catch {
-      return;
-    }
-
-    if (authMode !== "external" || autostart !== "1") {
-      return;
-    }
-
-    const markerKey = `life_rpg_app_external_autostart:${authNonce || "default"}`;
-    try {
-      if (window.sessionStorage.getItem(markerKey) === "1") {
+    useEffect(() => {
+      if (typeof window === "undefined") {
         return;
       }
-      window.sessionStorage.setItem(markerKey, "1");
-    } catch {
-      // ignore marker failures, still try once
-    }
+      if (authUser || authLoading) {
+        return;
+      }
 
-    handleGoogleLogin();
-  }, [authUser, authLoading, handleGoogleLogin]);
+      let authMode = "";
+      let autostart = "";
+      let authNonce = "";
+      try {
+        const params = new URLSearchParams(window.location.search);
+        authMode = String(params.get("authMode") || "");
+        autostart = String(params.get("autostart") || "");
+        authNonce = String(params.get("authNonce") || "");
+      } catch {
+        return;
+      }
+
+      if (authMode !== "external" || autostart !== "1") {
+        return;
+      }
+
+      const markerKey = `life_rpg_app_external_autostart:${authNonce || "default"}`;
+      try {
+        if (window.sessionStorage.getItem(markerKey) === "1") {
+          return;
+        }
+        window.sessionStorage.setItem(markerKey, "1");
+      } catch {
+        // ignore marker failures, still try once
+      }
+
+      handleGoogleLogin();
+    }, [authUser, authLoading, handleGoogleLogin]);
   const {
     t,
     tf,
@@ -236,6 +242,7 @@ function App() {
     handleDeleteCustomQuest
   } = useOnboardingPinned({
     authUser,
+    username,
     state,
     setState,
     setQuests,
@@ -444,7 +451,7 @@ function App() {
     if (dayMarkerRef.current === today) return;
     dayMarkerRef.current = String(new Date().getUTCFullYear()) + "-" + String(new Date().getUTCMonth()) + "-" + String(new Date().getUTCDate());
 
-    resetDaily(authUser.uid)
+    resetDaily(username)
       .then(() => fetchGameState(authUser.uid))
       .then((gameStateResponse) => {
         applyServerTimeSync(gameStateResponse);
@@ -568,6 +575,7 @@ function App() {
     rerollingPinned
   } = useGameplayActions({
     authUser,
+    username,
     state,
     setState,
     setQuests,

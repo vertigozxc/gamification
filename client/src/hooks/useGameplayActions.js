@@ -11,6 +11,7 @@ function trackEvent(type, meta) {
 
 function useGameplayActions({
   authUser,
+  username,
   state,
   setState,
   setQuests,
@@ -40,7 +41,6 @@ function useGameplayActions({
   const [freezeStreakPending, setFreezeStreakPending] = useState(false);
   const [rerollingQuestId, setRerollingQuestId] = useState(null);
   const [rerollingPinned, setRerollingPinned] = useState(false);
-  const completionQueueRef = useRef(Promise.resolve());
   const completionInFlightRef = useRef(new Set());
 
   function normalizePinnedQuestProgress(items) {
@@ -129,60 +129,70 @@ function useGameplayActions({
       return;
     }
 
-    let shouldStart = false;
+    // Check if already completed or in-flight (guard against duplicates)
+    if (completionInFlightRef.current.has(questId)) {
+      return;
+    }
+
     setState((prev) => {
-      const alreadyCompleted = Array.isArray(prev.completed) && prev.completed.includes(questId);
-      const alreadyInFlight = completionInFlightRef.current.has(questId);
-      if (alreadyCompleted || alreadyInFlight) {
+      if (Array.isArray(prev.completed) && prev.completed.includes(questId)) {
         return prev;
       }
-      shouldStart = true;
       return {
         ...prev,
         completed: [...prev.completed, questId]
       };
     });
 
-    if (!shouldStart) {
+    completionInFlightRef.current.add(questId);
+
+    // Optimistic: show estimated XP immediately
+    spawnFloatingText(event.clientX, event.clientY, `+${quest.xp} ${vocab?.xpLabel || "XP"}`, "text-yellow-300 text-lg");
+
+    let completionResult;
+    try {
+      completionResult = await completeQuestOnServer(username, questId);
+      console.error("[completeQuest] Server response:", completionResult);
+    } catch (err) {
+      // Rollback optimistic update
+      setState(prev => ({
+        ...prev,
+        completed: prev.completed.filter(id => id !== questId)
+      }));
+      console.error("[completeQuest] Server error:", err?.message);
+      trackEvent("quest_complete_failed", { questId, message: err?.message });
+      addLog(vocab?.questCompletionFailed || "Quest completion failed. Please try again.", "text-red-400 font-bold");
+      completionInFlightRef.current.delete(questId);
       return;
     }
 
-    completionInFlightRef.current.add(questId);
+    try {
+      const response = await fetchGameState(authUser.uid);
+      if (typeof onServerTimeSync === "function") {
+        onServerTimeSync(response);
+      }
+      const gameState = response.user;
+      const actualXpGain = Number(completionResult?.totalAwardedXp ?? completionResult?.awardedXp ?? quest.xp);
+      const milestoneBonusXp = Number(completionResult?.milestoneBonusXp ?? 0);
+      const milestoneTokens = Number(completionResult?.milestoneTokens ?? 0);
+      const habitMilestoneReached = completionResult?.habitMilestoneReached === true;
+      const habitMilestoneTokens = Number(completionResult?.habitMilestoneTokens ?? 0);
 
-    // Optimistic: mark as completed immediately + show estimated XP
-    spawnFloatingText(event.clientX, event.clientY, `+${quest.xp} ${vocab?.xpLabel || "XP"}`, "text-yellow-300 text-lg");
+      console.error("[completeQuest] XP breakdown:", {
+        actualXpGain,
+        milestoneBonusXp,
+        milestoneTokens,
+        gameStateXp: gameState.xp,
+        gameStateLevel: gameState.level,
+        questXp: quest.xp
+      });
 
-    completionQueueRef.current = completionQueueRef.current
-      .catch(() => {})
-      .then(async () => {
-        let completionResult;
-        try {
-          completionResult = await completeQuestOnServer(authUser.uid, questId);
-        } catch (err) {
-          // Rollback optimistic update
-          setState(prev => ({
-            ...prev,
-            completed: prev.completed.filter(id => id !== questId)
-          }));
-          trackEvent("quest_complete_failed", { questId, message: err?.message });
-          addLog(vocab?.questCompletionFailed || "Quest completion failed. Please try again.", "text-red-400 font-bold");
-          return;
-        }
+      // Use setState updater to read current state for comparisons
+      setState((prev) => {
+        const leveledUp = gameState.level > prev.lvl;
+        const streakIncreased = response.streak > prev.streak;
+        const newLogEntries = [];
 
-        const response = await fetchGameState(authUser.uid);
-        if (typeof onServerTimeSync === "function") {
-          onServerTimeSync(response);
-        }
-        const gameState = response.user;
-        const actualXpGain = Number(completionResult?.totalAwardedXp ?? completionResult?.awardedXp ?? quest.xp);
-        const milestoneBonusXp = Number(completionResult?.milestoneBonusXp ?? 0);
-        const milestoneTokens = Number(completionResult?.milestoneTokens ?? 0);
-        const habitMilestoneReached = completionResult?.habitMilestoneReached === true;
-        const habitMilestoneTokens = Number(completionResult?.habitMilestoneTokens ?? 0);
-        const leveledUp = gameState.level > state.lvl;
-        const streakIncreased = response.streak > state.streak;
-
-        // Show milestone bonus XP/tokens (base XP already shown optimistically)
         if (milestoneBonusXp > 0) {
           spawnFloatingText(event.clientX, event.clientY - 80, `🏅 +${milestoneBonusXp} ${vocab?.xpLabel || "XP"}`, "text-cyan-300 text-sm font-bold");
         }
@@ -227,10 +237,8 @@ function useGameplayActions({
           level: gameState.level
         });
 
-      const newLogEntries = [];
-
         if (leveledUp) {
-          trackEvent("level_up", { from: state.lvl, to: gameState.level });
+          trackEvent("level_up", { from: prev.lvl, to: gameState.level });
           newLogEntries.push({
             msg: (vocab?.levelUpAnnounce || "🎉 ⭐ {prefix} UP! {levelLabel} {level}! ⭐ 🎉")
               .replace("{prefix}", vocab?.levelUpPrefix || "LEVEL")
@@ -277,7 +285,7 @@ function useGameplayActions({
           timestamp: getTimestamp()
         });
 
-        setState(prev => ({
+        return {
           ...prev,
           xp: gameState.xp,
           lvl: gameState.level,
@@ -288,17 +296,12 @@ function useGameplayActions({
           pinnedQuestProgress21d: normalizePinnedQuestProgress(response?.pinnedQuestProgress21d),
           completed: prev.completed.includes(questId) ? prev.completed : [...prev.completed, questId],
           logs: [...prev.logs, ...newLogEntries]
-        }));
-        questRenderCountRef.current += 1;
-      })
-      .finally(() => {
-        completionInFlightRef.current.delete(questId);
+        };
       });
-  }
-
-  function handleReroll(completedToday, canReroll) {
-    if (completedToday >= 6) return;
-    if (canReroll) setShowRerollConfirm(true);
+      questRenderCountRef.current += 1;
+    } finally {
+      completionInFlightRef.current.delete(questId);
+    }
   }
 
   async function doReroll(targetQuestId) {
@@ -319,7 +322,7 @@ function useGameplayActions({
         .filter((q) => q && q.id !== targetQuestId)
         .map((q) => q.id);
 
-      const result = await resetDaily(authUser.uid, true, excludeCategories, targetQuestId, keepQuestIds);
+      const result = await resetDaily(username, true, excludeCategories, targetQuestId, keepQuestIds);
       if (typeof onServerTimeSync === "function") {
         onServerTimeSync(result);
       }
@@ -361,7 +364,7 @@ function useGameplayActions({
   async function handleResetDaily() {
     if (!window.confirm(vocab?.resetDailyConfirm || "Reset daily quests? This will clear today's completed quests and give you a fresh set.")) return;
     try {
-      const result = await resetDaily(authUser.uid, false);
+      const result = await resetDaily(username, false);
       if (typeof onServerTimeSync === "function") {
         onServerTimeSync(result);
       }
@@ -396,7 +399,7 @@ function useGameplayActions({
     if (!window.confirm(vocab?.hardResetConfirm || "Are you sure? This will erase ALL progress including level and logs!")) return;
 
     try {
-      const result = await resetHard(authUser.uid);
+      const result = await resetHard(username);
       if (typeof onServerTimeSync === "function") {
         onServerTimeSync(result);
       }
@@ -495,7 +498,7 @@ function useGameplayActions({
       extraRerollsToday: prev.extraRerollsToday + 1
     }));
     try {
-      const result = await buyExtraReroll(authUser.uid);
+      const result = await buyExtraReroll(username);
       trackEvent("extra_reroll_purchased", { tokens: result.tokens, extraRerollsToday: result?.extraRerollsToday });
       // Confirm with real server values
       setState((prev) => ({
@@ -536,7 +539,7 @@ function useGameplayActions({
     }));
     setShowFreezeSuccess(true);
     try {
-      const result = await freezeStreak(authUser.uid);
+      const result = await freezeStreak(username);
       trackEvent("streak_freeze_activated", { tokens: result.tokens });
       // Confirm with real server token count
       setState((prev) => ({
