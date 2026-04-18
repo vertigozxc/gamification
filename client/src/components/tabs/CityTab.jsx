@@ -3,7 +3,7 @@ import InteractiveMapWrapper from "../InteractiveMapWrapper";
 
 export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen }) {
   return (
-    <div className="relative flex flex-col gap-4">
+    <div className="relative flex flex-col gap-4" style={{ minHeight: "calc(100dvh - var(--mobile-footer-offset, 98px) - 120px)" }}>
       <div className="flex flex-row justify-between items-center gap-3 backdrop-blur-md rounded-2xl p-5 border shadow-xl mobile-card" style={{ borderColor: "color-mix(in srgb, var(--color-primary) 30%, transparent)" }}>
         <div className="flex-1">
           <h3 className="cinzel text-xl font-bold tracking-wide mb-2 flex items-center gap-2" style={{ color: "var(--color-primary)" }}>
@@ -21,7 +21,7 @@ export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen })
         </div>
       </div>
 
-      <div className="w-full h-[55vh] min-h-[350px] max-h-[500px] sm:min-h-[450px] relative rounded-[2rem] overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] animate-fade-in transition-all duration-500 flex-1" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--panel-border)", borderWidth: 1 }}>
+      <div className="w-full relative rounded-[2rem] overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] animate-fade-in transition-all duration-500 flex-1" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--panel-border)", borderWidth: 1, minHeight: "calc(100dvh - var(--mobile-footer-offset, 98px) - 250px)", maxHeight: "none" }}>
         {!cityFullscreen && (
           <>
             <button

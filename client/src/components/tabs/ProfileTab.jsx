@@ -13,14 +13,14 @@ export default function ProfileTab({
     <div className="mobile-tab-panel flex flex-col gap-4">
 
       {/* Hero Card: Avatar + Name + Level */}
-      <div className="relative overflow-hidden mobile-card border border-yellow-500/20 shadow-[0_0_20px_rgba(234,179,8,0.08)]" style={{ background: "linear-gradient(to bottom right, rgba(30, 41, 59, 0.85), rgba(2, 6, 23, 0.95))" }}>
+      <div className="relative overflow-hidden mobile-card shadow-[0_0_20px_rgba(234,179,8,0.08)]" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
         <div className="absolute inset-0 opacity-[0.04] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
         <div className="relative z-10 flex items-center gap-4">
           <div className="relative group">
             <button
               type="button"
-              className="w-24 h-24 rounded-[1.8rem] overflow-hidden bg-slate-900 border-2 flex items-center justify-center shrink-0 mobile-pressable transition-all group-hover:border-yellow-500/70"
-              style={{ borderColor: "var(--color-primary-dim)" }}
+              className="w-24 h-24 rounded-[1.8rem] overflow-hidden border-2 flex items-center justify-center shrink-0 mobile-pressable transition-all group-hover:border-yellow-500/70"
+              style={{ borderColor: "var(--color-primary-dim)", background: "var(--panel-bg)", color: "var(--color-muted)" }}
               onClick={onAvatarClick}
               title={t.changeAvatar}
             >
@@ -33,7 +33,7 @@ export default function ProfileTab({
                 </svg>
               )}
             </button>
-            <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-xs text-slate-300 shadow-lg">
+            <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs shadow-lg" style={{ background: "var(--panel-bg)", borderColor: "var(--card-border-idle)", color: "var(--color-muted)" }}>
               📷
             </div>
           </div>

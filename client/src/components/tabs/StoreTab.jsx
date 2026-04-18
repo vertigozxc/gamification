@@ -8,7 +8,7 @@ export default function StoreTab({
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <div className="relative overflow-hidden mobile-card flex flex-col gap-4 border border-yellow-500/30 shadow-[0_0_20px_rgba(234,179,8,0.1)]" style={{ background: "linear-gradient(to bottom right, rgba(30, 41, 59, 0.8), rgba(2, 6, 23, 0.95))" }}>
+      <div className="relative overflow-hidden mobile-card flex flex-col gap-4 shadow-[0_0_20px_rgba(234,179,8,0.1)]" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.05]"></div>
         <div className="flex items-center justify-between relative z-10">
           <div>
@@ -20,7 +20,7 @@ export default function StoreTab({
           </div>
           <div className="flex flex-col items-center justify-center">
             <div className="inline-flex flex-col items-center gap-1.5">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-900/40 border border-emerald-500/40 text-emerald-400 text-[10px] font-bold tracking-wider uppercase shadow-[0_0_12px_rgba(16,185,129,0.15)]">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase shadow-[0_0_12px_rgba(16,185,129,0.15)]" style={{ background: "color-mix(in srgb, var(--color-success) 14%, transparent)", border: "1px solid color-mix(in srgb, var(--color-success) 32%, transparent)", color: "var(--color-success)" }}>
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_5px_#34d399]"></span>
                 Vault Active
               </div>
