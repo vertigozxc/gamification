@@ -2,7 +2,6 @@ import Constants from "expo-constants";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import {
-  ActivityIndicator,
   Animated,
   AppState,
   Easing,
@@ -436,7 +435,7 @@ export default function WebAppScreen() {
         style={styles.webview}
         javaScriptEnabled
         domStorageEnabled
-        startInLoadingState
+        startInLoadingState={false}
         bounces={false}
         scrollEnabled
         overScrollMode="never"
@@ -483,12 +482,6 @@ export default function WebAppScreen() {
         onError={(event) => {
           setErrorText(event.nativeEvent?.description || "Failed to load web app");
         }}
-        renderLoading={() => (
-          <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color="#22d3ee" />
-            <Text style={styles.loadingText}>Loading full app...</Text>
-          </View>
-        )}
       />
 
       {authStatus ? (
@@ -679,17 +672,6 @@ const styles = StyleSheet.create({
   centerTabOrbActive: {
     backgroundColor: "#fbbf24",
     borderColor: "#fde68a"
-  },
-  loadingWrap: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#0f172a"
-  },
-  loadingText: {
-    color: "#cbd5e1",
-    marginTop: 10,
-    fontSize: 14
   },
   authStatusBanner: {
     position: "absolute",
