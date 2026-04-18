@@ -1,6 +1,7 @@
 services:
   - type: web
-    name: life-rpg-api
+    name: life-rpg-api-us
+    region: oregon
     runtime: node
     rootDir: server
     plan: starter
@@ -17,7 +18,30 @@ services:
       - key: CLIENT_ORIGIN
         value: https://life-rpg-client.onrender.com
     disk:
-      name: life-rpg-sqlite
+      name: life-rpg-sqlite-us
+      mountPath: /var/data
+      sizeGB: 1
+
+  - type: web
+    name: life-rpg-api-eu
+    region: frankfurt
+    runtime: node
+    rootDir: server
+    plan: starter
+    buildCommand: npm install; npm run prisma:generate
+    startCommand: npm run prisma:deploy; npx prisma db push; npm run start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: PORT
+        value: 4000
+      - key: DATABASE_URL
+        value: file:/var/data/dev.db
+      - key: CLIENT_ORIGIN
+        value: https://life-rpg-client.onrender.com
+    disk:
+      name: life-rpg-sqlite-eu
       mountPath: /var/data
       sizeGB: 1
 
@@ -29,7 +53,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_BASE_URL
-        value: https://life-rpg-api.onrender.com
+        value: https://api.life-rpg.app
       - key: VITE_FIREBASE_API_KEY
         value: AIzaSyBpG0jinIwaHgF2h1oOA45xyG0bs0kOSos
       - key: VITE_FIREBASE_AUTH_DOMAIN

@@ -106,6 +106,43 @@ Firebase/Auth checklist after deploy:
 Health check endpoint:
 - `GET /healthz` should return `{ "ok": true }`
 
+### Multi-Region API (US + EU) + Geo Routing
+
+This repo is now prepared for a dual-region setup:
+- API US service: `life-rpg-api-us` (Oregon)
+- API EU service: `life-rpg-api-eu` (Frankfurt)
+- Global router endpoint used by web/mobile: `https://api.life-rpg.app`
+
+Important data note:
+- Current Prisma datasource is SQLite. Two regional APIs with separate SQLite disks will not share writes.
+- For production geo-routing, migrate to one shared Postgres database and point both API services to it.
+- Cloudflare Worker is configured with safe default `ENABLE_GEO_ROUTING=0` (all traffic to US) until shared DB is ready.
+
+Rollout steps (Render + Cloudflare):
+
+1. Apply Render blueprint from `render.yaml`.
+2. In Render dashboard:
+	- Ensure US API is named `life-rpg-api-us`.
+	- Ensure EU API is created as `life-rpg-api-eu` in Frankfurt.
+	- If your existing service is still `life-rpg-api`, rename it manually to `life-rpg-api-us`.
+3. Deploy Cloudflare Worker from `infra/cloudflare/worker.js`.
+4. Attach route `api.life-rpg.app/*` to the Worker.
+5. Point DNS `api.life-rpg.app` to Cloudflare (proxied).
+6. In Worker variables set `ENABLE_GEO_ROUTING=0` first, then deploy and validate.
+7. Verify routing headers:
+	- `x-liferpg-origin`
+	- `x-liferpg-country`
+	- `x-liferpg-geo-enabled`
+8. Redeploy client and mobile app so they use `https://api.life-rpg.app`.
+9. After migrating to shared Postgres, set `ENABLE_GEO_ROUTING=1`.
+
+Quick verification:
+
+```bash
+curl -I https://api.life-rpg.app/healthz
+curl -I https://api.life-rpg.app/api/health
+```
+
 ### Option A: Deploy Backend on Render + Frontend on Vercel
 
 1. Push repo to GitHub.

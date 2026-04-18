@@ -1,0 +1,14 @@
+name = "life-rpg-api-router"
+main = "worker.js"
+compatibility_date = "2026-04-18"
+workers_dev = true
+
+[vars]
+# 0 = send all traffic to US (safe default for SQLite)
+# 1 = geo split between US and EU
+ENABLE_GEO_ROUTING = "0"
+
+# After validating on workers.dev, bind to your production domain:
+# routes = [
+#   { pattern = "api.life-rpg.app/*", zone_name = "life-rpg.app" }
+# ]

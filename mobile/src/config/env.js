@@ -47,5 +47,5 @@ export function getApiBaseUrl() {
     return inferredFromBundle;
   }
 
-  return "https://life-rpg-api.onrender.com";
+  return "https://api.life-rpg.app";
 }
