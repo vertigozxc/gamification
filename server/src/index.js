@@ -398,7 +398,7 @@ const mobileAuthTokens = new Map();
 // via Identity Toolkit REST API, so mobile and web share the same Firebase UID.
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY || "AIzaSyBpG0jinIwaHgF2h1oOA45xyG0bs0kOSos";
 
-async function exchangeGoogleIdTokenForFirebaseUser(idToken) {
+async function exchangeGoogleIdTokenForFirebaseUser(idToken, requestUri = "http://localhost") {
   if (!idToken || typeof idToken !== "string") {
     throw new Error("id_token is required");
   }
@@ -406,7 +406,7 @@ async function exchangeGoogleIdTokenForFirebaseUser(idToken) {
   const endpoint = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${encodeURIComponent(FIREBASE_API_KEY)}`;
   const body = {
     postBody: `id_token=${encodeURIComponent(idToken)}&providerId=google.com`,
-    requestUri: "http://localhost",
+    requestUri: String(requestUri || "http://localhost"),
     returnSecureToken: true,
     returnIdpCredential: true
   };
@@ -443,7 +443,8 @@ app.post("/api/auth/mobile-google-exchange", async (req, res) => {
       return res.status(400).json({ error: "id_token is required" });
     }
 
-    const user = await exchangeGoogleIdTokenForFirebaseUser(idToken);
+      const origin = req.headers.origin || req.headers.referer?.split("?")[0] || "http://localhost";
+      const user = await exchangeGoogleIdTokenForFirebaseUser(idToken, origin);
     const key = (typeof bridgeId === "string" && bridgeId.trim())
       ? `bridge:${bridgeId.trim()}`
       : (Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2) + Date.now().toString(36));
