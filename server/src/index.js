@@ -286,6 +286,39 @@ const AB_CONVERSION_TYPES = new Set([
   "pinned_quests_rerolled"
 ]);
 
+
+// Admin: destructive full wipe of app data + admin/event logs.
+app.post("/api/admin/wipe-all-data", requireAdmin, async (_req, res) => {
+  try {
+    const [events, feedback, completions, scores, customQuests, friendships, invites, users] = await prisma.$transaction([
+      prisma.event.deleteMany({}),
+      prisma.questFeedback.deleteMany({}),
+      prisma.questCompletion.deleteMany({}),
+      prisma.dailyScore.deleteMany({}),
+      prisma.customQuest.deleteMany({}),
+      prisma.friendship.deleteMany({}),
+      prisma.invite.deleteMany({}),
+      prisma.user.deleteMany({})
+    ]);
+
+    res.json({
+      ok: true,
+      deleted: {
+        events: events.count,
+        feedback: feedback.count,
+        completions: completions.count,
+        dailyScores: scores.count,
+        customQuests: customQuests.count,
+        friendships: friendships.count,
+        invites: invites.count,
+        users: users.count
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 app.get("/api/admin/ab", requireAdmin, async (_req, res) => {
   const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
   const events = await prisma.event.findMany({
