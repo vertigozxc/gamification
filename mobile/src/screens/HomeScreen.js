@@ -170,7 +170,7 @@ export default function HomeScreen() {
   }, [state, quests, completed]);
 
   if (initializing) {
-    return <PortalPreloader title="Summoning Portal..." />;
+    return <PortalPreloader title="Initializing world..." />;
   }
 
   if (!username) {

@@ -45,7 +45,7 @@ export default function ProfileScreen() {
   }, []);
 
   if (loading) {
-    return <PortalPreloader title="Summoning Portal..." />;
+    return <PortalPreloader title="Initializing world..." />;
   }
 
   if (!state) {

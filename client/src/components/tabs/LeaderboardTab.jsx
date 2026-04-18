@@ -19,10 +19,9 @@ export default function LeaderboardTab({ leaderboard, authUser, logs, t }) {
     <div className="flex flex-col gap-4">
       {/* ── Hero banner card ── */}
       <div
-        className="overflow-hidden"
+        className="overflow-hidden top-screen-block"
         style={{
           background: "var(--leaderboard-bg)",
-          border: "1px solid var(--leaderboard-border)",
           borderRadius: "var(--border-radius-panel)",
           boxShadow: "0 4px 24px rgba(0,0,0,0.35)",
         }}

@@ -593,7 +593,7 @@ app.get("/api/auth/google-start", (req, res) => {
 app.get("/api/auth/google-callback", (req, res) => {
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Summoning Portal...</title>
+<title>Initializing world...</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#020617;color:#cbd5e1;font-family:system-ui;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
@@ -665,7 +665,7 @@ body{background:#020617;color:#cbd5e1;font-family:system-ui;min-height:100vh;dis
       <div class="portal-preloader__orbit portal-preloader__orbit--b"></div>
       <div class="portal-preloader__orbit portal-preloader__orbit--c"></div>
     </div>
-    <div id="msg" class="portal-preloader__title">Summoning Portal...</div>
+    <div id="msg" class="portal-preloader__title">Initializing world...</div>
     <div id="log"></div>
   </div>
 </div>
@@ -680,6 +680,12 @@ body{background:#020617;color:#cbd5e1;font-family:system-ui;min-height:100vh;dis
     var el = document.getElementById("msg");
     if (el) el.textContent = text;
   }
+
+  var initialLoadingLabel = (navigator.language || "").toLowerCase().indexOf("ru") === 0
+    ? "Инициализация мира..."
+    : "Initializing world...";
+  document.title = initialLoadingLabel;
+  setMsg(initialLoadingLabel);
 
   function decodeJwt(token) {
     var parts = token.split(".");

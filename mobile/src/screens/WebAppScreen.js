@@ -519,7 +519,7 @@ export default function WebAppScreen() {
 
       {showPreloader && !errorText ? (
         <View style={styles.preloaderOverlay} pointerEvents="auto">
-          <PortalPreloader title="Summoning Portal..." />
+          <PortalPreloader title="Initializing world..." />
         </View>
       ) : null}
 

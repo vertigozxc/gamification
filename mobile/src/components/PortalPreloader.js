@@ -5,7 +5,7 @@ function Tower({ height, width, style }) {
   return <View style={[styles.tower, { height, width }, style]} />;
 }
 
-export default function PortalPreloader({ title = "Summoning Portal...", caption = "" }) {
+export default function PortalPreloader({ title = "Initializing world...", caption = "" }) {
   const pulse = useRef(new Animated.Value(0.92)).current;
   const rotateOuter = useRef(new Animated.Value(0)).current;
   const rotateMiddle = useRef(new Animated.Value(0)).current;

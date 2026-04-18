@@ -94,7 +94,7 @@ export default function VaultScreen() {
   }
 
   if (loading) {
-    return <PortalPreloader title="Summoning Portal..." />;
+    return <PortalPreloader title="Initializing world..." />;
   }
 
   if (!state) {
