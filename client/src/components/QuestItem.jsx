@@ -1,13 +1,36 @@
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect, useState } from "react";
 
 export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, onCompleteQuest, children, isLongTapOnly }) {
   const longPressTimer = useRef(null);
+  const hintTimer = useRef(null);
   const lastTapTime = useRef(0);
+  const longPressTriggered = useRef(false);
+  const [showTapHint, setShowTapHint] = useState(false);
+
+  const tapHintText = t.questCompleteGestureHint || "Double-tap or long-press to complete";
+
+  const showHintPopup = useCallback(() => {
+    setShowTapHint(true);
+    if (hintTimer.current) clearTimeout(hintTimer.current);
+    hintTimer.current = setTimeout(() => {
+      setShowTapHint(false);
+    }, 1400);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (longPressTimer.current) clearTimeout(longPressTimer.current);
+      if (hintTimer.current) clearTimeout(hintTimer.current);
+    };
+  }, []);
 
   const handlePointerDown = useCallback((e) => {
     if (isDone || !isLongTapOnly) return;
+    longPressTriggered.current = false;
     longPressTimer.current = setTimeout(() => {
       if ('vibrate' in navigator) navigator.vibrate(100);
+      longPressTriggered.current = true;
+      setShowTapHint(false);
       onCompleteQuest(quest, e);
     }, 500); // 500ms long tap
   }, [quest, isDone, onCompleteQuest, isLongTapOnly]);
@@ -24,19 +47,25 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
       onCompleteQuest(quest, e);
       return;
     }
+    if (longPressTriggered.current) {
+      longPressTriggered.current = false;
+      return;
+    }
     const now = Date.now();
     if (now - lastTapTime.current < 400) { // 400ms double tap
+      setShowTapHint(false);
       onCompleteQuest(quest, e);
       lastTapTime.current = 0;
     } else {
       lastTapTime.current = now;
+      showHintPopup();
     }
-  }, [quest, isDone, onCompleteQuest, isLongTapOnly]);
+  }, [quest, isDone, onCompleteQuest, isLongTapOnly, showHintPopup]);
 
   return (
     <div
       className={`qb-quest-item mobile-pressable ${isDone ? "qb-quest-done" : ""}`}
-      style={!isDone && questRenderCount === 0 ? { animationDelay: `${index * 0.06}s` } : {}}
+      style={!isDone && questRenderCount === 0 ? { animationDelay: `${index * 0.06}s`, position: "relative" } : { position: "relative" }}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
@@ -57,6 +86,28 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
         </div>
       </div>
       {children}
+      {showTapHint && !isDone ? (
+        <div
+          style={{
+            position: "absolute",
+            left: 12,
+            right: 12,
+            bottom: 10,
+            zIndex: 3,
+            borderRadius: 10,
+            background: "rgba(2, 6, 23, 0.92)",
+            border: "1px solid rgba(103, 232, 249, 0.55)",
+            color: "#cffafe",
+            fontSize: 12,
+            fontWeight: 600,
+            textAlign: "center",
+            padding: "8px 10px",
+            boxShadow: "0 6px 18px rgba(0,0,0,0.35)"
+          }}
+        >
+          {tapHintText}
+        </div>
+      ) : null}
     </div>
   );
 }
