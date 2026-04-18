@@ -471,18 +471,12 @@ export const languagePacks = {
     },
     themeMeta: {
       adventure: { label: "Приключение", description: "Героический RPG-стиль" },
-      focus: { label: "Фокус", description: "Минималистичный режим продуктивности" },
       balance: { label: "Баланс", description: "Спокойный режим для устойчивого роста" }
     },
     themeVocab: {
       adventure: {
         appSubtitle: "Твой путь к славе начинается",
         appTagline: "Life RPG Online",
-        availableItems: "📜 Доступные задания"
-      },
-      focus: {
-        appSubtitle: "Организуй. Выполняй. Расти.",
-        appTagline: "Life Planner",
         availableItems: "📜 Доступные задания"
       },
       balance: {
