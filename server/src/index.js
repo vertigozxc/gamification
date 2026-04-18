@@ -397,16 +397,40 @@ const mobileAuthTokens = new Map();
 // Firebase Web API key (public) — used to exchange Google id_token for Firebase UID
 // via Identity Toolkit REST API, so mobile and web share the same Firebase UID.
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY || "AIzaSyBpG0jinIwaHgF2h1oOA45xyG0bs0kOSos";
+const FIREBASE_AUTH_DOMAIN = process.env.FIREBASE_AUTH_DOMAIN || "life-rpg-83c0a.firebaseapp.com";
+const FIREBASE_REQUEST_URI = process.env.FIREBASE_REQUEST_URI || `https://${FIREBASE_AUTH_DOMAIN}`;
+
+function resolveFirebaseRequestUri(candidate) {
+  const fallback = FIREBASE_REQUEST_URI;
+  const raw = String(candidate || "").trim();
+  if (!raw) {
+    return fallback;
+  }
+
+  try {
+    const parsed = new URL(raw);
+    const host = (parsed.hostname || "").toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1") {
+      return "http://localhost";
+    }
+  } catch {
+    // Ignore malformed candidate and use fallback.
+  }
+
+  return fallback;
+}
 
 async function exchangeGoogleIdTokenForFirebaseUser(idToken, requestUri = "http://localhost") {
   if (!idToken || typeof idToken !== "string") {
     throw new Error("id_token is required");
   }
 
+  const safeRequestUri = resolveFirebaseRequestUri(requestUri);
+
   const endpoint = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${encodeURIComponent(FIREBASE_API_KEY)}`;
   const body = {
     postBody: `id_token=${encodeURIComponent(idToken)}&providerId=google.com`,
-    requestUri: String(requestUri || "http://localhost"),
+    requestUri: safeRequestUri,
     returnSecureToken: true,
     returnIdpCredential: true
   };
