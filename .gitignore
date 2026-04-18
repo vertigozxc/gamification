@@ -1,6 +1,9 @@
 node_modules/
 client/node_modules/
 server/node_modules/
+mobile/node_modules/
+mobile/.expo/
+.expo/
 client/dist/
 server/prisma/dev.db
 server/prisma/dev.db-journal
