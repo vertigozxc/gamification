@@ -1,7 +1,0 @@
-** BUILD FAILED **
-
-
-The following build commands failed:
-	PhaseScriptExecution [CP]\ Check\ Pods\ Manifest.lock /Users/vertigozxc/Library/Developer/Xcode/DerivedData/LifeRPGMobile-euifkhmztvrmofaffymgozhlhtlf/Build/Intermediates.noindex/LifeRPGMobile.build/Debug-iphonesimulator/LifeRPGMobile.build/Script-08A4A3CD28434E44B6B9DE2E.sh (in target 'LifeRPGMobile' from project 'LifeRPGMobile')
-	Building project LifeRPGMobile with scheme LifeRPGMobile and configuration Debug
-(2 failures)
