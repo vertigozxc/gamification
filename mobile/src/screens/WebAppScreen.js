@@ -484,13 +484,6 @@ export default function WebAppScreen() {
         }}
       />
 
-      {authStatus ? (
-        <View style={[styles.authStatusBanner, { top: Math.max(0, insets.top) + 8 }]} pointerEvents="none">
-          <Text style={styles.authStatusText}>{authStatus}</Text>
-        </View>
-      ) : null}
-
-
       {showTabBar ? (
         <>
           <Animated.View
@@ -672,23 +665,6 @@ const styles = StyleSheet.create({
   centerTabOrbActive: {
     backgroundColor: "#fbbf24",
     borderColor: "#fde68a"
-  },
-  authStatusBanner: {
-    position: "absolute",
-    left: 8,
-    right: 8,
-    backgroundColor: "rgba(2, 6, 23, 0.92)",
-    borderColor: "#fbbf24",
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    zIndex: 9999
-  },
-  authStatusText: {
-    color: "#fde68a",
-    fontSize: 12,
-    fontFamily: "Menlo"
   },
   errorPanel: {
     position: "absolute",
