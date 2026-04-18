@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 
-export default function InteractiveMapWrapper({ children }) {
+export default function InteractiveMapWrapper({ children, rotated = false }) {
   const containerRef = useRef(null);
   const contentRef = useRef(null);
 
@@ -62,9 +62,14 @@ export default function InteractiveMapWrapper({ children }) {
         e.preventDefault();
         const dx = e.touches[0].clientX - startDrag.current.x;
         const dy = e.touches[0].clientY - startDrag.current.y;
+
+        // In fullscreen mode the city container is rotated by 90deg, so gesture axes
+        // need remapping to keep pan direction intuitive for the user.
+        const adjustedDx = rotated ? dy : dx;
+        const adjustedDy = rotated ? -dx : dy;
         
-        pos.current.x = startPos.current.x + dx;
-        pos.current.y = startPos.current.y + dy;
+        pos.current.x = startPos.current.x + adjustedDx;
+        pos.current.y = startPos.current.y + adjustedDy;
         
         constrainPos();
       } else if (e.touches.length === 2) {
@@ -109,8 +114,10 @@ export default function InteractiveMapWrapper({ children }) {
       if (e.ctrlKey) {
         scale.current = Math.max(1, Math.min(5, scale.current - e.deltaY * 0.01));
       } else {
-        pos.current.x -= e.deltaX;
-        pos.current.y -= e.deltaY;
+        const adjustedDx = rotated ? e.deltaY : e.deltaX;
+        const adjustedDy = rotated ? -e.deltaX : e.deltaY;
+        pos.current.x -= adjustedDx;
+        pos.current.y -= adjustedDy;
       }
       if (scale.current === 1) {
         pos.current = { x: 0, y: 0 };
@@ -143,7 +150,7 @@ export default function InteractiveMapWrapper({ children }) {
       el.removeEventListener('wheel', handleWheel, touchOptions);
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
-  }, []);
+  }, [rotated]);
 
   return (
     <div
