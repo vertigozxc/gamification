@@ -171,6 +171,7 @@ export default function WebAppScreen() {
   const authReloadTriggeredRef = useRef(false);
   const pollTimerRef = useRef(null);
   const preloaderTimerRef = useRef(null);
+  const shellStateReceivedRef = useRef(false);
   const authSessionModule = NativeModules?.AuthSessionModule;
   const tabBarAnim = useRef(new Animated.Value(0)).current;
   const safeTopPx = Math.max(0, insets.top);
@@ -222,6 +223,7 @@ export default function WebAppScreen() {
 
   useEffect(() => {
     setShowPreloader(true);
+    shellStateReceivedRef.current = false;
   }, [webKey]);
 
   useEffect(() => {
@@ -413,11 +415,12 @@ export default function WebAppScreen() {
       }
 
       if (data?.type === "mobile-shell-state") {
+        shellStateReceivedRef.current = true;
         if (preloaderTimerRef.current) {
           clearTimeout(preloaderTimerRef.current);
           preloaderTimerRef.current = null;
         }
-        setShowPreloader(false);
+        setShowPreloader(Boolean(data?.loading));
         setShowTabBar(Boolean(data?.showTabBar) && !Boolean(data?.loading));
         if (data?.activeTab) {
           setActiveTab(normalizeMobileTab(data.activeTab));
@@ -453,6 +456,7 @@ export default function WebAppScreen() {
         onMessage={handleWebViewMessage}
         onShouldStartLoadWithRequest={() => true}
         onLoadStart={() => {
+          shellStateReceivedRef.current = false;
           if (preloaderTimerRef.current) {
             clearTimeout(preloaderTimerRef.current);
           }
@@ -463,9 +467,11 @@ export default function WebAppScreen() {
           if (preloaderTimerRef.current) {
             clearTimeout(preloaderTimerRef.current);
           }
-          // Fallback: hide preloader after 12s if mobile-shell-state never arrives
+          // Fallback: only hide preloader if the embedded app never reported shell state.
           preloaderTimerRef.current = setTimeout(() => {
-            setShowPreloader(false);
+            if (!shellStateReceivedRef.current) {
+              setShowPreloader(false);
+            }
             preloaderTimerRef.current = null;
           }, 12000);
           webViewRef.current?.injectJavaScript(buildMobileTabScript(activeTab));

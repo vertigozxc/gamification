@@ -136,6 +136,7 @@ function App() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [quests, setQuests] = useState([]);
   const [dataLoading, setDataLoading] = useState(false);
+  const [initialDataResolved, setInitialDataResolved] = useState(false);
   const [dataLoadError, setDataLoadError] = useState("");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showRerollConfirm, setShowRerollConfirm] = useState(false);
@@ -320,16 +321,17 @@ function App() {
 
     bridge.postMessage(JSON.stringify({
       type: "mobile-shell-state",
-      showTabBar: Boolean(authUser) && !authLoading && !dataLoading && !showOnboarding && !cityFullscreen && !showPinnedReplaceModal,
-      loading: Boolean(authLoading || dataLoading),
+      showTabBar: Boolean(authUser) && !authLoading && !dataLoading && initialDataResolved && !showOnboarding && !cityFullscreen && !showPinnedReplaceModal,
+      loading: Boolean(authLoading || dataLoading || (authUser && !initialDataResolved)),
       activeTab: mobileTab
     }));
-  }, [isEmbeddedApp, authUser, authLoading, dataLoading, showOnboarding, mobileTab, cityFullscreen, showPinnedReplaceModal]);
+  }, [isEmbeddedApp, authUser, authLoading, dataLoading, initialDataResolved, showOnboarding, mobileTab, cityFullscreen, showPinnedReplaceModal]);
 
   useEffect(() => {
     if (!authUser) {
       setState(createDefaultState());
       setQuests([]);
+      setInitialDataResolved(false);
       setCharacterName("Warrior");
       setNameDraft("Warrior");
       setPortraitData("");
@@ -370,10 +372,12 @@ function App() {
       setLeaderboard([]);
       setDataLoadError("");
       setDataLoading(false);
+      setInitialDataResolved(false);
       return;
     }
     const profileName = authUser.displayName || "Warrior";
     const profilePortrait = authUser.photoURL || "";
+    setInitialDataResolved(false);
     setDataLoading(true);
     setDataLoadError("");
     Promise.resolve()
@@ -389,6 +393,7 @@ function App() {
       .then((gameStateResponse) => Promise.all([Promise.resolve(gameStateResponse), fetchLeaderboard(), fetchAllQuests()]))
       .then(([gameStateResponse, { users }, allQuestsResponse]) => {
         setDataLoading(false);
+        setInitialDataResolved(true);
         applyServerTimeSync(gameStateResponse);
         const nextQuests = Array.isArray(gameStateResponse?.quests) ? gameStateResponse.quests.map(normalizeLocalizedQuest) : [];
         setQuests(nextQuests);
@@ -424,6 +429,7 @@ function App() {
       })
       .catch((err) => {
         setDataLoading(false);
+        setInitialDataResolved(true);
         setDataLoadError(err?.message || "Не удалось загрузить данные. Сервер просыпается (~1 мин). Нажмите «Повторить».");
       });
   }, [authUser, languageId]);
@@ -734,7 +740,7 @@ function App() {
 
   return (
     <>
-      {dataLoading ? <PortalPreloader title={t.loadingText} overlay /> : null}
+      {dataLoading && !isEmbeddedApp ? <PortalPreloader title={t.loadingText} overlay /> : null}
 
       {cityFullscreen && (
         <FullscreenCity
