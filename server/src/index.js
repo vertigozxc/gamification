@@ -1811,7 +1811,6 @@ app.post("/api/quests/complete", async (req, res) => {
     const pinnedQuestIds = parsePreferredQuestIds(user.preferredQuestIds, customIds);
     const isHabit = pinnedQuestIds.includes(quest.id) || isCustomQuestVirtualId(quest.id);
     const questForXp = isHabit ? { ...quest, xp: 30 } : quest;
-    const xpState = xpAfterQuest(user, questForXp, user.streak || 0);
     const previousPinnedQuestStreak = pinnedQuestIds.includes(quest.id)
       ? await getQuestConsecutiveDaysForUser(user.id, quest.id)
       : 0;
@@ -1824,12 +1823,7 @@ app.post("/api/quests/complete", async (req, res) => {
       where: { userId: user.id, dayKey }
     });
 
-    console.error(`[Quest Complete] questId: ${quest.id}, title: ${quest.title}, baseXp: ${questForXp.xp}, streak: ${user.streak}, multiplier: ${xpState.multiplier}, awardedXp: ${xpState.awardedXp}`);
-
     const milestoneReward = milestoneRewardForCount(todayCompletionsCount);
-    const xpStateWithMilestone = applyBonusXpProgress(xpState, milestoneReward.bonusXp);
-
-    let tokenIncrement = milestoneReward.bonusTokens;
     let habitMilestoneReached = false;
     let habitMilestoneTokens = 0;
 
@@ -1838,22 +1832,9 @@ app.post("/api/quests/complete", async (req, res) => {
       if (previousPinnedQuestStreak < 21 && nextPinnedQuestStreak >= 21) {
         habitMilestoneReached = true;
         habitMilestoneTokens = 10;
-        tokenIncrement += habitMilestoneTokens;
       }
     }
     
-    // Level up reward logic
-    if (xpStateWithMilestone.level > user.level) {
-      const levelsGained = xpStateWithMilestone.level - user.level;
-      for (let lvl = user.level + 1; lvl <= xpStateWithMilestone.level; lvl++) {
-        if (lvl >= 10) {
-          tokenIncrement += 2;
-        } else {
-          tokenIncrement += 1;
-        }
-      }
-    }
-
     const newStreak = calculateStreak(todayCompletionsCount, user.streak);
     const streakIncreased = newStreak > user.streak;
     const now = new Date();
@@ -1861,24 +1842,40 @@ app.post("/api/quests/complete", async (req, res) => {
     const lastIncreaseKey = user.lastStreakIncreaseAt ? getDateKey(user.lastStreakIncreaseAt) : null;
     const canIncreaseStreakToday = lastIncreaseKey !== todayKey;
 
-    const updateData = {
-      xp: xpStateWithMilestone.xp,
-      level: xpStateWithMilestone.level,
-      xpNext: xpStateWithMilestone.xpNext
-    };
+    // Atomic XP read+compute+write: lock the user row so concurrent completions
+    // (e.g. mobile + web simultaneously) cannot both read the same stale XP and
+    // overwrite each other, causing lost XP.
+    const baseTokenIncrement = milestoneReward.bonusTokens + (habitMilestoneReached ? habitMilestoneTokens : 0);
+    const { updatedUser, xpState, xpStateWithMilestone } = await prisma.$transaction(async (tx) => {
+      // Acquire an exclusive row lock so any concurrent transaction for the same
+      // user blocks here until this one commits.
+      await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${user.id} FOR UPDATE`;
+      const freshUser = await tx.user.findUnique({ where: { id: user.id } });
+      const freshXpState = xpAfterQuest(freshUser, questForXp, freshUser.streak || 0);
+      const freshXpStateWithMilestone = applyBonusXpProgress(freshXpState, milestoneReward.bonusXp);
 
-    if (tokenIncrement > 0) {
-      updateData.tokens = { increment: tokenIncrement };
-    }
+      let freshTokenIncrement = baseTokenIncrement;
+      if (freshXpStateWithMilestone.level > freshUser.level) {
+        for (let lvl = freshUser.level + 1; lvl <= freshXpStateWithMilestone.level; lvl++) {
+          freshTokenIncrement += lvl >= 10 ? 2 : 1;
+        }
+      }
 
-    if (streakIncreased && canIncreaseStreakToday) {
-      updateData.streak = newStreak;
-      updateData.lastStreakIncreaseAt = now;
-    }
+      const txUpdateData = {
+        xp: freshXpStateWithMilestone.xp,
+        level: freshXpStateWithMilestone.level,
+        xpNext: freshXpStateWithMilestone.xpNext
+      };
+      if (freshTokenIncrement > 0) {
+        txUpdateData.tokens = { increment: freshTokenIncrement };
+      }
+      if (streakIncreased && canIncreaseStreakToday) {
+        txUpdateData.streak = newStreak;
+        txUpdateData.lastStreakIncreaseAt = now;
+      }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: user.id },
-      data: updateData
+      const updated = await tx.user.update({ where: { id: user.id }, data: txUpdateData });
+      return { updatedUser: updated, xpState: freshXpState, xpStateWithMilestone: freshXpStateWithMilestone };
     });
 
     const productivityState = await updateAndReadProductivity(updatedUser, now, { updateTierState: true });
