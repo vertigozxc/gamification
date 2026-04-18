@@ -6,7 +6,7 @@ workers_dev = true
 [vars]
 # 0 = send all traffic to US (safe default for SQLite)
 # 1 = geo split between US and EU
-ENABLE_GEO_ROUTING = "0"
+ENABLE_GEO_ROUTING = "1"
 
 # After validating on workers.dev, bind to your production domain:
 # routes = [
