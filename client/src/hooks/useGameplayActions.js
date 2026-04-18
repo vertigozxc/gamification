@@ -573,7 +573,6 @@ function useGameplayActions({
     floatingTexts,
     addLog,
     completeQuest,
-    handleReroll,
     doReroll,
     handleResetDaily,
     handleHardReset,
