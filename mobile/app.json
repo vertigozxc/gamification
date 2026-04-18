@@ -30,7 +30,7 @@
       "package": "com.liferpg.mobile"
     },
     "extra": {
-      "apiBaseUrl": "https://api.life-rpg.app",
+      "apiBaseUrl": "https://life-rpg-api-router.evgeny-mahnach.workers.dev",
       "webAppUrl": "https://life-rpg-client.onrender.com"
     },
     "plugins": []
