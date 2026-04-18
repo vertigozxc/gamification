@@ -114,8 +114,7 @@ This repo is now prepared for a dual-region setup:
 - Global router endpoint used by web/mobile: `https://api.life-rpg.app`
 
 Important data note:
-- Current Prisma datasource is SQLite. Two regional APIs with separate SQLite disks will not share writes.
-- For production geo-routing, migrate to one shared Postgres database and point both API services to it.
+- Production should use one shared PostgreSQL database for both API regions.
 - Cloudflare Worker is configured with safe default `ENABLE_GEO_ROUTING=0` (all traffic to US) until shared DB is ready.
 
 Rollout steps (Render + Cloudflare):
@@ -134,7 +133,42 @@ Rollout steps (Render + Cloudflare):
 	- `x-liferpg-country`
 	- `x-liferpg-geo-enabled`
 8. Redeploy client and mobile app so they use `https://api.life-rpg.app`.
-9. After migrating to shared Postgres, set `ENABLE_GEO_ROUTING=1`.
+9. After shared Postgres is connected and validated in both regions, set `ENABLE_GEO_ROUTING=1`.
+
+### Shared PostgreSQL (US + EU) and Full Reset
+
+Use this when you want one common database for both regions and want to wipe all old data.
+
+1. Create one PostgreSQL instance (Render Postgres, Neon, Supabase, etc).
+2. Copy its connection string (`postgresql://...`).
+3. In Render set `DATABASE_URL` to the same value for both:
+	- `life-rpg-api-us`
+	- `life-rpg-api-eu`
+4. Keep `ENABLE_GEO_ROUTING=0` during migration/reset.
+
+Full reset (delete all data and recreate schema):
+
+1. In Render, scale `life-rpg-api-eu` to `0` instances.
+2. On `life-rpg-api-us`, open Shell and run:
+
+```bash
+npm run prisma:reset
+```
+
+3. Redeploy `life-rpg-api-us`.
+4. Scale `life-rpg-api-eu` back to `1` and redeploy it.
+5. Validate both regions:
+
+```bash
+curl -i https://life-rpg-api-us.onrender.com/healthz
+curl -i https://life-rpg-api-eu.onrender.com/healthz
+```
+
+6. After validation, set `ENABLE_GEO_ROUTING=1` in Cloudflare Worker.
+
+Notes:
+- `npm run prisma:reset` is destructive and wipes all application tables.
+- Use it only when you intentionally want a clean start.
 
 Quick verification:
 
