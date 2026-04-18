@@ -109,9 +109,11 @@ Health check endpoint:
 ### Multi-Region API (US + EU) + Geo Routing
 
 This repo is now prepared for a dual-region setup:
-- API US service: `life-rpg-api-us` (Oregon)
-- API EU service: `life-rpg-api-eu` (Frankfurt)
+- API US service: `life-rpg-api-us` (Oregon) → URL: `https://life-rpg-api.onrender.com`
+- API EU service: `life-rpg-api-eu` (Frankfurt) → URL: `https://life-rpg-api-eu.onrender.com`
 - Global router endpoint used by web/mobile: `https://api.life-rpg.app`
+
+**Note:** Render URLs differ from service names: `life-rpg-api-us` service → `life-rpg-api.onrender.com` URL (no suffix).
 
 Important data note:
 - Production should use one shared PostgreSQL database for both API regions.
@@ -160,7 +162,7 @@ npm run prisma:reset
 5. Validate both regions:
 
 ```bash
-curl -i https://life-rpg-api-us.onrender.com/healthz
+curl -i https://life-rpg-api.onrender.com/healthz
 curl -i https://life-rpg-api-eu.onrender.com/healthz
 ```
 

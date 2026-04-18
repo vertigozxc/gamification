@@ -1,4 +1,4 @@
-const US_ORIGIN = "https://life-rpg-api-us.onrender.com";
+const US_ORIGIN = "https://life-rpg-api.onrender.com";
 const EU_ORIGIN = "https://life-rpg-api-eu.onrender.com";
 
 function originForCountry(country) {
