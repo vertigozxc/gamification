@@ -41,6 +41,14 @@ function isAllowedLanOrigin(origin) {
 }
 
 const allowedOrigins = getAllowedOrigins();
+const oauthCallbackAllowedHosts = new Set([
+  "life-rpg-api.onrender.com",
+  "life-rpg-api-eu.onrender.com",
+  "life-rpg-api-router.evgeny-mahnach.workers.dev",
+  "api.life-rpg.app",
+  "localhost",
+  "127.0.0.1"
+]);
 
 app.use(cors({
   origin(origin, callback) {
@@ -53,7 +61,7 @@ app.use(cors({
     // which fetches /api/auth/mobile-token from itself.
     try {
       const u = new URL(origin);
-      if (u.hostname === "life-rpg-api.onrender.com" || u.hostname === "localhost" || u.hostname === "127.0.0.1") {
+      if (oauthCallbackAllowedHosts.has((u.hostname || "").toLowerCase())) {
         callback(null, true);
         return;
       }
