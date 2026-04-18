@@ -593,15 +593,67 @@ app.get("/api/auth/google-start", (req, res) => {
 app.get("/api/auth/google-callback", (req, res) => {
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Completing sign-in...</title>
-<style>body{margin:0;background:#020617;color:#cbd5e1;font-family:system-ui;padding:16px;font-size:13px}
-.spinner{width:32px;height:32px;border:3px solid #334155;border-top-color:#22d3ee;border-radius:50%;animation:spin .8s linear infinite;margin:24px auto}
-@keyframes spin{to{transform:rotate(360deg)}}
-#log{margin-top:16px;font-family:Menlo,monospace;font-size:11px;color:#94a3b8;white-space:pre-wrap;word-break:break-all}
-#msg{text-align:center;font-size:14px;color:#fde68a}</style>
+<title>Summoning Portal...</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#020617;color:#cbd5e1;font-family:system-ui;min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;overflow:hidden}
+.scene{position:relative;width:260px;height:260px;display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.aurora{position:absolute;border-radius:50%;filter:blur(48px);pointer-events:none}
+.aurora-l{width:150px;height:150px;left:14px;top:22px;background:rgba(56,189,248,.18)}
+.aurora-r{width:140px;height:140px;right:14px;top:8px;background:rgba(251,191,36,.15)}
+.stars{position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse at 30% 20%,rgba(148,163,184,.13) 0%,transparent 60%),radial-gradient(ellipse at 70% 70%,rgba(148,163,184,.08) 0%,transparent 55%)}
+.cityline{position:absolute;bottom:44px;left:50%;transform:translateX(-50%);display:flex;align-items:flex-end;gap:5px;opacity:.85}
+.tower{background:rgba(15,23,42,.95);border:1px solid rgba(148,163,184,.18);border-radius:8px 8px 0 0}
+.platform{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);width:160px;height:18px;border-radius:999px;background:rgba(15,23,42,.92);border:1px solid rgba(251,191,36,.24)}
+.beam{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:80px;height:180px;border-radius:999px;background:rgba(56,189,248,.07);box-shadow:0 0 40px 8px rgba(56,189,248,.12)}
+.ring{position:absolute;left:50%;top:50%;border-radius:50%;border-style:solid}
+.ring-outer{width:170px;height:170px;margin:-85px 0 0 -85px;border-width:2px;border-color:rgba(251,191,36,.4);border-top-color:rgba(251,191,36,.92);border-bottom-color:rgba(56,189,248,.5);animation:spin-cw 7.2s linear infinite}
+.ring-middle{width:130px;height:130px;margin:-65px 0 0 -65px;border-width:1.5px;border-color:rgba(56,189,248,.28);border-top-color:rgba(56,189,248,.8);border-bottom-color:rgba(251,191,36,.4);animation:spin-ccw 5.2s linear infinite}
+.ring-inner{width:90px;height:90px;margin:-45px 0 0 -45px;border-width:1.5px;border-color:rgba(251,191,36,.22);border-top-color:rgba(251,191,36,.7);animation:spin-cw 3.8s linear infinite}
+.core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);animation:breathe 3s ease-in-out infinite}
+.core-glow{width:44px;height:44px;border-radius:50%;background:radial-gradient(ellipse,rgba(56,189,248,.55) 0%,rgba(251,191,36,.25) 50%,transparent 72%);filter:blur(6px);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+.core-sigil{width:28px;height:28px;border-radius:50%;border:2px solid rgba(251,191,36,.75);background:rgba(15,23,42,.92);position:relative}
+.core-sigil::before{content:'';position:absolute;inset:5px;border-radius:50%;border:1.5px solid rgba(56,189,248,.7);background:rgba(56,189,248,.12)}
+.orbit{position:absolute;left:50%;top:50%;border-radius:50%;border:1px solid rgba(148,163,184,.1)}
+.orbit-a{width:200px;height:200px;margin:-100px 0 0 -100px;animation:spin-cw 18s linear infinite}
+.orbit-a::after{content:'';position:absolute;width:6px;height:6px;border-radius:50%;background:rgba(56,189,248,.85);box-shadow:0 0 6px rgba(56,189,248,.7);top:-3px;left:50%;margin-left:-3px}
+.orbit-b{width:228px;height:228px;margin:-114px 0 0 -114px;animation:spin-ccw 24s linear infinite}
+.orbit-b::after{content:'';position:absolute;width:5px;height:5px;border-radius:50%;background:rgba(251,191,36,.85);box-shadow:0 0 6px rgba(251,191,36,.7);top:-2.5px;left:50%;margin-left:-2.5px}
+.orbit-c{width:252px;height:252px;margin:-126px 0 0 -126px;animation:spin-cw 30s linear infinite}
+.orbit-c::after{content:'';position:absolute;width:4px;height:4px;border-radius:50%;background:rgba(251,191,36,.7);box-shadow:0 0 4px rgba(251,191,36,.6);top:-2px;left:50%;margin-left:-2px}
+@keyframes spin-cw{to{transform:rotate(360deg)}}
+@keyframes spin-ccw{to{transform:rotate(-360deg)}}
+@keyframes breathe{0%,100%{transform:translate(-50%,-50%) scale(.92)}50%{transform:translate(-50%,-50%) scale(1.05)}}
+#msg{font-size:15px;color:#fde68a;letter-spacing:.08em;font-variant:small-caps;text-shadow:0 0 12px rgba(251,191,36,.4)}
+#log{display:none}
+</style>
 </head><body>
-<div class="spinner"></div>
-<div id="msg">Completing sign-in...</div>
+<div class="scene">
+  <div class="aurora aurora-l"></div>
+  <div class="aurora aurora-r"></div>
+  <div class="stars"></div>
+  <div class="cityline">
+    <div class="tower" style="width:16px;height:38px"></div>
+    <div class="tower" style="width:20px;height:54px"></div>
+    <div class="tower" style="width:13px;height:30px"></div>
+    <div class="tower" style="width:24px;height:68px"></div>
+    <div class="tower" style="width:15px;height:44px"></div>
+    <div class="tower" style="width:18px;height:52px"></div>
+  </div>
+  <div class="platform"></div>
+  <div class="beam"></div>
+  <div class="ring ring-outer"></div>
+  <div class="ring ring-middle"></div>
+  <div class="ring ring-inner"></div>
+  <div class="orbit orbit-a"></div>
+  <div class="orbit orbit-b"></div>
+  <div class="orbit orbit-c"></div>
+  <div class="core">
+    <div class="core-glow"></div>
+    <div class="core-sigil"></div>
+  </div>
+</div>
+<div id="msg">Summoning Portal...</div>
 <div id="log"></div>
 <script>
 (function(){
