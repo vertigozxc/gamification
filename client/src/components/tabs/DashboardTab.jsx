@@ -6,6 +6,7 @@ export default function DashboardTab({
   streakFreezeActive, streakBonusPercent = 0,
   pinnedQuests, otherQuests, pinnedQuestProgressById,
   canReroll, allRandomCompleted, questRenderCount,
+  pendingQuestIds,
   resetTimer,
   onResetDaily, onHardReset, onAddXp,
   onReroll, onCompleteQuest,
@@ -107,6 +108,7 @@ export default function DashboardTab({
           rerollButtonLabel={rerollButtonLabel}
           rerollButtonTitle={rerollButtonTitle}
           completedIds={state.completed}
+          pendingQuestIds={pendingQuestIds}
           questRenderCount={questRenderCount}
           onCompleteQuest={onCompleteQuest}
           resetTimer={resetTimer}

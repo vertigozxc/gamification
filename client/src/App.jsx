@@ -561,6 +561,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
 
   const {
     floatingTexts,
+    pendingQuestIds,
     addLog,
     completeQuest,
     handleReroll,
@@ -998,6 +999,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 canReroll={canReroll}
                 allRandomCompleted={allRandomCompleted}
                 questRenderCount={questRenderCountRef.current}
+                pendingQuestIds={pendingQuestIds}
                 resetTimer={resetTimer}
                 onResetDaily={handleResetDaily}
                 onHardReset={handleHardReset}
@@ -1087,6 +1089,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             pinnedQuestProgressById={pinnedQuestProgressById}
             canReroll={canReroll}
             questRenderCount={questRenderCountRef.current}
+            pendingQuestIds={pendingQuestIds}
             onReroll={() => handleReroll(completedToday, canReroll)}
             onCompleteQuest={handleQuestCompleteWrapper}
             rerollButtonLabel={rerollButtonLabel}

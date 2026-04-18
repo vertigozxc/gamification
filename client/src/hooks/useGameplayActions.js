@@ -38,6 +38,7 @@ function useGameplayActions({
   vocab
 }) {
   const [floatingTexts, setFloatingTexts] = useState([]);
+  const [pendingQuestIds, setPendingQuestIds] = useState([]);
   const [freezeStreakPending, setFreezeStreakPending] = useState(false);
   const [rerollingQuestId, setRerollingQuestId] = useState(null);
   const [rerollingPinned, setRerollingPinned] = useState(false);
@@ -142,20 +143,8 @@ function useGameplayActions({
       return;
     }
 
-    setState((prev) => {
-      if (Array.isArray(prev.completed) && prev.completed.includes(questId)) {
-        return prev;
-      }
-      return {
-        ...prev,
-        completed: [...prev.completed, questId]
-      };
-    });
-
     completionInFlightRef.current.add(questId);
-
-    // Optimistic: show estimated XP immediately
-    spawnFloatingText(pointerX, pointerY, `+${quest.xp} ${vocab?.xpLabel || "XP"}`, "text-yellow-300 text-lg");
+    setPendingQuestIds((prev) => (prev.includes(questId) ? prev : [...prev, questId]));
 
     const runCompletion = async () => {
       let completionResult;
@@ -186,15 +175,12 @@ function useGameplayActions({
           } catch (_) {
             // Keep optimistic completion if server says already completed but refresh failed.
           }
+          setPendingQuestIds((prev) => prev.filter((id) => id !== questId));
           completionInFlightRef.current.delete(questId);
           return;
         }
 
-        // Rollback optimistic update
-        setState(prev => ({
-          ...prev,
-          completed: prev.completed.filter(id => id !== questId)
-        }));
+        setPendingQuestIds((prev) => prev.filter((id) => id !== questId));
         trackEvent("quest_complete_failed", { questId, message: err?.message });
         addLog(vocab?.questCompletionFailed || "Quest completion failed. Please try again.", "text-red-400 font-bold");
         completionInFlightRef.current.delete(questId);
@@ -326,6 +312,7 @@ function useGameplayActions({
         });
         questRenderCountRef.current += 1;
       } finally {
+        setPendingQuestIds((prev) => prev.filter((id) => id !== questId));
         completionInFlightRef.current.delete(questId);
       }
     };
@@ -614,6 +601,7 @@ function useGameplayActions({
 
   return {
     floatingTexts,
+    pendingQuestIds,
     addLog,
     completeQuest,
     doReroll,

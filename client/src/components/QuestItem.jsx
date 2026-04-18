@@ -23,8 +23,10 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
     };
   }, []);
 
+  const isPending = Boolean(quest?.isPending);
+
   const handlePointerDown = useCallback((e) => {
-    if (isDone || !isLongTapOnly) return;
+    if (isDone || isPending || !isLongTapOnly) return;
     longPressTriggered.current = false;
     longPressTimer.current = setTimeout(() => {
       if ('vibrate' in navigator) navigator.vibrate(100);
@@ -32,7 +34,7 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
       setShowTapHint(false);
       onCompleteQuest(quest, e);
     }, 500); // 500ms long tap
-  }, [quest, isDone, onCompleteQuest, isLongTapOnly]);
+  }, [quest, isDone, isPending, onCompleteQuest, isLongTapOnly]);
 
   const handlePointerUp = useCallback((e) => {
     if (longPressTimer.current) {
@@ -41,7 +43,7 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
   }, []);
 
   const handleClick = useCallback((e) => {
-    if (isDone) return;
+    if (isDone || isPending) return;
     if (!isLongTapOnly) {
       onCompleteQuest(quest, e);
       return;
@@ -51,7 +53,7 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
       return;
     }
     showHintPopup();
-  }, [quest, isDone, onCompleteQuest, isLongTapOnly, showHintPopup]);
+  }, [quest, isDone, isPending, onCompleteQuest, isLongTapOnly, showHintPopup]);
 
   if (isRerolling) {
     return (
@@ -73,7 +75,7 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
 
   return (
     <div
-      className={`qb-quest-item mobile-pressable ${isDone ? "qb-quest-done" : ""}`}
+      className={`qb-quest-item mobile-pressable ${isDone ? "qb-quest-done" : ""} ${isPending ? "qb-quest-pending" : ""}`}
       style={!isDone && questRenderCount === 0 ? { animationDelay: `${index * 0.06}s`, position: "relative" } : { position: "relative" }}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
@@ -95,7 +97,13 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
         </div>
       </div>
       {children}
-      {showTapHint && !isDone ? (
+      {isPending ? (
+        <div className="qb-pending-overlay" aria-live="polite">
+          <div className="qb-pending-spinner" aria-hidden="true" />
+          <span>{t?.questCompletingLabel || "Завершаем"}</span>
+        </div>
+      ) : null}
+      {showTapHint && !isDone && !isPending ? (
         <div
           style={{
             position: "absolute",

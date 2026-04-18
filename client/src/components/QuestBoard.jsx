@@ -13,6 +13,7 @@ function QuestBoard({
   rerollButtonLabel,
   rerollButtonTitle,
   completedIds,
+  pendingQuestIds = [],
   questRenderCount,
   onCompleteQuest,
   resetTimer,
@@ -35,6 +36,7 @@ function QuestBoard({
   const [pinnedListRef] = useAutoAnimate();
   const [otherListRef] = useAutoAnimate();
   const [fallbackListRef] = useAutoAnimate();
+  const pendingSet = useMemo(() => new Set(Array.isArray(pendingQuestIds) ? pendingQuestIds : []), [pendingQuestIds]);
 
   const sortQuests = useCallback((quests) => {
     return [...quests].sort((a, b) => {
@@ -111,13 +113,14 @@ function QuestBoard({
             <div ref={pinnedListRef} className={`grid grid-cols-1 ${compact ? "gap-3" : "md:grid-cols-2 gap-3"}`}>
               {sortedPinnedQuests.map((quest, index) => {
                 const isDone = completedIds.includes(quest.id);
+                const isPending = pendingSet.has(quest.id);
                 const pinnedProgress = pinnedQuestProgressById?.[quest.id] || { daysCompleted: 0, totalDays: 21 };
                 const progressPercent = Math.max(0, Math.min(100, (pinnedProgress.daysCompleted / pinnedProgress.totalDays) * 100));
 
                 return (
                   <QuestItem
                     key={`pinned-${quest.id}`}
-                    quest={quest}
+                    quest={{ ...quest, isPending }}
                     index={index}
                     isDone={isDone}
                     questRenderCount={questRenderCount}
@@ -149,10 +152,11 @@ function QuestBoard({
             <div ref={otherListRef} className={`grid grid-cols-1 ${compact ? "gap-3" : "md:grid-cols-2 gap-3"}`}>
               {sortedOtherQuests.map((quest, index) => {
                 const isDone = completedIds.includes(quest.id);
+                const isPending = pendingSet.has(quest.id);
                 return (
                   <QuestItem
                     key={quest.id}
-                    quest={quest}
+                    quest={{ ...quest, isPending }}
                     index={index}
                     isDone={isDone}
                     questRenderCount={questRenderCount}
@@ -189,10 +193,11 @@ function QuestBoard({
             <div ref={fallbackListRef} className={`grid grid-cols-1 ${compact ? "gap-3" : "md:grid-cols-2 gap-3"}`}>
               {sortedOtherQuests.map((quest, index) => {
                 const isDone = completedIds.includes(quest.id);
+                const isPending = pendingSet.has(quest.id);
                 return (
                   <QuestItem
                     key={quest.id}
-                    quest={quest}
+                    quest={{ ...quest, isPending }}
                     index={index}
                     isDone={isDone}
                     questRenderCount={questRenderCount}
@@ -247,6 +252,7 @@ QuestBoard.propTypes = {
   rerollButtonLabel: PropTypes.string.isRequired,
   rerollButtonTitle: PropTypes.string.isRequired,
   completedIds: PropTypes.arrayOf(PropTypes.number).isRequired,
+  pendingQuestIds: PropTypes.arrayOf(PropTypes.number),
   questRenderCount: PropTypes.number.isRequired,
   onCompleteQuest: PropTypes.func.isRequired,
   resetTimer: PropTypes.string.isRequired,

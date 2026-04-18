@@ -12,6 +12,7 @@ export default function DesktopLayout({
   streakBonusPercent, weekResetTimer,
   pinnedQuests, otherQuests, pinnedQuestProgressById,
   canReroll, questRenderCount,
+  pendingQuestIds,
   onReroll, onCompleteQuest, rerollButtonLabel, rerollButtonTitle,
   rerollingQuestId, rerollingPinned,
   resetTimer, leaderboard, authUser, logs,
@@ -52,6 +53,7 @@ export default function DesktopLayout({
           canRerollRandom={canReroll} onRerollRandom={onReroll}
           rerollButtonLabel={rerollButtonLabel} rerollButtonTitle={rerollButtonTitle}
           completedIds={state.completed} questRenderCount={questRenderCount}
+          pendingQuestIds={pendingQuestIds}
           onCompleteQuest={onCompleteQuest} resetTimer={resetTimer}
           streakFreezeActive={state.streakFreezeActive}
           rerollingQuestId={rerollingQuestId}
