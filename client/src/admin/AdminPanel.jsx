@@ -66,6 +66,43 @@ function safeJson(meta) {
   }
 }
 
+function firstEmail(text) {
+  if (!text) return "";
+  const m = String(text).match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+  return m ? m[0] : "";
+}
+
+function resolveEventEmail(event) {
+  const metaRaw = event?.meta;
+  if (metaRaw && typeof metaRaw === "object" && !Array.isArray(metaRaw)) {
+    if (metaRaw.actorEmail) return String(metaRaw.actorEmail);
+    if (metaRaw.email) return String(metaRaw.email);
+    if (metaRaw.userEmail) return String(metaRaw.userEmail);
+  }
+
+  let metaText = "";
+  if (typeof metaRaw === "string") {
+    metaText = metaRaw;
+    try {
+      const parsed = JSON.parse(metaRaw);
+      if (parsed && typeof parsed === "object") {
+        if (parsed.actorEmail) return String(parsed.actorEmail);
+        if (parsed.email) return String(parsed.email);
+        if (parsed.userEmail) return String(parsed.userEmail);
+      }
+    } catch {
+      // ignore parse error
+    }
+  }
+
+  return (
+    firstEmail(event?.username) ||
+    firstEmail(event?.message) ||
+    firstEmail(metaText) ||
+    ""
+  );
+}
+
 function humanizeType(type) {
   return String(type || "unknown")
     .replace(/[._-]+/g, " ")
@@ -410,6 +447,7 @@ export default function AdminPanel() {
                   <th style={styles.th}>Meaning</th>
                   <th style={styles.th}>Recommended action</th>
                   <th style={styles.th}>User</th>
+                  <th style={styles.th}>Google email</th>
                   <th style={styles.th}>Platform</th>
                   <th style={styles.th}>Message</th>
                 </tr>
@@ -419,6 +457,7 @@ export default function AdminPanel() {
                   <tr key={e.id} style={styles.tr}>
                     {(() => {
                       const d = describeEvent(e);
+                      const email = resolveEventEmail(e);
                       return (
                         <>
                     <td style={styles.td}>{fmtTime(e.createdAt)}</td>
@@ -427,6 +466,7 @@ export default function AdminPanel() {
                     <td style={styles.tdMeaning}>{d.meaning}<div style={styles.impactTag}>Impact: {d.impact}</div></td>
                     <td style={styles.tdMeaning}>{d.action}</td>
                     <td style={styles.td}>{e.username || e.userId || "—"}</td>
+                    <td style={styles.tdEmail}>{email || "not provided"}</td>
                     <td style={styles.td}>{e.platform || "—"}</td>
                     <td style={styles.tdWide}>
                       <div style={{ whiteSpace: "pre-wrap" }}>{e.message || "—"}</div>

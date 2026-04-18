@@ -260,12 +260,13 @@ function App() {
       if (authUser) {
         mod.setEventContext({
           userId: authUser.uid,
-          username: authUser.displayName || authUser.email || authUser.uid
+          username: authUser.displayName || authUser.email || authUser.uid,
+          email: authUser.email || ""
         });
         ab.ensureAssignments(authUser.uid);
         mod.logEvent("auth_login", { meta: { provider: "firebase" } });
       } else {
-        mod.setEventContext({ userId: "", username: "" });
+        mod.setEventContext({ userId: "", username: "", email: "" });
         ab.ensureAssignments("");
       }
     }).catch(() => {});

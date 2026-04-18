@@ -6,7 +6,7 @@ const FLUSH_INTERVAL_MS = 5000;
 
 let apiBase = "";
 let platform = "web";
-let context = { userId: "", username: "" };
+let context = { userId: "", username: "", email: "" };
 let abVariants = {};
 let queue = [];
 let flushTimer = null;
@@ -56,7 +56,8 @@ export function configureEventLogger(options = {}) {
 export function setEventContext(nextContext = {}) {
   context = {
     userId: String(nextContext.userId || "").slice(0, 200),
-    username: String(nextContext.username || "").slice(0, 200)
+    username: String(nextContext.username || "").slice(0, 200),
+    email: String(nextContext.email || "").slice(0, 200)
   };
 }
 
@@ -128,7 +129,11 @@ export function logEvent(type, data = {}) {
     stack: typeof data.stack === "string" ? data.stack.slice(0, 4000) : "",
     url: typeof window !== "undefined" ? String(window.location?.href || "").slice(0, 500) : "",
     userAgent: typeof navigator !== "undefined" ? String(navigator.userAgent || "").slice(0, 400) : "",
-    meta: Object.keys(meta).length > 0 ? meta : null
+    meta: (() => {
+      const merged = { ...meta };
+      if (context.email && !merged.actorEmail) merged.actorEmail = context.email;
+      return Object.keys(merged).length > 0 ? merged : null;
+    })()
   };
 
   queue.push(evt);
