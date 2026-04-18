@@ -3,11 +3,10 @@ import { useRef, useCallback, useEffect, useState } from "react";
 export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, onCompleteQuest, children, isLongTapOnly }) {
   const longPressTimer = useRef(null);
   const hintTimer = useRef(null);
-  const lastTapTime = useRef(0);
   const longPressTriggered = useRef(false);
   const [showTapHint, setShowTapHint] = useState(false);
 
-  const tapHintText = t.questCompleteGestureHint || "Double-tap or long-press to complete";
+  const tapHintText = t.questCompleteGestureHint || "Long-press to complete";
 
   const showHintPopup = useCallback(() => {
     setShowTapHint(true);
@@ -51,15 +50,7 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
       longPressTriggered.current = false;
       return;
     }
-    const now = Date.now();
-    if (now - lastTapTime.current < 400) { // 400ms double tap
-      setShowTapHint(false);
-      onCompleteQuest(quest, e);
-      lastTapTime.current = 0;
-    } else {
-      lastTapTime.current = now;
-      showHintPopup();
-    }
+    showHintPopup();
   }, [quest, isDone, onCompleteQuest, isLongTapOnly, showHintPopup]);
 
   return (
