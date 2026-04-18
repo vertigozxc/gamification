@@ -13,6 +13,7 @@ export default function DesktopLayout({
   pinnedQuests, otherQuests, pinnedQuestProgressById,
   canReroll, questRenderCount,
   onReroll, onCompleteQuest, rerollButtonLabel, rerollButtonTitle,
+  rerollingQuestId, rerollingPinned,
   resetTimer, leaderboard, authUser, logs,
   canRerollPinned, isFreePinnedReroll, daysUntilFreePinnedReroll,
   onOpenPinnedReplacement, onFreezeStreak, onBuyExtraReroll,
@@ -53,6 +54,8 @@ export default function DesktopLayout({
           completedIds={state.completed} questRenderCount={questRenderCount}
           onCompleteQuest={onCompleteQuest} resetTimer={resetTimer}
           streakFreezeActive={state.streakFreezeActive}
+          rerollingQuestId={rerollingQuestId}
+          rerollingPinned={rerollingPinned}
         />
         <SidePanels leaderboard={leaderboard} authUser={authUser} logs={logs} />
       </div>

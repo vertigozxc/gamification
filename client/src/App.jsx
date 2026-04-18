@@ -563,7 +563,9 @@ function App() {
     handleBuyExtraReroll,
     handleRerollPinned,
     handleFreezeStreak,
-    freezeStreakPending
+    freezeStreakPending,
+    rerollingQuestId,
+    rerollingPinned
   } = useGameplayActions({
     authUser,
     state,
@@ -664,12 +666,16 @@ function App() {
           setAvatarError("Failed to compress image. Try a different photo.");
           return;
         }
+        const prevPortrait = portraitData;
         setPortraitData(compressed);
         addLog(t.characterPortraitUpdated, "text-yellow-400 font-bold");
         upsertProfile(authUser.uid, characterName || "Warrior", compressed)
           .then(() => fetchLeaderboard())
           .then(({ users }) => setLeaderboard(users || []))
-          .catch(() => {});
+          .catch(() => {
+            setPortraitData(prevPortrait);
+            setAvatarError("Failed to save portrait. Please try again.");
+          });
       } catch {
         setAvatarError("Something went wrong. Please try a different image.");
       }
@@ -697,12 +703,16 @@ function App() {
   function submitNameEdit() {
     const trimmed = nameDraft.trim();
     if (trimmed && trimmed !== characterName) {
+      const prevName = characterName;
       saveCharacterName(trimmed);
       addLog(tf("characterNameChanged", { name: trimmed }), "text-yellow-400 font-bold");
       upsertProfile(authUser.uid, trimmed, portraitData || "")
         .then(() => fetchLeaderboard())
         .then(({ users }) => setLeaderboard(users || []))
-        .catch(() => {});
+        .catch(() => {
+          setCharacterName(prevName);
+          addLog(t.saveNameFailed || "Failed to save name. Please try again.", "text-red-400 font-bold");
+        });
     }
     setEditingName(false);
   }
@@ -910,6 +920,8 @@ function App() {
                 onCompleteQuest={handleQuestCompleteWrapper}
                 rerollButtonLabel={rerollButtonLabel}
                 rerollButtonTitle={rerollButtonTitle}
+                rerollingQuestId={rerollingQuestId}
+                rerollingPinned={rerollingPinned}
               />
             ) : null}
 
@@ -993,6 +1005,8 @@ function App() {
             onCompleteQuest={handleQuestCompleteWrapper}
             rerollButtonLabel={rerollButtonLabel}
             rerollButtonTitle={rerollButtonTitle}
+            rerollingQuestId={rerollingQuestId}
+            rerollingPinned={rerollingPinned}
             resetTimer={resetTimer}
             leaderboard={leaderboard}
             authUser={authUser}

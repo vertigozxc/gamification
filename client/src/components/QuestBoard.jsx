@@ -17,6 +17,8 @@ function QuestBoard({
   onCompleteQuest,
   resetTimer,
   streakFreezeActive,
+  rerollingQuestId = null,
+  rerollingPinned = false,
   compact = false
 }) {
   const { t } = useTheme();
@@ -123,6 +125,7 @@ function QuestBoard({
                     t={t}
                     onCompleteQuest={onCompleteQuest}
                     isLongTapOnly={true}
+                    isRerolling={rerollingPinned}
                   >
                     <div className="mt-2.5 pl-9 pointer-events-none">
                       <div className="flex items-center gap-2 mb-1">
@@ -157,6 +160,7 @@ function QuestBoard({
                     t={t}
                     onCompleteQuest={onCompleteQuest}
                     isLongTapOnly={true}
+                    isRerolling={quest.id === rerollingQuestId}
                   />
                 );
               })}
@@ -196,6 +200,7 @@ function QuestBoard({
                     t={t}
                     onCompleteQuest={onCompleteQuest}
                     isLongTapOnly={true}
+                    isRerolling={quest.id === rerollingQuestId}
                   />
                 );
               })}

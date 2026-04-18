@@ -38,6 +38,8 @@ function useGameplayActions({
 }) {
   const [floatingTexts, setFloatingTexts] = useState([]);
   const [freezeStreakPending, setFreezeStreakPending] = useState(false);
+  const [rerollingQuestId, setRerollingQuestId] = useState(null);
+  const [rerollingPinned, setRerollingPinned] = useState(false);
 
   function normalizePinnedQuestProgress(items) {
     if (!Array.isArray(items)) {
@@ -122,10 +124,22 @@ function useGameplayActions({
   async function completeQuest(quest, event) {
     if (state.completed.includes(quest.id)) return;
 
+    // Optimistic: mark as completed immediately + show estimated XP
+    setState(prev => ({
+      ...prev,
+      completed: [...prev.completed, quest.id]
+    }));
+    spawnFloatingText(event.clientX, event.clientY, `+${quest.xp} ${vocab?.xpLabel || "XP"}`, "text-yellow-300 text-lg");
+
     let completionResult;
     try {
       completionResult = await completeQuestOnServer(authUser.uid, quest.id);
     } catch (err) {
+      // Rollback optimistic update
+      setState(prev => ({
+        ...prev,
+        completed: prev.completed.filter(id => id !== quest.id)
+      }));
       trackEvent("quest_complete_failed", { questId: quest.id, message: err?.message });
       addLog(vocab?.questCompletionFailed || "Quest completion failed. Please try again.", "text-red-400 font-bold");
       return;
@@ -144,21 +158,7 @@ function useGameplayActions({
     const leveledUp = gameState.level > state.lvl;
     const streakIncreased = response.streak > state.streak;
 
-    const nextState = {
-      ...state,
-      xp: gameState.xp,
-      lvl: gameState.level,
-      xpNext: gameState.xpNext,
-      streak: response.streak,
-      tokens: gameState.tokens,
-      productivity: response?.productivity ?? state.productivity,
-      pinnedQuestProgress21d: normalizePinnedQuestProgress(response?.pinnedQuestProgress21d),
-      completed: [...state.completed, quest.id],
-      logs: [...state.logs]
-    };
-
-    spawnFloatingText(event.clientX, event.clientY, `+${actualXpGain} ${vocab?.xpLabel || "XP"}`, "text-yellow-300 text-lg");
-
+    // Show milestone bonus XP/tokens (base XP already shown optimistically)
     if (milestoneBonusXp > 0) {
       spawnFloatingText(event.clientX, event.clientY - 80, `🏅 +${milestoneBonusXp} ${vocab?.xpLabel || "XP"}`, "text-cyan-300 text-sm font-bold");
     }
@@ -203,9 +203,11 @@ function useGameplayActions({
       level: gameState.level
     });
 
+    const newLogEntries = [];
+
     if (leveledUp) {
       trackEvent("level_up", { from: state.lvl, to: gameState.level });
-      nextState.logs.push({
+      newLogEntries.push({
         msg: (vocab?.levelUpAnnounce || "🎉 ⭐ {prefix} UP! {levelLabel} {level}! ⭐ 🎉")
           .replace("{prefix}", vocab?.levelUpPrefix || "LEVEL")
           .replace("{levelLabel}", vocab?.levelLabel || "Level")
@@ -239,7 +241,7 @@ function useGameplayActions({
               : ""
           )
       : "";
-    nextState.logs.push({
+    newLogEntries.push({
       msg: (vocab?.questCompletionLog || "✔️ {title} (+{xp} {xpLabel}, {streakLabel}: {streak}{milestoneSuffix})")
         .replace("{title}", quest.title)
         .replace("{xp}", String(actualXpGain))
@@ -251,7 +253,18 @@ function useGameplayActions({
       timestamp: getTimestamp()
     });
 
-    setState(nextState);
+    setState(prev => ({
+      ...prev,
+      xp: gameState.xp,
+      lvl: gameState.level,
+      xpNext: gameState.xpNext,
+      streak: response.streak,
+      tokens: gameState.tokens,
+      productivity: response?.productivity ?? prev.productivity,
+      pinnedQuestProgress21d: normalizePinnedQuestProgress(response?.pinnedQuestProgress21d),
+      completed: prev.completed.includes(quest.id) ? prev.completed : [...prev.completed, quest.id],
+      logs: [...prev.logs, ...newLogEntries]
+    }));
     questRenderCountRef.current += 1;
   }
 
@@ -262,6 +275,7 @@ function useGameplayActions({
 
   async function doReroll(targetQuestId) {
     setShowRerollConfirm(false);
+    setRerollingQuestId(targetQuestId || null);
     trackEvent("quest_reroll_requested", { targetQuestId });
     try {
       // Exclude categories already shown by non-pinned quests that stay locked (completed quests).
@@ -311,6 +325,8 @@ function useGameplayActions({
     } catch (err) {
       trackEvent("quest_reroll_failed", { message: err?.message });
       addLog(vocab?.rerollFailed || "Reroll failed. Please try again.", "text-red-400 font-bold");
+    } finally {
+      setRerollingQuestId(null);
     }
   }
 
@@ -409,8 +425,7 @@ function useGameplayActions({
       return;
     }
     
-
-
+    setRerollingPinned(true);
     try {
       const result = await rerollPinned(authUser.uid, !isFree);
       trackEvent("pinned_quests_rerolled", { paid: !isFree, tokens: result.tokens });
@@ -438,18 +453,27 @@ function useGameplayActions({
       }));
     } catch (err) {
       addLog(err?.message || vocab?.rerollPinnedFailed || "Reroll pinned failed.", "text-red-400 font-bold");
+    } finally {
+      setRerollingPinned(false);
     }
   }
 
 
   async function handleBuyExtraReroll() {
+    // Optimistic: deduct token and increment reroll count immediately
+    setState(prev => ({
+      ...prev,
+      tokens: prev.tokens - 1,
+      extraRerollsToday: prev.extraRerollsToday + 1
+    }));
     try {
       const result = await buyExtraReroll(authUser.uid);
       trackEvent("extra_reroll_purchased", { tokens: result.tokens, extraRerollsToday: result?.extraRerollsToday });
+      // Confirm with real server values
       setState((prev) => ({
         ...prev,
         tokens: result.tokens,
-        extraRerollsToday: Number(result?.extraRerollsToday ?? prev.extraRerollsToday + 1),
+        extraRerollsToday: Number(result?.extraRerollsToday ?? prev.extraRerollsToday),
         logs: [
           ...prev.logs,
           {
@@ -460,6 +484,12 @@ function useGameplayActions({
         ]
       }));
     } catch (err) {
+      // Rollback
+      setState(prev => ({
+        ...prev,
+        tokens: prev.tokens + 1,
+        extraRerollsToday: Math.max(0, prev.extraRerollsToday - 1)
+      }));
       addLog(err?.message || vocab?.purchaseFailed || "Purchase failed. Please try again.", "text-red-400 font-bold");
     }
   }
@@ -470,9 +500,17 @@ function useGameplayActions({
     }
 
     setFreezeStreakPending(true);
+    // Optimistic: deduct tokens and activate freeze immediately
+    setState(prev => ({
+      ...prev,
+      tokens: prev.tokens - 3,
+      streakFreezeActive: true
+    }));
+    setShowFreezeSuccess(true);
     try {
       const result = await freezeStreak(authUser.uid);
       trackEvent("streak_freeze_activated", { tokens: result.tokens });
+      // Confirm with real server token count
       setState((prev) => ({
         ...prev,
         tokens: result.tokens,
@@ -486,8 +524,14 @@ function useGameplayActions({
           }
         ]
       }));
-      setShowFreezeSuccess(true);
     } catch (err) {
+      // Rollback
+      setState(prev => ({
+        ...prev,
+        tokens: prev.tokens + 3,
+        streakFreezeActive: false
+      }));
+      setShowFreezeSuccess(false);
       addLog(err?.message || vocab?.purchaseFailed || "Purchase failed. Please try again.", "text-red-400 font-bold");
     } finally {
       setFreezeStreakPending(false);
@@ -505,7 +549,9 @@ function useGameplayActions({
     handleRerollPinned,
     handleBuyExtraReroll,
     handleFreezeStreak,
-    freezeStreakPending
+    freezeStreakPending,
+    rerollingQuestId,
+    rerollingPinned
   };
 }
 

@@ -9,7 +9,8 @@ export default function DashboardTab({
   resetTimer,
   onResetDaily, onHardReset, onAddXp,
   onReroll, onCompleteQuest,
-  rerollButtonLabel, rerollButtonTitle
+  rerollButtonLabel, rerollButtonTitle,
+  rerollingQuestId, rerollingPinned
 }) {
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
@@ -110,6 +111,8 @@ export default function DashboardTab({
           onCompleteQuest={onCompleteQuest}
           resetTimer={resetTimer}
           streakFreezeActive={state.streakFreezeActive}
+          rerollingQuestId={rerollingQuestId}
+          rerollingPinned={rerollingPinned}
           compact
         />
       </div>

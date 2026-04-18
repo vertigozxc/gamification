@@ -1,6 +1,6 @@
 import { useRef, useCallback, useEffect, useState } from "react";
 
-export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, onCompleteQuest, children, isLongTapOnly }) {
+export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, onCompleteQuest, children, isLongTapOnly, isRerolling }) {
   const longPressTimer = useRef(null);
   const hintTimer = useRef(null);
   const longPressTriggered = useRef(false);
@@ -52,6 +52,24 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
     }
     showHintPopup();
   }, [quest, isDone, onCompleteQuest, isLongTapOnly, showHintPopup]);
+
+  if (isRerolling) {
+    return (
+      <div className="qb-quest-item" style={{ position: "relative", overflow: "hidden", cursor: "default" }}>
+        <div className="flex items-start gap-3">
+          <div className="qb-check" style={{ background: "rgba(139,92,246,0.15)", borderColor: "rgba(139,92,246,0.3)" }} />
+          <div className="flex-1 flex flex-col gap-2 py-1">
+            <div style={{ height: 9, width: "38%", borderRadius: 4, background: "rgba(148,163,184,0.18)", animation: "pulse 1.4s ease-in-out infinite" }} />
+            <div style={{ height: 13, width: "72%", borderRadius: 4, background: "rgba(148,163,184,0.22)", animation: "pulse 1.4s ease-in-out infinite 0.12s" }} />
+            <div style={{ height: 10, width: "52%", borderRadius: 4, background: "rgba(148,163,184,0.14)", animation: "pulse 1.4s ease-in-out infinite 0.24s" }} />
+          </div>
+        </div>
+        <div style={{ position: "absolute", bottom: 8, right: 10, fontSize: 10, color: "rgba(139,92,246,0.7)", fontWeight: 600, letterSpacing: "0.06em" }}>
+          🎲 rolling...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
