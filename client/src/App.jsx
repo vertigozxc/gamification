@@ -992,9 +992,6 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 questRenderCount={questRenderCountRef.current}
                 pendingQuestIds={pendingQuestIds}
                 resetTimer={resetTimer}
-                onResetDaily={handleResetDaily}
-                onHardReset={handleHardReset}
-                onAddXp={handleAddXp}
                 onReroll={() => handleReroll(completedToday, canReroll)}
                 onCompleteQuest={handleQuestCompleteWrapper}
                 rerollButtonLabel={rerollButtonLabel}

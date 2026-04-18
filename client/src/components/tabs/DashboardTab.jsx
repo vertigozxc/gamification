@@ -8,24 +8,12 @@ export default function DashboardTab({
   canReroll, allRandomCompleted, questRenderCount,
   pendingQuestIds,
   resetTimer,
-  onResetDaily, onHardReset, onAddXp,
   onReroll, onCompleteQuest,
   rerollButtonLabel, rerollButtonTitle,
   rerollingQuestId, rerollingPinned
 }) {
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
-      <div className="flex gap-2 justify-center mb-1">
-        <button onClick={onResetDaily} className="text-[10px] px-3 py-1 rounded-full border transition-colors font-bold uppercase tracking-wider hover:opacity-80" style={{ borderColor: "var(--color-primary-dim)", background: "var(--card-bg)", color: "var(--color-primary)" }}>{t.resetDaily}</button>
-        <button
-          onClick={() => onAddXp(500)}
-          className="text-[10px] px-3 py-1 rounded-full border transition-colors font-bold uppercase tracking-wider hover:opacity-80"
-          style={{ borderColor: "rgba(251,191,36,0.5)", background: "rgba(127,95,0,0.3)", color: "rgb(251,191,36)" }}
-        >
-          ⚡ +500 {t.xpLabel || "XP"}
-        </button>
-        <button onClick={onHardReset} className="text-[10px] px-3 py-1 rounded-full border transition-colors font-bold uppercase tracking-wider hover:opacity-80" style={{ borderColor: "rgba(220,38,38,0.5)", background: "rgba(127,29,29,0.3)", color: "rgb(239,68,68)" }}>{t.resetProgress}</button>
-      </div>
       {/* Hero: XP + Level compact row */}
       <div className="dash-hero">
         <div className="dash-hero-top">
