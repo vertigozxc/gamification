@@ -1843,7 +1843,15 @@ app.post("/api/quests/complete", async (req, res) => {
 });
 
 app.post("/api/reset-daily", async (req, res) => {
+  const requestStartedAt = Date.now();
+  const timingParts = [];
+  const pushTiming = (name, startedAt) => {
+    const dur = Math.max(0, Date.now() - startedAt);
+    timingParts.push(`${name};dur=${dur}`);
+  };
+
   try {
+    const tParse = Date.now();
     const language = getRequestLanguage(req);
     const schema = z.object({
       username: z.string().min(2).max(64),
@@ -1853,9 +1861,17 @@ app.post("/api/reset-daily", async (req, res) => {
       keepQuestIds: z.array(z.number().int()).optional()
     });
     const parsed = schema.parse(req.body);
+    pushTiming("parse", tParse);
+
+    const tUserLoad = Date.now();
     const username = slugifyUsername(parsed.username);
     const user = await prisma.user.findUnique({ where: { username } });
+    pushTiming("db_user", tUserLoad);
+
     if (!user) {
+      timingParts.push(`total;dur=${Math.max(0, Date.now() - requestStartedAt)}`);
+      res.setHeader("Server-Timing", timingParts.join(", "));
+      res.setHeader("Timing-Allow-Origin", "*");
       return res.status(404).json({ error: "User not found" });
     }
 
@@ -1865,10 +1881,12 @@ app.post("/api/reset-daily", async (req, res) => {
     let todayRows = [];
 
     if (!parsed.isReroll) {
+      const tTodayRows = Date.now();
       todayRows = await prisma.questCompletion.findMany({
         where: { userId: user.id, dayKey: today },
         select: { id: true, questId: true }
       });
+      pushTiming("db_today_rows", tTodayRows);
 
       const freezeActive = user.streakFreezeExpiresAt
         ? getDateKey(new Date(user.streakFreezeExpiresAt)) >= today
@@ -1879,6 +1897,7 @@ app.post("/api/reset-daily", async (req, res) => {
 
       if (todayRows.length > 0) {
         const questIds = [...new Set(todayRows.map((row) => row.questId))];
+        const tExistingRows = Date.now();
         const existingRows = await prisma.questCompletion.findMany({
           where: {
             userId: user.id,
@@ -1886,6 +1905,7 @@ app.post("/api/reset-daily", async (req, res) => {
           },
           select: { questId: true, dayKey: true }
         });
+        pushTiming("db_existing_rows", tExistingRows);
 
         const usedDayKeysByQuestId = new Map();
         for (const row of existingRows) {
@@ -1916,14 +1936,18 @@ app.post("/api/reset-daily", async (req, res) => {
         }
 
         if (moveOps.length > 0) {
+          const tMoveTx = Date.now();
           await prisma.$transaction(moveOps);
+          pushTiming("db_move_tx", tMoveTx);
         }
       }
     }
 
     let newRandomQuestIds = "";
 
-    const userCustomQuests = await fetchUserCustomQuests(user.id);
+  const tCustomQuests = Date.now();
+  const userCustomQuests = await fetchUserCustomQuests(user.id);
+  pushTiming("db_custom_quests", tCustomQuests);
 
     if (parsed.isReroll && parsed.targetQuestId && Array.isArray(parsed.keepQuestIds)) {
       const { preferredQuestIds: pinned } = onboardingStatus(user, userCustomQuests);
@@ -1993,6 +2017,7 @@ app.post("/api/reset-daily", async (req, res) => {
           : { lastDailyRerollAt: now })
       : { lastDailyRerollAt: null, extraRerollsToday: 0 };
 
+    const tUserUpdate = Date.now();
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -2003,6 +2028,7 @@ app.post("/api/reset-daily", async (req, res) => {
         ...streakDecayData
       }
     });
+    pushTiming("db_user_update", tUserUpdate);
 
     const completedQuestIdsPromise = parsed.isReroll
       ? prisma.questCompletion.findMany({
@@ -2012,16 +2038,24 @@ app.post("/api/reset-daily", async (req, res) => {
         }).then((rows) => rows.map((item) => item.questId))
       : Promise.resolve([]);
 
+    const tPostUpdate = Date.now();
     const [productivityState, completedQuestIds] = await Promise.all([
       updateAndReadProductivity(updatedUser, now, { updateTierState: true }),
       completedQuestIdsPromise
     ]);
+    pushTiming("post_update", tPostUpdate);
 
     const finalUser = productivityState.user;
     const { preferredQuestIds } = onboardingStatus(finalUser, userCustomQuests);
+    const tPinnedProgress = Date.now();
     const pinnedQuestProgress21d = preferredQuestIds.length > 0
       ? await getPinnedQuestProgress21d(finalUser, preferredQuestIds, now)
       : [];
+    pushTiming("pinned_progress", tPinnedProgress);
+
+    timingParts.push(`total;dur=${Math.max(0, Date.now() - requestStartedAt)}`);
+    res.setHeader("Server-Timing", timingParts.join(", "));
+    res.setHeader("Timing-Allow-Origin", "*");
 
     res.json({
       ok: true,
@@ -2036,6 +2070,9 @@ app.post("/api/reset-daily", async (req, res) => {
       ...buildServerTimeMeta(now)
     });
   } catch (error) {
+    timingParts.push(`total;dur=${Math.max(0, Date.now() - requestStartedAt)}`);
+    res.setHeader("Server-Timing", timingParts.join(", "));
+    res.setHeader("Timing-Allow-Origin", "*");
     res.status(400).json({ error: "Invalid request", detail: error.message });
   }
 });
