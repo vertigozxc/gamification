@@ -61,7 +61,7 @@ export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen })
         </div>
       </div>
 
-      <div className="city-canvas-shell animate-fade-in transition-all duration-500 flex-1">
+      <div className="city-canvas-shell animate-fade-in transition-all duration-500">
         {!cityFullscreen && (
           <>
             <button

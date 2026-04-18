@@ -1269,7 +1269,7 @@ export default function CityIllustration({ height = "500px", stage = 1, weatherC
   return (
     <div style={{ width: "100%", height }}>
       <GlobalStyles />
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" style={{ width: '100%', height: '100%' }}>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', height: '100%' }}>
         <Sky stage={level} isRainyDay={isRainyDay} />
         <Clouds stage={level} isRainyDay={isRainyDay} />
         <Rain stage={level} isRainyDay={isRainyDay} />
