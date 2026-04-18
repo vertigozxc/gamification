@@ -667,6 +667,12 @@ app.get("/api/auth/google-callback", (req, res) => {
       })
     }).then(function(r){
       log("mobile-token status=" + r.status);
+      if (!r.ok) {
+        return r.text().then(function(t){
+          if (t) log("mobile-token body=" + t.substring(0, 400));
+          return r;
+        }).catch(function(){ return r; });
+      }
       return r;
     }).catch(function(e){
       log("mobile-token ERR=" + (e && e.message ? e.message : e));
@@ -682,6 +688,12 @@ app.get("/api/auth/google-callback", (req, res) => {
       body: JSON.stringify({ id_token: idToken, bridgeId: bridgeId })
     }).then(function(r){
       log("mobile-google-exchange status=" + r.status);
+      if (!r.ok) {
+        return r.text().then(function(t){
+          if (t) log("mobile-google-exchange body=" + t.substring(0, 400));
+          return r;
+        }).catch(function(){ return r; });
+      }
       return r;
     }).catch(function(e){
       log("exchange ERR=" + (e && e.message ? e.message : e));
