@@ -174,7 +174,8 @@ export default function WebAppScreen() {
   const shellStateReceivedRef = useRef(false);
   const authSessionModule = NativeModules?.AuthSessionModule;
   const tabBarAnim = useRef(new Animated.Value(0)).current;
-  const safeTopPx = Math.max(0, insets.top);
+  const nativeTopInsetPx = Math.max(0, insets.top);
+  const safeTopPx = 0;
   const safeBottomPx = Math.max(0, insets.bottom);
   const footerOffsetPx = showTabBar ? (safeBottomPx + 68) : safeBottomPx;
   const tabAnimRefs = useRef(
@@ -437,7 +438,7 @@ export default function WebAppScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: nativeTopInsetPx }]}>
       <WebView
         ref={webViewRef}
         key={webKey}
