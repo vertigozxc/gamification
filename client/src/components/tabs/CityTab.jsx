@@ -1,3 +1,4 @@
+import { startTransition } from "react";
 import CityIllustration from "../CityIllustration";
 import InteractiveMapWrapper from "../InteractiveMapWrapper";
 
@@ -81,7 +82,11 @@ export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen, d
         {!cityFullscreen && (
           <>
             <button
-              onClick={() => setCityFullscreen(true)}
+              onClick={() => {
+                startTransition(() => {
+                  setCityFullscreen(true);
+                });
+              }}
               className="city-action-btn"
             >
               <span className="city-action-btn__icon" aria-hidden="true">

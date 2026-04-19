@@ -709,6 +709,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       import("./components/tabs/StoreTab.jsx").catch(() => {});
       import("./components/tabs/LeaderboardTab.jsx").catch(() => {});
       import("./components/tabs/ProfileTab.jsx").catch(() => {});
+      import("./components/FullscreenCity.jsx").catch(() => {});
 
       Promise.allSettled([
         fetchLeaderboard(),
