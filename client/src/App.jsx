@@ -969,6 +969,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             {mobileTab === "city" ? (
               <CityTab
                 stage={Math.max(0, Math.floor(state.lvl) || 0)}
+                dailyXpToday={state.productivity?.xpToday ?? 0}
                 t={t}
                 cityFullscreen={cityFullscreen}
                 setCityFullscreen={setCityFullscreen}

@@ -1,8 +1,11 @@
 import CityIllustration from "../CityIllustration";
 import InteractiveMapWrapper from "../InteractiveMapWrapper";
 
-export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen }) {
+export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen, dailyXpToday = 0 }) {
   const normalizedStage = Math.max(1, Number(stage) || 1);
+  const dailyXpCap = 250;
+  const normalizedDailyXp = Math.max(0, Math.min(dailyXpCap, Number(dailyXpToday) || 0));
+  const dailyXpPercent = Math.round((normalizedDailyXp / dailyXpCap) * 100);
   const stageCap = 20;
   const stageProgress = normalizedStage <= 1 ? 0 : Math.min(100, 10 + (normalizedStage - 2) * 5);
   const nextMilestone = Math.min(stageCap, Math.ceil(normalizedStage / 4) * 4);
@@ -57,6 +60,19 @@ export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen })
           </div>
           <p className="text-[11px] m-0" style={{ color: "var(--color-text)", opacity: 0.8 }}>
             {t.cityNextMilestoneAt?.replace("{level}", String(nextMilestone))}
+          </p>
+        </div>
+
+        <div className="relative z-10 mt-3 city-hint-strip">
+          <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.14em]" style={{ color: "var(--color-muted)" }}>
+            <span>{t.cityTodayContribution}</span>
+            <span>{dailyXpPercent}%</span>
+          </div>
+          <div className="city-progress-track mt-2">
+            <div className="city-progress-fill" style={{ width: `${dailyXpPercent}%` }} />
+          </div>
+          <p className="text-[11px] m-0 mt-2" style={{ color: "var(--color-text)", opacity: 0.88 }}>
+            {t.cityDailyXpLabel}: <strong>{normalizedDailyXp}</strong> / {dailyXpCap} XP
           </p>
         </div>
       </div>
