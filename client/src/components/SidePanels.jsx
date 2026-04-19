@@ -30,7 +30,7 @@ function SidePanels({ leaderboard, authUser, compact = false }) {
               {entry.photoUrl ? (
                 <img src={entry.photoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               ) : (
-                <span className="text-sm" style={{ color: "var(--color-primary)" }}>⚔</span>
+                <span className="text-sm" style={{ color: "var(--color-primary)" }}>🎯</span>
               )}
             </div>
             <div className="min-w-0 flex-1">
@@ -56,7 +56,7 @@ function SidePanels({ leaderboard, authUser, compact = false }) {
             {entry.photoUrl ? (
               <img src={entry.photoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             ) : (
-              <span className="text-base" style={{ color: "var(--color-primary)" }}>⚔</span>
+              <span className="text-base" style={{ color: "var(--color-primary)" }}>🎯</span>
             )}
           </div>
           <div className="min-w-0 flex-1">
