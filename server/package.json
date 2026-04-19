@@ -11,7 +11,7 @@
     "prisma:migrate": "prisma migrate dev --name init",
     "prisma:sync": "prisma db push",
     "prisma:reset": "prisma db push --force-reset --accept-data-loss",
-    "prisma:deploy": "npm run prisma:sync"
+    "prisma:deploy": "prisma migrate deploy"
   },
   "dependencies": {
     "@prisma/client": "^6.6.0",
