@@ -173,6 +173,7 @@ export default function WebAppScreen() {
   const pollTimerRef = useRef(null);
   const preloaderTimerRef = useRef(null);
   const shellStateReceivedRef = useRef(false);
+  const minPreloaderTimeRef = useRef(null);
   const authSessionModule = NativeModules?.AuthSessionModule;
   const tabBarAnim = useRef(new Animated.Value(0)).current;
   const safeTopPx = Math.max(0, insets.top);
@@ -421,7 +422,17 @@ export default function WebAppScreen() {
           clearTimeout(preloaderTimerRef.current);
           preloaderTimerRef.current = null;
         }
-        setShowPreloader(Boolean(data?.loading));
+        if (data?.loading) {
+          setShowPreloader(true);
+        } else {
+          // Enforce minimum preloader display time (600ms) to prevent flickering black screen
+          minPreloaderTimeRef.current = Date.now() + 600;
+          preloaderTimerRef.current = setTimeout(() => {
+            setShowPreloader(false);
+            preloaderTimerRef.current = null;
+            minPreloaderTimeRef.current = null;
+          }, 600);
+        }
         setShowTabBar(Boolean(data?.showTabBar) && !Boolean(data?.loading));
         if (data?.activeTab) {
           setActiveTab(normalizeMobileTab(data.activeTab));
@@ -460,21 +471,26 @@ export default function WebAppScreen() {
           shellStateReceivedRef.current = false;
           if (preloaderTimerRef.current) {
             clearTimeout(preloaderTimerRef.current);
+            preloaderTimerRef.current = null;
           }
+          minPreloaderTimeRef.current = null;
           setShowPreloader(true);
           setShowTabBar(false);
         }}
         onLoadEnd={() => {
           if (preloaderTimerRef.current) {
             clearTimeout(preloaderTimerRef.current);
+            preloaderTimerRef.current = null;
           }
           // Fallback: only hide preloader if the embedded app never reported shell state.
+          // Respect minimum preloader time to avoid black flicker.
+          const minWaitMs = Math.max(0, (minPreloaderTimeRef.current || 0) - Date.now());
           preloaderTimerRef.current = setTimeout(() => {
             if (!shellStateReceivedRef.current) {
               setShowPreloader(false);
             }
             preloaderTimerRef.current = null;
-          }, 12000);
+          }, Math.max(minWaitMs, 12000));
           webViewRef.current?.injectJavaScript(buildMobileTabScript(activeTab));
           webViewRef.current?.injectJavaScript(buildMobileInsetsScript(footerOffsetPx, safeBottomPx, safeTopPx));
           webViewRef.current?.injectJavaScript(buildThemeObserverScript());
