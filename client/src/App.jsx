@@ -853,9 +853,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   }
 
   return (
-    <Suspense fallback={<PortalPreloader title={t.loadingText} overlay />}>
-      <>
-        {dataLoading && !isEmbeddedApp ? <PortalPreloader title={t.loadingText} overlay /> : null}
+    <>
+      {dataLoading && !isEmbeddedApp ? <PortalPreloader title={t.loadingText} overlay /> : null}
 
       {cityFullscreen && (
         <FullscreenCity
@@ -1127,8 +1126,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         )}
       </div>
       </>
-    </Suspense>
-  );
-}
+    );
+  }
 
-export default App;
+  export default App;
