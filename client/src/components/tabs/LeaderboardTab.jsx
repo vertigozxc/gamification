@@ -16,7 +16,12 @@ export default function LeaderboardTab({ leaderboard, authUser, logs, t }) {
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div
+      className="flex flex-col gap-4"
+      style={{
+        minHeight: "calc(100svh - var(--mobile-safe-top, 0px) - var(--mobile-footer-offset, 98px) - 90px)"
+      }}
+    >
       {/* ── Hero banner card ── */}
       <div
         className="overflow-hidden top-screen-block"
@@ -185,7 +190,19 @@ export default function LeaderboardTab({ leaderboard, authUser, logs, t }) {
 
       </div>
 
-      <SidePanels leaderboard={leaderboard} authUser={authUser} logs={logs} compact />
+      <div
+        style={{
+          flex: 1,
+          minHeight: "30vh",
+          background: "var(--leaderboard-bg)",
+          border: "1px solid var(--leaderboard-border)",
+          borderRadius: "var(--border-radius-panel)",
+          boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
+          padding: "0.85rem 0.95rem"
+        }}
+      >
+        <SidePanels leaderboard={leaderboard} authUser={authUser} logs={logs} compact />
+      </div>
     </div>
   );
 }
