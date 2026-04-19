@@ -128,7 +128,7 @@ function useOnboardingPinned({
     }
   }
 
-  async function handleCreateCustomQuest({ title, description, stat }) {
+  async function handleCreateCustomQuest({ title, description }) {
     const cleanTitle = String(title || "").trim().slice(0, CUSTOM_QUEST_TITLE_MAX);
     const cleanDesc = String(description || "").trim().slice(0, CUSTOM_QUEST_DESC_MAX);
     if (!cleanTitle) {
@@ -140,8 +140,7 @@ function useOnboardingPinned({
     try {
       const result = await apiCreateCustomQuest(resolvedUsername, {
         title: cleanTitle,
-        description: cleanDesc,
-        stat: stat || "sta"
+        description: cleanDesc
       });
       const created = result?.customQuest;
       if (created) {
@@ -156,7 +155,7 @@ function useOnboardingPinned({
     }
   }
 
-  async function handleUpdateCustomQuest(id, { title, description, stat }) {
+  async function handleUpdateCustomQuest(id, { title, description }) {
     const cleanTitle = title !== undefined ? String(title || "").trim().slice(0, CUSTOM_QUEST_TITLE_MAX) : undefined;
     const cleanDesc = description !== undefined ? String(description || "").trim().slice(0, CUSTOM_QUEST_DESC_MAX) : undefined;
     if (cleanTitle !== undefined && !cleanTitle) {
@@ -168,8 +167,7 @@ function useOnboardingPinned({
     try {
       const result = await apiUpdateCustomQuest(resolvedUsername, id, {
         title: cleanTitle,
-        description: cleanDesc,
-        stat
+        description: cleanDesc
       });
       const updated = result?.customQuest;
       if (updated) {

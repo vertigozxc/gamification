@@ -198,19 +198,19 @@ export function fetchCustomQuests(username) {
   return request(`/api/custom-quests/${encodeURIComponent(username)}`);
 }
 
-export function createCustomQuest(username, { title, description, stat }) {
+export function createCustomQuest(username, { title, description }) {
   return request("/api/custom-quests", {
     method: "POST",
-    body: JSON.stringify({ username, title, description, stat })
+    body: JSON.stringify({ username, title, description })
   });
 }
 
-export function updateCustomQuest(username, id, { title, description, stat }) {
+export function updateCustomQuest(username, id, { title, description }) {
   const virtualId = Number(id);
   const dbId = virtualId >= 1_000_000 ? virtualId - 1_000_000 : virtualId;
   return request(`/api/custom-quests/${dbId}`, {
     method: "PATCH",
-    body: JSON.stringify({ username, title, description, stat })
+    body: JSON.stringify({ username, title, description })
   });
 }
 

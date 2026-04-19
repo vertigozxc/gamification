@@ -62,10 +62,10 @@ function CustomHabitManager({
     const cleanTitle = title.trim();
     if (!cleanTitle) return;
     if (mode === "create") {
-      const created = await onCreateCustomQuest({ title: cleanTitle, description: desc.trim(), stat: "sta" });
+      const created = await onCreateCustomQuest({ title: cleanTitle, description: desc.trim() });
       if (created) resetForm();
     } else if (mode === "edit" && editingId != null) {
-      const updated = await onUpdateCustomQuest(editingId, { title: cleanTitle, description: desc.trim(), stat: "sta" });
+      const updated = await onUpdateCustomQuest(editingId, { title: cleanTitle, description: desc.trim() });
       if (updated) resetForm();
     }
   };

@@ -26,18 +26,7 @@ export function getMobileTabTitle(tab, t) {
   return t.mobileCityLabel;
 }
 
-export function getQuestIcon(stat) {
-  if (stat === "int") {
-    return '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M5 5h14v14H5z"/><path d="M5 8h14"/><path d="M8 11l4 3 4-3"/></svg>';
-  }
-  if (stat === "str") {
-    return '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="8" width="4" height="8" rx="1.5"/><rect x="18" y="8" width="4" height="8" rx="1.5"/><path d="M6 12h12"/><path d="M6 16h12"/></svg>';
-  }
-  return '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/><path d="M8 11l4-4 4 4" stroke="#ffffff" stroke-width="1.5" fill="none"/><path d="M12 13v6" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/></svg>';
-}
-
 export function normalizeQuest(quest, translateQuest, translateCategory) {
-  const stat = String(quest?.stat || "sta").toLowerCase();
   const xp = Number(quest?.xp ?? quest?.base_xp ?? 0);
   const rawCategory = String(quest?.category || "Uncategorized").trim() || "Uncategorized";
   const sourceId = String(quest?.sourceId || "");
@@ -49,9 +38,7 @@ export function normalizeQuest(quest, translateQuest, translateCategory) {
     title: translateQuest ? translateQuest({ ...quest, sourceId }, "title", title) : title,
     desc: translateQuest ? translateQuest({ ...quest, sourceId }, "description", desc) : desc,
     xp: Number.isFinite(xp) ? xp : 0,
-    stat,
     category: translateCategory ? translateCategory(rawCategory) : rawCategory,
-    icon: String(quest?.icon || getQuestIcon(stat)),
     isCustom: Boolean(quest?.isCustom) || sourceId.startsWith("custom_") || Number(quest?.id) >= 1_000_000
   };
 }

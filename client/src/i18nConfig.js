@@ -198,7 +198,6 @@ export const languagePacks = {
       customHabitTitlePlaceholder: "e.g. Meditate 10 minutes",
       customHabitDescLabel: "Description",
       customHabitDescPlaceholder: "Short reminder (optional)",
-      customHabitStatLabel: "Stat",
       customHabitSave: "Save",
       customHabitEdit: "Edit",
       customHabitDelete: "Delete",
@@ -253,9 +252,6 @@ export const languagePacks = {
       loginFeatureLevels: "Levels",
       loginFeatureCity: "City",
       rerollRolling: "rolling...",
-      statStrShort: "💪 STR",
-      statIntShort: "🧠 INT",
-      statStaShort: "🛡 STA"
     },
     themeMeta: {
       adventure: {
@@ -541,7 +537,6 @@ export const languagePacks = {
       customHabitTitlePlaceholder: "Напр. Медитация 10 минут",
       customHabitDescLabel: "Описание",
       customHabitDescPlaceholder: "Короткое напоминание (необязательно)",
-      customHabitStatLabel: "Навык",
       customHabitSave: "Сохранить",
       customHabitEdit: "Изменить",
       customHabitDelete: "Удалить",
@@ -596,9 +591,6 @@ export const languagePacks = {
       loginFeatureLevels: "Level",
       loginFeatureCity: "Город",
       rerollRolling: "перемешивание...",
-      statStrShort: "💪 СИЛ",
-      statIntShort: "🧠 ИНТ",
-      statStaShort: "🛡 ВЫН"
     },
     themeMeta: {
       adventure: { label: "Приключение", description: "Героический RPG-стиль" },
