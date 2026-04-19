@@ -1958,19 +1958,36 @@ app.post("/api/reset-daily", async (req, res) => {
     let todayRows = [];
 
     if (!parsed.isReroll) {
+      // On the first reset of a new UTC day, streak rules should be evaluated
+      // against the previous day completions (the day that just ended).
+      const lastDailyResetKey = user.lastDailyResetAt ? getDateKey(new Date(user.lastDailyResetAt)) : null;
+      const isFirstResetForUtcDay = lastDailyResetKey !== today;
+      const streakEvaluationDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+      if (isFirstResetForUtcDay) {
+        streakEvaluationDate.setUTCDate(streakEvaluationDate.getUTCDate() - 1);
+      }
+      const streakEvaluationDayKey = getDateKey(streakEvaluationDate);
+
+      const tDecayRows = Date.now();
+      const decayRows = await prisma.questCompletion.findMany({
+        where: { userId: user.id, dayKey: streakEvaluationDayKey },
+        select: { id: true, questId: true }
+      });
+      pushTiming("db_decay_rows", tDecayRows);
+
+      const freezeActive = user.streakFreezeExpiresAt
+        ? getDateKey(new Date(user.streakFreezeExpiresAt)) >= streakEvaluationDayKey
+        : false;
+      if (decayRows.length < 3 && !freezeActive && user.streak > 0) {
+        streakDecayData.streak = 0;
+      }
+
       const tTodayRows = Date.now();
       todayRows = await prisma.questCompletion.findMany({
         where: { userId: user.id, dayKey: today },
         select: { id: true, questId: true }
       });
       pushTiming("db_today_rows", tTodayRows);
-
-      const freezeActive = user.streakFreezeExpiresAt
-        ? getDateKey(new Date(user.streakFreezeExpiresAt)) >= today
-        : false;
-      if (todayRows.length < 3 && !freezeActive && user.streak > 0) {
-        streakDecayData.streak = 0;
-      }
 
       if (todayRows.length > 0) {
         const questIds = [...new Set(todayRows.map((row) => row.questId))];

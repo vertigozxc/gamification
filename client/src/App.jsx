@@ -449,7 +449,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     const today = `${syncedDate.getUTCFullYear()}-${syncedDate.getUTCMonth()}-${syncedDate.getUTCDate()}`;
 
     if (dayMarkerRef.current === today) return;
-    dayMarkerRef.current = String(new Date().getUTCFullYear()) + "-" + String(new Date().getUTCMonth()) + "-" + String(new Date().getUTCDate());
+    dayMarkerRef.current = today;
 
     resetDaily(username)
       .then(() => fetchGameState(authUser.uid))
