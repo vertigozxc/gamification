@@ -20,7 +20,7 @@
     </mask>
   </defs>
 
-  <rect class="bgrect" x="0" y="0" width="1024" height="1024" rx="220" fill="url(#bg)"/>
+  <rect class="bgrect" x="0" y="0" width="1024" height="1024" fill="url(#bg)"/>
 
   <g mask="url(#cutout)">
     <g transform="translate(205, 110) scale(1.6)">
