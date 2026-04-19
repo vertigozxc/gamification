@@ -1,3 +1,4 @@
+import { useState } from "react";
 import themes from "../../themeConfig";
 
 export default function ProfileTab({
@@ -7,8 +8,9 @@ export default function ProfileTab({
   avatarError, t,
   onAvatarClick, onAvatarErrorClear,
   onStartEditingName, onNameDraftChange, onSubmitNameEdit, onCancelEditingName,
-  onOpenThemePicker, onOpenLanguagePicker, onLogout
+  onOpenThemePicker, onOpenLanguagePicker, onLogout, onDeleteProfile
 }) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   return (
     <div className="mobile-tab-panel flex flex-col gap-4">
 
@@ -190,6 +192,51 @@ export default function ProfileTab({
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-red-400"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
         <span className="cinzel font-bold text-sm text-red-400 tracking-wider uppercase">{t.logoutConfirm}</span>
       </button>
+
+      {/* Delete Profile */}
+      <button
+        onClick={() => setShowDeleteConfirm(true)}
+        className="mobile-card mobile-pressable flex items-center justify-center gap-2 py-3 border border-red-900/40 transition-all hover:bg-red-950/30 active:scale-[0.98]"
+        style={{ background: "rgba(60,0,0,0.18)" }}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-red-700"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4h6v2"></path></svg>
+        <span className="cinzel font-bold text-xs text-red-700/80 tracking-wider uppercase">{t.deleteProfileButton || "Delete My Profile"}</span>
+      </button>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div
+          className="fixed inset-0 z-[99999] flex items-center justify-center px-6"
+          style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }}
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <div
+            className="rounded-[1.75rem] p-7 max-w-[340px] w-full text-center shadow-2xl"
+            style={{ background: "linear-gradient(to bottom, #14171E, #080A0E)", border: "1px solid rgba(180,0,0,0.35)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-5xl mb-4">⚠️</div>
+            <h3 className="cinzel text-lg font-bold text-red-400 mb-2">{t.deleteProfileTitle || "Delete Profile?"}</h3>
+            <p className="text-slate-400 text-sm leading-relaxed mb-6">{t.deleteProfileDesc || "This will permanently erase all your data. This cannot be undone."}</p>
+            <div className="flex gap-3">
+              <button
+                className="flex-1 py-3 rounded-2xl font-bold text-sm transition-all active:scale-[0.97]"
+                style={{ background: "rgba(50,50,60,0.5)", border: "1px solid rgba(255,255,255,0.08)", color: "var(--color-muted)" }}
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                {t.deleteProfileCancel || "Cancel"}
+              </button>
+              <button
+                className="flex-1 py-3 rounded-2xl font-bold text-sm transition-all active:scale-[0.97]"
+                style={{ background: "linear-gradient(135deg, rgba(180,0,0,0.4), rgba(100,0,0,0.4))", border: "1px solid rgba(220,0,0,0.4)", color: "#f87171" }}
+                onClick={() => { setShowDeleteConfirm(false); onDeleteProfile && onDeleteProfile(); }}
+              >
+                {t.deleteProfileConfirm || "Yes, Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

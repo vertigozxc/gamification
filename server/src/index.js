@@ -3211,6 +3211,32 @@ if (isMainModule) {
 
 export default app;
 
+app.delete("/api/profiles/:userId", async (req, res) => {
+  const userId = req.params.userId;
+  if (!userId || typeof userId !== "string" || userId.length > 128) {
+    return res.status(400).json({ error: "Invalid userId" });
+  }
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    await prisma.$transaction([
+      prisma.questCompletion.deleteMany({ where: { userId: user.id } }),
+      prisma.dailyScore.deleteMany({ where: { userId: user.id } }),
+      prisma.customQuest.deleteMany({ where: { userId: user.id } }),
+      prisma.questFeedback.deleteMany({ where: { userId: user.id } }),
+      prisma.friendship.deleteMany({ where: { OR: [{ userAId: user.id }, { userBId: user.id }] } }),
+      prisma.invite.deleteMany({ where: { OR: [{ inviterId: user.id }, { invitedUserId: user.id }] } }),
+      prisma.event.deleteMany({ where: { userId: user.id } }),
+      prisma.user.delete({ where: { id: user.id } }),
+    ]);
+
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete profile", detail: error.message });
+  }
+});
+
 app.post("/api/profiles/theme", async (req, res) => {
   const schema = z.object({
     username: z.string().min(2).max(64),

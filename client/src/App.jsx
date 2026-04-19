@@ -14,7 +14,8 @@ import {
   buyExtraReroll,
   replacePinnedQuests,
   rerollPinned,
-  fetchProfileStats
+  fetchProfileStats,
+  deleteProfile
 } from "./api";
 import useGameplayActions from "./hooks/useGameplayActions";
 import useAuthSession from "./hooks/useAuthSession";
@@ -868,6 +869,19 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     });
   }
 
+  async function handleDeleteProfile() {
+    if (!authUser) return;
+    try {
+      await deleteProfile(authUser.uid);
+    } catch {
+      // best effort — proceed to logout even if server delete fails
+    }
+    resetOnLogout();
+    await handleLogout(() => {
+      setShowLevelUp(false);
+    });
+  }
+
   const rerollButtonLabel = completedToday >= 6 || allRandomCompleted ? t.rerollComplete : state.hasRerolledToday && state.extraRerollsToday === 0 ? t.rerollDone : t.rerollButton;
   const rerollButtonTitle = allRandomCompleted ? t.allRandomTasksDone : state.hasRerolledToday && state.extraRerollsToday === 0 ? t.alreadyUsedToday : completedToday >= 6 ? t.allDoneUnavailable : t.oncePerDay;
 
@@ -1119,6 +1133,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 onOpenThemePicker={() => setShowThemePicker(true)}
                 onOpenLanguagePicker={() => setShowLanguagePicker(true)}
                 onLogout={() => setShowLogoutConfirm(true)}
+                onDeleteProfile={handleDeleteProfile}
               />
             ) : null}
           </div>

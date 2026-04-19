@@ -253,3 +253,7 @@ export function updateTheme(username, theme) {
     body: JSON.stringify({ username, theme })
   });
 }
+
+export function deleteProfile(userId) {
+  return request(`/api/profiles/${encodeURIComponent(userId)}`, { method: "DELETE" });
+}
