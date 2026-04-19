@@ -8,6 +8,8 @@ export const languagePacks = {
       chooseThemeButtonLabel: "Theme",
       chooseLanguageTitle: "Choose Language",
       chooseThemeTitle: "Choose Theme",
+      profileRankLabel: "Rank",
+      profileWeeksInRank: "• {weeks}w in this rank",
       loginBrandTitle: "LIFE RPG",
       loadingText: "Initializing workspace...",
       doubleClickEditName: "Double-click to edit name",
@@ -241,7 +243,16 @@ export const languagePacks = {
       statIntShort: "🧠 INT",
       statStaShort: "🛡 STA"
     },
-    themeMeta: {},
+    themeMeta: {
+      adventure: {
+        label: "Adventure",
+        description: "Heroic RPG-inspired experience"
+      },
+      balance: {
+        label: "Balance",
+        description: "Calm wellness-inspired experience"
+      }
+    },
     themeVocab: {},
     categoryLabels: {},
     quests: {}
@@ -255,6 +266,8 @@ export const languagePacks = {
       chooseThemeButtonLabel: "Стиль",
       chooseLanguageTitle: "Выбор языка",
       chooseThemeTitle: "Выбор темы",
+      profileRankLabel: "Ранг",
+      profileWeeksInRank: "• {weeks} нед. в этом ранге",
       loginBrandTitle: "LIFE RPG",
       loginTitle: "Войти",
       loginSubtitle: "Войдите через Google, чтобы начать работу с Habits.",

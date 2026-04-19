@@ -74,7 +74,7 @@ function ProfilePanel({
   weekResetTimer,
   compact = false
 }) {
-  const { t } = useTheme();
+  const { t, tf } = useTheme();
   const rankLabel = state.productivity?.rankLabel || "IRON I";
   const tierStyle = getTierStyle(rankLabel);
   const showRankSection = false;
@@ -84,11 +84,11 @@ function ProfilePanel({
         <div className={`flex flex-col items-center justify-center ${compact ? "" : "lg:col-span-1"}`}>
           {showRankSection && (
             <div className="w-full rounded-lg border px-4 py-3 mb-6 shadow-lg flex flex-col items-center justify-center gap-2" style={{ background: "var(--card-bg)", borderColor: "var(--card-border-idle)" }}>
-              <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Rank</span>
+              <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{t.profileRankLabel}</span>
               <div className="px-4 py-1 rounded border-2 shadow-lg" style={{ borderColor: tierStyle.borderColor, background: tierStyle.background, boxShadow: tierStyle.glow }}>
                 <span className="cinzel text-xs font-bold tracking-[0.08em]" style={{ color: tierStyle.color }}>{rankLabel}</span>
               </div>
-              <span className="text-[11px] text-slate-400">• {state.productivity?.weeksInCurrentTier ?? 0}w in this rank</span>
+              <span className="text-[11px] text-slate-400">{tf("profileWeeksInRank", { weeks: state.productivity?.weeksInCurrentTier ?? 0 })}</span>
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-[10px] uppercase tracking-[0.12em] text-slate-400">{t.weekResetLabel}</span>
                 <span className="cinzel text-sm font-bold week-reset-timer" style={{ color: "var(--color-primary)" }}>⏳ {weekResetTimer}</span>
@@ -102,7 +102,7 @@ function ProfilePanel({
               <p ref={levelDisplayRef} className={`cinzel lvl-text font-black drop-shadow-lg ${compact ? "text-6xl" : "text-8xl"}`} style={{ color: "var(--color-primary)" }}>{state.lvl}</p>
             </div>
             {!editingName ? (
-              <p className="character-name text-slate-400 cinzel text-sm tracking-wider uppercase cursor-pointer hover:text-yellow-300 transition-colors mt-2" title="Double-click to edit name" onDoubleClick={onStartEditingName}>
+              <p className="character-name text-slate-400 cinzel text-sm tracking-wider uppercase cursor-pointer hover:text-yellow-300 transition-colors mt-2" title={t.doubleClickEditName} onDoubleClick={onStartEditingName}>
                 {characterName}
               </p>
             ) : (
