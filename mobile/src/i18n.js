@@ -1,6 +1,6 @@
 const MESSAGES = {
   en: {
-    initializing: "Initializing app...",
+    initializing: "Initializing world...",
     webLoadFailed: "Failed to load web app",
     connectionIssue: "Connection issue",
     retryLabel: "Retry",
@@ -54,7 +54,7 @@ const MESSAGES = {
     questXpGain: "+{xp} XP"
   },
   ru: {
-    initializing: "Инициализация приложения...",
+    initializing: "Инициализация мира...",
     webLoadFailed: "Не удалось загрузить веб-приложение",
     connectionIssue: "Проблема с подключением",
     retryLabel: "Повторить",
