@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { auth, googleProvider, firebaseInitError } from "./firebaseAuth";
 import {
   upsertProfile,
@@ -16,12 +16,6 @@ import {
   rerollPinned,
   fetchProfileStats
 } from "./api";
-import FreezeSuccessModal from "./components/modals/FreezeSuccessModal";
-import RerollConfirmModal from "./components/modals/RerollConfirmModal";
-import LogoutConfirmModal from "./components/modals/LogoutConfirmModal";
-import NotesModal from "./components/modals/NotesModal";
-import OnboardingModal from "./components/modals/OnboardingModal";
-import PinnedReplacementModal from "./components/modals/PinnedReplacementModal";
 import useGameplayActions from "./hooks/useGameplayActions";
 import useAuthSession from "./hooks/useAuthSession";
 import useOnboardingPinned from "./hooks/useOnboardingPinned";
@@ -44,21 +38,28 @@ import {
   saveState,
   getMsUntilNextUtcMidnight
 } from "./utils/gameHelpers";
-import LoginScreen from "./components/LoginScreen";
-import LevelUpPopup from "./components/LevelUpPopup";
-import HabitMilestonePopup from "./components/HabitMilestonePopup";
-import ThemePickerModal from "./components/ThemePickerModal";
-import LanguagePickerModal from "./components/LanguagePickerModal";
-import FullscreenCity from "./components/FullscreenCity";
-import FloatingTexts from "./components/FloatingTexts";
-import AppHeader from "./components/AppHeader";
-import DesktopLayout from "./components/DesktopLayout";
 import PortalPreloader from "./components/PortalPreloader";
-import CityTab from "./components/tabs/CityTab";
-import DashboardTab from "./components/tabs/DashboardTab";
-import LeaderboardTab from "./components/tabs/LeaderboardTab";
-import StoreTab from "./components/tabs/StoreTab";
-import ProfileTab from "./components/tabs/ProfileTab";
+
+const FreezeSuccessModal = lazy(() => import("./components/modals/FreezeSuccessModal"));
+const RerollConfirmModal = lazy(() => import("./components/modals/RerollConfirmModal"));
+const LogoutConfirmModal = lazy(() => import("./components/modals/LogoutConfirmModal"));
+const NotesModal = lazy(() => import("./components/modals/NotesModal"));
+const OnboardingModal = lazy(() => import("./components/modals/OnboardingModal"));
+const PinnedReplacementModal = lazy(() => import("./components/modals/PinnedReplacementModal"));
+const LoginScreen = lazy(() => import("./components/LoginScreen"));
+const LevelUpPopup = lazy(() => import("./components/LevelUpPopup"));
+const HabitMilestonePopup = lazy(() => import("./components/HabitMilestonePopup"));
+const ThemePickerModal = lazy(() => import("./components/ThemePickerModal"));
+const LanguagePickerModal = lazy(() => import("./components/LanguagePickerModal"));
+const FullscreenCity = lazy(() => import("./components/FullscreenCity"));
+const FloatingTexts = lazy(() => import("./components/FloatingTexts"));
+const AppHeader = lazy(() => import("./components/AppHeader"));
+const DesktopLayout = lazy(() => import("./components/DesktopLayout"));
+const CityTab = lazy(() => import("./components/tabs/CityTab"));
+const DashboardTab = lazy(() => import("./components/tabs/DashboardTab"));
+const LeaderboardTab = lazy(() => import("./components/tabs/LeaderboardTab"));
+const StoreTab = lazy(() => import("./components/tabs/StoreTab"));
+const ProfileTab = lazy(() => import("./components/tabs/ProfileTab"));
 
 const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
 
@@ -673,6 +674,28 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     };
   }, [dataLoading, pinnedQuests, state.completed, handleQuestCompleteWrapper]);
 
+  // Prefetch remaining tabs in background after initial data loads (mobile perf optimization)
+  useEffect(() => {
+    if (!authUser || !initialDataResolved || isEmbeddedApp) {
+      return;
+    }
+
+    // Preload Store, Leaderboard, Profile tabs during browser idle time
+    const prefetchFn = () => {
+      import("./components/tabs/StoreTab.jsx").catch(() => {});
+      import("./components/tabs/LeaderboardTab.jsx").catch(() => {});
+      import("./components/tabs/ProfileTab.jsx").catch(() => {});
+    };
+
+    if (typeof requestIdleCallback !== "undefined") {
+      const id = requestIdleCallback(prefetchFn, { timeout: 3000 });
+      return () => cancelIdleCallback(id);
+    } else {
+      const timer = setTimeout(prefetchFn, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [authUser, initialDataResolved, isEmbeddedApp]);
+
   function handleAddXp(amount) {
     setState((prev) => {
       let xp = prev.xp + amount;
@@ -815,21 +838,24 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
 
   if (!authUser) {
     return (
-      <LoginScreen
-        t={t}
-        handleGoogleLogin={handleGoogleLogin}
-        authError={authError}
-        languageId={languageId}
-        languageIds={languageIds}
-        getLanguageMeta={getLanguageMeta}
-        setLanguageId={setLanguageId}
-      />
+      <Suspense fallback={<PortalPreloader title={t.loadingText} fullscreen />}>
+        <LoginScreen
+          t={t}
+          handleGoogleLogin={handleGoogleLogin}
+          authError={authError}
+          languageId={languageId}
+          languageIds={languageIds}
+          getLanguageMeta={getLanguageMeta}
+          setLanguageId={setLanguageId}
+        />
+      </Suspense>
     );
   }
 
   return (
-    <>
-      {dataLoading && !isEmbeddedApp ? <PortalPreloader title={t.loadingText} overlay /> : null}
+    <Suspense fallback={<PortalPreloader title={t.loadingText} overlay />}>
+      <>
+        {dataLoading && !isEmbeddedApp ? <PortalPreloader title={t.loadingText} overlay /> : null}
 
       {cityFullscreen && (
         <FullscreenCity
@@ -1100,7 +1126,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           />
         )}
       </div>
-    </>
+      </>
+    </Suspense>
   );
 }
 
