@@ -83,6 +83,7 @@ model QuestCompletion {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, questId, dayKey])
+  @@index([userId, dayKey])
   @@index([userId, completedAt])
 }
 

@@ -1661,6 +1661,23 @@ async function getPinnedQuestProgress21d(user, preferredQuestIds, now = new Date
   });
 }
 
+function buildTodayProgressSnapshot(user, completionIds, customQuests, date = new Date()) {
+  const normalizedCompletionIds = Array.isArray(completionIds)
+    ? completionIds.map((item) => Number(item)).filter((item) => Number.isInteger(item))
+    : [];
+  const normalizedCustomQuests = Array.isArray(customQuests) ? customQuests : [];
+  const customVirtualIds = normalizedCustomQuests.map((cq) => toCustomVirtualId(cq.id));
+  const preferredQuestIds = parsePreferredQuestIds(user.preferredQuestIds, customVirtualIds);
+  const todaysQuests = composeDailyQuests(user, normalizedCompletionIds, date, [], "en", normalizedCustomQuests);
+  const questById = new Map(todaysQuests.map((quest) => [quest.id, quest]));
+  const completedQuests = normalizedCompletionIds.map((id) => questById.get(id)).filter(Boolean);
+  const progress = summarizeTodayProgress(completedQuests, preferredQuestIds);
+  return {
+    dayKey: getDateKey(date),
+    progress
+  };
+}
+
 async function computeTodayProgress(user, date = new Date()) {
   const dayKey = getDateKey(date);
   const completions = await prisma.questCompletion.findMany({
@@ -1671,19 +1688,14 @@ async function computeTodayProgress(user, date = new Date()) {
 
   const completionIds = completions.map((item) => item.questId);
   const customQuests = await fetchUserCustomQuests(user.id);
-  const customVirtualIds = customQuests.map((cq) => toCustomVirtualId(cq.id));
-  const preferredQuestIds = parsePreferredQuestIds(user.preferredQuestIds, customVirtualIds);
-  const todaysQuests = composeDailyQuests(user, completionIds, date, [], "en", customQuests);
-  const questById = new Map(todaysQuests.map((quest) => [quest.id, quest]));
-  const completedQuests = completionIds.map((id) => questById.get(id)).filter(Boolean);
-  const progress = summarizeTodayProgress(completedQuests, preferredQuestIds);
+  const { progress } = buildTodayProgressSnapshot(user, completionIds, customQuests, date);
 
-  return { dayKey, preferredQuestIds, completions, completionIds, progress };
+  return { dayKey, progress };
 }
 
 async function updateAndReadProductivity(user, date = new Date(), options = {}) {
-  const { updateTierState = false } = options;
-  const { dayKey, progress } = await computeTodayProgress(user, date);
+  const { updateTierState = false, precomputedProgress = null } = options;
+  const { dayKey, progress } = precomputedProgress || await computeTodayProgress(user, date);
 
   await prisma.dailyScore.upsert({
     where: {
@@ -2088,28 +2100,37 @@ app.get("/api/game-state/:username", async (req, res) => {
   const now = new Date();
 
   const dateKey = getDateKey(now);
-  const completions = await prisma.questCompletion.findMany({
-    where: { userId: user.id, dayKey: dateKey },
-    select: { questId: true }
-  });
+  const [completions, customQuests] = await Promise.all([
+    prisma.questCompletion.findMany({
+      where: { userId: user.id, dayKey: dateKey },
+      select: { questId: true }
+    }),
+    fetchUserCustomQuests(user.id)
+  ]);
+  const completionIds = completions.map((item) => item.questId);
 
   const todayKey = getDateKey(now);
   const streakFreezeActive = user.streakFreezeExpiresAt
     ? getDateKey(new Date(user.streakFreezeExpiresAt)) >= todayKey
     : false;
-  const customQuests = await fetchUserCustomQuests(user.id);
   const { preferredQuestIds, needsOnboarding } = onboardingStatus(user, customQuests);
-  const pinnedQuestProgress21d = await getPinnedQuestProgress21d(user, preferredQuestIds, now);
-  const { productivity } = await updateAndReadProductivity(user, now, { updateTierState: false });
+  const precomputedProgress = buildTodayProgressSnapshot(user, completionIds, customQuests, now);
+  const [pinnedQuestProgress21d, { productivity }] = await Promise.all([
+    getPinnedQuestProgress21d(user, preferredQuestIds, now),
+    updateAndReadProductivity(user, now, {
+      updateTierState: false,
+      precomputedProgress
+    })
+  ]);
 
   res.json({
     user,
     dateKey,
-    completedQuestIds: completions.map((item) => item.questId),
+    completedQuestIds: completionIds,
     streak: user.streak,
     hasRerolledToday: hasUsedDailyRerollToday(user, now),
     extraRerollsToday: Number(user.extraRerollsToday || 0),
-    quests: composeDailyQuests(user, completions.map((item) => item.questId), now, [], language, customQuests),
+    quests: composeDailyQuests(user, completionIds, now, [], language, customQuests),
     streakFreezeActive,
     preferredQuestIds,
     pinnedQuestProgress21d,
