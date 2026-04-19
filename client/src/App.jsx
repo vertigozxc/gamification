@@ -191,6 +191,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const uidRef = useRef(null);
   const dayMarkerRef = useRef(new Date().toDateString());
   const previousMobileTabRef = useRef("dashboard");
+  const tabPrefetchDoneForUidRef = useRef("");
   const normalizeLocalizedQuest = (quest) => normalizeQuest(quest, translateQuest, translateCategory);
 
   const { resetTimer, weekResetTimer } = useTimers(serverOffsetMs, nextWeekResetAtMs);
@@ -690,17 +691,40 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     };
   }, [dataLoading, pinnedQuests, state.completed, handleQuestCompleteWrapper]);
 
-  // Prefetch remaining tabs in background after initial data loads (mobile perf optimization)
+  // Prefetch remaining tabs and their data in background after initial data loads.
+  // This removes the "first-open" delay when user immediately switches from dashboard.
   useEffect(() => {
-    if (!authUser || !initialDataResolved || isEmbeddedApp) {
+    if (!authUser || !initialDataResolved) {
       return;
     }
 
-    // Preload Store, Leaderboard, Profile tabs during browser idle time
+    if (tabPrefetchDoneForUidRef.current === authUser.uid) {
+      return;
+    }
+    tabPrefetchDoneForUidRef.current = authUser.uid;
+
+    // Preload tab bundles and data required by non-dashboard tabs.
     const prefetchFn = () => {
+      import("./components/tabs/CityTab.jsx").catch(() => {});
       import("./components/tabs/StoreTab.jsx").catch(() => {});
       import("./components/tabs/LeaderboardTab.jsx").catch(() => {});
       import("./components/tabs/ProfileTab.jsx").catch(() => {});
+
+      Promise.allSettled([
+        fetchLeaderboard(),
+        fetchProfileStats(authUser.uid)
+      ]).then((results) => {
+        const leaderboardResult = results[0];
+        const profileStatsResult = results[1];
+
+        if (leaderboardResult.status === "fulfilled") {
+          setLeaderboard(leaderboardResult.value?.users || []);
+        }
+
+        if (profileStatsResult.status === "fulfilled") {
+          setProfileStats(profileStatsResult.value || null);
+        }
+      }).catch(() => {});
     };
 
     if (typeof requestIdleCallback !== "undefined") {
@@ -710,7 +734,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       const timer = setTimeout(prefetchFn, 2000);
       return () => clearTimeout(timer);
     }
-  }, [authUser, initialDataResolved, isEmbeddedApp]);
+  }, [authUser, initialDataResolved]);
 
   function handleAddXp(amount) {
     setState((prev) => {
