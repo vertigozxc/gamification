@@ -681,7 +681,14 @@ body{background:#020617;color:#cbd5e1;font-family:system-ui;min-height:100vh;dis
     if (el) el.textContent = text;
   }
 
-  var initialLoadingLabel = (navigator.language || "").toLowerCase().indexOf("ru") === 0
+  var appLanguage = "";
+  try {
+    appLanguage = String(localStorage.getItem("rpg_language") || "").toLowerCase();
+  } catch (e) {
+    appLanguage = "";
+  }
+
+  var initialLoadingLabel = (appLanguage.indexOf("ru") === 0 || (navigator.language || "").toLowerCase().indexOf("ru") === 0)
     ? "Инициализация мира..."
     : "Initializing world...";
   document.title = initialLoadingLabel;

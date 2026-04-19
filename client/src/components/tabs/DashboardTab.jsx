@@ -28,7 +28,7 @@ export default function DashboardTab({
               <span className="text-base">🔥</span>
               <p className="text-xs cinzel font-bold" style={{ color: "var(--streak-text)" }}>{state.streak}</p>
             </div>
-            <p className="text-[10px] opacity-70 cinzel tracking-wider" style={{ color: "var(--color-muted)" }}>+{streakBonusPercent}% exp bonus</p>
+            <p className="text-[10px] opacity-70 cinzel tracking-wider" style={{ color: "var(--color-muted)" }}>+{streakBonusPercent}% {t.xpMultiplier}</p>
           </div>
         </div>
         <div className="dash-xp-bar">
