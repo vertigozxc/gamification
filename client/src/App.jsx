@@ -331,9 +331,10 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       type: "mobile-shell-state",
       showTabBar: Boolean(authUser) && !authLoading && !dataLoading && initialDataResolved && !showOnboarding && !cityFullscreen && !showPinnedReplaceModal,
       loading: Boolean(authLoading || dataLoading || (authUser && !initialDataResolved)),
-      activeTab: mobileTab
+      activeTab: mobileTab,
+      languageId
     }));
-  }, [isEmbeddedApp, authUser, authLoading, dataLoading, initialDataResolved, showOnboarding, mobileTab, cityFullscreen, showPinnedReplaceModal]);
+  }, [isEmbeddedApp, authUser, authLoading, dataLoading, initialDataResolved, showOnboarding, mobileTab, cityFullscreen, showPinnedReplaceModal, languageId]);
 
   useEffect(() => {
     if (!authUser) {

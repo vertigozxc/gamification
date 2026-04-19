@@ -265,7 +265,9 @@ export const languagePacks = {
       }
     },
     themeVocab: {},
-    categoryLabels: {},
+    categoryLabels: {
+      CUSTOM: "Custom"
+    },
     quests: {}
   },
   ru: {
@@ -617,7 +619,8 @@ export const languagePacks = {
       MIND_OR_DISCIPLINE: "УМ / ДИСЦИПЛИНА",
       DISCIPLINE: "ДИСЦИПЛИНА",
       SOCIAL: "СОЦИУМ",
-      ADAPTIVE: "АДАПТИВНОЕ"
+      ADAPTIVE: "АДАПТИВНОЕ",
+      CUSTOM: "СВОИ"
     },
     quests: {
       quest_001: { title: "Путь странника", description: "Пройди 6000 шагов сегодня" },
