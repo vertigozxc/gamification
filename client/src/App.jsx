@@ -544,10 +544,13 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const streakBonusPercent = Math.round((streakMultiplier - 1) * 100);
   const completedToday = state.completed.length;
   const milestoneProgressPercent = Math.min(100, (completedToday / 6) * 100);
+  const milestoneRunes = Array.isArray(t.milestoneRunes) && t.milestoneRunes.length >= 3
+    ? t.milestoneRunes
+    : ["✓", "★", "🏆"];
   const milestoneSteps = [
-    { target: 4, reward: `+20 ${t.xpLabel} / +1 ${t.streakIcon}`, rune: t.milestoneRunes[0] },
-    { target: 5, reward: "+25 " + t.xpLabel, rune: t.milestoneRunes[1] },
-    { target: 6, reward: `+25 ${t.xpLabel} / +1 ${t.tokenIcon}`, rune: t.milestoneRunes[2] }
+    { target: 4, reward: `+20 ${t.xpLabel} / +1 ${t.streakIcon}`, rune: milestoneRunes[0] },
+    { target: 5, reward: "+25 " + t.xpLabel, rune: milestoneRunes[1] },
+    { target: 6, reward: `+25 ${t.xpLabel} / +1 ${t.tokenIcon}`, rune: milestoneRunes[2] }
   ];
   const preferredQuestCount = Array.isArray(state.preferredQuestIds) && state.preferredQuestIds.length > 0 ? state.preferredQuestIds.length : 3;
   const pinnedQuests = quests.slice(0, preferredQuestCount).map((q) => ({ ...q, xp: 30 }));
@@ -575,7 +578,6 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     pendingQuestIds,
     addLog,
     completeQuest,
-    handleReroll,
     doReroll,
     handleResetDaily,
     handleHardReset,
@@ -1074,7 +1076,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 questRenderCount={questRenderCountRef.current}
                 pendingQuestIds={pendingQuestIds}
                 resetTimer={resetTimer}
-                onReroll={() => handleReroll(completedToday, canReroll)}
+                onReroll={() => { if (canReroll) setShowRerollConfirm(true); }}
                 onCompleteQuest={handleQuestCompleteWrapper}
                 rerollButtonLabel={rerollButtonLabel}
                 rerollButtonTitle={rerollButtonTitle}
@@ -1161,7 +1163,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             canReroll={canReroll}
             questRenderCount={questRenderCountRef.current}
             pendingQuestIds={pendingQuestIds}
-            onReroll={() => handleReroll(completedToday, canReroll)}
+            onReroll={() => { if (canReroll) setShowRerollConfirm(true); }}
             onCompleteQuest={handleQuestCompleteWrapper}
             rerollButtonLabel={rerollButtonLabel}
             rerollButtonTitle={rerollButtonTitle}

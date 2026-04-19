@@ -3058,15 +3058,39 @@ app.post("/api/sync-state", async (req, res) => {
     const parsed = schema.parse(req.body);
     const username = slugifyUsername(parsed.username);
     if (!username) return res.status(400).json({ error: "Invalid username" });
-    const updateData = { level: parsed.level, xp: parsed.xp, xpNext: parsed.xpNext };
-    if (typeof parsed.tokens === "number") {
+
+    const existingUser = await prisma.user.findUnique({ where: { username } });
+    if (!existingUser) {
+      return res.json({ ok: false });
+    }
+
+    // Guard against stale mobile/web payloads that can otherwise overwrite
+    // newer server progress (e.g. setting XP back to 0 after quest completion).
+    const incomingTotalXp = getTotalXp(parsed.level, parsed.xp);
+    const currentTotalXp = getTotalXp(existingUser.level, existingUser.xp);
+
+    const updateData = {};
+    if (incomingTotalXp > currentTotalXp) {
+      updateData.level = parsed.level;
+      updateData.xp = parsed.xp;
+      updateData.xpNext = parsed.xpNext;
+    }
+
+    if (typeof parsed.tokens === "number" && parsed.tokens > Number(existingUser.tokens || 0)) {
       updateData.tokens = parsed.tokens;
     }
-    await prisma.user.update({
-      where: { username },
-      data: updateData,
+
+    if (Object.keys(updateData).length > 0) {
+      await prisma.user.update({
+        where: { username },
+        data: updateData,
+      });
+    }
+
+    res.json({
+      ok: true,
+      skippedStaleXpSync: incomingTotalXp <= currentTotalXp
     });
-    res.json({ ok: true });
   } catch {
     // user may not exist yet; silently succeed
     res.json({ ok: false });

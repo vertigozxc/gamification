@@ -67,7 +67,7 @@ function QuestBoard({
     <div className={`relative ${compact ? "" : "lg:col-span-2"}`}>
       {/* Timer + streak badge row */}
       <div className="flex items-center justify-between gap-2 mb-3 px-1">
-        <div className="flex items-center gap-2 text-slate-400" style={{ fontSize: "0.72rem" }}>
+        <div className="flex items-center gap-2" style={{ fontSize: "0.72rem", color: "var(--color-muted)" }}>
           <span>⏰</span>
           <span className="cinzel">{t.dailyResetLabel}</span>
           <span className="font-mono font-bold" style={{ color: "var(--color-primary)" }}>{resetTimer}</span>
@@ -78,7 +78,7 @@ function QuestBoard({
               {t.streakProtectedBadge}
             </span>
           )}
-          <span className="cinzel text-[11px] text-slate-500">{completedTodayCount}/6</span>
+          <span className="cinzel text-[11px]" style={{ color: "var(--color-muted)" }}>{completedTodayCount}/6</span>
         </div>
       </div>
 
@@ -133,7 +133,7 @@ function QuestBoard({
                     <div className="mt-2.5 pl-9 pointer-events-none">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-[10px] cinzel tracking-wider uppercase" style={{ color: "var(--color-primary)" }}>{t.progressLabel || "Progress"}</span>
-                        <span className="cinzel text-xs font-bold text-slate-300">{pinnedProgress.daysCompleted}/{pinnedProgress.totalDays}</span>
+                        <span className="cinzel text-xs font-bold" style={{ color: "var(--color-text)" }}>{pinnedProgress.daysCompleted}/{pinnedProgress.totalDays}</span>
                       </div>
                       <div className="qb-progress-track">
                         <div className="qb-progress-fill" style={{ width: `${progressPercent}%` }} />

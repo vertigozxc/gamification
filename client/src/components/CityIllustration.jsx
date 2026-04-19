@@ -18,7 +18,8 @@ function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 function lerp(a, b, t) { return a + (b - a) * t; }
 function pickRandom(arr, rng) { return arr[Math.floor(rng() * arr.length)]; }
 
-function GlobalStyles() {
+function GlobalStyles({ delay }) {
+  const d = typeof delay === 'number' ? `${delay.toFixed(2)}s` : '0s';
   return (
     <style>{`
       @keyframes skyTopAnim {
@@ -80,15 +81,15 @@ function GlobalStyles() {
         46%, 100% { opacity: 0; }
       }
 
-      .sky-top { animation: skyTopAnim 60s linear infinite; }
-      .sky-mid { animation: skyMidAnim 60s linear infinite; }
-      .sky-bot { animation: skyBotAnim 60s linear infinite; }
-      .sun-anim { animation: sunTrajectory 60s linear infinite, sunVisibility 60s linear infinite; }
-      .moon-anim { animation: moonTrajectory 60s linear infinite, moonVisibility 60s linear infinite; }
-      .city-light { animation: nightLights 60s linear infinite; }
-      .day-reflection { animation: dayReflections 60s linear infinite; }
-      .stars-layer { animation: starsFade 60s linear infinite; }
-      .rain-layer { animation: rainDayVisibility 60s linear infinite; }
+      .sky-top { animation: skyTopAnim 60s linear infinite; animation-delay: ${d}; }
+      .sky-mid { animation: skyMidAnim 60s linear infinite; animation-delay: ${d}; }
+      .sky-bot { animation: skyBotAnim 60s linear infinite; animation-delay: ${d}; }
+      .sun-anim { animation: sunTrajectory 60s linear infinite, sunVisibility 60s linear infinite; animation-delay: ${d}, ${d}; }
+      .moon-anim { animation: moonTrajectory 60s linear infinite, moonVisibility 60s linear infinite; animation-delay: ${d}, ${d}; }
+      .city-light { animation: nightLights 60s linear infinite; animation-delay: ${d}; }
+      .day-reflection { animation: dayReflections 60s linear infinite; animation-delay: ${d}; }
+      .stars-layer { animation: starsFade 60s linear infinite; animation-delay: ${d}; }
+      .rain-layer { animation: rainDayVisibility 60s linear infinite; animation-delay: ${d}; }
     `}</style>
   );
 }
@@ -445,7 +446,9 @@ function Subway({ stage }) {
     );
   }
 
-  function Traffic({ stage }) {
+  function Traffic({ stage, animOffset = 0 }) {
+    // animOffset is negative seconds (-(Date.now() % 60000)/1000), used to sync anim phases
+    const nowMs = -animOffset * 1000; // positive ms elapsed in current 60s cycle
     const t = (stage - 1) / 19;
     const numCars = stage >= 5 ? Math.floor(lerp(1, 15, (stage - 5) / 15)) : 0;
     const numPpl = Math.floor(lerp(3, 30, t));
@@ -455,10 +458,12 @@ function Subway({ stage }) {
     const dir = rng() > 0.5 ? 1 : -1;
     const dur = 10 + rng() * 15;
     const shirt = pickRandom(["#ef4444", "#3b82f6", "#22c55e", "#f59e0b", "#a855f7", "#ec4899", "#14b8a6"], rng);
+    // Sync: compute how far into this cycle we are, so animation starts mid-flight
+    const personBegin = `${-(nowMs % (dur * 1000)) / 1000}s`;
     
     people.push(
       <g key={`p-${i}`}>
-        <animateTransform attributeName="transform" type="translate" from={`${dir > 0 ? -20 : W + 20} ${GROUND - 12}`} to={`${dir > 0 ? W + 20 : -20} ${GROUND - 12}`} dur={`${dur}s`} repeatCount="indefinite" />
+        <animateTransform attributeName="transform" type="translate" from={`${dir > 0 ? -20 : W + 20} ${GROUND - 12}`} to={`${dir > 0 ? W + 20 : -20} ${GROUND - 12}`} dur={`${dur}s`} begin={personBegin} repeatCount="indefinite" />
         <ellipse cx="0" cy="11" rx="4" ry="1.5" fill="#1f2937" opacity="0.2" />
         <line x1="-1.5" y1="6" x2="-2" y2="10" stroke="#1e293b" strokeWidth="1.5">
            <animate attributeName="x2" values="-3;-1;-3" dur="0.5s" repeatCount="indefinite" />
@@ -481,10 +486,11 @@ function Subway({ stage }) {
     const dur = 3 + rng() * 6;
     const color = pickRandom(["#dc2626", "#2563eb", "#eab308", "#f8fafc", "#0f172a", "#10b981", "#64748b", "#fbcfe8", "#c026d3"], rng);
     const y = GROUND + 15 + (dir > 0 ? 2 : 14);
+    const carBegin = `${-(nowMs % (dur * 1000)) / 1000}s`;
     
     cars.push(
       <g key={`c-${i}`}>
-        <animateTransform attributeName="transform" type="translate" from={`${dir > 0 ? -40 : W + 40} ${y}`} to={`${dir > 0 ? W + 40 : -40} ${y}`} dur={`${dur}s`} repeatCount="indefinite" />
+        <animateTransform attributeName="transform" type="translate" from={`${dir > 0 ? -40 : W + 40} ${y}`} to={`${dir > 0 ? W + 40 : -40} ${y}`} dur={`${dur}s`} begin={carBegin} repeatCount="indefinite" />
         <ellipse cx="0" cy="8" rx="18" ry="2" fill="#1f2937" opacity="1" />
         <rect x="-18" y="-8" width="36" height="12" rx="4" fill={color} />
         <path d={dir > 0 ? "M-10,-8 L-4,-14 L8,-14 L14,-8 Z" : "M-14,-8 L-8,-14 L4,-14 L10,-8 Z"} fill={color} />
@@ -688,6 +694,9 @@ function AtmosphereOrnaments({ stage }) {
 export default function CityIllustration({ height = "500px", stage = 1, weatherCycleDay }) {
   const level = clamp(Number(stage) || 1, 1, 20);
   const { t } = useTheme();
+  // Compute negative delay so animation syncs to real wall-clock time on every mount.
+  // Using useRef so it's stable and doesn't change on re-renders.
+  const animDelay = React.useRef(-(Date.now() % APP_DAY_MS) / 1000);
   const [appCycleDay, setAppCycleDay] = useState(() => (
     Number.isFinite(Number(weatherCycleDay))
       ? Number(weatherCycleDay)
@@ -1270,7 +1279,7 @@ export default function CityIllustration({ height = "500px", stage = 1, weatherC
 
   return (
     <div style={{ width: "100%", height }}>
-      <GlobalStyles />
+      <GlobalStyles delay={animDelay.current} />
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" style={{ width: '100%', height: '100%', display: 'block', transform: 'scale(1.14)', transformOrigin: '50% 100%' }}>
         <Sky stage={level} isRainyDay={isRainyDay} />
         <Clouds stage={level} isRainyDay={isRainyDay} />
@@ -1287,7 +1296,7 @@ export default function CityIllustration({ height = "500px", stage = 1, weatherC
         <Ground stage={level} isRainyDay={isRainyDay} />
         <RainSplashes stage={level} isRainyDay={isRainyDay} />
         <Subway stage={level} />
-        <Traffic stage={level} />
+        <Traffic stage={level} animOffset={animDelay.current} />
       </svg>
     </div>
   );

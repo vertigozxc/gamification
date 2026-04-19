@@ -260,6 +260,27 @@ const themes = {
       portraitUploadHint: "Click to upload image",
       themeLabel: "Theme"
     }
+  },
+  light: {
+    id: "light",
+    label: "Light",
+    description: "Soft daylight interface inspired by modern wellness apps",
+    icon: "☀️",
+    fonts: { heading: "'Quicksand', sans-serif", body: "'Quicksand', sans-serif" },
+    vocab: {
+      appTitle: "☀️ GOHABIT ☀️",
+      appSubtitle: "Small actions, bright progress",
+      appTagline: "GoHabit",
+      availableItems: "Today's Quests",
+      tokenIcon: "☀️",
+      streakIcon: "✨",
+      dailyBoardIcon: "📅",
+      habitsIcon: "🪴",
+      cityIcon: "🌤️",
+      logsIcon: "📝",
+      levelIcon: "🏅",
+      themeLabel: "Theme"
+    }
   }
 };
 

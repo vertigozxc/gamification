@@ -11,7 +11,7 @@ function getInitialTheme() {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
     if (stored && themeIds.includes(stored)) return stored;
   } catch {}
-  return "adventure";
+  return "light";
 }
 
 function getInitialLanguage() {
@@ -40,10 +40,12 @@ export function ThemeProvider({ children }) {
   }, [languageId]);
 
   const value = useMemo(() => {
-    const theme = themes[themeId] || themes.adventure;
+    const theme = themes[themeId] || themes.light;
     const language = languagePacks[languageId] || languagePacks.en;
     const localizedThemeMeta = language.themeMeta?.[themeId] || {};
+    const baseThemeVocab = themes.balance?.vocab || themes.adventure?.vocab || {};
     const mergedVocab = {
+      ...baseThemeVocab,
       ...theme.vocab,
       ...(language.ui || {}),
       ...(language.themeVocab?.[themeId] || {})
@@ -76,7 +78,7 @@ export function ThemeProvider({ children }) {
       translateQuest,
       translateCategory,
       getThemeMeta: (id) => {
-        const nextTheme = themes[id] || themes.adventure;
+        const nextTheme = themes[id] || themes.light;
         const nextMeta = language.themeMeta?.[id] || {};
         return {
           ...nextTheme,

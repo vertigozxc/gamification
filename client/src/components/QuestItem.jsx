@@ -92,8 +92,8 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
             <span className="qb-cat">{String(quest.category || "").toUpperCase()}</span>
             <span className="qb-xp">+{quest.xp} {t.xpLabel}</span>
           </div>
-          <h4 className={`cinzel text-white font-bold leading-snug ${compact ? "text-[14px]" : "text-[15px]"}`}>{quest.title}</h4>
-          <p className="text-slate-400 text-[13px] mt-0.5 leading-relaxed line-clamp-2">{quest.desc}</p>
+          <h4 className={`cinzel font-bold leading-snug ${compact ? "text-[14px]" : "text-[15px]"}`} style={{ color: "var(--color-text)" }}>{quest.title}</h4>
+          <p className="text-[13px] mt-0.5 leading-relaxed line-clamp-2" style={{ color: "var(--color-muted)" }}>{quest.desc}</p>
         </div>
       </div>
       {children}

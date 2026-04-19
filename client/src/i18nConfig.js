@@ -34,6 +34,7 @@ export const languagePacks = {
       itemSingular: "Quest",
       itemPlural: "Quests",
       itemLabel: "QUESTS",
+      itemLabelPlural: "QUESTS",
       pinnedTag: "PINNED",
       pinnedHint: "Pinned daily quest",
       clickPrompt: "Tap to complete",
@@ -261,9 +262,18 @@ export const languagePacks = {
       balance: {
         label: "Balance",
         description: "Calm wellness-inspired experience"
+      },
+      light: {
+        label: "Light",
+        description: "Soft daylight interface inspired by wellness apps"
       }
     },
-    themeVocab: {},
+    themeVocab: {
+      light: {
+        appSubtitle: "Small actions, bright progress",
+        availableItems: "☀️ Today's Quests"
+      }
+    },
     categoryLabels: {
       CUSTOM: "Custom"
     },
@@ -322,6 +332,7 @@ export const languagePacks = {
       itemSingular: "Задание",
       itemPlural: "Задания",
       itemLabel: "ЗАДАНИЯ",
+      itemLabelPlural: "ЗАДАНИЙ",
       pinnedTag: "ЗАКРЕПЛЕНО",
       pinnedHint: "Закрепленное ежедневное задание",
       clickPrompt: "Нажмите, чтобы завершить",
@@ -417,7 +428,7 @@ export const languagePacks = {
       dayPlural: "дней",
       rerollFree: "БЕСПЛАТНО",
       replacePinnedFreeCost: "Стоимость: БЕСПЛАТНО (раз в 21 день)",
-      replacePinnedSearchPlaceholder: "Поиск по названию или описанию задания",
+      replacePinnedSearchPlaceholder: "Умный поиск задания",
       notesPlaceholder: "Пишите здесь свои личные заметки...",
       feedbackQuestionUseful: "Насколько полезным было это задание?",
       feedbackRequireRating: "Поставьте оценку от 1 до 10",
@@ -604,7 +615,8 @@ export const languagePacks = {
     },
     themeMeta: {
       adventure: { label: "Приключение", description: "Героический RPG-стиль" },
-      balance: { label: "Баланс", description: "Спокойный режим для устойчивого роста" }
+      balance: { label: "Баланс", description: "Спокойный режим для устойчивого роста" },
+      light: { label: "Светлая", description: "Мягкий дневной интерфейс в стиле wellness" }
     },
     themeVocab: {
       adventure: {
@@ -616,6 +628,11 @@ export const languagePacks = {
         appSubtitle: "Заботься о своем росте",
         appTagline: "GoHabit",
         availableItems: "🌿 Задания на сегодня"
+      },
+      light: {
+        appSubtitle: "Маленькие шаги, светлый прогресс",
+        appTagline: "GoHabit",
+        availableItems: "☀️ Задания на сегодня"
       }
     },
     categoryLabels: {

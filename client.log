@@ -1,0 +1,48 @@
+
+> life-rpg-client@1.0.0 dev
+> vite --host 127.0.0.1 --port 5173
+
+
+  VITE v8.0.7  ready in 80 ms
+
+  ➜  Local:   http://127.0.0.1:5173/
+1:05:10 AM [vite] (client) hmr update /src/App.jsx
+1:05:48 AM [vite] (client) hmr update /src/App.jsx
+1:16:58 AM [vite] (client) hmr update /src/components/QuestItem.jsx
+1:17:09 AM [vite] (client) hmr update /src/components/TokenVault.jsx
+1:17:22 AM [vite] (client) hmr update /src/components/QuestBoard.jsx
+1:18:02 AM [vite] (client) hmr update /src/components/TokenVault.jsx
+1:18:02 AM [vite] (client) hmr update /src/components/QuestItem.jsx
+1:18:02 AM [vite] (client) hmr update /src/components/QuestBoard.jsx
+1:18:59 AM [vite] (client) hmr update /src/ThemeContext.jsx
+1:18:59 AM [vite] (client) hmr invalidate /src/ThemeContext.jsx Could not Fast Refresh ("useTheme" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:18:59 AM [vite] (client) hmr update /src/main.jsx, /src/App.jsx, /src/components/modals/FreezeSuccessModal.jsx, /src/components/modals/LogoutConfirmModal.jsx, /src/components/modals/RerollConfirmModal.jsx, /src/components/modals/OnboardingModal.jsx, /src/components/modals/NotesModal.jsx, /src/components/modals/PinnedReplacementModal.jsx, /src/components/modals/CustomHabitManager.jsx, /src/components/TokenVault.jsx, /src/components/CityIllustration.jsx, /src/components/ProfilePanel.jsx, /src/components/QuestBoard.jsx and 1 more
+1:18:59 AM [vite] (client) hmr invalidate /src/main.jsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:18:59 AM [vite] (client) page reload src/main.jsx
+1:19:58 AM [vite] (client) hmr update /src/ThemeContext.jsx
+1:19:58 AM [vite] (client) hmr invalidate /src/ThemeContext.jsx Could not Fast Refresh ("useTheme" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:19:58 AM [vite] (client) hmr update /src/main.jsx, /src/App.jsx, /src/components/modals/FreezeSuccessModal.jsx, /src/components/modals/LogoutConfirmModal.jsx, /src/components/modals/RerollConfirmModal.jsx, /src/components/modals/OnboardingModal.jsx, /src/components/modals/NotesModal.jsx, /src/components/modals/PinnedReplacementModal.jsx, /src/components/modals/CustomHabitManager.jsx, /src/components/TokenVault.jsx, /src/components/CityIllustration.jsx, /src/components/ProfilePanel.jsx, /src/components/QuestBoard.jsx and 1 more
+1:19:58 AM [vite] (client) hmr invalidate /src/main.jsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:19:58 AM [vite] (client) page reload src/main.jsx
+1:29:42 AM [vite] (client) hmr update /src/ThemeContext.jsx
+1:29:42 AM [vite] (client) hmr invalidate /src/ThemeContext.jsx Could not Fast Refresh ("useTheme" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:29:42 AM [vite] (client) hmr update /src/main.jsx, /src/App.jsx, /src/components/modals/FreezeSuccessModal.jsx, /src/components/modals/LogoutConfirmModal.jsx, /src/components/modals/RerollConfirmModal.jsx, /src/components/modals/OnboardingModal.jsx, /src/components/modals/NotesModal.jsx, /src/components/modals/PinnedReplacementModal.jsx, /src/components/modals/CustomHabitManager.jsx, /src/components/TokenVault.jsx, /src/components/CityIllustration.jsx, /src/components/ProfilePanel.jsx, /src/components/QuestBoard.jsx and 1 more
+1:29:42 AM [vite] (client) hmr invalidate /src/main.jsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:29:42 AM [vite] (client) page reload src/main.jsx
+1:32:14 AM [vite] (client) hmr update /src/components/modals/PinnedReplacementModal.jsx
+1:33:20 AM [vite] (client) hmr update /src/components/modals/PinnedReplacementModal.jsx
+1:38:29 AM [vite] (client) hmr update /src/components/modals/PinnedReplacementModal.jsx
+1:39:00 AM [vite] (client) hmr update /src/components/modals/PinnedReplacementModal.jsx
+1:41:30 AM [vite] (client) hmr update /src/App.jsx
+1:41:44 AM [vite] (client) hmr update /src/App.jsx
+1:43:07 AM [vite] (client) hmr update /src/App.jsx
+1:45:54 AM [vite] (client) hmr update /src/components/tabs/DashboardTab.jsx
+1:45:54 AM [vite] (client) hmr update /src/ThemeContext.jsx
+1:46:14 AM [vite] (client) hmr update /src/components/tabs/DashboardTab.jsx
+1:46:14 AM [vite] (client) hmr update /src/ThemeContext.jsx
+1:49:10 AM [vite] (client) hmr update /src/components/CityIllustration.jsx
+1:49:29 AM [vite] (client) hmr update /src/components/CityIllustration.jsx
+1:49:41 AM [vite] (client) hmr update /src/components/CityIllustration.jsx
+1:52:09 AM [vite] (client) hmr update /src/components/CityIllustration.jsx
+1:52:30 AM [vite] (client) hmr update /src/components/CityIllustration.jsx
+1:52:51 AM [vite] (client) hmr update /src/components/CityIllustration.jsx

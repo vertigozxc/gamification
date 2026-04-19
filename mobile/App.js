@@ -34,7 +34,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container} edges={["left", "right"]}>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <WebAppScreen onShellReady={handleShellReady} />
       </SafeAreaView>
     </SafeAreaProvider>
@@ -44,6 +44,6 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#020617"
+    backgroundColor: "#f7f9ff"
   }
 });

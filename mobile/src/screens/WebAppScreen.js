@@ -163,7 +163,7 @@ export default function WebAppScreen({ onShellReady }) {
   const [errorText, setErrorText] = useState("");
   const [showTabBar, setShowTabBar] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [theme, setTheme] = useState({ bg: "rgba(8, 15, 30, 0.97)", active: "#fbbf24", inactive: "#94a3b8", orb: "#fbbf24", orbText: "#111827" });
+  const [theme, setTheme] = useState({ bg: "rgba(255, 255, 255, 0.92)", active: "#ff5c8a", inactive: "#96a0af", orb: "#ff5c8a", orbText: "#ffffff" });
   const [pressedTab, setPressedTab] = useState("");
   const bridgeId = useMemo(() => createBridgeId(), []);
   const webUrl = useMemo(() => {
