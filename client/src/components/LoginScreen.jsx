@@ -1,30 +1,36 @@
-import CityIllustration from "./CityIllustration";
 import LanguageSelector from "./LanguageSelector";
+import { Flame } from "lucide-react";
 
 export default function LoginScreen({ t, handleGoogleLogin, authError, languageId, languageIds, getLanguageMeta, setLanguageId }) {
   return (
     <div className="auth-shell relative w-full h-[100dvh] overflow-hidden flex flex-col" style={{ background: "var(--bg-color)" }}>
-      {/* Ambient Background with City Illustration */}
-      <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
-        <div className="absolute top-[18%] left-1/2 -translate-x-1/2 w-[780px] h-[780px] bg-cyan-400/10 rounded-full blur-[110px] opacity-70" />
-        <div className="absolute top-[42%] left-1/2 -translate-x-1/2 w-[680px] h-[680px] bg-emerald-400/10 rounded-full blur-[120px] opacity-70" />
-        <div className="absolute top-[10%] inset-x-0 bottom-0 opacity-[0.15] scale-[1.35] origin-top md:scale-[1.1] md:top-[15%] transition-transform duration-1000 ease-out">
-          <CityIllustration height="100%" stage={25} />
+      {/* Ambient Background matching the new Flame icon style */}
+      <div className="absolute inset-0 pointer-events-none select-none overflow-hidden" style={{ backgroundColor: "#080A0E" }}>
+        {/* Glows representing the flame colors */}
+        <div className="absolute top-[15%] left-1/2 -translate-x-1/2 w-[700px] h-[700px] rounded-full blur-[140px] opacity-40 mix-blend-screen" style={{ background: "radial-gradient(circle, #D12200 0%, transparent 70%)" }} />
+        <div className="absolute top-[30%] left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full blur-[100px] opacity-40 mix-blend-screen" style={{ background: "radial-gradient(circle, #FF7B00 0%, transparent 70%)" }} />
+        <div className="absolute top-[40%] left-1/2 -translate-x-1/2 w-[300px] h-[300px] rounded-full blur-[80px] opacity-50 mix-blend-screen" style={{ background: "radial-gradient(circle, #FFCE44 0%, transparent 70%)" }} />
+        
+        {/* Large subtle flame icon in the background */}
+        <div className="absolute top-[20%] left-1/2 -translate-x-1/2 opacity-[0.03] scale-[4.5] md:scale-[3.5] origin-center text-[#FFCE44]">
+          <Flame size={240} strokeWidth={0.5} />
         </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-[#020817] via-[#020817]/92 to-transparent h-[62%] top-auto" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#061224] via-[#061224]/78 to-transparent h-[34%]" />
+
+        {/* Gradients to fade out top and bottom */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#080A0E] via-[#080A0E]/80 to-transparent h-[70%] top-auto" />
       </div>
 
       {/* Top Content: Branding */}
       <div className="relative z-10 flex-col items-center justify-start pt-16 flex-none px-6">
         <div className="animate-slide-down text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-300/40 bg-cyan-500/10 backdrop-blur-sm mb-4">
-            <span className="text-cyan-200 text-[10px] font-bold tracking-[0.22em] uppercase">{t.loginEngineBadge}</span>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-orange-500/30 bg-orange-500/10 backdrop-blur-sm mb-4">
+            <Flame className="text-orange-400 w-3 h-3" />
+            <span className="text-orange-200 text-[10px] font-bold tracking-[0.22em] uppercase">{t.loginEngineBadge}</span>
           </div>
           <p className="cinzel text-xs tracking-[0.36em] uppercase mb-3" style={{ color: "var(--color-primary-dim)" }}>
             {t.appTagline}
           </p>
-          <h1 className="cinzel text-[3.15rem] md:text-6xl font-black text-transparent bg-clip-text tracking-[0.14em] leading-tight" style={{ backgroundImage: "linear-gradient(135deg, #dbeafe, #7dd3fc 45%, #86efac)" }}>
+          <h1 className="cinzel text-[3.15rem] md:text-6xl font-black text-transparent bg-clip-text tracking-[0.14em] leading-tight" style={{ backgroundImage: "linear-gradient(135deg, #FFCE44, #FF7B00 50%, #D12200)" }}>
             {t.loginBrandTitle}
           </h1>
         </div>
@@ -35,25 +41,25 @@ export default function LoginScreen({ t, handleGoogleLogin, authError, languageI
         <p className="text-slate-200 text-lg md:text-xl font-medium max-w-md mx-auto leading-relaxed shadow-sm">
           {t.loginHeroTagline}
         </p>
-        <div className="flex gap-4 mt-8 opacity-80">
-          <div className="flex flex-col items-center gap-1"><span className="text-2xl">{t.habitsIcon}</span><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{t.loginFeatureHabits}</span></div>
-          <div className="flex flex-col items-center gap-1"><span className="text-2xl">{t.levelIcon}</span><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{t.loginFeatureLevels}</span></div>
-          <div className="flex flex-col items-center gap-1"><span className="text-2xl">{t.cityIcon}</span><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{t.loginFeatureCity}</span></div>
+        <div className="flex justify-center flex-wrap gap-6 md:gap-8 mt-8 opacity-80">
+          <div className="flex flex-col items-center gap-2"><div className="w-12 h-12 rounded-full border border-orange-500/30 bg-orange-500/10 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(255,123,0,0.15)]"><span className="text-xl">{t.habitsIcon}</span></div><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{t.loginFeatureHabits}</span></div>
+          <div className="flex flex-col items-center gap-2"><div className="w-12 h-12 rounded-full border border-orange-500/30 bg-orange-500/10 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(255,123,0,0.15)]"><span className="text-xl">{t.levelIcon}</span></div><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{t.loginFeatureLevels}</span></div>
+          <div className="flex flex-col items-center gap-2"><div className="w-12 h-12 rounded-full border border-orange-500/30 bg-orange-500/10 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(255,123,0,0.15)]"><span className="text-xl">{t.cityIcon}</span></div><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{t.loginFeatureCity}</span></div>
         </div>
       </div>
 
       {/* Bottom Content: Auth */}
       <div className="relative z-10 flex-none pb-12 pt-6 px-6 w-full max-w-[420px] mx-auto animate-slide-up" style={{ animationDelay: "300ms", paddingBottom: "calc(2rem + env(safe-area-inset-bottom))" }}>
-        <div className="rounded-[2rem] p-6 border shadow-[0_0_44px_rgba(2,132,199,0.22)] backdrop-blur-md relative overflow-hidden" style={{ background: "linear-gradient(to bottom, rgba(8,20,43,0.78), rgba(2,8,23,0.95))", borderColor: "rgba(125, 211, 252, 0.45)" }}>
-          <div className="absolute -top-24 -right-24 w-48 h-48 bg-cyan-400/20 rounded-full blur-[50px] pointer-events-none" />
+        <div className="rounded-[2rem] p-6 border shadow-[0_0_44px_rgba(255,123,0,0.15)] backdrop-blur-md relative overflow-hidden" style={{ background: "linear-gradient(to bottom, rgba(20,23,30,0.85), rgba(8,10,14,0.95))", borderColor: "rgba(255, 123, 0, 0.25)" }}>
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-orange-500/20 rounded-full blur-[50px] pointer-events-none" />
           <div className="relative z-10 text-center mb-6">
             <h2 className="cinzel text-2xl text-white font-bold mb-1">{t.loginTitle}</h2>
             <p className="text-slate-400 text-sm">{t.loginSubtitle}</p>
           </div>
           <div className="relative z-10">
             <button
-              className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl text-lg font-bold transition-all active:scale-[0.98] shadow-lg hover:shadow-yellow-500/20"
-              style={{ background: "linear-gradient(135deg, #1e293b, #0f172a)", border: "1px solid var(--color-primary)", color: "var(--color-primary)" }}
+              className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl text-lg font-bold transition-all active:scale-[0.98] shadow-lg hover:shadow-orange-500/20"
+              style={{ background: "linear-gradient(135deg, #14171E, #080A0E)", border: "1px solid rgba(255, 123, 0, 0.4)", color: "var(--color-primary)" }}
               onClick={handleGoogleLogin}
             >
               <div className="bg-white rounded-full p-1.5 shadow-sm">

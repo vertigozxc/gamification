@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "GoHabit Mobile",
+    "name": "GoHabit",
     "slug": "life-rpg-mobile",
     "scheme": "liferpgmobile",
     "version": "1.0.0",
@@ -14,7 +14,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.liferpg.mobile",
       "infoPlist": {
-        "NSLocalNetworkUsageDescription": "Allow GoHabit Mobile to connect to your Mac during development.",
+        "NSLocalNetworkUsageDescription": "Allow GoHabit to connect to your Mac during development.",
         "NSBonjourServices": [
           "_expo._tcp",
           "_expo-dev-client._tcp",

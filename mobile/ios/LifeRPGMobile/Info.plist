@@ -7,7 +7,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>GoHabit Mobile</string>
+    <string>GoHabit</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -45,7 +45,7 @@
       <true/>
     </dict>
     <key>NSLocalNetworkUsageDescription</key>
-    <string>Allow GoHabit Mobile to connect to your Mac during development.</string>
+    <string>Allow GoHabit to connect to your Mac during development.</string>
     <key>NSBonjourServices</key>
     <array>
       <string>_expo._tcp</string>

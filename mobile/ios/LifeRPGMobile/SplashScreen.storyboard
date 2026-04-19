@@ -22,27 +22,35 @@
                                     <constraint firstAttribute="width" secondItem="LRP-Badge-View" secondAttribute="height" multiplier="1:1" id="iFH-oW-F3S"/>
                                 </constraints>
                             </imageView>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="GoHabit" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="LRP-Title-Label">
-                                <rect key="frame" x="127.66666666666669" y="477" width="138" height="43"/>
-                                <fontDescription key="fontDescription" type="boldSystem" pointSize="36"/>
-                                <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="POWERED BY HABITS" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="LRP-Engine-Badge">
+                                <rect key="frame" x="126" y="471" width="141" height="24"/>
+                                <fontDescription key="fontDescription" type="system" weight="heavy" pointSize="12"/>
+                                <color key="textColor" red="0.4901960784" green="0.8274509804" blue="0.9882352941" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Be the best version of yourself" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="LRP-Subtitle-Label">
-                                <rect key="frame" x="98.333333333333329" y="532" width="196.66666666666669" height="17"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="14"/>
-                                <color key="textColor" red="0.97599999999999998" green="0.45100000000000001" blue="0.085999999999999993" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="GoHabit" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="LRP-Title-Label">
+                                <rect key="frame" x="127.66666666666669" y="503" width="138" height="43"/>
+                                <fontDescription key="fontDescription" type="system" weight="black" pointSize="40"/>
+                                <color key="textColor" red="0.8588235294" green="0.9176470588" blue="0.9960784314" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="BE THE BEST VERSION OF YOURSELF" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="LRP-Subtitle-Label">
+                                <rect key="frame" x="98.333333333333329" y="554" width="196.66666666666669" height="17"/>
+                                <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="12"/>
+                                <color key="textColor" red="0.5254901961" green="0.6078431373" blue="0.7490196078" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="Rmq-lb-GrQ"/>
-                        <color key="backgroundColor" red="0.042999999999999997" green="0.058999999999999997" blue="0.089999999999999997" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" red="0.00784313725" green="0.03137254902" blue="0.0901960784" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="LRP-Badge-View" firstAttribute="centerX" secondItem="EXPO-ContainerView" secondAttribute="centerX" id="0bx-uR-HVA"/>
-                            <constraint firstItem="LRP-Title-Label" firstAttribute="top" secondItem="LRP-Badge-View" secondAttribute="bottom" constant="26" id="4Gd-Hk-zRz"/>
-                            <constraint firstItem="LRP-Subtitle-Label" firstAttribute="top" secondItem="LRP-Title-Label" secondAttribute="bottom" constant="12" id="6Tk-aU-xPt"/>
+                            <constraint firstItem="LRP-Engine-Badge" firstAttribute="top" secondItem="LRP-Badge-View" secondAttribute="bottom" constant="20" id="Eng-Be-dg"/>
+                            <constraint firstItem="LRP-Engine-Badge" firstAttribute="centerX" secondItem="EXPO-ContainerView" secondAttribute="centerX" id="Eng-Be-ce"/>
+                            <constraint firstItem="LRP-Title-Label" firstAttribute="top" secondItem="LRP-Engine-Badge" secondAttribute="bottom" constant="8" id="4Gd-Hk-zRz"/>
+                            <constraint firstItem="LRP-Subtitle-Label" firstAttribute="top" secondItem="LRP-Title-Label" secondAttribute="bottom" constant="8" id="6Tk-aU-xPt"/>
                             <constraint firstItem="LRP-Subtitle-Label" firstAttribute="centerX" secondItem="EXPO-ContainerView" secondAttribute="centerX" id="JCC-jW-yZX"/>
-                            <constraint firstItem="LRP-Badge-View" firstAttribute="centerY" secondItem="EXPO-ContainerView" secondAttribute="centerY" constant="-50" id="T8V-RJ-mzW"/>
+                            <constraint firstItem="LRP-Badge-View" firstAttribute="centerY" secondItem="EXPO-ContainerView" secondAttribute="centerY" constant="-60" id="T8V-RJ-mzW"/>
                             <constraint firstItem="LRP-Title-Label" firstAttribute="centerX" secondItem="EXPO-ContainerView" secondAttribute="centerX" id="eDh-gq-jdz"/>
                             <constraint firstItem="LRP-Badge-View" firstAttribute="width" constant="150" id="p3k-9L-cQh"/>
                         </constraints>

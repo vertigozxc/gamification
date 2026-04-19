@@ -106,12 +106,6 @@ export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen, d
           </div>
         )}
       </div>
-
-      <div className="city-hint-strip flex items-center justify-between gap-2 text-[11px]" style={{ color: "var(--color-muted)" }}>
-        <span>{t.cityPinchZoom}</span>
-        <span>{t.cityDragExplore}</span>
-        <span>{t.cityTapExpandFullscreen}</span>
-      </div>
     </div>
   );
 }

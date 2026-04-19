@@ -88,7 +88,7 @@ export default function LeaderboardTab({ leaderboard, authUser, logs, t }) {
                 flexShrink: 0,
               }}
             >
-              {totalPlayers} players
+              {totalPlayers} {window.i18nLanguage === "ru" ? "игроков" : "players"}
             </div>
           )}
         </div>
