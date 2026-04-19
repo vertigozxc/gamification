@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useTheme } from "../ThemeContext";
 
 const W = 1000;
 const H = 500;
@@ -686,6 +687,7 @@ function AtmosphereOrnaments({ stage }) {
 
 export default function CityIllustration({ height = "500px", stage = 1, weatherCycleDay }) {
   const level = clamp(Number(stage) || 1, 1, 20);
+  const { t } = useTheme();
   const [appCycleDay, setAppCycleDay] = useState(() => (
     Number.isFinite(Number(weatherCycleDay))
       ? Number(weatherCycleDay)
@@ -1287,6 +1289,23 @@ export default function CityIllustration({ height = "500px", stage = 1, weatherC
         <Subway stage={level} />
         <Traffic stage={level} />
       </svg>
+      
+      {/* City interaction hint */}
+      <div style={{
+        position: 'relative',
+        paddingTop: '12px',
+        paddingBottom: '16px',
+        textAlign: 'center',
+        fontSize: '13px',
+        fontWeight: '500',
+        color: 'var(--color-text-secondary, rgba(148, 163, 184, 0.9))',
+        letterSpacing: '0.3px',
+        background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.02))',
+        userSelect: 'none',
+        pointerEvents: 'none'
+      }}>
+        {t.cityViewHint || '💡 Double-tap to fullscreen • Pinch to zoom'}
+      </div>
     </div>
   );
 }
