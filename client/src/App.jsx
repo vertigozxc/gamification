@@ -399,8 +399,17 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           .catch(() => upsertProfile(authUser.uid, profileName, ""))
           .then(() => fetchGameState(authUser.uid));
       })
-      .then((gameStateResponse) => Promise.all([Promise.resolve(gameStateResponse), fetchLeaderboard(), fetchAllQuests()]))
-      .then(([gameStateResponse, { users }, allQuestsResponse]) => {
+      .then(async (gameStateResponse) => {
+        if (gameStateResponse?.forceLogout) {
+          setDataLoading(false);
+          setInitialDataResolved(true);
+          await handleLogout(() => {
+            setShowLevelUp(false);
+          });
+          return;
+        }
+
+        const [{ users }, allQuestsResponse] = await Promise.all([fetchLeaderboard(), fetchAllQuests()]);
         setDataLoading(false);
         setInitialDataResolved(true);
         applyServerTimeSync(gameStateResponse);
@@ -456,6 +465,12 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     resetDaily(username)
       .then(() => fetchGameState(authUser.uid))
       .then((gameStateResponse) => {
+        if (gameStateResponse?.forceLogout) {
+          handleLogout(() => {
+            setShowLevelUp(false);
+          });
+          return;
+        }
         applyServerTimeSync(gameStateResponse);
         const nextQuests = Array.isArray(gameStateResponse?.quests) ? gameStateResponse.quests.map(normalizeLocalizedQuest) : [];
         setQuests(nextQuests);

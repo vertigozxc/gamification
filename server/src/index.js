@@ -146,6 +146,404 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+function extractFirstEmail(value) {
+  if (!value) return "";
+  const match = String(value).match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+  return match ? match[0] : "";
+}
+
+function parseMetaObject(metaRaw) {
+  if (!metaRaw) return null;
+  if (metaRaw && typeof metaRaw === "object" && !Array.isArray(metaRaw)) return metaRaw;
+  if (typeof metaRaw !== "string") return null;
+  try {
+    const parsed = JSON.parse(metaRaw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function resolveEventEmail(event) {
+  const metaObj = parseMetaObject(event?.meta);
+  if (metaObj) {
+    if (metaObj.actorEmail) return String(metaObj.actorEmail);
+    if (metaObj.email) return String(metaObj.email);
+    if (metaObj.userEmail) return String(metaObj.userEmail);
+  }
+
+  return (
+    extractFirstEmail(event?.username) ||
+    extractFirstEmail(event?.message) ||
+    extractFirstEmail(event?.meta) ||
+    ""
+  );
+}
+
+function getTotalXp(level, xp) {
+  const safeLevel = Math.max(1, Number(level) || 1);
+  const safeXp = Math.max(0, Number(xp) || 0);
+  let total = safeXp;
+  let xpNext = 250;
+  for (let currentLevel = 1; currentLevel < safeLevel; currentLevel += 1) {
+    total += xpNext;
+    xpNext = Math.floor(xpNext * 1.1);
+  }
+  return total;
+}
+
+// Admin: users list for management tab
+app.get("/api/admin/users", requireAdmin, async (req, res) => {
+  try {
+    const limit = Math.min(500, Math.max(1, Number(req.query.limit) || 200));
+    const search = String(req.query.search || "").trim();
+    const where = search
+      ? {
+          OR: [
+            { username: { contains: search, mode: "insensitive" } },
+            { displayName: { contains: search, mode: "insensitive" } }
+          ]
+        }
+      : undefined;
+
+    const users = await prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        level: true,
+        xp: true,
+        xpNext: true,
+        streak: true,
+        updatedAt: true,
+        createdAt: true
+      },
+      orderBy: [{ level: "desc" }, { xp: "desc" }, { updatedAt: "desc" }],
+      take: limit
+    });
+
+    const userIds = users.map((user) => user.id);
+    const emailByUserId = new Map();
+    if (userIds.length > 0) {
+      const events = await prisma.event.findMany({
+        where: {
+          userId: { in: userIds },
+          OR: [
+            { username: { contains: "@" } },
+            { message: { contains: "@" } },
+            { meta: { contains: "@" } }
+          ]
+        },
+        orderBy: { createdAt: "desc" },
+        take: 5000,
+        select: {
+          userId: true,
+          username: true,
+          message: true,
+          meta: true
+        }
+      });
+
+      for (const event of events) {
+        const userId = String(event.userId || "").trim();
+        if (!userId || emailByUserId.has(userId)) continue;
+        const email = resolveEventEmail(event);
+        if (email) {
+          emailByUserId.set(userId, email);
+        }
+      }
+    }
+
+    res.json({
+      users: users.map((user) => ({
+        id: user.id,
+        username: user.username,
+        name: user.displayName,
+        email: emailByUserId.get(user.id) || "",
+        level: user.level,
+        xp: user.xp,
+        xpNext: user.xpNext,
+        totalXp: getTotalXp(user.level, user.xp),
+        streak: user.streak,
+        updatedAt: user.updatedAt,
+        createdAt: user.createdAt
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to load users", detail: error.message });
+  }
+});
+
+// Admin: grant fixed XP amount to user
+app.post("/api/admin/users/:userId/grant-xp", requireAdmin, async (req, res) => {
+  try {
+    const schema = z.object({
+      amount: z.number().int().min(1).max(100000).default(500)
+    });
+    const parsed = schema.parse(req.body || {});
+    const userId = String(req.params.userId || "").trim();
+    if (!userId) {
+      return res.status(400).json({ error: "userId is required" });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const nextXpState = applyBonusXpProgress({
+      level: user.level,
+      xp: user.xp,
+      xpNext: user.xpNext
+    }, parsed.amount);
+
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        level: nextXpState.level,
+        xp: nextXpState.xp,
+        xpNext: nextXpState.xpNext
+      },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        level: true,
+        xp: true,
+        xpNext: true,
+        streak: true,
+        updatedAt: true
+      }
+    });
+
+    res.json({
+      ok: true,
+      grantedXp: parsed.amount,
+      user: {
+        ...updatedUser,
+        totalXp: getTotalXp(updatedUser.level, updatedUser.xp)
+      }
+    });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// Admin: reset daily quests for user (today only)
+app.post("/api/admin/users/:userId/reset-daily", requireAdmin, async (req, res) => {
+  try {
+    const userId = String(req.params.userId || "").trim();
+    if (!userId) {
+      return res.status(400).json({ error: "userId is required" });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const now = new Date();
+    const dayKey = getDateKey(now);
+
+    const [deletedTodayCompletions, updatedUser] = await prisma.$transaction([
+      prisma.questCompletion.deleteMany({
+        where: {
+          userId: user.id,
+          dayKey
+        }
+      }),
+      prisma.user.update({
+        where: { id: user.id },
+        data: {
+          lastDailyResetAt: now,
+          lastDailyRerollAt: null,
+          extraRerollsToday: 0,
+          randomQuestIds: ""
+        },
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          level: true,
+          xp: true,
+          xpNext: true,
+          streak: true,
+          updatedAt: true
+        }
+      })
+    ]);
+
+    res.json({
+      ok: true,
+      dayKey,
+      deletedTodayCompletions: deletedTodayCompletions.count,
+      user: {
+        ...updatedUser,
+        totalXp: getTotalXp(updatedUser.level, updatedUser.xp)
+      }
+    });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// Admin: hard reset user progress (level + quests)
+app.post("/api/admin/users/:userId/reset-hard", requireAdmin, async (req, res) => {
+  try {
+    const userId = String(req.params.userId || "").trim();
+    if (!userId) {
+      return res.status(400).json({ error: "userId is required" });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const now = new Date();
+    const [, , updatedUser] = await prisma.$transaction([
+      prisma.questCompletion.deleteMany({ where: { userId: user.id } }),
+      prisma.dailyScore.deleteMany({ where: { userId: user.id } }),
+      prisma.user.update({
+        where: { id: user.id },
+        data: {
+          level: 1,
+          xp: 0,
+          xpNext: 250,
+          streak: 0,
+          tokens: 0,
+          randomQuestIds: "",
+          currentPI: null,
+          currentTier: "IRON",
+          weeksInCurrentTier: 0,
+          rankLevel: 1,
+          lastTierWeekKey: "",
+          lastStreakIncreaseAt: null,
+          streakFreezeExpiresAt: null,
+          lastDailyRerollAt: null,
+          extraRerollsToday: 0,
+          lastDailyResetAt: now
+        },
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          level: true,
+          xp: true,
+          xpNext: true,
+          streak: true,
+          updatedAt: true
+        }
+      })
+    ]);
+
+    res.json({
+      ok: true,
+      user: {
+        ...updatedUser,
+        totalXp: getTotalXp(updatedUser.level, updatedUser.xp)
+      }
+    });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// Admin: full reset user profile/data and force next client session logout.
+app.post("/api/admin/users/:userId/reset-full", requireAdmin, async (req, res) => {
+  try {
+    const userId = String(req.params.userId || "").trim();
+    if (!userId) {
+      return res.status(400).json({ error: "userId is required" });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const now = new Date();
+    const [, , , , , , updatedUser] = await prisma.$transaction([
+      prisma.questCompletion.deleteMany({ where: { userId: user.id } }),
+      prisma.dailyScore.deleteMany({ where: { userId: user.id } }),
+      prisma.customQuest.deleteMany({ where: { userId: user.id } }),
+      prisma.questFeedback.deleteMany({ where: { userId: user.id } }),
+      prisma.friendship.deleteMany({ where: { OR: [{ userAId: user.id }, { userBId: user.id }] } }),
+      prisma.invite.deleteMany({ where: { OR: [{ inviterId: user.id }, { invitedUserId: user.id }] } }),
+      prisma.user.update({
+        where: { id: user.id },
+        data: {
+          displayName: "",
+          photoUrl: "",
+          preferredQuestIds: "",
+          randomQuestIds: "",
+          level: 1,
+          xp: 0,
+          xpNext: 250,
+          strPoints: 0,
+          intPoints: 0,
+          staPoints: 0,
+          streak: 0,
+          tokens: 0,
+          currentPI: null,
+          currentTier: "IRON",
+          weeksInCurrentTier: 0,
+          rankLevel: 1,
+          lastTierWeekKey: "",
+          theme: "adventure",
+          lastStreakIncreaseAt: null,
+          streakFreezeExpiresAt: null,
+          lastFreeTaskRerollAt: null,
+          lastDailyRerollAt: null,
+          extraRerollsToday: 0,
+          lastDailyResetAt: now
+        },
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          level: true,
+          xp: true,
+          xpNext: true,
+          streak: true,
+          updatedAt: true
+        }
+      })
+    ]);
+
+    await prisma.event.deleteMany({
+      where: {
+        userId: user.id,
+        type: "admin_force_logout_pending"
+      }
+    });
+
+    await prisma.event.create({
+      data: {
+        type: "admin_force_logout_pending",
+        level: "warn",
+        userId: user.id,
+        username: user.username,
+        platform: "server",
+        message: "Admin full reset requested. Force logout on next game-state sync.",
+        meta: JSON.stringify({ reason: "admin_full_reset", at: now.toISOString() })
+      }
+    });
+
+    res.json({
+      ok: true,
+      forcedLogout: true,
+      user: {
+        ...updatedUser,
+        totalXp: getTotalXp(updatedUser.level, updatedUser.xp)
+      }
+    });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
 // Public event ingestion (rate-limited per IP/userId)
 app.post("/api/events/ingest", async (req, res) => {
   const ip = String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "unknown").split(",")[0].trim();
@@ -1657,6 +2055,29 @@ app.get("/api/game-state/:username", async (req, res) => {
   const user = await prisma.user.findUnique({ where: { username } });
   if (!user) {
     return res.status(404).json({ error: "User not found" });
+  }
+
+  const pendingForceLogout = await prisma.event.findFirst({
+    where: {
+      userId: user.id,
+      type: "admin_force_logout_pending"
+    },
+    orderBy: { createdAt: "desc" }
+  });
+
+  if (pendingForceLogout) {
+    await prisma.event.deleteMany({
+      where: {
+        userId: user.id,
+        type: "admin_force_logout_pending"
+      }
+    });
+
+    return res.json({
+      forceLogout: true,
+      reason: "admin_full_reset",
+      ...buildServerTimeMeta(new Date())
+    });
   }
 
   const now = new Date();

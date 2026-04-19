@@ -22,13 +22,29 @@ function resolveApiBase() {
   return `${protocol}//${host}:4000`;
 }
 
-async function adminFetch(path, token) {
+async function adminFetch(path, token, options = {}) {
+  const { method = "GET", body } = options;
   const base = resolveApiBase();
+  const headers = { "x-admin-token": token };
+  if (body !== undefined) {
+    headers["content-type"] = "application/json";
+  }
   const res = await fetch(`${base}${path}`, {
-    headers: { "x-admin-token": token },
-    cache: "no-store"
+    method,
+    headers,
+    cache: "no-store",
+    body: body !== undefined ? JSON.stringify(body) : undefined
   });
-  if (!res.ok) throw new Error(`${res.status}`);
+  if (!res.ok) {
+    let detail = "";
+    try {
+      const payload = await res.json();
+      detail = payload?.detail || payload?.error || "";
+    } catch {
+      // ignore
+    }
+    throw new Error(`${res.status}${detail ? `: ${detail}` : ""}`);
+  }
   return res.json();
 }
 
@@ -217,8 +233,88 @@ export default function AdminPanel() {
   const [filterActor, setFilterActor] = useState("all");
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [activeTab, setActiveTab] = useState("telemetry");
+  const [users, setUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [userSearch, setUserSearch] = useState("");
+  const [actingUserId, setActingUserId] = useState("");
 
   const authenticated = Boolean(token);
+
+  async function loadUsers() {
+    if (!token) return;
+    setUsersLoading(true);
+    setError("");
+    try {
+      const params = new URLSearchParams();
+      params.set("limit", "300");
+      if (userSearch.trim()) {
+        params.set("search", userSearch.trim());
+      }
+      const response = await adminFetch(`/api/admin/users?${params.toString()}`, token);
+      setUsers(response.users || []);
+    } catch (err) {
+      setError(String(err?.message || err));
+    } finally {
+      setUsersLoading(false);
+    }
+  }
+
+  async function runUserAction(user, action) {
+    if (!user?.id) return;
+    if (action === "reset-hard" || action === "reset-full") {
+      const promptText = action === "reset-full"
+        ? `FULL reset user ${user.name || user.username}? This wipes all user data and forces logout on next sync.`
+        : `Hard reset user ${user.name || user.username}? This will reset level and quest progress.`;
+      const ok = window.confirm(promptText);
+      if (!ok) return;
+    }
+
+    setActingUserId(user.id);
+    setError("");
+    try {
+      if (action === "grant-xp") {
+        await adminFetch(`/api/admin/users/${encodeURIComponent(user.id)}/grant-xp`, token, {
+          method: "POST",
+          body: { amount: 500 }
+        });
+      } else if (action === "reset-daily") {
+        await adminFetch(`/api/admin/users/${encodeURIComponent(user.id)}/reset-daily`, token, {
+          method: "POST"
+        });
+      } else if (action === "reset-hard") {
+        await adminFetch(`/api/admin/users/${encodeURIComponent(user.id)}/reset-hard`, token, {
+          method: "POST"
+        });
+      } else if (action === "reset-full") {
+        await adminFetch(`/api/admin/users/${encodeURIComponent(user.id)}/reset-full`, token, {
+          method: "POST"
+        });
+      }
+      await loadUsers();
+    } catch (err) {
+      setError(String(err?.message || err));
+    } finally {
+      setActingUserId("");
+    }
+  }
+
+  async function runWipeAllData() {
+    const ok = window.confirm("Wipe ALL database data (users + progress + events)? This cannot be undone.");
+    if (!ok) return;
+
+    setError("");
+    setUsersLoading(true);
+    try {
+      await adminFetch("/api/admin/wipe-all-data", token, { method: "POST" });
+      setUsers([]);
+      await load();
+    } catch (err) {
+      setError(String(err?.message || err));
+    } finally {
+      setUsersLoading(false);
+    }
+  }
 
   async function load() {
     if (!token) return;
@@ -265,6 +361,15 @@ export default function AdminPanel() {
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authenticated, autoRefresh, filterType, filterSeverity]);
+
+  useEffect(() => {
+    if (!authenticated || activeTab !== "users") return undefined;
+    const id = setTimeout(() => {
+      loadUsers();
+    }, 200);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authenticated, activeTab, userSearch, token]);
 
   const byType = summary?.byType || [];
   const byLevel = summary?.byLevel || [];
@@ -358,6 +463,23 @@ export default function AdminPanel() {
         </div>
       </header>
 
+      <section style={styles.tabBar}>
+        <button
+          style={activeTab === "telemetry" ? styles.tabButtonActive : styles.tabButton}
+          onClick={() => setActiveTab("telemetry")}
+        >
+          Telemetry
+        </button>
+        <button
+          style={activeTab === "users" ? styles.tabButtonActive : styles.tabButton}
+          onClick={() => setActiveTab("users")}
+        >
+          Users
+        </button>
+      </section>
+
+      {activeTab === "telemetry" ? (
+        <>
       <section style={styles.cards}>
         <StatCard label="System status" value={healthStatus} tone={healthStatus === "Stable" ? "ok" : "danger"} />
         <StatCard label="Users" value={totals.users ?? "—"} />
@@ -543,6 +665,109 @@ export default function AdminPanel() {
           </div>
         )}
       </section>
+        </>
+      ) : null}
+
+      {activeTab === "users" ? (
+        <section style={styles.panel}>
+          <div style={styles.usersHeaderRow}>
+            <div style={styles.panelTitle}>Users Management</div>
+            <div style={styles.usersControls}>
+              <input
+                type="text"
+                value={userSearch}
+                onChange={(event) => setUserSearch(event.target.value)}
+                placeholder="Search by name or username"
+                style={styles.searchInput}
+              />
+              <button style={styles.smallButton} onClick={loadUsers} disabled={usersLoading}>
+                {usersLoading ? "…" : "Refresh"}
+              </button>
+            </div>
+          </div>
+          <div style={styles.helpText}>
+            Available actions: +500 XP, reset daily quests, hard reset (level + quests).
+          </div>
+          <div style={styles.userActionsRow}> 
+            <button style={styles.actionButtonDanger} onClick={runWipeAllData} disabled={usersLoading}>
+              Wipe All DB Data
+            </button>
+          </div>
+          {usersLoading && users.length === 0 ? <div style={styles.empty}>Loading users…</div> : null}
+          {!usersLoading && users.length === 0 ? <div style={styles.empty}>No users found.</div> : null}
+          {users.length > 0 ? (
+            <div style={styles.tableWrap}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>Name</th>
+                    <th style={styles.th}>Email</th>
+                    <th style={styles.th}>Level</th>
+                    <th style={styles.th}>Total XP</th>
+                    <th style={styles.th}>Streak</th>
+                    <th style={styles.th}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((user) => {
+                    const isActing = actingUserId === user.id;
+                    return (
+                      <tr key={user.id} style={styles.tr}>
+                        <td style={styles.tdIdentity}>
+                          <div style={styles.identityPrimary}>{user.name || user.username}</div>
+                          <div style={styles.identitySecondary}>{user.username}</div>
+                        </td>
+                        <td style={styles.tdEmail}>
+                          {user.email ? (
+                            <span style={styles.emailText}>{user.email}</span>
+                          ) : (
+                            <span style={styles.emailMissing}>not found</span>
+                          )}
+                        </td>
+                        <td style={styles.td}>{user.level}</td>
+                        <td style={styles.td}>{user.totalXp}</td>
+                        <td style={styles.td}>{user.streak}</td>
+                        <td style={styles.tdWide}>
+                          <div style={styles.userActionsRow}>
+                            <button
+                              style={styles.actionButton}
+                              onClick={() => runUserAction(user, "grant-xp")}
+                              disabled={isActing}
+                            >
+                              +500 XP
+                            </button>
+                            <button
+                              style={styles.actionButton}
+                              onClick={() => runUserAction(user, "reset-daily")}
+                              disabled={isActing}
+                            >
+                              Reset Daily
+                            </button>
+                            <button
+                              style={styles.actionButtonDanger}
+                              onClick={() => runUserAction(user, "reset-hard")}
+                              disabled={isActing}
+                            >
+                              Hard Reset
+                            </button>
+                            <button
+                              style={styles.actionButtonDanger}
+                              onClick={() => runUserAction(user, "reset-full")}
+                              disabled={isActing}
+                            >
+                              Full Reset + Logout
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       {error ? <div style={styles.errorBar}>{error}</div> : null}
     </div>
@@ -577,6 +802,27 @@ const styles = {
   headerTitle: { fontSize: 24, fontWeight: 600, color: "#f1f5f9" },
   headerSub: { fontSize: 12, color: "#94a3b8", marginTop: 2 },
   headerActions: { display: "flex", gap: 8, alignItems: "center" },
+  tabBar: { display: "flex", gap: 8, marginBottom: 16 },
+  tabButton: {
+    background: "#0f172a",
+    color: "#94a3b8",
+    border: "1px solid rgba(255,255,255,0.12)",
+    borderRadius: 10,
+    padding: "8px 14px",
+    cursor: "pointer",
+    fontSize: 13,
+    fontWeight: 600
+  },
+  tabButtonActive: {
+    background: "#1e293b",
+    color: "#e2e8f0",
+    border: "1px solid rgba(96,165,250,0.6)",
+    borderRadius: 10,
+    padding: "8px 14px",
+    cursor: "pointer",
+    fontSize: 13,
+    fontWeight: 700
+  },
   toggleLabel: { fontSize: 12, color: "#94a3b8" },
   smallButton: {
     background: "#1e293b",
@@ -608,6 +854,37 @@ const styles = {
   count: { color: "#60a5fa", fontWeight: 600 },
   empty: { color: "#64748b", fontSize: 13, padding: "8px 0" },
   filters: { display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" },
+  usersHeaderRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" },
+  usersControls: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" },
+  searchInput: {
+    minWidth: 260,
+    padding: "8px 10px",
+    background: "#1e293b",
+    color: "#e2e8f0",
+    border: "1px solid rgba(255,255,255,0.12)",
+    borderRadius: 8
+  },
+  userActionsRow: { display: "flex", gap: 8, flexWrap: "wrap" },
+  actionButton: {
+    background: "#1e293b",
+    color: "#e2e8f0",
+    border: "1px solid rgba(255,255,255,0.12)",
+    borderRadius: 8,
+    padding: "6px 10px",
+    cursor: "pointer",
+    fontSize: 12,
+    fontWeight: 600
+  },
+  actionButtonDanger: {
+    background: "#3f1a1a",
+    color: "#fecaca",
+    border: "1px solid rgba(248,113,113,0.5)",
+    borderRadius: 8,
+    padding: "6px 10px",
+    cursor: "pointer",
+    fontSize: 12,
+    fontWeight: 700
+  },
   select: { background: "#1e293b", color: "#e2e8f0", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "6px 10px" },
   tableWrap: { overflowX: "auto" },
   table: { width: "100%", borderCollapse: "collapse", fontSize: 12 },
