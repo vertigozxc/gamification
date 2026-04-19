@@ -425,13 +425,21 @@ export default function WebAppScreen() {
         if (data?.loading) {
           setShowPreloader(true);
         } else {
-          // Enforce minimum preloader display time (600ms) to prevent flickering black screen
-          minPreloaderTimeRef.current = Date.now() + 600;
+          // For first-time login (no injectedUser), show preloader longer to fill black screen gap (2.5s)
+          // For authenticated users, use shorter preloader time (600ms)
+          const isFirstTimeLogin = !injectedUser;
+          const minPreloaderMs = isFirstTimeLogin ? 2500 : 600;
+          const commentText = isFirstTimeLogin 
+            ? "First-time login: show preloader 2.5s to prevent black screen"
+            : "Authenticated user: brief preloader to prevent flickering";
+          
+          // Enforce minimum preloader display time to prevent black screen gaps
+          minPreloaderTimeRef.current = Date.now() + minPreloaderMs;
           preloaderTimerRef.current = setTimeout(() => {
             setShowPreloader(false);
             preloaderTimerRef.current = null;
             minPreloaderTimeRef.current = null;
-          }, 600);
+          }, minPreloaderMs);
         }
         setShowTabBar(Boolean(data?.showTabBar) && !Boolean(data?.loading));
         if (data?.activeTab) {
