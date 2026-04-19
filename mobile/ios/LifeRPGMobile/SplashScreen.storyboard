@@ -22,7 +22,7 @@
                                     <constraint firstAttribute="width" secondItem="LRP-Badge-View" secondAttribute="height" multiplier="1:1" id="iFH-oW-F3S"/>
                                 </constraints>
                             </imageView>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="POWERED BY HABITS" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="LRP-Engine-Badge">
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Powered by Interexy" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="LRP-Engine-Badge">
                                 <rect key="frame" x="126" y="471" width="141" height="24"/>
                                 <fontDescription key="fontDescription" type="system" weight="heavy" pointSize="12"/>
                                 <color key="textColor" red="0.4901960784" green="0.8274509804" blue="0.9882352941" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
