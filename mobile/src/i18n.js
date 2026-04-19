@@ -54,7 +54,7 @@ const MESSAGES = {
     questXpGain: "+{xp} XP"
   },
   ru: {
-    initializing: "Инициализация мира...",
+    initializing: "Инициализируем мир...",
     webLoadFailed: "Не удалось загрузить веб-приложение",
     connectionIssue: "Проблема с подключением",
     retryLabel: "Повторить",
@@ -109,6 +109,10 @@ const MESSAGES = {
   }
 };
 
+export function normalizeMobileLanguage(value) {
+  return String(value || "").toLowerCase().startsWith("ru") ? "ru" : "en";
+}
+
 function interpolate(template, vars = {}) {
   return String(template || "").replace(/\{(\w+)\}/g, (_, key) => String(vars[key] ?? ""));
 }
@@ -116,15 +120,19 @@ function interpolate(template, vars = {}) {
 export function getMobileLanguage() {
   try {
     const locale = Intl.DateTimeFormat().resolvedOptions().locale || "en";
-    return String(locale).toLowerCase().startsWith("ru") ? "ru" : "en";
+    return normalizeMobileLanguage(locale);
   } catch {
     return "en";
   }
 }
 
-export function tm(key, vars = {}) {
-  const lang = getMobileLanguage();
+export function tmWithLanguage(languageId, key, vars = {}) {
+  const lang = normalizeMobileLanguage(languageId);
   const source = MESSAGES[lang] || MESSAGES.en;
   const fallback = MESSAGES.en[key] || key;
   return interpolate(source[key] ?? fallback, vars);
+}
+
+export function tm(key, vars = {}) {
+  return tmWithLanguage(getMobileLanguage(), key, vars);
 }

@@ -1,6 +1,7 @@
 import Constants from "expo-constants";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Animated,
   AppState,
@@ -16,9 +17,10 @@ import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getApiBaseUrl } from "../config/env";
 import PortalPreloader from "../components/PortalPreloader";
-import { tm } from "../i18n";
+import { getMobileLanguage, normalizeMobileLanguage, tm, tmWithLanguage } from "../i18n";
 
 const MOBILE_TAB_STORAGE_KEY = "life_rpg_mobile_tab";
+const MOBILE_LANGUAGE_STORAGE_KEY = "rpg_language";
 const TAB_ITEMS = [
   { key: "city", icon: "business", iconOutline: "business-outline", size: 24 },
   { key: "leaderboard", icon: "trophy", iconOutline: "trophy-outline", size: 24 },
@@ -152,10 +154,11 @@ function resolveApiBase() {
   }
 }
 
-export default function WebAppScreen() {
+export default function WebAppScreen({ onShellReady }) {
   const insets = useSafeAreaInsets();
   const [webKey, setWebKey] = useState(0);
   const [showPreloader, setShowPreloader] = useState(true);
+  const [preloaderLanguage, setPreloaderLanguage] = useState(getMobileLanguage());
   const [injectedUser, setInjectedUser] = useState(null);
   const [errorText, setErrorText] = useState("");
   const [showTabBar, setShowTabBar] = useState(false);
@@ -182,6 +185,17 @@ export default function WebAppScreen() {
   const tabAnimRefs = useRef(
     Object.fromEntries(TAB_ITEMS.map((item) => [item.key, new Animated.Value(item.key === "dashboard" ? 1 : 0)]))
   ).current;
+  const preloaderTitle = tmWithLanguage(preloaderLanguage, "initializing");
+
+  useEffect(() => {
+    AsyncStorage.getItem(MOBILE_LANGUAGE_STORAGE_KEY)
+      .then((savedLanguage) => {
+        if (savedLanguage) {
+          setPreloaderLanguage(normalizeMobileLanguage(savedLanguage));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   function syncMobileTab(nextTab) {
     const normalized = normalizeMobileTab(nextTab);
@@ -417,6 +431,14 @@ export default function WebAppScreen() {
       }
 
       if (data?.type === "mobile-shell-state") {
+        if (data?.languageId) {
+          const normalizedLanguage = normalizeMobileLanguage(data.languageId);
+          setPreloaderLanguage(normalizedLanguage);
+          AsyncStorage.setItem(MOBILE_LANGUAGE_STORAGE_KEY, normalizedLanguage).catch(() => {});
+        }
+        if (!data?.loading) {
+          onShellReady?.();
+        }
         shellStateReceivedRef.current = true;
         if (preloaderTimerRef.current) {
           clearTimeout(preloaderTimerRef.current);
@@ -544,7 +566,7 @@ export default function WebAppScreen() {
 
       {showPreloader && !errorText ? (
         <View style={styles.preloaderOverlay} pointerEvents="auto">
-          <PortalPreloader title={tm("initializing")} />
+          <PortalPreloader title={preloaderTitle} />
         </View>
       ) : null}
 
