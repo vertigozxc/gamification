@@ -1,4 +1,4 @@
-# Life RPG Mobile (iOS-first)
+# GoHabit Mobile (iOS-first)
 
 This folder contains the React Native/Expo rewrite start for iPhone, with Android support ready for the next step.
 

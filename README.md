@@ -1,4 +1,4 @@
-# Life RPG Online (React + Node + Prisma)
+# GoHabit (React + Node + Prisma)
 
 Full rewrite of the app with:
 - React frontend (Vite)

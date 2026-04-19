@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Life RPG Mobile",
+    "name": "GoHabit Mobile",
     "slug": "life-rpg-mobile",
     "scheme": "liferpgmobile",
     "version": "1.0.0",
@@ -8,13 +8,13 @@
     "userInterfaceStyle": "automatic",
     "splash": {
       "resizeMode": "contain",
-      "backgroundColor": "#020617"
+      "backgroundColor": "#0b1020"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.liferpg.mobile",
       "infoPlist": {
-        "NSLocalNetworkUsageDescription": "Allow Life RPG Mobile to connect to your Mac during development.",
+        "NSLocalNetworkUsageDescription": "Allow GoHabit Mobile to connect to your Mac during development.",
         "NSBonjourServices": [
           "_expo._tcp",
           "_expo-dev-client._tcp",

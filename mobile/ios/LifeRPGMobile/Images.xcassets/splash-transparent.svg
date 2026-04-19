@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#14171E"/>
+      <stop offset="100%" stop-color="#080A0E"/>
+    </linearGradient>
+    <linearGradient id="flame" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#FFCE44"/>
+      <stop offset="45%" stop-color="#FF7B00"/>
+      <stop offset="100%" stop-color="#D12200"/>
+    </linearGradient>
+    <linearGradient id="check" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#FFE9C2"/>
+    </linearGradient>
+    <mask id="cutout">
+      <rect x="0" y="0" width="1024" height="1024" fill="white" />
+      <!-- Cutout stroke is much larger to create a gap (donut-hole) around the checkmark -->
+      <path d="M 390 640 L 490 740 L 730 490" stroke="black" stroke-width="120" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+    </mask>
+  </defs>
+
+  
+
+  <g mask="url(#cutout)">
+    <g transform="translate(205, 110) scale(1.6)">
+        <path d="M216 23.86c0-23.8-30.65-32.77-44.15-13.04C48 191.85 224 200 224 288c0 35.63-29.11 64.46-64.85 63.99-35.17-.45-63.15-29.77-63.15-64.94v-85.51c0-21.7-26.47-32.23-41.43-16.5C27.8 213.16 0 261.33 0 320c0 105.87 86.13 192 192 192s192-86.13 192-192c0-170.29-168-193-168-296.14z" fill="url(#flame)"/>
+    </g>
+  </g>
+
+  <!-- The actual checkmark inside the cutout gap -->
+  <path d="M 390 640 L 490 740 L 730 490" stroke="url(#check)" stroke-width="50" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

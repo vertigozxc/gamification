@@ -291,7 +291,7 @@ export default function AdminPanel() {
     return (
       <div style={styles.authWrap}>
         <div style={styles.authCard}>
-          <h1 style={styles.authTitle}>Life RPG Admin</h1>
+          <h1 style={styles.authTitle}>GoHabit Admin</h1>
           <p style={styles.authHint}>Enter admin token to view telemetry.</p>
           <input
             type="password"
@@ -328,7 +328,7 @@ export default function AdminPanel() {
     <div style={styles.page}>
       <header style={styles.header}>
         <div>
-          <div style={styles.headerTitle}>Life RPG — Admin</div>
+          <div style={styles.headerTitle}>GoHabit - Admin</div>
           <div style={styles.headerSub}>
             {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : "Loading…"}
             {health ? ` · uptime ${health.uptimeSec}s · rss ${health.memory?.rssMB}MB` : ""}

@@ -2751,7 +2751,7 @@ if (isMainModule) {
   const bootstrap = async () => {
     await ensureLeaderboardTestUsers();
     app.listen(port, () => {
-      console.log(`Life RPG API running on http://localhost:${port}`);
+      console.log(`GoHabit API running on http://localhost:${port}`);
     });
   };
 

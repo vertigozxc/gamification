@@ -608,7 +608,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       } = options || {};
 
       if (dataLoading) {
-        console.warn("[LifeRPG debug] data is still loading; wait until quests are ready");
+        console.warn("[GoHabit debug] data is still loading; wait until quests are ready");
         return {
           ok: false,
           reason: "data-loading"
@@ -619,7 +619,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       const targets = availableHabits.slice(0, Math.max(1, Number(count) || 1));
 
       if (targets.length === 0) {
-        console.warn("[LifeRPG debug] no incomplete habits available for stress test");
+        console.warn("[GoHabit debug] no incomplete habits available for stress test");
         return {
           ok: false,
           reason: "no-targets"
@@ -655,20 +655,20 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       };
     };
 
-    window.__lifeRpgStressCompleteHabits = runHabitStress;
-    window.__lifeRpgDebug = {
-      ...(window.__lifeRpgDebug || {}),
+    window.__goHabitStressCompleteHabits = runHabitStress;
+    window.__goHabitDebug = {
+      ...(window.__goHabitDebug || {}),
       stressCompleteHabits: runHabitStress
     };
 
     return () => {
-      if (window.__lifeRpgStressCompleteHabits === runHabitStress) {
-        delete window.__lifeRpgStressCompleteHabits;
+      if (window.__goHabitStressCompleteHabits === runHabitStress) {
+        delete window.__goHabitStressCompleteHabits;
       }
-      if (window.__lifeRpgDebug?.stressCompleteHabits === runHabitStress) {
-        const nextDebug = { ...window.__lifeRpgDebug };
+      if (window.__goHabitDebug?.stressCompleteHabits === runHabitStress) {
+        const nextDebug = { ...window.__goHabitDebug };
         delete nextDebug.stressCompleteHabits;
-        window.__lifeRpgDebug = nextDebug;
+        window.__goHabitDebug = nextDebug;
       }
     };
   }, [dataLoading, pinnedQuests, state.completed, handleQuestCompleteWrapper]);

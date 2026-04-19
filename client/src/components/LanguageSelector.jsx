@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 
-export default function LanguageSelector({ languageId, languageIds, getLanguageMeta, onChange, compact }) {
+export default function LanguageSelector({ languageId, languageIds, getLanguageMeta, onChange, compact, direction = "down" }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -52,7 +52,8 @@ export default function LanguageSelector({ languageId, languageIds, getLanguageM
       {open && (
         <div style={{
           position: "absolute",
-          top: "calc(100% + 6px)",
+          top: direction === "up" ? "auto" : "calc(100% + 6px)",
+          bottom: direction === "up" ? "calc(100% + 6px)" : "auto",
           left: "50%",
           transform: "translateX(-50%)",
           minWidth: "180px",

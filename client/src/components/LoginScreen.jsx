@@ -6,21 +6,25 @@ export default function LoginScreen({ t, handleGoogleLogin, authError, languageI
     <div className="auth-shell relative w-full h-[100dvh] overflow-hidden flex flex-col" style={{ background: "var(--bg-color)" }}>
       {/* Ambient Background with City Illustration */}
       <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-yellow-500/10 rounded-full blur-[100px] opacity-50" />
+        <div className="absolute top-[18%] left-1/2 -translate-x-1/2 w-[780px] h-[780px] bg-cyan-400/10 rounded-full blur-[110px] opacity-70" />
+        <div className="absolute top-[42%] left-1/2 -translate-x-1/2 w-[680px] h-[680px] bg-emerald-400/10 rounded-full blur-[120px] opacity-70" />
         <div className="absolute top-[10%] inset-x-0 bottom-0 opacity-[0.15] scale-[1.35] origin-top md:scale-[1.1] md:top-[15%] transition-transform duration-1000 ease-out">
           <CityIllustration height="100%" stage={25} />
         </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent h-[60%] top-auto" />
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-950/80 to-transparent h-[30%]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#020817] via-[#020817]/92 to-transparent h-[62%] top-auto" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#061224] via-[#061224]/78 to-transparent h-[34%]" />
       </div>
 
       {/* Top Content: Branding */}
       <div className="relative z-10 flex-col items-center justify-start pt-16 flex-none px-6">
         <div className="animate-slide-down text-center">
-          <p className="cinzel text-xs tracking-[0.4em] uppercase mb-3" style={{ color: "var(--color-primary-dim)" }}>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-300/40 bg-cyan-500/10 backdrop-blur-sm mb-4">
+            <span className="text-cyan-200 text-[10px] font-bold tracking-[0.22em] uppercase">{t.loginEngineBadge}</span>
+          </div>
+          <p className="cinzel text-xs tracking-[0.36em] uppercase mb-3" style={{ color: "var(--color-primary-dim)" }}>
             {t.appTagline}
           </p>
-          <h1 className="cinzel text-5xl md:text-6xl font-black text-transparent bg-clip-text tracking-widest leading-tight" style={{ backgroundImage: "var(--heading-gradient)" }}>
+          <h1 className="cinzel text-[3.15rem] md:text-6xl font-black text-transparent bg-clip-text tracking-[0.14em] leading-tight" style={{ backgroundImage: "linear-gradient(135deg, #dbeafe, #7dd3fc 45%, #86efac)" }}>
             {t.loginBrandTitle}
           </h1>
         </div>
@@ -28,10 +32,10 @@ export default function LoginScreen({ t, handleGoogleLogin, authError, languageI
 
       {/* Middle Content */}
       <div className="relative z-10 flex-1 flex flex-col justify-center items-center px-8 text-center animate-fade-in" style={{ animationDelay: "200ms" }}>
-        <p className="text-slate-300 text-lg md:text-xl font-light max-w-md mx-auto leading-relaxed shadow-sm">
+        <p className="text-slate-200 text-lg md:text-xl font-medium max-w-md mx-auto leading-relaxed shadow-sm">
           {t.loginHeroTagline}
         </p>
-        <div className="flex gap-4 mt-8 opacity-60">
+        <div className="flex gap-4 mt-8 opacity-80">
           <div className="flex flex-col items-center gap-1"><span className="text-2xl">{t.habitsIcon}</span><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{t.loginFeatureHabits}</span></div>
           <div className="flex flex-col items-center gap-1"><span className="text-2xl">{t.levelIcon}</span><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{t.loginFeatureLevels}</span></div>
           <div className="flex flex-col items-center gap-1"><span className="text-2xl">{t.cityIcon}</span><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{t.loginFeatureCity}</span></div>
@@ -40,8 +44,8 @@ export default function LoginScreen({ t, handleGoogleLogin, authError, languageI
 
       {/* Bottom Content: Auth */}
       <div className="relative z-10 flex-none pb-12 pt-6 px-6 w-full max-w-[420px] mx-auto animate-slide-up" style={{ animationDelay: "300ms", paddingBottom: "calc(2rem + env(safe-area-inset-bottom))" }}>
-        <div className="rounded-[2rem] p-6 border shadow-[0_0_40px_rgba(0,0,0,0.5)] backdrop-blur-md relative overflow-hidden" style={{ background: "linear-gradient(to bottom, rgba(30,41,59,0.7), rgba(15,23,42,0.9))", borderColor: "var(--color-primary-dim)" }}>
-          <div className="absolute -top-24 -right-24 w-48 h-48 bg-yellow-500/20 rounded-full blur-[50px] pointer-events-none" />
+        <div className="rounded-[2rem] p-6 border shadow-[0_0_44px_rgba(2,132,199,0.22)] backdrop-blur-md relative overflow-hidden" style={{ background: "linear-gradient(to bottom, rgba(8,20,43,0.78), rgba(2,8,23,0.95))", borderColor: "rgba(125, 211, 252, 0.45)" }}>
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-cyan-400/20 rounded-full blur-[50px] pointer-events-none" />
           <div className="relative z-10 text-center mb-6">
             <h2 className="cinzel text-2xl text-white font-bold mb-1">{t.loginTitle}</h2>
             <p className="text-slate-400 text-sm">{t.loginSubtitle}</p>
@@ -74,6 +78,7 @@ export default function LoginScreen({ t, handleGoogleLogin, authError, languageI
               languageIds={languageIds}
               getLanguageMeta={getLanguageMeta}
               onChange={setLanguageId}
+              direction="up"
             />
           </div>
         </div>

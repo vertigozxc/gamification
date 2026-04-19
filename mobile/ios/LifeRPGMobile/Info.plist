@@ -7,7 +7,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>Life RPG Mobile</string>
+    <string>GoHabit Mobile</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -45,7 +45,7 @@
       <true/>
     </dict>
     <key>NSLocalNetworkUsageDescription</key>
-    <string>Allow Life RPG Mobile to connect to your Mac during development.</string>
+    <string>Allow GoHabit Mobile to connect to your Mac during development.</string>
     <key>NSBonjourServices</key>
     <array>
       <string>_expo._tcp</string>
