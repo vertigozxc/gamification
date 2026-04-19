@@ -23,9 +23,24 @@ export default function DesktopLayout({
   return (
     <>
       {showCity && (
-        <div className="w-full h-80 sm:h-[400px] md:h-[500px] lg:h-[600px] mb-6 relative rounded-xl overflow-hidden border border-[var(--panel-border)] shadow-lg animate-fade-in" style={{ backgroundColor: 'var(--card-bg)' }}>
-          <CityIllustration height="100%" stage={Math.max(0, Math.floor(state.lvl) || 0)} />
-        </div>
+        <>
+          <div className="w-full h-80 sm:h-[400px] md:h-[500px] lg:h-[600px] mb-3 relative rounded-xl overflow-hidden border border-[var(--panel-border)] shadow-lg animate-fade-in" style={{ backgroundColor: 'var(--card-bg)' }}>
+            <CityIllustration height="100%" stage={Math.max(0, Math.floor(state.lvl) || 0)} />
+          </div>
+          <div
+            className="mb-6 rounded-xl border border-[var(--panel-border)] px-4 py-3 text-center"
+            style={{
+              color: "var(--color-text)",
+              background: "color-mix(in srgb, var(--panel-bg) 84%, transparent)",
+              boxShadow: "0 10px 28px rgba(2, 6, 23, 0.16)",
+              fontSize: "13px",
+              fontWeight: 600,
+              letterSpacing: "0.2px"
+            }}
+          >
+            {t.cityViewHint || "Double-tap to enter fullscreen - Pinch to zoom"}
+          </div>
+        </>
       )}
 
       <ProfilePanel

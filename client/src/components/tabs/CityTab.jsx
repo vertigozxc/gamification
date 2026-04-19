@@ -111,6 +111,26 @@ export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen, d
           </div>
         )}
       </div>
+
+      {!cityFullscreen && (
+        <div
+          className="city-hint-strip"
+          style={{
+            padding: "12px 14px",
+            textAlign: "center",
+            fontSize: "13px",
+            fontWeight: 600,
+            letterSpacing: "0.2px",
+            color: "var(--color-text)",
+            border: "1px solid var(--panel-border)",
+            borderRadius: "14px",
+            background: "color-mix(in srgb, var(--panel-bg) 84%, transparent)",
+            boxShadow: "0 10px 28px rgba(2, 6, 23, 0.16)"
+          }}
+        >
+          {t.cityViewHint || "Double-tap to enter fullscreen - Pinch to zoom"}
+        </div>
+      )}
     </div>
   );
 }

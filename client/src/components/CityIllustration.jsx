@@ -1289,23 +1289,6 @@ export default function CityIllustration({ height = "500px", stage = 1, weatherC
         <Subway stage={level} />
         <Traffic stage={level} />
       </svg>
-      
-      {/* City interaction hint */}
-      <div style={{
-        position: 'relative',
-        paddingTop: '12px',
-        paddingBottom: '16px',
-        textAlign: 'center',
-        fontSize: '13px',
-        fontWeight: '500',
-        color: 'var(--color-text-secondary, rgba(148, 163, 184, 0.9))',
-        letterSpacing: '0.3px',
-        background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.02))',
-        userSelect: 'none',
-        pointerEvents: 'none'
-      }}>
-        {t.cityViewHint || '💡 Double-tap to fullscreen • Pinch to zoom'}
-      </div>
     </div>
   );
 }
