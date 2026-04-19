@@ -75,7 +75,10 @@ app.use(cors({
     callback(new Error(`CORS blocked for origin: ${origin}`));
   }
 }));
-app.use(express.json({ limit: "8mb" }));
+// Limit: keep small to protect event loop. Largest legitimate payload is an
+// avatar dataURL (~25–40 KB after client-side compressImage(256, 0.7)).
+// 512 KB gives ~10x headroom while blocking abusive payloads.
+app.use(express.json({ limit: "512kb" }));
 
 // ============================================================================
 // Observability / Analytics — event ingestion + admin panel
@@ -2028,7 +2031,9 @@ app.post("/api/profiles/upsert", async (req, res) => {
   const upsertBody = z.object({
     username: z.string().min(2).max(64),
     displayName: z.string().min(1).max(64).optional(),
-    photoUrl: z.string().max(2_000_000).optional(),
+    // Avatar dataURL after client-side compressImage(256, 0.7) ≈ 25–40 KB.
+    // 150 KB allows ~4x headroom for higher-quality variants.
+    photoUrl: z.string().max(150_000).optional(),
   });
   try {
     const parsed = upsertBody.parse(req.body);
@@ -2120,7 +2125,8 @@ app.post("/api/onboarding/complete", async (req, res) => {
   const schema = z.object({
     username: z.string().min(2).max(64),
     displayName: z.string().min(1).max(64),
-    photoUrl: z.string().max(2_000_000).optional(),
+    // See /api/profiles/upsert for rationale on the 150 KB cap.
+    photoUrl: z.string().max(150_000).optional(),
     preferredQuestIds: z.array(z.number().int().min(1)).length(getPreferredQuestCount())
   });
 
