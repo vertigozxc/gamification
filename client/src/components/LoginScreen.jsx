@@ -1,5 +1,5 @@
 import LanguageSelector from "./LanguageSelector";
-import { Flame, Target, TrendingUp, Castle } from "lucide-react";
+import { Flame, Target, TrendingUp, Building2 } from "lucide-react";
 
 export default function LoginScreen({ t, handleGoogleLogin, authError, languageId, languageIds, getLanguageMeta, setLanguageId }) {
   return (
@@ -44,7 +44,7 @@ export default function LoginScreen({ t, handleGoogleLogin, authError, languageI
         <div className="flex justify-center flex-wrap gap-6 md:gap-8 mt-8 opacity-80">
           <div className="flex flex-col items-center gap-2"><div className="w-12 h-12 rounded-full border border-orange-500/30 bg-orange-500/10 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(255,123,0,0.15)]"><Target size={24} /></div><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{t.loginFeatureHabits}</span></div>
           <div className="flex flex-col items-center gap-2"><div className="w-12 h-12 rounded-full border border-orange-500/30 bg-orange-500/10 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(255,123,0,0.15)]"><TrendingUp size={24} /></div><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{t.loginFeatureLevels}</span></div>
-          <div className="flex flex-col items-center gap-2"><div className="w-12 h-12 rounded-full border border-orange-500/30 bg-orange-500/10 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(255,123,0,0.15)]"><Castle size={24} /></div><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{t.loginFeatureCity}</span></div>
+          <div className="flex flex-col items-center gap-2"><div className="w-12 h-12 rounded-full border border-orange-500/30 bg-orange-500/10 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(255,123,0,0.15)]"><Building2 size={24} /></div><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{t.loginFeatureCity}</span></div>
         </div>
       </div>
 
