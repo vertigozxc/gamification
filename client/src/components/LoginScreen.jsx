@@ -1,7 +1,9 @@
+import { useState } from "react";
 import LanguageSelector from "./LanguageSelector";
 import { Flame, Target, TrendingUp, Building2 } from "lucide-react";
 
 export default function LoginScreen({ t, handleGoogleLogin, authError, languageId, languageIds, getLanguageMeta, setLanguageId }) {
+  const [showAppleModal, setShowAppleModal] = useState(false);
   return (
     <div className="auth-shell relative w-full h-[100dvh] overflow-hidden flex flex-col" style={{ background: "var(--bg-color)" }}>
       {/* Ambient Background matching the new Flame icon style */}
@@ -72,6 +74,19 @@ export default function LoginScreen({ t, handleGoogleLogin, authError, languageI
               </div>
               <span>{t.loginButton}</span>
             </button>
+
+            <button
+              className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl text-lg font-bold transition-all active:scale-[0.98] shadow-lg mt-3"
+              style={{ background: "linear-gradient(135deg, #14171E, #080A0E)", border: "1px solid rgba(255, 123, 0, 0.4)", color: "var(--color-primary)" }}
+              onClick={() => setShowAppleModal(true)}
+            >
+              <div className="bg-black rounded-full p-1.5 shadow-sm flex items-center justify-center" style={{ width: 33, height: 33 }}>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="white" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                </svg>
+              </div>
+              <span>{t.loginButtonApple || "Login With Apple"}</span>
+            </button>
             {authError && (
               <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm text-center animate-fade-in">
                 <span className="mr-1">⚠️</span> {authError}
@@ -89,6 +104,32 @@ export default function LoginScreen({ t, handleGoogleLogin, authError, languageI
           </div>
         </div>
       </div>
+
+      {/* Apple In-Development Modal */}
+      {showAppleModal && (
+        <div
+          className="fixed inset-0 z-[99999] flex items-center justify-center px-6"
+          style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }}
+          onClick={() => setShowAppleModal(false)}
+        >
+          <div
+            className="rounded-[1.75rem] p-7 max-w-[340px] w-full text-center shadow-2xl"
+            style={{ background: "linear-gradient(to bottom, #14171E, #080A0E)", border: "1px solid rgba(255,123,0,0.3)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-5xl mb-4">🚧</div>
+            <h3 className="cinzel text-lg font-bold text-white mb-2">{t.appleLoginComingSoonTitle || "Coming Soon"}</h3>
+            <p className="text-slate-400 text-sm leading-relaxed mb-6">{t.appleLoginComingSoonDesc || "Apple Sign-In is currently in development. Stay tuned!"}</p>
+            <button
+              className="w-full py-3 rounded-2xl font-bold text-sm transition-all active:scale-[0.98]"
+              style={{ background: "linear-gradient(135deg, rgba(255,123,0,0.18), rgba(209,34,0,0.18))", border: "1px solid rgba(255,123,0,0.4)", color: "var(--color-primary)" }}
+              onClick={() => setShowAppleModal(false)}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
