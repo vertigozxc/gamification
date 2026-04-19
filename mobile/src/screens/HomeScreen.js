@@ -16,16 +16,17 @@ import {
 import PortalPreloader from "../components/PortalPreloader";
 import QuestItem from "../components/QuestItem";
 import { completeQuest, fetchAllQuests, fetchGameState, upsertProfile } from "../api/client";
+import { tm } from "../i18n";
 
 const USERNAME_KEY = "mobile_username";
 
 function normalizeQuest(raw) {
   return {
     id: Number(raw?.id),
-    title: String(raw?.title || "Quest"),
+    title: String(raw?.title || tm("questFallbackTitle")),
     desc: String(raw?.desc ?? raw?.description ?? ""),
     xp: Number(raw?.xp ?? raw?.base_xp ?? 0),
-    category: String(raw?.category || "Uncategorized")
+    category: String(raw?.category || tm("questFallbackCategory"))
   };
 }
 
@@ -72,7 +73,7 @@ export default function HomeScreen() {
       setUsernameDraft(saved);
       await hydrate(saved);
     } catch (error) {
-      Alert.alert("Startup error", error.message);
+      Alert.alert(tm("startupError"), error.message);
     } finally {
       setInitializing(false);
     }
@@ -85,7 +86,7 @@ export default function HomeScreen() {
   async function handleSaveUsername() {
     const normalized = usernameDraft.trim().toLowerCase();
     if (!normalized) {
-      Alert.alert("Username required", "Enter your username to load your game state.");
+      Alert.alert(tm("usernameRequired"), tm("usernameRequiredMsg"));
       return;
     }
 
@@ -97,8 +98,8 @@ export default function HomeScreen() {
       await AsyncStorage.setItem(USERNAME_KEY, normalized);
       setUsername(normalized);
     } catch (error) {
-      setAuthError(error.message || "Profile sync failed");
-      Alert.alert("Profile sync failed", error.message);
+      setAuthError(error.message || tm("profileSyncFailed"));
+      Alert.alert(tm("profileSyncFailed"), error.message);
     } finally {
       setSubmitting(false);
     }
@@ -110,7 +111,7 @@ export default function HomeScreen() {
     try {
       await hydrate(username);
     } catch (error) {
-      Alert.alert("Refresh failed", error.message);
+      Alert.alert(tm("refreshFailed"), error.message);
     } finally {
       setRefreshing(false);
     }
@@ -120,10 +121,10 @@ export default function HomeScreen() {
     if (!username || completed.includes(quest.id)) return;
     try {
       await completeQuest(username, quest.id);
-      Alert.alert("Success!", `+${quest.xp} XP`);
+      Alert.alert(tm("successTitle"), tm("questXpGain", { xp: quest.xp }));
       await handleRefresh();
     } catch (error) {
-      Alert.alert("Complete failed", error.message);
+      Alert.alert(tm("completeFailed"), error.message);
     }
   }
 
@@ -139,21 +140,21 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View style={styles.statsWrap}>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Level</Text>
+            <Text style={styles.statLabel}>{tm("levelLabel")}</Text>
             <Text style={styles.statValue}>{state.lvl}</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Streak</Text>
+            <Text style={styles.statLabel}>{tm("streakLabel")}</Text>
             <Text style={styles.statValue}>🔥 {state.streak}</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Tokens</Text>
+            <Text style={styles.statLabel}>{tm("tokensLabel")}</Text>
             <Text style={styles.statValue}>🪙 {state.tokens}</Text>
           </View>
         </View>
 
         <View style={styles.progressCard}>
-          <Text style={styles.progressLabel}>XP Progress</Text>
+          <Text style={styles.progressLabel}>{tm("xpProgressLabel")}</Text>
           <Text style={styles.progressText}>{state.xp}/{state.xpNext}</Text>
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: `${xpPercent}%` }]} />
@@ -162,7 +163,7 @@ export default function HomeScreen() {
 
         <View style={styles.countCard}>
           <Text style={styles.countText}>
-            {remainingQuests}/{quests.length} quests remaining
+            {tm("questsRemaining", { remaining: remainingQuests, total: quests.length })}
           </Text>
         </View>
       </View>
@@ -170,7 +171,7 @@ export default function HomeScreen() {
   }, [state, quests, completed]);
 
   if (initializing) {
-    return <PortalPreloader title="Initializing world..." />;
+    return <PortalPreloader title={tm("initializing")} />;
   }
 
   if (!username) {
@@ -180,13 +181,13 @@ export default function HomeScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.authScreenContent}>
-          <Text style={styles.title}>Life RPG Mobile</Text>
-          <Text style={styles.subtitle}>Enter The Realm</Text>
+          <Text style={styles.title}>{tm("appTitle")}</Text>
+          <Text style={styles.subtitle}>{tm("appSubtitle")}</Text>
           <View style={styles.authBox}>
             <TextInput
               value={usernameDraft}
               onChangeText={setUsernameDraft}
-              placeholder="Enter username"
+              placeholder={tm("enterUsernamePlaceholder")}
               autoCapitalize="none"
               autoCorrect={false}
               editable={!submitting}
@@ -200,7 +201,7 @@ export default function HomeScreen() {
               style={[styles.saveButton, submitting && styles.saveButtonDisabled]}
               onPress={handleSaveUsername}
             >
-              <Text style={styles.saveButtonText}>{submitting ? "Loading..." : "Load Profile"}</Text>
+              <Text style={styles.saveButtonText}>{submitting ? tm("loadingShort") : tm("loadProfile")}</Text>
             </Pressable>
             {!!authError && <Text style={styles.errorText}>{authError}</Text>}
           </View>
@@ -212,7 +213,7 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.headerTop}>
-        <Text style={styles.headerTitle}>Quests</Text>
+        <Text style={styles.headerTitle}>{tm("questsTitle")}</Text>
         <Text style={styles.headerSubtitle}>{state?.displayName || username}</Text>
       </View>
 

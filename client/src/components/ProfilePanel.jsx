@@ -90,7 +90,7 @@ function ProfilePanel({
               </div>
               <span className="text-[11px] text-slate-400">• {state.productivity?.weeksInCurrentTier ?? 0}w in this rank</span>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-[10px] uppercase tracking-[0.12em] text-slate-400">{t.weekResetLabel || "Week reset in:"}</span>
+                <span className="text-[10px] uppercase tracking-[0.12em] text-slate-400">{t.weekResetLabel}</span>
                 <span className="cinzel text-sm font-bold week-reset-timer" style={{ color: "var(--color-primary)" }}>⏳ {weekResetTimer}</span>
               </div>
             </div>

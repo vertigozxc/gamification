@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { tm } from "../i18n";
 
 export default function QuestItem({ quest, onComplete, disabled }) {
   return (
@@ -9,7 +10,7 @@ export default function QuestItem({ quest, onComplete, disabled }) {
       </View>
       <Text style={styles.description}>{quest.desc}</Text>
       <Pressable disabled={disabled} style={[styles.button, disabled && styles.buttonDisabled]} onPress={onComplete}>
-        <Text style={styles.buttonText}>{disabled ? "Completed" : "Complete"}</Text>
+        <Text style={styles.buttonText}>{disabled ? tm("completedLabel") : tm("completeLabel")}</Text>
       </Pressable>
     </View>
   );

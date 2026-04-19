@@ -126,15 +126,16 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     translateQuest,
     translateCategory
   } = useTheme();
+  const defaultCharacterName = t.defaultCharacterName;
   const [state, setState] = useState(createDefaultState);
-  const [characterName, setCharacterName] = useState("Warrior");
+  const [characterName, setCharacterName] = useState(defaultCharacterName);
   const [editingName, setEditingName] = useState(false);
 
   const handleQuestCompleteWrapper = (quest, event) => {
     completeQuest(quest, event);
   };
 
-  const [nameDraft, setNameDraft] = useState("Warrior");
+  const [nameDraft, setNameDraft] = useState(defaultCharacterName);
   const [portraitData, setPortraitData] = useState("");
   const [serverOffsetMs, setServerOffsetMs] = useState(0);
   const [nextWeekResetAtMs, setNextWeekResetAtMs] = useState(null);
@@ -338,8 +339,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       setState(createDefaultState());
       setQuests([]);
       setInitialDataResolved(false);
-      setCharacterName("Warrior");
-      setNameDraft("Warrior");
+      setCharacterName(defaultCharacterName);
+      setNameDraft(defaultCharacterName);
       setPortraitData("");
       setShowNotesModal(false);
       setPrivateNotes("");
@@ -351,7 +352,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       return;
     }
     const uid = authUser.uid;
-    const name = authUser.displayName || "Warrior";
+    const name = authUser.displayName || defaultCharacterName;
     setCharacterName(name);
     setNameDraft(name);
     setPortraitData(authUser.photoURL || "");
@@ -381,7 +382,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       setInitialDataResolved(false);
       return;
     }
-    const profileName = authUser.displayName || "Warrior";
+    const profileName = authUser.displayName || defaultCharacterName;
     const profilePortrait = authUser.photoURL || "";
     setInitialDataResolved(false);
     setDataLoading(true);
@@ -436,9 +437,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       .catch((err) => {
         setDataLoading(false);
         setInitialDataResolved(true);
-        setDataLoadError(err?.message || "Не удалось загрузить данные. Сервер просыпается (~1 мин). Нажмите «Повторить».");
+        setDataLoadError(err?.message || t.dataLoadWakeServer);
       });
-  }, [authUser, languageId]);
+  }, [authUser, languageId, t.dataLoadWakeServer]);
 
   useEffect(() => {
     if (!authUser) return;
@@ -716,46 +717,46 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
 
     const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/heic", "image/heif"];
     if (!allowedTypes.includes(file.type) && !file.name.match(/\.(jpg|jpeg|png|gif|webp|heic|heif)$/i)) {
-      setAvatarError("Unsupported image format. Use JPG, PNG, GIF, or WebP.");
+      setAvatarError(t.avatarUnsupportedFormat);
       event.target.value = "";
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      setAvatarError("Image is too large (max 10 MB).");
+      setAvatarError(t.avatarTooLarge);
       event.target.value = "";
       return;
     }
 
     const reader = new FileReader();
     reader.onerror = () => {
-      setAvatarError("Failed to read image file. Please try again.");
+      setAvatarError(t.avatarReadFailed);
       event.target.value = "";
     };
     reader.onload = async (loadEvent) => {
       try {
         const imageData = loadEvent.target?.result;
         if (typeof imageData !== "string") {
-          setAvatarError("Failed to process image.");
+          setAvatarError(t.avatarProcessFailed);
           return;
         }
         const compressed = await compressImage(imageData);
         if (!compressed) {
-          setAvatarError("Failed to compress image. Try a different photo.");
+          setAvatarError(t.avatarCompressFailed);
           return;
         }
         const prevPortrait = portraitData;
         setPortraitData(compressed);
         addLog(t.characterPortraitUpdated, "text-yellow-400 font-bold");
-        upsertProfile(authUser.uid, characterName || "Warrior", compressed)
+        upsertProfile(authUser.uid, characterName || defaultCharacterName, compressed)
           .then(() => fetchLeaderboard())
           .then(({ users }) => setLeaderboard(users || []))
           .catch(() => {
             setPortraitData(prevPortrait);
-            setAvatarError("Failed to save portrait. Please try again.");
+            setAvatarError(t.avatarSaveFailed);
           });
       } catch {
-        setAvatarError("Something went wrong. Please try a different image.");
+        setAvatarError(t.avatarUnknownError);
       }
       event.target.value = "";
     };
@@ -789,7 +790,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         .then(({ users }) => setLeaderboard(users || []))
         .catch(() => {
           setCharacterName(prevName);
-          addLog(t.saveNameFailed || "Failed to save name. Please try again.", "text-red-400 font-bold");
+          addLog(t.saveNameFailed, "text-red-400 font-bold");
         });
     }
     setEditingName(false);

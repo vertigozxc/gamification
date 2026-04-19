@@ -64,7 +64,7 @@ function RerollConfirmModal({ open, onCancel, onConfirm, quests = [], completedI
             ))}
           </div>
         ) : (
-          <p className="text-slate-400 text-sm mb-4">No remaining daily quests to reroll.</p>
+          <p className="text-slate-400 text-sm mb-4">{t.rerollNoRemainingDaily}</p>
         )}
 
         <div className="logout-confirm-actions">

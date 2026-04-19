@@ -18,10 +18,10 @@ export default function LoginScreen({ t, handleGoogleLogin, authError, languageI
       <div className="relative z-10 flex-col items-center justify-start pt-16 flex-none px-6">
         <div className="animate-slide-down text-center">
           <p className="cinzel text-xs tracking-[0.4em] uppercase mb-3" style={{ color: "var(--color-primary-dim)" }}>
-            {t.appTagline || "Journey to Greatness"}
+            {t.appTagline}
           </p>
           <h1 className="cinzel text-5xl md:text-6xl font-black text-transparent bg-clip-text tracking-widest leading-tight" style={{ backgroundImage: "var(--heading-gradient)" }}>
-            LIFE RPG
+            {t.loginBrandTitle}
           </h1>
         </div>
       </div>
@@ -29,12 +29,12 @@ export default function LoginScreen({ t, handleGoogleLogin, authError, languageI
       {/* Middle Content */}
       <div className="relative z-10 flex-1 flex flex-col justify-center items-center px-8 text-center animate-fade-in" style={{ animationDelay: "200ms" }}>
         <p className="text-slate-300 text-lg md:text-xl font-light max-w-md mx-auto leading-relaxed shadow-sm">
-          {t.loginHeroTagline || "Turn your daily tasks into an epic adventure. Level up, build habits, and grow your empire."}
+          {t.loginHeroTagline}
         </p>
         <div className="flex gap-4 mt-8 opacity-60">
-          <div className="flex flex-col items-center gap-1"><span className="text-2xl">{t.habitsIcon}</span><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Habits</span></div>
-          <div className="flex flex-col items-center gap-1"><span className="text-2xl">{t.levelIcon}</span><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Levels</span></div>
-          <div className="flex flex-col items-center gap-1"><span className="text-2xl">{t.cityIcon}</span><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">City</span></div>
+          <div className="flex flex-col items-center gap-1"><span className="text-2xl">{t.habitsIcon}</span><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{t.loginFeatureHabits}</span></div>
+          <div className="flex flex-col items-center gap-1"><span className="text-2xl">{t.levelIcon}</span><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{t.loginFeatureLevels}</span></div>
+          <div className="flex flex-col items-center gap-1"><span className="text-2xl">{t.cityIcon}</span><span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{t.loginFeatureCity}</span></div>
         </div>
       </div>
 

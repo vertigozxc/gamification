@@ -174,7 +174,7 @@ function OnboardingModal({
             >
               <span style={{ fontSize: 14 }}>🧭</span>
               <span className="cinzel" style={{ fontWeight: 700 }}>
-                {t.onboardingPick || "Pick preferred quests"}
+                {t.onboardingPick}
               </span>
             </div>
           </div>
@@ -199,7 +199,7 @@ function OnboardingModal({
               color: "var(--color-primary)"
             }}
           >
-            {t.onboardingNickname || "Nickname"}
+            {t.onboardingNickname}
           </label>
           <input
             type="text"
@@ -267,14 +267,14 @@ function OnboardingModal({
                   color: "var(--color-primary)"
                 }}
               >
-                {t.browseHabitsSection || "Browse habits"}
+                {t.browseHabitsSection}
               </span>
               <span style={{ fontSize: 11, color: "#64748b" }}>{nonCustomQuests.length}</span>
             </div>
 
             {nonCustomQuests.length === 0 ? (
               <p style={{ fontSize: 12, color: "#64748b", textAlign: "center", padding: "16px 0" }}>
-                {t.onboardingNoMatch || "No quests matched your search."}
+                {t.onboardingNoMatch}
               </p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -372,7 +372,7 @@ function OnboardingModal({
                 letterSpacing: "0.05em"
               }}
             >
-              {t.logOutAndCancel || t.cancelLabel || "Cancel"}
+              {t.logOutAndCancel || t.cancelLabel}
             </button>
             <button
               type="button"
@@ -395,7 +395,7 @@ function OnboardingModal({
                 boxShadow: primaryDisabled ? "none" : "0 8px 20px rgba(56,189,248,0.2)"
               }}
             >
-              {onboardingSaving ? (t.onboardingSaving || "Saving...") : (t.onboardingBegin || "Start Adventure")}
+              {onboardingSaving ? t.onboardingSaving : t.onboardingBegin}
             </button>
           </div>
         </div>

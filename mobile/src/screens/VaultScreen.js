@@ -11,6 +11,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchGameState, freezeStreak, buyExtraReroll } from "../api/client";
 import PortalPreloader from "../components/PortalPreloader";
+import { tm } from "../i18n";
 
 const USERNAME_KEY = "mobile_username";
 
@@ -35,7 +36,7 @@ export default function VaultScreen() {
           });
         }
       } catch (error) {
-        Alert.alert("Load error", error.message);
+        Alert.alert(tm("loadError"), error.message);
       } finally {
         setLoading(false);
       }
@@ -46,7 +47,7 @@ export default function VaultScreen() {
 
   async function handleFreezeStreak() {
     if (state.tokens < 3) {
-      Alert.alert("Not enough tokens", "You need 3 tokens to freeze your streak.");
+      Alert.alert(tm("notEnoughTokens"), tm("needThreeTokensFreeze"));
       return;
     }
 
@@ -58,9 +59,9 @@ export default function VaultScreen() {
         tokens: prev.tokens - 3,
         streakFreezeActive: true
       }));
-      Alert.alert("Success", "Your streak has been frozen!");
+      Alert.alert(tm("successPlain"), tm("streakFrozenSuccess"));
     } catch (error) {
-      Alert.alert("Error", error.message);
+      Alert.alert(tm("genericError"), error.message);
     } finally {
       setPurchasing(false);
     }
@@ -68,12 +69,12 @@ export default function VaultScreen() {
 
   async function handleBuyReroll() {
     if (state.tokens < 1) {
-      Alert.alert("Not enough tokens", "You need 1 token for extra reroll.");
+      Alert.alert(tm("notEnoughTokens"), tm("needOneTokenReroll"));
       return;
     }
 
     if (!state.hasRerolledToday) {
-      Alert.alert("Free reroll available", "Use your free daily reroll first!");
+      Alert.alert(tm("freeRerollAvailable"), tm("useFreeRerollFirst"));
       return;
     }
 
@@ -85,22 +86,22 @@ export default function VaultScreen() {
         tokens: prev.tokens - 1,
         extraRerollsToday: prev.extraRerollsToday + 1
       }));
-      Alert.alert("Success", "Extra reroll purchased!");
+      Alert.alert(tm("successPlain"), tm("extraRerollPurchased"));
     } catch (error) {
-      Alert.alert("Error", error.message);
+      Alert.alert(tm("genericError"), error.message);
     } finally {
       setPurchasing(false);
     }
   }
 
   if (loading) {
-    return <PortalPreloader title="Initializing world..." />;
+    return <PortalPreloader title={tm("initializing")} />;
   }
 
   if (!state) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>No vault data available</Text>
+        <Text style={styles.errorText}>{tm("noVaultData")}</Text>
       </View>
     );
   }
@@ -112,17 +113,17 @@ export default function VaultScreen() {
           <Text style={styles.tokenIcon}>🪙</Text>
           <Text style={styles.tokenCount}>{state.tokens}</Text>
         </View>
-        <Text style={styles.title}>Token Vault</Text>
+        <Text style={styles.title}>{tm("tokenVaultTitle")}</Text>
       </View>
 
       <View style={styles.shop}>
         <ShopItem
           icon="🧊"
-          title="Streak Freeze"
-          description="Protect your streak for one day"
+          title={tm("streakFreezeTitle")}
+          description={tm("streakFreezeDesc")}
           cost={3}
           active={state.streakFreezeActive}
-          activeLabel="Active"
+          activeLabel={tm("activeLabel")}
           canBuy={state.tokens >= 3 && !state.streakFreezeActive}
           onBuy={handleFreezeStreak}
           disabled={purchasing}
@@ -130,8 +131,8 @@ export default function VaultScreen() {
 
         <ShopItem
           icon="🎲"
-          title="Extra Reroll"
-          description="Get an extra random quest reroll"
+          title={tm("extraRerollTitle")}
+          description={tm("extraRerollDesc")}
           cost={1}
           available={state.extraRerollsToday}
           canBuy={state.tokens >= 1 && state.hasRerolledToday}
@@ -166,7 +167,7 @@ function ShopItem({ icon, title, description, cost, active, activeLabel, availab
 
       {available ? (
         <View style={styles.statusBadge}>
-          <Text style={styles.statusText}>{available} ready</Text>
+          <Text style={styles.statusText}>{available} {tm("readySuffix")}</Text>
         </View>
       ) : null}
 
@@ -177,7 +178,7 @@ function ShopItem({ icon, title, description, cost, active, activeLabel, availab
       >
         {disabled && <ActivityIndicator color="#f8fafc" style={{ marginRight: 8 }} />}
         <Text style={styles.buttonText}>
-          {active ? "Active" : `Buy for ${cost}`}
+          {active ? tm("activeLabel") : tm("buyFor", { cost })}
         </Text>
       </Pressable>
     </View>

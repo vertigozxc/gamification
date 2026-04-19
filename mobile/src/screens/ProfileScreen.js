@@ -10,6 +10,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchGameState } from "../api/client";
 import PortalPreloader from "../components/PortalPreloader";
+import { tm } from "../i18n";
 
 const USERNAME_KEY = "mobile_username";
 
@@ -35,7 +36,7 @@ export default function ProfileScreen() {
           });
         }
       } catch (error) {
-        Alert.alert("Profile load error", error.message);
+        Alert.alert(tm("profileLoadError"), error.message);
       } finally {
         setLoading(false);
       }
@@ -45,13 +46,13 @@ export default function ProfileScreen() {
   }, []);
 
   if (loading) {
-    return <PortalPreloader title="Initializing world..." />;
+    return <PortalPreloader title={tm("initializing")} />;
   }
 
   if (!state) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>No profile data</Text>
+        <Text style={styles.errorText}>{tm("noProfileData")}</Text>
       </View>
     );
   }
@@ -61,19 +62,19 @@ export default function ProfileScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text style={styles.title}>Profile</Text>
+        <Text style={styles.title}>{tm("profileTitle")}</Text>
         <Text style={styles.username}>{state.displayName}</Text>
       </View>
 
       <View style={styles.card}>
         <View style={styles.statRow}>
-          <Text style={styles.label}>Level</Text>
+          <Text style={styles.label}>{tm("levelLabel")}</Text>
           <Text style={styles.value}>{state.lvl}</Text>
         </View>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Experience Progress</Text>
+        <Text style={styles.cardTitle}>{tm("experienceProgress")}</Text>
         <Text style={styles.xpText}>
           {state.xp} / {state.xpNext} XP
         </Text>
@@ -89,14 +90,14 @@ export default function ProfileScreen() {
 
       <View style={styles.card}>
         <View style={styles.statRow}>
-          <Text style={styles.label}>Streak</Text>
+          <Text style={styles.label}>{tm("streakLabel")}</Text>
           <Text style={[styles.value, styles.streakValue]}>🔥 {state.streak}</Text>
         </View>
       </View>
 
       <View style={styles.card}>
         <View style={styles.statRow}>
-          <Text style={styles.label}>Tokens</Text>
+          <Text style={styles.label}>{tm("tokensLabel")}</Text>
           <Text style={[styles.value, styles.tokenValue]}>🪙 {state.tokens}</Text>
         </View>
       </View>
@@ -109,7 +110,7 @@ export default function ProfileScreen() {
           setState(null);
         }}
       >
-        <Text style={styles.buttonText}>Logout</Text>
+        <Text style={styles.buttonText}>{tm("logoutLabel")}</Text>
       </Pressable>
     </ScrollView>
   );

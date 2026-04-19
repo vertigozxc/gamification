@@ -16,6 +16,7 @@ import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getApiBaseUrl } from "../config/env";
 import PortalPreloader from "../components/PortalPreloader";
+import { tm } from "../i18n";
 
 const MOBILE_TAB_STORAGE_KEY = "life_rpg_mobile_tab";
 const TAB_ITEMS = [
@@ -513,13 +514,13 @@ export default function WebAppScreen() {
             preloaderTimerRef.current = null;
           }
           setShowPreloader(false);
-          setErrorText(event.nativeEvent?.description || "Failed to load web app");
+          setErrorText(event.nativeEvent?.description || tm("webLoadFailed"));
         }}
       />
 
       {showPreloader && !errorText ? (
         <View style={styles.preloaderOverlay} pointerEvents="auto">
-          <PortalPreloader title="Initializing world..." />
+          <PortalPreloader title={tm("initializing")} />
         </View>
       ) : null}
 
@@ -578,11 +579,11 @@ export default function WebAppScreen() {
 
       {!!errorText && (
         <View style={styles.errorPanel}>
-          <Text style={styles.errorTitle}>Connection issue</Text>
+          <Text style={styles.errorTitle}>{tm("connectionIssue")}</Text>
           <Text style={styles.errorText}>{errorText}</Text>
-          <Text style={styles.errorHint}>Web URL: {webUrl}</Text>
+          <Text style={styles.errorHint}>{tm("webUrlPrefix")}: {webUrl}</Text>
           <Pressable style={styles.retryButton} onPress={() => { setErrorText(""); setWebKey((k) => k + 1); }}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{tm("retryLabel")}</Text>
           </Pressable>
         </View>
       )}

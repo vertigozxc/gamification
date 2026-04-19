@@ -1,11 +1,12 @@
 import { useEffect, useRef } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
+import { tm } from "../i18n";
 
 function Tower({ height, width, style }) {
   return <View style={[styles.tower, { height, width }, style]} />;
 }
 
-export default function PortalPreloader({ title = "Initializing world...", caption = "" }) {
+export default function PortalPreloader({ title = tm("initializing"), caption = "" }) {
   const pulse = useRef(new Animated.Value(0.92)).current;
   const rotateOuter = useRef(new Animated.Value(0)).current;
   const rotateMiddle = useRef(new Animated.Value(0)).current;

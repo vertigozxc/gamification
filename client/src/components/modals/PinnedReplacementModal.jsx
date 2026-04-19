@@ -114,7 +114,7 @@ function PinnedReplacementModal({
                 {t.replacePinnedHeading}
               </h2>
               <p style={{ fontSize: 12, color: "#94a3b8", margin: "4px 0 0" }}>
-                {t.replacePinnedTitle || "Choose up to 3 quests"}
+                {t.replacePinnedTitle}
               </p>
             </div>
             <button
@@ -196,8 +196,8 @@ function PinnedReplacementModal({
             <span style={{ fontSize: 16 }}>{isFreePinnedReroll ? "🎁" : "🪙"}</span>
             <span style={{ fontSize: 12, color: isFreePinnedReroll ? "#6ee7b7" : "#e2e8f0" }}>
               {isFreePinnedReroll
-                ? (t.replacePinnedFreeCost || "Free once every 21 days")
-                : (t.replacePinnedCost || `Cost: ${TOKEN_COST} tokens`)}
+                ? t.replacePinnedFreeCost
+                : t.replacePinnedCost}
             </span>
           </div>
         </div>
@@ -214,7 +214,7 @@ function PinnedReplacementModal({
             type="text"
             value={replacePinnedSearch}
             onChange={(e) => onReplacePinnedSearchChange(e.target.value)}
-            placeholder={t.replacePinnedSearchPlaceholder || t.onboardingSearch || "Search..."}
+            placeholder={t.replacePinnedSearchPlaceholder || t.onboardingSearch}
             style={{
               width: "100%",
               padding: "12px 14px",
@@ -253,13 +253,13 @@ function PinnedReplacementModal({
                   color: "var(--color-accent)"
                 }}
               >
-                {t.browseHabitsSection || "Browse habits"}
+                {t.browseHabitsSection}
               </span>
               <span style={{ fontSize: 11, color: "#64748b" }}>{nonCustomQuests.length}</span>
             </div>
             {nonCustomQuests.length === 0 ? (
               <p style={{ fontSize: 12, color: "#64748b", textAlign: "center", padding: "16px 0" }}>
-                {t.onboardingNoMatch || "No quests matched your search."}
+                {t.onboardingNoMatch}
               </p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -341,7 +341,7 @@ function PinnedReplacementModal({
           ) : null}
           {!canAfford && !replacePinnedError ? (
             <p style={{ color: "#fca5a5", fontSize: 12, margin: "0 0 8px", textAlign: "center", fontWeight: 600 }}>
-              {t.notEnough || "Not enough tokens"}
+              {t.notEnough}
             </p>
           ) : null}
           <div style={{ display: "flex", gap: 10 }}>
@@ -388,10 +388,10 @@ function PinnedReplacementModal({
               }}
             >
               {replacePinnedSaving
-                ? (t.onboardingSaving || "Saving...")
+                ? t.onboardingSaving
                 : isFreePinnedReroll
-                  ? (t.rerollFree || "Confirm (Free)")
-                  : `${t.customizePrefix || "Confirm"} · ${TOKEN_COST} 🪙`}
+                  ? t.rerollFree
+                  : `${t.customizePrefix} · ${TOKEN_COST} 🪙`}
             </button>
           </div>
         </div>

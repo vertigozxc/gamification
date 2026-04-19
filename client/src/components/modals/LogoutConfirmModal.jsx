@@ -7,7 +7,7 @@ function LogoutConfirmModal({ open, onCancel, onConfirm }) {
   return (
     <div className="logout-confirm-overlay" onClick={onCancel}>
       <div className="logout-confirm-card" onClick={(event) => event.stopPropagation()}>
-        <div className="logout-confirm-icon">⚔️</div>
+        <div className="logout-confirm-icon">🚪</div>
         <h2 className="cinzel logout-confirm-title">{t.logoutTitle}</h2>
         <p className="logout-confirm-msg">{t.logoutMessage}</p>
         <div className="logout-confirm-actions">

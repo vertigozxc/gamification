@@ -6,7 +6,7 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
   const longPressTriggered = useRef(false);
   const [showTapHint, setShowTapHint] = useState(false);
 
-  const tapHintText = t.questCompleteGestureHint || "Long-press to complete";
+  const tapHintText = t.questCompleteGestureHint;
 
   const showHintPopup = useCallback(() => {
     setShowTapHint(true);
@@ -67,7 +67,7 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
           </div>
         </div>
         <div style={{ position: "absolute", bottom: 8, right: 10, fontSize: 10, color: "rgba(139,92,246,0.7)", fontWeight: 600, letterSpacing: "0.06em" }}>
-          🎲 rolling...
+          🎲 {t.rerollRolling}
         </div>
       </div>
     );
@@ -100,7 +100,7 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
       {isPending ? (
         <div className="qb-pending-overlay" aria-live="polite">
           <div className="qb-pending-spinner" aria-hidden="true" />
-          <span>{t?.questCompletingLabel || "Завершаем"}</span>
+          <span>{t.questCompletingLabel}</span>
         </div>
       ) : null}
       {showTapHint && !isDone && !isPending ? (

@@ -12,7 +12,7 @@ export default function StoreTab({
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.05]"></div>
         <div className="flex items-center justify-between relative z-10">
           <div>
-            <p className="mobile-section-kicker mb-1 leading-none" style={{ color: "var(--color-primary-dim)" }}>Your Balance</p>
+            <p className="mobile-section-kicker mb-1 leading-none" style={{ color: "var(--color-primary-dim)" }}>{t.storeBalanceTitle}</p>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-4xl drop-shadow-[0_0_15px_rgba(250,204,21,0.4)]">{t.tokenIcon}</span>
               <h2 className="cinzel text-5xl font-bold tracking-wide" style={{ color: "var(--color-primary)", textShadow: "0 4px 15px rgba(0,0,0,0.6)" }}>{tokens}</h2>
@@ -22,9 +22,9 @@ export default function StoreTab({
             <div className="inline-flex flex-col items-center gap-1.5">
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase shadow-[0_0_12px_rgba(16,185,129,0.15)]" style={{ background: "color-mix(in srgb, var(--color-success) 14%, transparent)", border: "1px solid color-mix(in srgb, var(--color-success) 32%, transparent)", color: "var(--color-success)" }}>
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_5px_#34d399]"></span>
-                Vault Active
+                {t.storeVaultActive}
               </div>
-              <p className="text-[9px] tracking-wider uppercase mt-0.5 opacity-80" style={{ color: "var(--color-text)" }}>Daily limits apply</p>
+              <p className="text-[9px] tracking-wider uppercase mt-0.5 opacity-80" style={{ color: "var(--color-text)" }}>{t.storeDailyLimits}</p>
             </div>
           </div>
         </div>

@@ -83,8 +83,8 @@ function CustomHabitManager({
   return (
     <div className="mt-4" style={{ borderTop: "1px dashed var(--card-border-idle)", paddingTop: 12 }}>
       <div className="flex items-center justify-between mb-2">
-        <label className="cinzel text-xs tracking-widest uppercase" style={accentStyle}>
-          {t.customHabitsSection || "My Custom Habits"}
+            <label className="cinzel text-xs tracking-widest uppercase" style={accentStyle}>
+              {t.customHabitsSection}
         </label>
         <span className="cinzel text-xs text-slate-400">{used} / {CUSTOM_LIMIT}</span>
       </div>
@@ -129,7 +129,7 @@ function CustomHabitManager({
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); startEdit(cq); }}
-                        title={t.customHabitEdit || "Edit"}
+                            title={t.customHabitEdit}
                         className="rounded-md"
                         style={{
                           background: "rgba(0,0,0,0.35)",
@@ -148,7 +148,7 @@ function CustomHabitManager({
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(cq.id); }}
-                          title={t.customHabitDelete || "Delete"}
+                              title={t.customHabitDelete}
                           className="rounded-md"
                           style={{
                             background: "rgba(0,0,0,0.35)",
@@ -171,7 +171,7 @@ function CustomHabitManager({
             </div>
           ) : (
             <p className="text-xs text-slate-500 mb-2">
-              {t.customHabitEmpty || "You have no custom habits yet."}
+                  {t.customHabitEmpty}
             </p>
           )}
 
@@ -190,8 +190,8 @@ function CustomHabitManager({
             }}
           >
             {atLimit
-              ? (t.customHabitLimitReached || `Limit reached (${CUSTOM_LIMIT})`)
-              : `+ ${t.customHabitCreate || "Create custom habit"}`}
+                  ? t.customHabitLimitReached
+              : `+ ${t.customHabitCreate}`}
           </button>
         </>
       )}
@@ -202,7 +202,7 @@ function CustomHabitManager({
           style={{ borderColor: accentBorder, background: "var(--card-bg)" }}
         >
           <label className="cinzel text-xs tracking-widest uppercase block mb-1" style={accentStyle}>
-            {t.customHabitTitleLabel || "Title"}
+                {t.customHabitTitleLabel}
           </label>
           <input
             type="text"
@@ -211,12 +211,12 @@ function CustomHabitManager({
             maxLength={TITLE_MAX}
             className="w-full rounded-md px-3 py-2 text-slate-100"
             style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--card-border-idle)", minHeight: 44 }}
-            placeholder={t.customHabitTitlePlaceholder || "e.g. Meditate 10 minutes"}
+                placeholder={t.customHabitTitlePlaceholder}
           />
           <div className="text-right text-xs text-slate-500 mt-1">{title.length} / {TITLE_MAX}</div>
 
           <label className="cinzel text-xs tracking-widest uppercase block mt-2 mb-1" style={accentStyle}>
-            {t.customHabitDescLabel || "Description"}
+                {t.customHabitDescLabel}
           </label>
           <textarea
             value={desc}
@@ -225,7 +225,7 @@ function CustomHabitManager({
             rows={2}
             className="w-full rounded-md px-3 py-2 text-slate-100"
             style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--card-border-idle)", resize: "vertical" }}
-            placeholder={t.customHabitDescPlaceholder || "Short reminder (optional)"}
+                placeholder={t.customHabitDescPlaceholder}
           />
           <div className="text-right text-xs text-slate-500 mt-1">{desc.length} / {DESC_MAX}</div>
 
@@ -246,7 +246,7 @@ function CustomHabitManager({
                 minHeight: 44
               }}
             >
-              {t.cancelLabel || "Cancel"}
+                  {t.cancelLabel}
             </button>
             <button
               type="button"
@@ -262,9 +262,9 @@ function CustomHabitManager({
                 minHeight: 44
               }}
             >
-              {customSaving
-                ? (t.onboardingSaving || "Saving...")
-                : (t.customHabitSave || "Save")}
+                  {customSaving
+                    ? t.onboardingSaving
+                    : t.customHabitSave}
             </button>
           </div>
         </div>
@@ -279,7 +279,7 @@ function CustomHabitManager({
           <div className="logout-confirm-card" style={{ maxWidth: 360 }}>
             <div className="text-3xl mb-2 text-center">🗑</div>
             <p className="text-slate-100 text-center mb-4">
-              {t.customHabitDeleteConfirm || "Delete this custom habit?"}
+                  {t.customHabitDeleteConfirm}
             </p>
             <div className="flex gap-2">
               <button
@@ -287,8 +287,8 @@ function CustomHabitManager({
                 onClick={() => setConfirmDeleteId(null)}
                 className="flex-1 rounded-md py-2 cinzel text-xs"
                 style={{ background: "transparent", border: "1px solid var(--card-border-idle)", color: "#cbd5e1", cursor: "pointer", minHeight: 44 }}
-              >
-                {t.cancelLabel || "Cancel"}
+                    >
+                      {t.cancelLabel}
               </button>
               <button
                 type="button"
@@ -298,8 +298,8 @@ function CustomHabitManager({
                 style={{ background: "#dc2626", color: "#fff", border: "none", cursor: customSaving ? "not-allowed" : "pointer", opacity: customSaving ? 0.6 : 1, minHeight: 44 }}
               >
                 {customSaving
-                  ? (t.onboardingSaving || "Saving...")
-                  : (t.customHabitDelete || "Delete")}
+                      ? t.onboardingSaving
+                      : t.customHabitDelete}
               </button>
             </div>
           </div>

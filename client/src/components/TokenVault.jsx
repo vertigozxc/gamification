@@ -56,7 +56,7 @@ function TokenVault({
                 }`}
               >
                 <span>{t.tokenIcon}</span>
-                {freezeStreakPending ? "Processing..." : tokens < 3 ? t.notEnough : `${t.buyPrefix} 3 ${getPluralizedToken(3)}`}
+                {freezeStreakPending ? t.processingLabel : tokens < 3 ? t.notEnough : `${t.buyPrefix} 3 ${getPluralizedToken(3)}`}
               </button>
             )}
           </div>
@@ -134,8 +134,8 @@ function TokenVault({
             <div className="flex items-start gap-3">
               <span className="text-3xl grayscale">🎴</span>
               <div className="flex-1">
-                <p className="cinzel text-slate-300 font-bold text-base tracking-wide">Mystery Item</p>
-                <p className="text-slate-500 text-xs mt-0.5">A new powerful artifact is being forged...</p>
+                <p className="cinzel text-slate-300 font-bold text-base tracking-wide">{t.mysteryItemTitle}</p>
+                <p className="text-slate-500 text-xs mt-0.5">{t.mysteryItemDesc}</p>
               </div>
               <div className="flex items-center gap-1 rounded-full px-3 py-1 self-start" style={{ background: "var(--xp-badge-bg)", border: "1px solid var(--color-primary-dim)", filter: "grayscale(100%)" }}>
                 <span className="text-base">{t.tokenIcon}</span>
@@ -146,7 +146,7 @@ function TokenVault({
               disabled
               className="mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-dashed border-slate-600 bg-slate-900/50 text-slate-500 text-sm flex items-center justify-center gap-2 cursor-not-allowed uppercase tracking-widest"
             >
-              Coming Soon
+              {t.comingSoon}
             </button>
           </div>
         </div>
@@ -173,30 +173,30 @@ function TokenVault({
 
               <div className="flex flex-col md:flex-row items-stretch gap-6 px-1 py-1">
                 <div className="flex-1 flex flex-col gap-4">
-                  <p className="mobile-section-kicker">About Tokens</p>
+                  <p className="mobile-section-kicker">{t.tokenAboutTitle}</p>
                   
                   <div className="flex flex-col gap-3 mt-2">
                     <div className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-4 flex gap-4 items-start shadow-inner">
                       <span className="text-3xl grayscale brightness-150">🪙</span>
                       <div>
-                        <p className="font-bold text-slate-200 text-sm uppercase tracking-wide cinzel">What are Tokens?</p>
-                        <p className="text-slate-400 text-sm mt-1 leading-relaxed">Tokens are a premium currency in the Token Vault used to purchase unique items, protect your progress, and customize your experience.</p>
+                        <p className="font-bold text-slate-200 text-sm uppercase tracking-wide cinzel">{t.tokenAboutWhatAre}</p>
+                        <p className="text-slate-400 text-sm mt-1 leading-relaxed">{t.tokenAboutWhatAreDesc}</p>
                       </div>
                     </div>
 
                     <div className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-4 flex gap-4 items-start shadow-inner">
                       <span className="text-3xl grayscale brightness-150">⚔️</span>
                       <div>
-                        <p className="font-bold text-slate-200 text-sm uppercase tracking-wide cinzel">How to Earn Them?</p>
-                        <p className="text-slate-400 text-sm mt-1 leading-relaxed">Level up your character, conquer daily milestones, and maintain a high streak to earn tokens passively through gameplay.</p>
+                        <p className="font-bold text-slate-200 text-sm uppercase tracking-wide cinzel">{t.tokenAboutHowEarn}</p>
+                        <p className="text-slate-400 text-sm mt-1 leading-relaxed">{t.tokenAboutHowEarnDesc}</p>
                       </div>
                     </div>
                     
                     <div className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-4 flex gap-4 items-start shadow-inner">
                       <span className="text-3xl grayscale brightness-150">🛍️</span>
                       <div>
-                        <p className="font-bold text-slate-200 text-sm uppercase tracking-wide cinzel">What to Use Them For?</p>
-                        <p className="text-slate-400 text-sm mt-1 leading-relaxed">Spend your balance in the Store tab on Streak Freezes, Extra Rerolls, Pinned Quest replacements, and upcoming premium artifacts.</p>
+                        <p className="font-bold text-slate-200 text-sm uppercase tracking-wide cinzel">{t.tokenAboutUseFor}</p>
+                        <p className="text-slate-400 text-sm mt-1 leading-relaxed">{t.tokenAboutUseForDesc}</p>
                       </div>
                     </div>
                   </div>
@@ -204,7 +204,7 @@ function TokenVault({
                 
                 <div className="flex-shrink-0 w-full md:w-1/4 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 to-slate-950 p-6 rounded-xl border border-slate-700/60 shadow-2xl relative overflow-hidden group">
                   <div className="absolute inset-0 transition-opacity bg-cover opacity-10"></div>
-                  <p className="cinzel text-slate-400 font-bold tracking-[0.2em] text-xs z-10 mb-4 text-center">YOUR BALANCE</p>
+                  <p className="cinzel text-slate-400 font-bold tracking-[0.2em] text-xs z-10 mb-4 text-center">{t.tokenBalanceLabel}</p>
                   <div className="relative z-10 flex flex-col items-center">
                     <span className="text-7xl drop-shadow-[0_0_20px_rgba(250,204,21,0.4)] transition-transform group-hover:scale-110 duration-500">{t.tokenIcon}</span>
                     <p className="cinzel text-5xl font-bold mt-4" style={{ color: "var(--color-primary)", textShadow: "0 4px 20px rgba(0,0,0,0.5)" }}>{tokens}</p>

@@ -8,14 +8,14 @@ export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen })
   const nextMilestone = Math.min(stageCap, Math.ceil(normalizedStage / 4) * 4);
   const eraLabel =
     normalizedStage <= 3
-      ? "Outpost"
+      ? t.cityEraOutpost
       : normalizedStage <= 7
-      ? "Settlement"
+      ? t.cityEraSettlement
       : normalizedStage <= 12
-      ? "District"
+      ? t.cityEraDistrict
       : normalizedStage <= 16
-      ? "Skyline"
-      : "Metropolis";
+      ? t.cityEraSkyline
+      : t.cityEraMetropolis;
 
   return (
     <div className="mobile-tab-panel flex flex-col gap-4" style={{ minHeight: "calc(100dvh - var(--mobile-footer-offset, 98px) - 100px)" }}>
@@ -23,20 +23,20 @@ export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen })
         <div className="relative z-10 flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] uppercase tracking-[0.2em] mb-1" style={{ color: "var(--color-muted)" }}>
-              {t.mobileCityLabel || "City"}
+              {t.mobileCityLabel}
             </p>
             <h3 className="cinzel text-[1.15rem] font-bold tracking-wide leading-tight m-0 flex items-center gap-2" style={{ color: "var(--color-primary)" }}>
               <span>🏙</span>
-              <span className="truncate">{t.landingGrowCityTitle || "Your City"}</span>
+              <span className="truncate">{t.landingGrowCityTitle}</span>
             </h3>
             <p className="text-xs leading-relaxed mt-2 mb-0" style={{ color: "var(--color-text)", opacity: 0.88 }}>
-              {t.cityExpansionText || "Level up by completing quests to expand and upgrade your city."}
+              {t.cityExpansionText}
             </p>
           </div>
 
           <div className="city-kpi-chip text-center shrink-0 min-w-[108px]">
             <p className="text-[9px] uppercase tracking-[0.18em] mb-1" style={{ color: "var(--color-muted)" }}>
-              {t.levelLabel || "Level"}
+              {t.levelLabel}
             </p>
             <p className="cinzel text-xl font-bold leading-none m-0" style={{ color: "var(--color-primary)" }}>
               {normalizedStage}
@@ -49,14 +49,14 @@ export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen })
 
         <div className="relative z-10 mt-3 space-y-2">
           <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.14em]" style={{ color: "var(--color-muted)" }}>
-            <span>Development</span>
+            <span>{t.cityDevelopment}</span>
             <span>{stageProgress}%</span>
           </div>
           <div className="city-progress-track">
             <div className="city-progress-fill" style={{ width: `${stageProgress}%` }} />
           </div>
           <p className="text-[11px] m-0" style={{ color: "var(--color-text)", opacity: 0.8 }}>
-            Next milestone at level {nextMilestone}
+            {t.cityNextMilestoneAt?.replace("{level}", String(nextMilestone))}
           </p>
         </div>
       </div>
@@ -73,7 +73,7 @@ export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen })
                   <path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>
                 </svg>
               </span>
-              <span className="city-action-btn__label">Expand</span>
+              <span className="city-action-btn__label">{t.cityExpand}</span>
             </button>
             <div className="city-canvas-inner">
               <InteractiveMapWrapper>
@@ -85,16 +85,16 @@ export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen })
         {cityFullscreen && (
           <div className="absolute inset-0 z-10 flex items-center justify-center px-6" style={{ background: "color-mix(in srgb, var(--panel-bg) 84%, transparent)" }}>
             <p className="city-hint-strip text-center text-xs" style={{ color: "var(--color-text)" }}>
-              City view is open in fullscreen mode.
+              {t.cityFullscreenHint}
             </p>
           </div>
         )}
       </div>
 
       <div className="city-hint-strip flex items-center justify-between gap-2 text-[11px]" style={{ color: "var(--color-muted)" }}>
-        <span>Pinch to zoom</span>
-        <span>Drag to explore</span>
-        <span>Tap Expand for fullscreen</span>
+        <span>{t.cityPinchZoom}</span>
+        <span>{t.cityDragExplore}</span>
+        <span>{t.cityTapExpandFullscreen}</span>
       </div>
     </div>
   );
