@@ -46,7 +46,7 @@ export default function ProfileTab({
                 <button
                   className="opacity-70 hover:opacity-100 transition-colors shrink-0" style={{ color: "var(--color-muted)" }}
                   onClick={onStartEditingName}
-                  title="Edit name"
+                  title={t.profileEditNameLabel}
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                 </button>
@@ -128,7 +128,7 @@ export default function ProfileTab({
         <div className="mobile-card flex flex-col items-center py-4" style={{ background: "var(--panel-bg)" }}>
           <span className="text-2xl mb-1">{t.tokenIcon}</span>
           <p className="cinzel text-2xl font-bold" style={{ color: "var(--color-primary)" }}>{state.tokens}</p>
-          <p className="text-[10px] uppercase tracking-wider mt-1" style={{ color: "var(--color-muted)" }}>Tokens</p>
+          <p className="text-[10px] uppercase tracking-wider mt-1" style={{ color: "var(--color-muted)" }}>{t.tokensLabel}</p>
         </div>
         <div className="mobile-card flex flex-col items-center py-4" style={{ background: "var(--panel-bg)" }}>
           <span className="text-2xl mb-1">🏆</span>
@@ -139,22 +139,22 @@ export default function ProfileTab({
 
       {/* Overall Statistics */}
       <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
-        <p className="cinzel text-xs font-bold tracking-widest uppercase" style={{ color: "var(--color-primary)" }}>Statistics</p>
+        <p className="cinzel text-xs font-bold tracking-widest uppercase" style={{ color: "var(--color-primary)" }}>{t.profileStatisticsTitle}</p>
         <div className="flex flex-col gap-2.5 text-[var(--color-text)]">
           <div className="flex items-center justify-between py-2 border-b border-[var(--panel-border)]">
-            <span className="flex items-center gap-2 text-sm"><span className="text-lg">{t.habitsIcon}</span> Quests Completed</span>
+            <span className="flex items-center gap-2 text-sm"><span className="text-lg">{t.habitsIcon}</span> {t.profileQuestsCompletedLabel}</span>
             <span className="cinzel font-bold text-sm" style={{ color: "var(--color-primary)" }}>{profileStats?.totalQuestsCompleted ?? "—"}</span>
           </div>
           <div className="flex items-center justify-between py-2 border-b border-[var(--panel-border)]">
-            <span className="flex items-center gap-2 text-sm"><span className="text-lg">{t.streakIcon}</span> Best Streak</span>
+            <span className="flex items-center gap-2 text-sm"><span className="text-lg">{t.streakIcon}</span> {t.profileBestStreakLabel}</span>
             <span className="cinzel font-bold text-sm" style={{ color: "var(--color-primary)" }}>{profileStats?.maxStreak ?? "—"}</span>
           </div>
           <div className="flex items-center justify-between py-2 border-b border-[var(--panel-border)]">
-            <span className="flex items-center gap-2 text-sm"><span className="text-lg">💪</span> Habits Built <span className="text-[9px]" style={{ color: "var(--color-muted)" }}>(21+ days)</span></span>
+            <span className="flex items-center gap-2 text-sm"><span className="text-lg">💪</span> {t.profileHabitsBuiltLabel} <span className="text-[9px]" style={{ color: "var(--color-muted)" }}>({t.profileHabitsBuiltHint})</span></span>
             <span className="cinzel font-bold text-sm" style={{ color: "var(--color-primary)" }}>{profileStats?.builtHabits ?? "—"}</span>
           </div>
           <div className="flex items-center justify-between py-2 border-b border-[var(--panel-border)]">
-            <span className="flex items-center gap-2 text-sm"><span className="text-lg">📅</span> Joined</span>
+            <span className="flex items-center gap-2 text-sm"><span className="text-lg">📅</span> {t.profileJoinedLabel}</span>
             <span className="cinzel font-bold text-sm" style={{ color: "var(--color-primary)" }}>{profileStats?.joinedAt ? new Date(profileStats.joinedAt).toLocaleDateString(languageId === "ru" ? "ru-RU" : "en-US", { year: "numeric", month: "short", day: "numeric" }) : "—"}</span>
           </div>
         </div>
@@ -162,11 +162,11 @@ export default function ProfileTab({
 
       {/* Settings */}
       <div className="mobile-card flex flex-col gap-1" style={{ background: "var(--panel-bg)" }}>
-        <p className="cinzel text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "var(--color-primary)" }}>Settings</p>
+        <p className="cinzel text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "var(--color-primary)" }}>{t.profileSettingsTitle}</p>
         <button className="flex items-center gap-3 w-full rounded-xl px-3 py-3 transition-all hover:bg-[var(--card-hover)] active:scale-[0.98]" onClick={onOpenThemePicker}>
           <span className="text-xl w-8 text-center">{themes[themeId].icon}</span>
           <div className="flex-1 text-left">
-            <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>Theme</p>
+            <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.themeLabel}</p>
             <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{getThemeMeta(themeId).label}</p>
           </div>
           <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
@@ -174,7 +174,7 @@ export default function ProfileTab({
         <button className="flex items-center gap-3 w-full rounded-xl px-3 py-3 transition-all hover:bg-[var(--card-hover)] active:scale-[0.98]" onClick={onOpenLanguagePicker}>
           <span className="text-xl w-8 text-center">🌐</span>
           <div className="flex-1 text-left">
-            <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>Language</p>
+            <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.languageLabel}</p>
             <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{getLanguageMeta(languageId).nativeLabel}</p>
           </div>
           <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
