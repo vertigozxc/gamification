@@ -194,11 +194,7 @@ export default function LeaderboardTab({ leaderboard, authUser, logs, t }) {
         style={{
           flex: 1,
           minHeight: "30vh",
-          background: "var(--leaderboard-bg)",
-          border: "1px solid var(--leaderboard-border)",
-          borderRadius: "var(--border-radius-panel)",
-          boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
-          padding: "0.85rem 0.95rem"
+          padding: "0"
         }}
       >
         <SidePanels leaderboard={leaderboard} authUser={authUser} logs={logs} compact />

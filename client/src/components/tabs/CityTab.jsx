@@ -1,8 +1,58 @@
-import { startTransition } from "react";
+import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import CityIllustration from "../CityIllustration";
+import CityFireworks from "../CityFireworks";
 import InteractiveMapWrapper from "../InteractiveMapWrapper";
 
+const FIREWORKS_CD_KEY = "city_fireworks_last_ts";
+const COOLDOWN_MS = 60 * 60 * 1000;
+
+function formatCountdown(ms) {
+  const totalSec = Math.ceil(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen, dailyXpToday = 0 }) {
+  const [fireworksActive, setFireworksActive] = useState(false);
+  const [cdRemaining, setCdRemaining] = useState(0);
+  const cdIntervalRef = useRef(null);
+
+  function readCdRemaining() {
+    try {
+      const ts = Number(localStorage.getItem(FIREWORKS_CD_KEY) || 0);
+      if (!ts) return 0;
+      return Math.max(0, ts + COOLDOWN_MS - Date.now());
+    } catch { return 0; }
+  }
+
+  useEffect(() => {
+    setCdRemaining(readCdRemaining());
+  }, []);
+
+  useEffect(() => {
+    if (cdRemaining <= 0) {
+      if (cdIntervalRef.current) clearInterval(cdIntervalRef.current);
+      return;
+    }
+    cdIntervalRef.current = setInterval(() => {
+      const r = readCdRemaining();
+      setCdRemaining(r);
+      if (r <= 0) clearInterval(cdIntervalRef.current);
+    }, 1000);
+    return () => clearInterval(cdIntervalRef.current);
+  }, [cdRemaining > 0]);
+
+  const handleLaunch = useCallback(() => {
+    if (cdRemaining > 0 || fireworksActive) return;
+    try { localStorage.setItem(FIREWORKS_CD_KEY, String(Date.now())); } catch {}
+    setCdRemaining(COOLDOWN_MS);
+    setFireworksActive(true);
+  }, [cdRemaining, fireworksActive]);
+
+  const handleFireworksDone = useCallback(() => {
+    setFireworksActive(false);
+  }, []);
   const normalizedStage = Math.max(1, Number(stage) || 1);
   const dailyXpCap = 250;
   const normalizedDailyXp = Math.max(0, Math.min(dailyXpCap, Number(dailyXpToday) || 0));
@@ -96,10 +146,11 @@ export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen, d
               </span>
               <span className="city-action-btn__label">{t.cityExpand}</span>
             </button>
-            <div className="city-canvas-inner">
+            <div className="city-canvas-inner" style={{ position: "relative" }}>
               <InteractiveMapWrapper>
                 <CityIllustration height="100%" stage={stage} />
               </InteractiveMapWrapper>
+              <CityFireworks active={fireworksActive} onDone={handleFireworksDone} />
             </div>
           </>
         )}
@@ -113,23 +164,35 @@ export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen, d
       </div>
 
       {!cityFullscreen && (
-        <div
-          className="city-hint-strip"
+        <button
+          onClick={handleLaunch}
+          disabled={cdRemaining > 0 || fireworksActive}
           style={{
-            padding: "12px 14px",
+            width: "100%",
+            padding: "13px 14px",
             textAlign: "center",
-            fontSize: "13px",
-            fontWeight: 600,
-            letterSpacing: "0.2px",
-            color: "var(--color-text)",
-            border: "1px solid var(--panel-border)",
+            fontSize: "14px",
+            fontWeight: 700,
+            letterSpacing: "0.3px",
+            color: cdRemaining > 0 ? "var(--color-muted)" : "var(--color-primary)",
+            border: "1px solid " + (cdRemaining > 0 ? "var(--panel-border)" : "var(--color-primary)"),
             borderRadius: "14px",
-            background: "color-mix(in srgb, var(--panel-bg) 84%, transparent)",
-            boxShadow: "0 10px 28px rgba(2, 6, 23, 0.16)"
+            background: cdRemaining > 0
+              ? "color-mix(in srgb, var(--panel-bg) 60%, transparent)"
+              : "color-mix(in srgb, var(--color-primary) 10%, var(--panel-bg))",
+            boxShadow: cdRemaining > 0 ? "none" : "0 0 18px color-mix(in srgb, var(--color-primary) 25%, transparent)",
+            cursor: cdRemaining > 0 ? "default" : "pointer",
+            transition: "all 0.25s ease",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px"
           }}
         >
-          {t.cityViewHint || "Double-tap to enter fullscreen - Pinch to zoom"}
-        </div>
+          {cdRemaining > 0
+            ? (t.fireworksCooldown || "Next in {time}").replace("{time}", formatCountdown(cdRemaining))
+            : (t.launchFireworks || "🎆 Launch Fireworks")}
+        </button>
       )}
     </div>
   );
