@@ -206,33 +206,58 @@ export default function ProfileTab({
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div
-          className="fixed inset-0 z-[99999] flex items-center justify-center px-6"
-          style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }}
-          onClick={() => setShowDeleteConfirm(false)}
+          className="fixed inset-0 z-[99999] flex items-end justify-center pb-6 px-4"
+          style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)" }}
         >
           <div
-            className="rounded-[1.75rem] p-7 max-w-[340px] w-full text-center shadow-2xl"
-            style={{ background: "linear-gradient(to bottom, #14171E, #080A0E)", border: "1px solid rgba(180,0,0,0.35)" }}
-            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-[400px] rounded-[2rem] overflow-hidden shadow-2xl"
+            style={{ border: "1.5px solid rgba(220,30,30,0.5)", boxShadow: "0 0 60px rgba(200,0,0,0.25), 0 24px 64px rgba(0,0,0,0.8)" }}
           >
-            <div className="text-5xl mb-4">⚠️</div>
-            <h3 className="cinzel text-lg font-bold text-red-400 mb-2">{t.deleteProfileTitle || "Delete Profile?"}</h3>
-            <p className="text-slate-400 text-sm leading-relaxed mb-6">{t.deleteProfileDesc || "This will permanently erase all your data. This cannot be undone."}</p>
-            <div className="flex gap-3">
-              <button
-                className="flex-1 py-3 rounded-2xl font-bold text-sm transition-all active:scale-[0.97]"
-                style={{ background: "rgba(50,50,60,0.5)", border: "1px solid rgba(255,255,255,0.08)", color: "var(--color-muted)" }}
-                onClick={() => setShowDeleteConfirm(false)}
-              >
-                {t.deleteProfileCancel || "Cancel"}
-              </button>
-              <button
-                className="flex-1 py-3 rounded-2xl font-bold text-sm transition-all active:scale-[0.97]"
-                style={{ background: "linear-gradient(135deg, rgba(180,0,0,0.4), rgba(100,0,0,0.4))", border: "1px solid rgba(220,0,0,0.4)", color: "#f87171" }}
-                onClick={() => { setShowDeleteConfirm(false); onDeleteProfile && onDeleteProfile(); }}
-              >
-                {t.deleteProfileConfirm || "Yes, Delete"}
-              </button>
+            {/* Red danger header */}
+            <div className="flex flex-col items-center justify-center py-8 px-6" style={{ background: "linear-gradient(160deg, #3b0000 0%, #1a0000 100%)" }}>
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: "rgba(220,30,30,0.18)", border: "2px solid rgba(220,30,30,0.5)" }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                  <path d="M10 11v6"></path><path d="M14 11v6"></path>
+                  <path d="M9 6V4h6v2"></path>
+                </svg>
+              </div>
+              <h3 className="cinzel text-xl font-black tracking-wide mb-1" style={{ color: "#ef4444" }}>
+                {t.deleteProfileTitle || "Delete Profile?"}
+              </h3>
+              <p className="text-[11px] uppercase tracking-[0.18em] font-bold" style={{ color: "rgba(220,30,30,0.7)" }}>
+                {t.deleteProfileWarningBadge || "IRREVERSIBLE ACTION"}
+              </p>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-5" style={{ background: "linear-gradient(to bottom, #0e0a0a, #080808)" }}>
+              <p className="text-slate-300 text-sm leading-relaxed text-center mb-3">
+                {t.deleteProfileDesc || "This will permanently erase all your data, XP, streaks, and quests."}
+              </p>
+              <div className="rounded-xl px-4 py-3 mb-5 text-center" style={{ background: "rgba(220,30,30,0.08)", border: "1px solid rgba(220,30,30,0.2)" }}>
+                <p className="text-xs font-bold tracking-wide" style={{ color: "#f87171" }}>
+                  {t.deleteProfileCannotUndo || "This action cannot be undone."}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button
+                  className="w-full py-4 rounded-2xl font-black text-sm tracking-wider uppercase transition-all active:scale-[0.97]"
+                  style={{ background: "linear-gradient(135deg, #7f1d1d, #450a0a)", border: "1.5px solid rgba(220,30,30,0.6)", color: "#fca5a5", boxShadow: "0 4px 20px rgba(200,0,0,0.3)" }}
+                  onClick={() => { setShowDeleteConfirm(false); onDeleteProfile && onDeleteProfile(); }}
+                >
+                  {t.deleteProfileConfirm || "Yes, Delete Forever"}
+                </button>
+                <button
+                  className="w-full py-3.5 rounded-2xl font-bold text-sm transition-all active:scale-[0.97]"
+                  style={{ background: "rgba(30,30,40,0.8)", border: "1px solid rgba(255,255,255,0.08)", color: "var(--color-muted)" }}
+                  onClick={() => setShowDeleteConfirm(false)}
+                >
+                  {t.deleteProfileCancel || "No, Keep My Profile"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
