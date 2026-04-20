@@ -257,7 +257,7 @@ body[data-theme="light"] {
 }
 /* Light theme only: improve daily board gray readability */
 body[data-theme="light"] .daily-board-panel .daily-board-count {
-    color: #565f6a;
+    color: #1a1e24;
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-segment-inactive {
@@ -269,28 +269,28 @@ body[data-theme="light"] .daily-board-panel .daily-board-segment-milestone {
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-milestone-label {
-    color: #2e343c;
+    color: #111318;
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-reward {
-    color: #292e37;
+    color: #111318;
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-unlocked .daily-board-milestone-label {
-    color: #232931;
+    color: #111318;
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-unlocked .daily-board-reward {
-    color: #272d36;
+    color: #111318;
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-milestone-label,
 body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-reward {
-    color: #2b3039;
+    color: #111318;
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-locked p:first-child {
-    opacity: 0.55 !important;
+    opacity: 0.75 !important;
 }
 /* ===== Base Styles ===== */
 * {
