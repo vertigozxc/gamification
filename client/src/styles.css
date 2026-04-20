@@ -1306,8 +1306,8 @@ body::before {
 
 .delete-profile-confirm-card {
     position: relative;
-    width: min(364px, 100%);
-    padding: 1.55rem 1.15rem 1.15rem;
+    width: min(420px, 100%);
+    padding: 2rem 1.75rem 1.45rem;
     border-color: color-mix(in srgb, var(--color-danger) 52%, var(--modal-border));
     box-shadow: 0 0 36px color-mix(in srgb, var(--color-danger) 18%, transparent), 0 25px 50px rgba(0, 0, 0, 0.5);
 }
@@ -1315,7 +1315,7 @@ body::before {
 .delete-profile-confirm-icon {
     width: 64px;
     height: 64px;
-    margin: 0 auto .85rem;
+    margin: 0 auto 1rem;
     display: grid;
     place-items: center;
     border-radius: 20px;
@@ -1327,11 +1327,12 @@ body::before {
 
 .delete-profile-confirm-title {
     color: color-mix(in srgb, var(--color-text) 92%, var(--color-danger));
-    padding: 0 1.5rem;
+    margin-bottom: .7rem;
+    padding: 0;
 }
 
 .delete-profile-confirm-badge {
-    margin: 0 0 .85rem;
+    margin: 0 0 .95rem;
     font-size: .72rem;
     font-weight: 800;
     letter-spacing: .18em;
@@ -1340,20 +1341,33 @@ body::before {
 }
 
 .delete-profile-confirm-msg {
-    margin-bottom: .85rem;
+    max-width: 29ch;
+    margin: 0 auto .85rem;
     color: color-mix(in srgb, var(--color-text) 80%, var(--color-muted));
 }
 
 .delete-profile-confirm-note {
-    margin: 0 0 1.15rem;
+    max-width: 28ch;
+    margin: 0 auto 1.3rem;
     color: color-mix(in srgb, var(--color-danger) 88%, var(--color-text));
     font-size: .8rem;
     line-height: 1.45;
     font-weight: 700;
 }
 
+.delete-profile-confirm-actions {
+    gap: .85rem;
+}
+
 .delete-profile-confirm-cancel {
     background: rgba(51, 65, 85, 0.7);
+}
+
+.delete-profile-confirm-cancel,
+.delete-profile-confirm-proceed {
+    min-height: 46px;
+    border-width: 1.5px;
+    box-shadow: 0 10px 20px -18px rgba(0, 0, 0, 0.42);
 }
 
 .delete-profile-confirm-proceed {
@@ -1458,8 +1472,8 @@ body[data-theme="light"] .delete-profile-confirm-cancel {
     }
 
     .delete-profile-confirm-card {
-        width: min(344px, 100%);
-        padding: 1.4rem 1rem 1rem;
+        width: min(100%, 420px);
+        padding: 1.65rem 1.15rem 1.1rem;
     }
 
     .logout-session-card {
