@@ -171,3 +171,19 @@
 11:33:15 AM [vite] (client) hmr update /src/ThemeContext.jsx, /src/components/ThemePickerModal.jsx, /src/components/AppHeader.jsx, /src/components/tabs/ProfileTab.jsx
 11:33:15 AM [vite] (client) hmr update /src/ThemeContext.jsx
 11:33:15 AM [vite] (client) hmr update /src/App.jsx
+11:43:18 AM [vite] (client) hmr update /src/components/modals/OnboardingModal.jsx
+11:43:32 AM [vite] (client) hmr update /src/ThemeContext.jsx
+11:43:37 AM [vite] (client) hmr update /src/ThemeContext.jsx, /src/components/ThemePickerModal.jsx, /src/components/AppHeader.jsx, /src/components/tabs/ProfileTab.jsx
+11:45:26 AM [vite] (client) hmr update /src/ThemeContext.jsx, /src/components/ThemePickerModal.jsx, /src/components/AppHeader.jsx, /src/components/tabs/ProfileTab.jsx
+11:45:26 AM [vite] (client) hmr update /src/ThemeContext.jsx
+11:45:26 AM [vite] (client) hmr update /src/components/modals/OnboardingModal.jsx
+11:46:55 AM [vite] (client) hmr update /src/components/ProfilePanel.jsx
+11:47:16 AM [vite] (client) hmr update /src/components/ProfilePanel.jsx
+11:48:54 AM [vite] (client) hmr update /src/components/ProfilePanel.jsx
+11:49:36 AM [vite] (client) hmr update /src/styles.css
+11:51:28 AM [vite] (client) hmr update /src/styles.css
+11:51:28 AM [vite] (client) hmr update /src/components/ProfilePanel.jsx
+11:52:52 AM [vite] (client) hmr update /src/ThemeContext.jsx
+11:53:08 AM [vite] (client) hmr update /src/ThemeContext.jsx, /src/components/ThemePickerModal.jsx, /src/components/AppHeader.jsx, /src/components/tabs/ProfileTab.jsx
+11:53:39 AM [vite] (client) hmr update /src/ThemeContext.jsx, /src/components/ThemePickerModal.jsx, /src/components/AppHeader.jsx, /src/components/tabs/ProfileTab.jsx
+11:53:39 AM [vite] (client) hmr update /src/ThemeContext.jsx

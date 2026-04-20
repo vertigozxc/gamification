@@ -94,7 +94,7 @@ function OnboardingModal({
           overflow: "hidden"
         }}
       >
-        <div style={{ padding: "calc(var(--mobile-safe-top, env(safe-area-inset-top, 0px)) + 100px) 16px 12px", borderBottom: "1px solid var(--card-border-idle)" }}>
+        <div style={{ padding: "calc(var(--mobile-safe-top, env(safe-area-inset-top, 0px)) + 16px) 16px 12px", borderBottom: "1px solid var(--card-border-idle)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <h2

@@ -255,6 +255,26 @@ body[data-theme="light"] {
     --mobile-tab-orb: #ff5c8a;
     --mobile-tab-orb-text: #ffffff;
 }
+/* Light theme only: improve daily board gray readability */
+body[data-theme="light"] .daily-board-panel .daily-board-count {
+    color: #7b8798;
+}
+
+body[data-theme="light"] .daily-board-panel .daily-board-segment-inactive {
+    background-color: #c0c8d6 !important;
+}
+
+body[data-theme="light"] .daily-board-panel .daily-board-segment-milestone {
+    background-color: #a7b1c2 !important;
+}
+
+body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-milestone-label {
+    color: #7b8798;
+}
+
+body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-reward {
+    color: #6b7484;
+}
 /* ===== Base Styles ===== */
 * {
     box-sizing: border-box;

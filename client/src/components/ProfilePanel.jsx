@@ -170,11 +170,11 @@ function ProfilePanel({
           </div>
 
           {/* Daily Board */}
-          <div className={`bg-slate-900/80 rounded-lg shadow-lg w-full ${compact ? "px-3 py-3" : "px-3 py-2"}`} style={{ borderWidth: 1, borderStyle: "solid", borderColor: "var(--panel-border)" }}>
+          <div className={`daily-board-panel bg-slate-900/80 rounded-lg shadow-lg w-full ${compact ? "px-3 py-3" : "px-3 py-2"}`} style={{ borderWidth: 1, borderStyle: "solid", borderColor: "var(--panel-border)" }}>
             <div className="flex justify-between items-center mb-2">
               <p className="cinzel text-[10px] tracking-widest uppercase" style={{ color: "var(--color-primary)" }}>{t.dailyBoard}</p>
               <div className="flex items-center gap-3">
-                <span className="text-[10px] cinzel text-slate-400"><span className="text-white font-bold">{completedToday}</span> / <span>6</span></span>
+                <span className="daily-board-count text-[10px] cinzel text-slate-400"><span className="text-white font-bold">{completedToday}</span> / <span>6</span></span>
               </div>
             </div>
             
@@ -186,11 +186,11 @@ function ProfilePanel({
                 return (
                   <div 
                     key={i} 
-                    className={`flex-1 rounded-sm transition-all duration-300 ${
+                    className={`daily-board-segment flex-1 rounded-sm transition-all duration-300 ${
                       isActive 
-                        ? "bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.5)]" 
-                        : "bg-slate-800"
-                    } ${isMilestone && !isActive ? "bg-slate-600" : ""}`}
+                        ? "daily-board-segment-active bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.5)]" 
+                        : "daily-board-segment-inactive bg-slate-800"
+                    } ${isMilestone && !isActive ? "daily-board-segment-milestone bg-slate-600" : ""}`}
                   />
                 );
               })}
@@ -203,14 +203,14 @@ function ProfilePanel({
                 return (
                   <div key={step.target} className={`flex-1 flex flex-col items-center justify-center py-2.5 px-1 rounded border overflow-hidden ${
                     unlocked 
-                      ? "bg-yellow-900/20 border-yellow-700/50 shadow-[inset_0_0_10px_rgba(234,179,8,0.15)]" 
-                      : "bg-slate-900/60 border-slate-700/50"
+                      ? "daily-board-card-unlocked bg-yellow-900/20 border-yellow-700/50 shadow-[inset_0_0_10px_rgba(234,179,8,0.15)]" 
+                      : "daily-board-card-locked bg-slate-900/60 border-slate-700/50"
                   }`}>
                     <p className={`text-[20px] mb-1.5 drop-shadow-md ${unlocked ? "" : "opacity-40 grayscale"}`}>{step.rune}</p>
-                    <p className={`cinzel text-[11px] font-bold tracking-wider mb-1 whitespace-nowrap ${unlocked ? "text-yellow-400" : "text-slate-400"}`}>
+                    <p className={`daily-board-milestone-label cinzel text-[11px] font-bold tracking-wider mb-1 whitespace-nowrap ${unlocked ? "text-yellow-400" : "text-slate-400"}`}>
                       {step.target} {t.itemLabel}
                     </p>
-                    <div className={`text-[11.5px] font-bold tracking-tight text-center flex flex-wrap items-center justify-center ${unlocked ? "text-amber-200" : "text-slate-500"}`}>
+                    <div className={`daily-board-reward text-[11.5px] font-bold tracking-tight text-center flex flex-wrap items-center justify-center ${unlocked ? "text-amber-200" : "text-slate-500"}`}>
                       {step.reward.split(/(🔥|🪙)/).map((part, i) => (
                         part === '🔥' || part === '🪙' ? (
                           <span key={i} className="text-[18px] leading-none mx-0.5 drop-shadow-sm">{part}</span>
