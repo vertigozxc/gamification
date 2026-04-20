@@ -1307,6 +1307,8 @@ body::before {
 
 .delete-profile-confirm-card {
     position: relative;
+    width: min(364px, 100%);
+    padding: 1.55rem 1.15rem 1.15rem;
     border-color: color-mix(in srgb, var(--color-danger) 52%, var(--modal-border));
     box-shadow: 0 0 36px color-mix(in srgb, var(--color-danger) 18%, transparent), 0 25px 50px rgba(0, 0, 0, 0.5);
 }
@@ -1455,6 +1457,11 @@ body[data-theme="light"] .delete-profile-confirm-cancel {
     .delete-profile-confirm-overlay {
         padding: 12px;
         padding-bottom: calc(var(--mobile-safe-bottom, 0px) + 88px);
+    }
+
+    .delete-profile-confirm-card {
+        width: min(344px, 100%);
+        padding: 1.4rem 1rem 1rem;
     }
 
     .logout-session-card {
