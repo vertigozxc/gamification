@@ -1052,7 +1052,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
               <CityTab
                 stage={Math.max(0, Math.floor(state.lvl) || 0)}
                 dailyXpToday={state.productivity?.xpToday ?? 0}
-                username={state.username}
+                username={state.username || authUser?.uid || ""}
                 t={t}
                 cityFullscreen={cityFullscreen}
                 setCityFullscreen={setCityFullscreen}
