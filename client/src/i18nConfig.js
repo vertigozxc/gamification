@@ -414,7 +414,7 @@ export const languagePacks = {
       onboardingSelected: "выбрано",
       onboardingBegin: "Начать",
       onboardingSaving: "Сохранение...",
-      onboardingSearch: "Поиск по названию или описанию...",
+      onboardingSearch: "Умный поиск задания",
       onboardingNoMatch: "По вашему запросу задания не найдены.",
       replacePinnedTitle: "Выберите до 3 заданий",
       replacePinnedHeading: "Замена закрепленных заданий",

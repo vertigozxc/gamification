@@ -65,35 +65,36 @@ function OnboardingModal({
   return (
     <div
       className="logout-confirm-overlay"
-      style={{ zIndex: 84, alignItems: "flex-end", justifyContent: "center", padding: 0, background: "rgba(0,0,0,0.55)" }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleCloseClick();
+      style={{
+        zIndex: 84,
+        alignItems: "stretch",
+        justifyContent: "stretch",
+        padding: 0,
+        background: "rgba(0,0,0,0.72)"
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: "100%",
-          maxWidth: 640,
-          maxHeight: "92dvh",
+          position: "fixed",
+          inset: 0,
+          width: "100vw",
+          height: "100dvh",
+          maxWidth: "100vw",
+          maxHeight: "100dvh",
           background: "var(--card-bg, #0f172a)",
-          border: "1px solid var(--card-border-idle)",
-          borderBottom: "none",
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          boxShadow: "0 -20px 60px rgba(0,0,0,0.5)",
+          border: "none",
+          borderRadius: 0,
+          boxShadow: "none",
           display: "flex",
           flexDirection: "column",
-          transform: sheetAnim ? "translateY(0)" : "translateY(100%)",
-          transition: "transform 220ms cubic-bezier(0.32, 0.72, 0, 1)",
+          transform: sheetAnim ? "translateY(0)" : "translateY(16px)",
+          opacity: sheetAnim ? 1 : 0,
+          transition: "transform 220ms cubic-bezier(0.32, 0.72, 0, 1), opacity 180ms ease",
           overflow: "hidden"
         }}
       >
-        <div style={{ display: "flex", justifyContent: "center", paddingTop: 8, paddingBottom: 4 }}>
-          <div style={{ width: 40, height: 4, borderRadius: 999, background: "rgba(255,255,255,0.25)" }} />
-        </div>
-
-        <div style={{ padding: "4px 16px 12px", borderBottom: "1px solid var(--card-border-idle)" }}>
+        <div style={{ padding: "calc(var(--mobile-safe-top, env(safe-area-inset-top, 0px)) + 100px) 16px 12px", borderBottom: "1px solid var(--card-border-idle)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <h2
