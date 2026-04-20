@@ -684,6 +684,20 @@ app.get("/api/admin/health", requireAdmin, async (_req, res) => {
   });
 });
 
+// Admin: reset city spin cooldown for all users (keeps XP/level/tokens intact).
+app.post("/api/admin/spin/reset-cooldown-all", requireAdmin, async (_req, res) => {
+  try {
+    const result = await prisma.user.updateMany({ data: { lastCitySpinDayKey: "" } });
+    if (typeof citySpinFallbackDayByUserId?.clear === "function") {
+      citySpinFallbackDayByUserId.clear();
+    }
+    res.json({ ok: true, resetUsers: result.count });
+  } catch (error) {
+    console.error("[Admin Spin Cooldown Reset Error]", error?.message || error);
+    res.status(500).json({ error: "Failed to reset city spin cooldown", detail: error?.message || String(error) });
+  }
+});
+
 // Admin: A/B experiment overview — assignments, conversions, error rate per variant.
 // Conversion event types are heuristic but capture the funnel we care about.
 const AB_CONVERSION_TYPES = new Set([
