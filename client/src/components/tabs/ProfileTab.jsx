@@ -235,40 +235,42 @@ export default function ProfileTab({
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div
-          className="logout-confirm-overlay delete-profile-confirm-overlay"
+          className="logout-confirm-overlay logout-session-overlay"
           onClick={() => setShowDeleteConfirm(false)}
         >
           <div
-            className="logout-confirm-card delete-profile-confirm-card"
+            className="logout-confirm-card logout-session-card"
             role="dialog"
             aria-modal="true"
             aria-label={t.deleteProfileTitle || "Delete Profile Permanently?"}
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="logout-confirm-icon delete-profile-confirm-icon" aria-hidden="true">🗑️</div>
-            <h3 className="cinzel logout-confirm-title delete-profile-confirm-title">
+            <div className="logout-session-halo" aria-hidden="true">
+              <div className="logout-confirm-icon logout-session-icon">🗑️</div>
+            </div>
+            <h3 className="cinzel logout-confirm-title logout-session-title">
               {t.deleteProfileTitle || "Delete Profile Permanently?"}
             </h3>
             <p className="delete-profile-confirm-badge cinzel">
               {t.deleteProfileWarningBadge || "PERMANENT DATA DELETION"}
             </p>
 
-            <p className="logout-confirm-msg delete-profile-confirm-msg">
+            <p className="logout-confirm-msg logout-session-msg">
               {t.deleteProfileDesc || "This is a full and irreversible deletion of your profile and all your data: progress, XP, streak, habits, and quests."}
             </p>
             <p className="delete-profile-confirm-note">
               {t.deleteProfileCannotUndo || "After deletion, recovery is not possible."}
             </p>
 
-            <div className="logout-confirm-actions delete-profile-confirm-actions">
+            <div className="logout-confirm-actions logout-session-actions">
               <button
-                className="logout-confirm-cancel cinzel delete-profile-confirm-cancel"
+                className="logout-confirm-cancel logout-session-cancel cinzel"
                 onClick={() => setShowDeleteConfirm(false)}
               >
                 {t.deleteProfileCancel || "No, Keep My Profile"}
               </button>
               <button
-                className="logout-confirm-proceed cinzel delete-profile-confirm-proceed"
+                className="logout-confirm-proceed logout-session-proceed cinzel"
                 onClick={() => { setShowDeleteConfirm(false); onDeleteProfile && onDeleteProfile(); }}
               >
                 {t.deleteProfileConfirm || "Yes, Permanently Delete"}
