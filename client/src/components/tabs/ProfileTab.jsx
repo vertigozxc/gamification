@@ -235,11 +235,11 @@ export default function ProfileTab({
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div
-          className="delete-profile-modal-backdrop"
+          className="logout-confirm-overlay delete-profile-confirm-overlay"
           onClick={() => setShowDeleteConfirm(false)}
         >
           <div
-            className="delete-profile-modal-card"
+            className="logout-confirm-card delete-profile-confirm-card"
             role="dialog"
             aria-modal="true"
             aria-label={t.deleteProfileTitle || "Delete Profile Permanently?"}
@@ -247,52 +247,40 @@ export default function ProfileTab({
           >
             <button
               type="button"
-              className="delete-profile-modal-close"
+              className="delete-profile-confirm-close"
               aria-label="Close"
               onClick={() => setShowDeleteConfirm(false)}
             >
               ✕
             </button>
 
-            <div className="delete-profile-modal-head">
-              <div className="delete-profile-modal-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                  <path d="M10 11v6"></path>
-                  <path d="M14 11v6"></path>
-                  <path d="M9 6V4h6v2"></path>
-                </svg>
-              </div>
-              <div className="delete-profile-modal-title-wrap">
-                <h3 className="delete-profile-modal-title cinzel">
-                  {t.deleteProfileTitle || "Delete Profile Permanently?"}
-                </h3>
-                <p className="delete-profile-modal-warning cinzel">
-                  {t.deleteProfileWarningBadge || "PERMANENT DATA DELETION"}
-                </p>
-              </div>
-            </div>
+            <div className="logout-confirm-icon delete-profile-confirm-icon" aria-hidden="true">🗑️</div>
+            <h3 className="cinzel logout-confirm-title delete-profile-confirm-title">
+              {t.deleteProfileTitle || "Delete Profile Permanently?"}
+            </h3>
+            <p className="delete-profile-confirm-badge cinzel">
+              {t.deleteProfileWarningBadge || "PERMANENT DATA DELETION"}
+            </p>
 
-            <p className="delete-profile-modal-desc">
+            <p className="logout-confirm-msg delete-profile-confirm-msg">
               {t.deleteProfileDesc || "This is a full and irreversible deletion of your profile and all your data: progress, XP, streak, habits, and quests."}
             </p>
-            <p className="delete-profile-modal-alert cinzel">
+            <p className="delete-profile-confirm-note">
               {t.deleteProfileCannotUndo || "After deletion, recovery is not possible."}
             </p>
 
-            <div className="delete-profile-modal-actions">
+            <div className="logout-confirm-actions delete-profile-confirm-actions">
               <button
-                className="delete-profile-modal-confirm"
-                onClick={() => { setShowDeleteConfirm(false); onDeleteProfile && onDeleteProfile(); }}
-              >
-                {t.deleteProfileConfirm || "Yes, Permanently Delete"}
-              </button>
-              <button
-                className="delete-profile-modal-cancel"
+                className="logout-confirm-cancel cinzel delete-profile-confirm-cancel"
                 onClick={() => setShowDeleteConfirm(false)}
               >
                 {t.deleteProfileCancel || "No, Keep My Profile"}
+              </button>
+              <button
+                className="logout-confirm-proceed cinzel delete-profile-confirm-proceed"
+                onClick={() => { setShowDeleteConfirm(false); onDeleteProfile && onDeleteProfile(); }}
+              >
+                {t.deleteProfileConfirm || "Yes, Permanently Delete"}
               </button>
             </div>
           </div>

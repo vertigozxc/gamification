@@ -1196,6 +1196,99 @@ body::before {
     background: linear-gradient(120deg, #991b1b, #b91c1c);
     box-shadow: 0 5px 15px rgba(248, 113, 113, 0.25);
 }
+
+.delete-profile-confirm-overlay {
+    background: rgba(5, 10, 20, 0.82);
+    backdrop-filter: blur(6px);
+}
+
+.delete-profile-confirm-card {
+    position: relative;
+    border-color: color-mix(in srgb, var(--color-danger) 52%, var(--modal-border));
+    box-shadow: 0 0 36px color-mix(in srgb, var(--color-danger) 18%, transparent), 0 25px 50px rgba(0, 0, 0, 0.5);
+}
+
+.delete-profile-confirm-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--color-danger) 30%, var(--panel-border));
+    background: color-mix(in srgb, var(--panel-bg) 84%, transparent);
+    color: var(--color-muted);
+    font-size: 14px;
+    line-height: 1;
+    transition: transform .15s ease, color .15s ease, border-color .15s ease;
+}
+
+.delete-profile-confirm-close:hover {
+    color: var(--color-text);
+    border-color: color-mix(in srgb, var(--color-danger) 55%, var(--panel-border));
+}
+
+.delete-profile-confirm-close:active {
+    transform: scale(.96);
+}
+
+.delete-profile-confirm-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto .85rem;
+    display: grid;
+    place-items: center;
+    border-radius: 20px;
+    font-size: 1.9rem;
+    background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-danger) 34%, transparent);
+    box-shadow: 0 10px 24px -18px color-mix(in srgb, var(--color-danger) 45%, transparent);
+}
+
+.delete-profile-confirm-title {
+    color: color-mix(in srgb, var(--color-text) 92%, var(--color-danger));
+    padding: 0 1.5rem;
+}
+
+.delete-profile-confirm-badge {
+    margin: 0 0 .85rem;
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--color-danger) 72%, var(--color-primary));
+}
+
+.delete-profile-confirm-msg {
+    margin-bottom: .85rem;
+    color: color-mix(in srgb, var(--color-text) 80%, var(--color-muted));
+}
+
+.delete-profile-confirm-note {
+    margin: 0 0 1.15rem;
+    color: color-mix(in srgb, var(--color-danger) 88%, var(--color-text));
+    font-size: .8rem;
+    line-height: 1.45;
+    font-weight: 700;
+}
+
+.delete-profile-confirm-cancel {
+    background: rgba(51, 65, 85, 0.7);
+}
+
+.delete-profile-confirm-proceed {
+    background: linear-gradient(120deg, #8f1d2c, #c2415d);
+    border-color: color-mix(in srgb, var(--color-danger) 68%, transparent);
+    color: #fff5f7;
+    box-shadow: 0 12px 20px -16px color-mix(in srgb, var(--color-danger) 55%, transparent);
+}
+
+.delete-profile-confirm-proceed:hover {
+    background: linear-gradient(120deg, #a61f34, #d84d72);
+}
 /* Theme modal overrides */
 .logout-confirm-card {
     background: var(--auth-card-bg);
@@ -1209,6 +1302,59 @@ body::before {
 .logout-confirm-cancel:hover {
     border-color: var(--color-primary);
     color: var(--color-primary);
+}
+
+body[data-theme="balance"] .delete-profile-confirm-icon {
+    color: color-mix(in srgb, var(--color-danger) 58%, var(--color-primary));
+    border-color: color-mix(in srgb, var(--color-primary) 32%, var(--color-danger));
+}
+
+body[data-theme="light"] .delete-profile-confirm-overlay {
+    background: rgba(31, 41, 55, 0.5);
+}
+
+body[data-theme="light"] .delete-profile-confirm-card {
+    box-shadow: 0 16px 40px -24px rgba(31, 41, 55, 0.32), 0 1px 0 rgba(255,255,255,0.88) inset;
+}
+
+body[data-theme="light"] .delete-profile-confirm-title {
+    color: #1f2937;
+}
+
+body[data-theme="light"] .delete-profile-confirm-msg {
+    color: #64748b;
+}
+
+body[data-theme="light"] .delete-profile-confirm-note {
+    color: #c2415d;
+}
+
+body[data-theme="light"] .delete-profile-confirm-cancel {
+    background: rgba(255,255,255,0.92);
+    border-color: rgba(148,163,184,0.32);
+    color: #64748b;
+}
+
+@media (max-width: 420px) {
+    .delete-profile-confirm-close {
+        top: 12px;
+        right: 12px;
+    }
+
+    .delete-profile-confirm-icon {
+        width: 58px;
+        height: 58px;
+        border-radius: 18px;
+        font-size: 1.7rem;
+    }
+
+    .delete-profile-confirm-badge {
+        font-size: .66rem;
+    }
+
+    .delete-profile-confirm-note {
+        font-size: .76rem;
+    }
 }
 /* Theme Selector */
 .theme-selector {
