@@ -1439,3 +1439,8 @@ body[data-theme="light"] .portal-preloader__cityline span {
     background: linear-gradient(180deg, rgba(219, 229, 243, 0.9), rgba(198, 211, 230, 0.95));
     border-color: rgba(147, 162, 187, 0.28);
 }
+
+.pinned-replacement-search::placeholder {
+    color: #94a3b8;
+    opacity: 1;
+}

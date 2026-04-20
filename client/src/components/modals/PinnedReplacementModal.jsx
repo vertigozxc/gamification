@@ -210,6 +210,7 @@ function PinnedReplacementModal({
         >
           <input
             type="text"
+            className="pinned-replacement-search"
             value={replacePinnedSearch}
             onChange={(e) => onReplacePinnedSearchChange(e.target.value)}
             placeholder={t.replacePinnedSearchPlaceholder || t.onboardingSearch}
@@ -217,7 +218,7 @@ function PinnedReplacementModal({
               width: "100%",
               padding: "12px 14px",
               borderRadius: 12,
-              background: "rgba(0,0,0,0.35)",
+              background: "rgba(255,255,255,0.07)",
               border: "1px solid var(--card-border-idle)",
               color: "#e2e8f0",
               fontSize: 14,
@@ -280,7 +281,7 @@ function PinnedReplacementModal({
                         background: isSelected ? "var(--color-accent-dim)" : "rgba(255,255,255,0.03)",
                         color: "#e2e8f0",
                         cursor: blocked ? "not-allowed" : "pointer",
-                        opacity: blocked ? 0.45 : 1,
+                        opacity: blocked ? 0.55 : 1,
                         transition: "background 150ms ease, border-color 150ms ease"
                       }}
                     >
