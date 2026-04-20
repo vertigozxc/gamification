@@ -1670,7 +1670,16 @@ function buildTodayProgressSnapshot(user, completionIds, customQuests, date = ne
   const preferredQuestIds = parsePreferredQuestIds(user.preferredQuestIds, customVirtualIds);
   const todaysQuests = composeDailyQuests(user, normalizedCompletionIds, date, [], "en", normalizedCustomQuests);
   const questById = new Map(todaysQuests.map((quest) => [quest.id, quest]));
-  const completedQuests = normalizedCompletionIds.map((id) => questById.get(id)).filter(Boolean);
+  const pinnedSet = new Set(preferredQuestIds);
+  const completedQuests = normalizedCompletionIds
+    .map((id) => questById.get(id))
+    .filter(Boolean)
+    .map((quest) => {
+      // Apply the same XP cap that /api/quests/complete uses for habits,
+      // so xpToday in productivity matches the XP actually awarded.
+      const isHabit = pinnedSet.has(quest.id) || isCustomQuestVirtualId(quest.id);
+      return isHabit ? { ...quest, xp: 30 } : quest;
+    });
   const progress = summarizeTodayProgress(completedQuests, preferredQuestIds);
   return {
     dayKey: getDateKey(date),
