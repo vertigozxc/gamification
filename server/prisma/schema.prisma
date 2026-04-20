@@ -34,6 +34,7 @@ model User {
   lastDailyRerollAt     DateTime?
   extraRerollsToday     Int               @default(0)
   lastDailyResetAt      DateTime          @default(now())
+  lastCitySpinDayKey    String            @default("")
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
   customQuests          CustomQuest[]

@@ -2,57 +2,104 @@ import { startTransition, useCallback, useEffect, useRef, useState } from "react
 import CityIllustration from "../CityIllustration";
 import CityFireworks from "../CityFireworks";
 import InteractiveMapWrapper from "../InteractiveMapWrapper";
+import SpinWheelModal from "../SpinWheelModal";
 
-const FIREWORKS_CD_KEY = "city_fireworks_last_ts";
-const COOLDOWN_MS = 60 * 60 * 1000;
+const SPIN_CACHE_KEY = "city_spin_cache"; // { dateKey, nextSpinAt }
 
-function formatCountdown(ms) {
-  const totalSec = Math.ceil(ms / 1000);
-  const m = Math.floor(totalSec / 60);
-  const s = totalSec % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
+function getTodayKey() {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 }
 
-export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen, dailyXpToday = 0 }) {
+function msToHMS(ms) {
+  if (ms <= 0) return "00:00:00";
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return [h, m, s].map(n => String(n).padStart(2, "0")).join(":");
+}
+
+function readSpinCache() {
+  try {
+    const raw = localStorage.getItem(SPIN_CACHE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+function writeSpinCache(nextSpinAt) {
+  try {
+    localStorage.setItem(SPIN_CACHE_KEY, JSON.stringify({ dateKey: getTodayKey(), nextSpinAt }));
+  } catch {}
+}
+
+export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen, dailyXpToday = 0, username }) {
   const [fireworksActive, setFireworksActive] = useState(false);
+  const [spinModalOpen, setSpinModalOpen] = useState(false);
+  const [alreadySpun, setAlreadySpun] = useState(false);
   const [cdRemaining, setCdRemaining] = useState(0);
   const cdIntervalRef = useRef(null);
 
-  function readCdRemaining() {
-    try {
-      const ts = Number(localStorage.getItem(FIREWORKS_CD_KEY) || 0);
-      if (!ts) return 0;
-      return Math.max(0, ts + COOLDOWN_MS - Date.now());
-    } catch { return 0; }
-  }
-
+  // Check localStorage cache on mount
   useEffect(() => {
-    setCdRemaining(readCdRemaining());
+    const cache = readSpinCache();
+    if (cache && cache.dateKey === getTodayKey() && cache.nextSpinAt) {
+      setAlreadySpun(true);
+      const ms = Math.max(0, new Date(cache.nextSpinAt) - Date.now());
+      setCdRemaining(ms);
+    }
   }, []);
 
+  // Live countdown when already spun
   useEffect(() => {
-    if (cdRemaining <= 0) {
+    if (!alreadySpun || cdRemaining <= 0) {
       if (cdIntervalRef.current) clearInterval(cdIntervalRef.current);
       return;
     }
     cdIntervalRef.current = setInterval(() => {
-      const r = readCdRemaining();
-      setCdRemaining(r);
-      if (r <= 0) clearInterval(cdIntervalRef.current);
+      const cache = readSpinCache();
+      if (!cache?.nextSpinAt) return;
+      const ms = Math.max(0, new Date(cache.nextSpinAt) - Date.now());
+      setCdRemaining(ms);
+      if (ms <= 0) {
+        clearInterval(cdIntervalRef.current);
+        setAlreadySpun(false);
+      }
     }, 1000);
     return () => clearInterval(cdIntervalRef.current);
-  }, [cdRemaining > 0]);
+  }, [alreadySpun, cdRemaining > 0]);
 
-  const handleLaunch = useCallback(() => {
-    if (cdRemaining > 0 || fireworksActive) return;
-    try { localStorage.setItem(FIREWORKS_CD_KEY, String(Date.now())); } catch {}
-    setCdRemaining(COOLDOWN_MS);
+  const handleOpenSpin = useCallback(() => {
+    if (alreadySpun) return;
+    setSpinModalOpen(true);
+  }, [alreadySpun]);
+
+  const handleRewardClaimed = useCallback((result) => {
+    if (result?.nextSpinAt) {
+      writeSpinCache(result.nextSpinAt);
+      setAlreadySpun(true);
+      const ms = Math.max(0, new Date(result.nextSpinAt) - Date.now());
+      setCdRemaining(ms);
+    }
+    // Celebrate with fireworks
     setFireworksActive(true);
-  }, [cdRemaining, fireworksActive]);
+  }, []);
+
+  const handleSpinModalClose = useCallback(() => {
+    setSpinModalOpen(false);
+    // If the modal shows cooldown state and user already spun, update local state
+    const cache = readSpinCache();
+    if (cache && cache.dateKey === getTodayKey()) {
+      setAlreadySpun(true);
+      const ms = Math.max(0, new Date(cache.nextSpinAt) - Date.now());
+      setCdRemaining(ms);
+    }
+  }, []);
 
   const handleFireworksDone = useCallback(() => {
     setFireworksActive(false);
   }, []);
+
   const normalizedStage = Math.max(1, Number(stage) || 1);
   const dailyXpCap = 250;
   const normalizedDailyXp = Math.max(0, Math.min(dailyXpCap, Number(dailyXpToday) || 0));
@@ -165,8 +212,8 @@ export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen, d
 
       {!cityFullscreen && (
         <button
-          onClick={handleLaunch}
-          disabled={cdRemaining > 0 || fireworksActive}
+          onClick={handleOpenSpin}
+          disabled={alreadySpun}
           style={{
             width: "100%",
             padding: "13px 14px",
@@ -174,14 +221,14 @@ export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen, d
             fontSize: "14px",
             fontWeight: 700,
             letterSpacing: "0.3px",
-            color: cdRemaining > 0 ? "var(--color-muted)" : "var(--color-primary)",
-            border: "1px solid " + (cdRemaining > 0 ? "var(--panel-border)" : "var(--color-primary)"),
+            color: alreadySpun ? "var(--color-muted)" : "var(--color-primary)",
+            border: "1px solid " + (alreadySpun ? "var(--panel-border)" : "var(--color-primary)"),
             borderRadius: "14px",
-            background: cdRemaining > 0
+            background: alreadySpun
               ? "color-mix(in srgb, var(--panel-bg) 60%, transparent)"
               : "color-mix(in srgb, var(--color-primary) 10%, var(--panel-bg))",
-            boxShadow: cdRemaining > 0 ? "none" : "0 0 18px color-mix(in srgb, var(--color-primary) 25%, transparent)",
-            cursor: cdRemaining > 0 ? "default" : "pointer",
+            boxShadow: alreadySpun ? "none" : "0 0 18px color-mix(in srgb, var(--color-primary) 25%, transparent)",
+            cursor: alreadySpun ? "default" : "pointer",
             transition: "all 0.25s ease",
             display: "flex",
             alignItems: "center",
@@ -189,11 +236,19 @@ export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen, d
             gap: "8px"
           }}
         >
-          {cdRemaining > 0
-            ? (t.fireworksCooldown || "Next in {time}").replace("{time}", formatCountdown(cdRemaining))
+          {alreadySpun
+            ? `${t.spinCooldownLabel || "🎰 Next spin"}: ${msToHMS(cdRemaining)}`
             : (t.launchFireworks || "🎆 Launch Fireworks")}
         </button>
       )}
+
+      <SpinWheelModal
+        open={spinModalOpen}
+        username={username}
+        t={t}
+        onClose={handleSpinModalClose}
+        onRewardClaimed={handleRewardClaimed}
+      />
     </div>
   );
 }

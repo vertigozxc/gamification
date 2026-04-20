@@ -2376,6 +2376,94 @@ app.post("/api/quests/complete", async (req, res) => {
   }
 });
 
+const CITY_SPIN_REWARDS = [
+  { id: 1,  type: "xp",    amount: 10,  weight: 25 },
+  { id: 2,  type: "token", amount: 1,   weight: 25 },
+  { id: 3,  type: "token", amount: 3,   weight: 15 },
+  { id: 4,  type: "xp",    amount: 20,  weight: 15 },
+  { id: 5,  type: "xp",    amount: 50,  weight: 5  },
+  { id: 6,  type: "xp",    amount: 100, weight: 5  },
+  { id: 7,  type: "token", amount: 5,   weight: 3  },
+  { id: 8,  type: "token", amount: 10,  weight: 3  },
+  { id: 9,  type: "xp",    amount: 300, weight: 3  },
+  { id: 10, type: "level", amount: 1,   weight: 1  },
+];
+
+function pickCitySpinReward() {
+  const totalWeight = CITY_SPIN_REWARDS.reduce((s, r) => s + r.weight, 0);
+  let roll = Math.random() * totalWeight;
+  for (const r of CITY_SPIN_REWARDS) {
+    roll -= r.weight;
+    if (roll <= 0) return r;
+  }
+  return CITY_SPIN_REWARDS[0];
+}
+
+function nextMidnightUTC(now = new Date()) {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+}
+
+app.get("/api/city/spin-status/:username", async (req, res) => {
+  try {
+    const username = slugifyUsername(req.params.username);
+    const user = await prisma.user.findUnique({ where: { username }, select: { lastCitySpinDayKey: true } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+    const todayKey = getDateKey(new Date());
+    const alreadySpun = user.lastCitySpinDayKey === todayKey;
+    return res.json({ alreadySpun, nextSpinAt: nextMidnightUTC().toISOString() });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+app.post("/api/city/spin", async (req, res) => {
+  const schema = z.object({ username: z.string().min(2).max(64) });
+  try {
+    const { username } = schema.parse(req.body);
+    const user = await prisma.user.findUnique({ where: { username: slugifyUsername(username) } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const todayKey = getDateKey(new Date());
+    if (user.lastCitySpinDayKey === todayKey) {
+      return res.json({ ok: false, alreadySpun: true, nextSpinAt: nextMidnightUTC().toISOString() });
+    }
+
+    const reward = pickCitySpinReward();
+    const updateData = { lastCitySpinDayKey: todayKey };
+
+    let finalUser;
+    if (reward.type === "xp") {
+      const fresh = await prisma.user.findUnique({ where: { id: user.id } });
+      let xp = fresh.xp + reward.amount;
+      let level = fresh.level;
+      let xpNext = fresh.xpNext;
+      while (xp >= xpNext) {
+        xp -= xpNext;
+        level += 1;
+        xpNext = Math.floor(xpNext * 1.1);
+      }
+      finalUser = await prisma.user.update({ where: { id: user.id }, data: { ...updateData, xp, level, xpNext } });
+    } else if (reward.type === "token") {
+      finalUser = await prisma.user.update({ where: { id: user.id }, data: { ...updateData, tokens: { increment: reward.amount } } });
+    } else if (reward.type === "level") {
+      const fresh = await prisma.user.findUnique({ where: { id: user.id } });
+      const newLevel = fresh.level + 1;
+      const newXpNext = Math.floor(fresh.xpNext * 1.1);
+      finalUser = await prisma.user.update({ where: { id: user.id }, data: { ...updateData, level: newLevel, xp: 0, xpNext: newXpNext } });
+    }
+
+    return res.json({
+      ok: true,
+      reward: { id: reward.id, type: reward.type, amount: reward.amount },
+      user: { level: finalUser.level, xp: finalUser.xp, xpNext: finalUser.xpNext, tokens: finalUser.tokens },
+      nextSpinAt: nextMidnightUTC().toISOString()
+    });
+  } catch (error) {
+    console.error(`[City Spin Error] ${error?.message || error}`);
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
 app.post("/api/reset-daily", async (req, res) => {
   const requestStartedAt = Date.now();
   const timingParts = [];

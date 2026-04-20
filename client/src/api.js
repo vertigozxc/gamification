@@ -257,3 +257,14 @@ export function updateTheme(username, theme) {
 export function deleteProfile(userId) {
   return request(`/api/profiles/${encodeURIComponent(userId)}`, { method: "DELETE" });
 }
+
+export function citySpin(username) {
+  return request("/api/city/spin", {
+    method: "POST",
+    body: JSON.stringify({ username })
+  });
+}
+
+export function citySpinStatus(username) {
+  return request(`/api/city/spin-status/${encodeURIComponent(username)}`);
+}
