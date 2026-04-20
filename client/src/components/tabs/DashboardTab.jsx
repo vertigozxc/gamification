@@ -73,9 +73,9 @@ export default function DashboardTab({
               <div key={step.target} className={`dash-milestone mobile-pressable ${unlocked ? "dash-milestone-on" : ""}`}>
                 <div className={`text-[20px] leading-tight mb-[2px] drop-shadow-md ${unlocked ? "" : isLight ? "opacity-75" : "opacity-40 grayscale"}`}>{step.rune}</div>
                 <div className={"cinzel text-[11px] font-bold tracking-wider mb-0.5"}>
-                  <span style={{ color: unlocked ? "var(--color-primary)" : isLight ? "#111318" : "var(--color-text)", opacity: unlocked ? 1 : isLight ? 1 : 0.6 }}>{step.target} <span className="text-[9px] uppercase tracking-widest opacity-60">{step.target >= 5 && t.itemLabelPlural ? t.itemLabelPlural : t.itemLabel}</span></span>
+                  <span style={{ color: unlocked ? "var(--color-primary)" : isLight ? "#3d4450" : "var(--color-text)", opacity: unlocked ? 1 : isLight ? 1 : 0.6 }}>{step.target} <span className="text-[9px] uppercase tracking-widest opacity-60">{step.target >= 5 && t.itemLabelPlural ? t.itemLabelPlural : t.itemLabel}</span></span>
                 </div>
-                <div className={"text-[10px] font-extrabold tracking-tight whitespace-nowrap flex flex-wrap items-center justify-center"} style={{ color: unlocked ? "var(--color-text)" : isLight ? "#111318" : "var(--color-muted)", opacity: unlocked ? 1 : isLight ? 1 : 0.6, filter: unlocked ? "drop-shadow(0 0 2px var(--color-primary-glow))" : "none" }}>
+                <div className={"text-[10px] font-extrabold tracking-tight whitespace-nowrap flex flex-wrap items-center justify-center"} style={{ color: unlocked ? "var(--color-text)" : isLight ? "#3d4450" : "var(--color-muted)", opacity: unlocked ? 1 : isLight ? 1 : 0.6, filter: unlocked ? "drop-shadow(0 0 2px var(--color-primary-glow))" : "none" }}>
                   {step.reward.split(new RegExp(`(${t.streakIcon}|${t.tokenIcon})`)).map((part, i) => (
                     part === t.streakIcon || part === t.tokenIcon ? (
                       <span key={i} className="text-[13px] leading-none ml-0.5 drop-shadow-sm">{part}</span>
