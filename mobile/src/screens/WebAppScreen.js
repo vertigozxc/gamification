@@ -490,6 +490,8 @@ export default function WebAppScreen({ onShellReady }) {
         startInLoadingState={false}
         bounces={false}
         scrollEnabled
+        scalesPageToFit={false}
+        pinchGestureEnabled={false}
         overScrollMode="never"
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
