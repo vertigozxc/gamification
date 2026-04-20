@@ -304,3 +304,9 @@
 2:17:31 PM [vite] (client) hmr update /src/styles.css
 2:17:50 PM [vite] (client) hmr update /src/styles.css
 2:19:04 PM [vite] (client) hmr update /src/styles.css
+2:25:19 PM [vite] (client) hmr update /src/components/tabs/ProfileTab.jsx
+2:25:19 PM [vite] (client) hmr update /src/components/modals/LogoutConfirmModal.jsx
+2:26:09 PM [vite] (client) hmr update /src/styles.css
+2:27:05 PM [vite] (client) hmr update /src/components/tabs/ProfileTab.jsx
+2:27:05 PM [vite] (client) hmr update /src/styles.css
+2:27:05 PM [vite] (client) hmr update /src/components/modals/LogoutConfirmModal.jsx

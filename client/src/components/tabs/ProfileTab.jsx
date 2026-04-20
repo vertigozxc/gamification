@@ -245,15 +245,6 @@ export default function ProfileTab({
             aria-label={t.deleteProfileTitle || "Delete Profile Permanently?"}
             onClick={(event) => event.stopPropagation()}
           >
-            <button
-              type="button"
-              className="delete-profile-confirm-close"
-              aria-label="Close"
-              onClick={() => setShowDeleteConfirm(false)}
-            >
-              ✕
-            </button>
-
             <div className="logout-confirm-icon delete-profile-confirm-icon" aria-hidden="true">🗑️</div>
             <h3 className="cinzel logout-confirm-title delete-profile-confirm-title">
               {t.deleteProfileTitle || "Delete Profile Permanently?"}
