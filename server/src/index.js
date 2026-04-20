@@ -40,6 +40,17 @@ function isAllowedLanOrigin(origin) {
   return /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)(:\d+)?$/i.test(String(origin || ""));
 }
 
+const productionClientOriginPattern = /^https:\/\/([a-z0-9-]+\.)?life-rpg\.app$/i;
+
+function isAllowedProductionClientOrigin(origin) {
+  try {
+    const parsed = new URL(String(origin || ""));
+    return productionClientOriginPattern.test(`${parsed.protocol}//${parsed.hostname}`);
+  } catch {
+    return false;
+  }
+}
+
 const allowedOrigins = getAllowedOrigins();
 const oauthCallbackAllowedHosts = new Set([
   "life-rpg-api.onrender.com",
@@ -67,7 +78,12 @@ app.use(cors({
       }
     } catch (_) {}
 
-    if (allowedOrigins.includes("*") || allowedOrigins.includes(origin) || isAllowedLanOrigin(origin)) {
+    if (
+      allowedOrigins.includes("*") ||
+      allowedOrigins.includes(origin) ||
+      isAllowedLanOrigin(origin) ||
+      isAllowedProductionClientOrigin(origin)
+    ) {
       callback(null, true);
       return;
     }
