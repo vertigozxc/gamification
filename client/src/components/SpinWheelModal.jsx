@@ -115,7 +115,8 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
       const rewardIndex = result.reward.id - 1;
       const segCenter = rewardIndex * SEG_DEG + SEG_DEG / 2;
       const EXTRA_SPINS = 5;
-      const finalRot = EXTRA_SPINS * 360 + segCenter;
+      // Pointer is fixed at top (0deg). Rotate wheel so winning segment center aligns to top.
+      const finalRot = EXTRA_SPINS * 360 - segCenter;
 
       setSpinResult(result);
       setRotation(finalRot);

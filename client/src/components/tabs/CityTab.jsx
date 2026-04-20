@@ -33,7 +33,15 @@ function writeSpinCache(nextSpinAt) {
   } catch {}
 }
 
-export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen, dailyXpToday = 0, username }) {
+export default function CityTab({
+  stage,
+  t,
+  cityFullscreen,
+  setCityFullscreen,
+  dailyXpToday = 0,
+  username,
+  onRewardClaimed
+}) {
   const [fireworksActive, setFireworksActive] = useState(false);
   const [spinModalOpen, setSpinModalOpen] = useState(false);
   const [alreadySpun, setAlreadySpun] = useState(false);
@@ -81,9 +89,10 @@ export default function CityTab({ stage, t, cityFullscreen, setCityFullscreen, d
       const ms = Math.max(0, new Date(result.nextSpinAt) - Date.now());
       setCdRemaining(ms);
     }
+    onRewardClaimed?.(result);
     // Celebrate with fireworks
     setFireworksActive(true);
-  }, []);
+  }, [onRewardClaimed]);
 
   const handleSpinModalClose = useCallback(() => {
     setSpinModalOpen(false);

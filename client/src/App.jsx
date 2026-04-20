@@ -197,6 +197,18 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
 
   const { resetTimer, weekResetTimer } = useTimers(serverOffsetMs, nextWeekResetAtMs);
 
+  function handleCityRewardClaimed(result) {
+    const user = result?.user;
+    if (!user || typeof user !== "object") return;
+    setState((prev) => ({
+      ...prev,
+      lvl: Number.isFinite(Number(user.level)) ? Number(user.level) : prev.lvl,
+      xp: Number.isFinite(Number(user.xp)) ? Number(user.xp) : prev.xp,
+      xpNext: Number.isFinite(Number(user.xpNext)) ? Number(user.xpNext) : prev.xpNext,
+      tokens: Number.isFinite(Number(user.tokens)) ? Number(user.tokens) : prev.tokens
+    }));
+  }
+
   function applyServerTimeSync(payload) {
     if (!payload || typeof payload !== "object") return;
     const serverNowMs = Number(payload.serverNowMs);
@@ -1053,6 +1065,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 stage={Math.max(0, Math.floor(state.lvl) || 0)}
                 dailyXpToday={state.productivity?.xpToday ?? 0}
                 username={state.username || authUser?.uid || ""}
+                onRewardClaimed={handleCityRewardClaimed}
                 t={t}
                 cityFullscreen={cityFullscreen}
                 setCityFullscreen={setCityFullscreen}
