@@ -257,7 +257,7 @@ body[data-theme="light"] {
 }
 /* Light theme only: improve daily board gray readability */
 body[data-theme="light"] .daily-board-panel .daily-board-count {
-    color: #7b8798;
+    color: #565f6a;
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-segment-inactive {
@@ -269,24 +269,28 @@ body[data-theme="light"] .daily-board-panel .daily-board-segment-milestone {
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-milestone-label {
-    color: #424a56;
+    color: #2e343c;
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-reward {
-    color: #3a424f;
+    color: #292e37;
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-unlocked .daily-board-milestone-label {
-    color: #323a46;
+    color: #232931;
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-unlocked .daily-board-reward {
-    color: #38404d;
+    color: #272d36;
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-milestone-label,
 body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-reward {
-    color: #3d4552;
+    color: #2b3039;
+}
+
+body[data-theme="light"] .daily-board-panel .daily-board-card-locked p:first-child {
+    opacity: 0.55 !important;
 }
 /* ===== Base Styles ===== */
 * {
