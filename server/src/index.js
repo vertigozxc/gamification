@@ -2,7 +2,7 @@ import "dotenv/config";
 import cors from "cors";
 import express from "express";
 import { fileURLToPath } from "node:url";
-import { timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { prisma } from "./db.js";
 import {
@@ -2388,6 +2388,63 @@ const CITY_SPIN_REWARDS = [
   { id: 9,  type: "xp",    amount: 300, weight: 3  },
   { id: 10, type: "level", amount: 1,   weight: 1  },
 ];
+const SPIN_CLAIM_SECRET = String(process.env.SPIN_CLAIM_SECRET || process.env.ADMIN_TOKEN || "life-rpg-spin-claim-dev-secret");
+
+// Fallback for environments where Prisma client wasn't regenerated yet and
+// still rejects the lastCitySpinDayKey field. Process-local, server-side only.
+const citySpinFallbackDayByUserId = new Map();
+
+function isMissingCitySpinFieldError(error) {
+  const msg = String(error?.message || "");
+  return msg.includes("lastCitySpinDayKey") && msg.includes("Unknown argument");
+}
+
+function toBase64UrlJson(value) {
+  return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
+}
+
+function safeParseBase64UrlJson(value) {
+  try {
+    return JSON.parse(Buffer.from(String(value || ""), "base64url").toString("utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function signSpinClaimPayload(payloadB64) {
+  return createHmac("sha256", SPIN_CLAIM_SECRET).update(payloadB64).digest("base64url");
+}
+
+function createSpinClaimToken({ userId, username, reward, dayKey, expiresAtMs }) {
+  const payload = {
+    v: 1,
+    userId,
+    username,
+    reward: { id: reward.id, type: reward.type, amount: reward.amount },
+    dayKey,
+    exp: expiresAtMs
+  };
+  const payloadB64 = toBase64UrlJson(payload);
+  const signature = signSpinClaimPayload(payloadB64);
+  return `${payloadB64}.${signature}`;
+}
+
+function verifySpinClaimToken(token) {
+  const [payloadB64, signature] = String(token || "").split(".");
+  if (!payloadB64 || !signature) return null;
+
+  const expected = signSpinClaimPayload(payloadB64);
+  const signatureBuf = Buffer.from(signature);
+  const expectedBuf = Buffer.from(expected);
+  if (signatureBuf.length !== expectedBuf.length || !timingSafeEqual(signatureBuf, expectedBuf)) {
+    return null;
+  }
+
+  const payload = safeParseBase64UrlJson(payloadB64);
+  if (!payload || typeof payload !== "object") return null;
+  if (!Number.isFinite(Number(payload.exp)) || Date.now() > Number(payload.exp)) return null;
+  return payload;
+}
 
 function pickCitySpinReward() {
   const totalWeight = CITY_SPIN_REWARDS.reduce((s, r) => s + r.weight, 0);
@@ -2399,8 +2456,70 @@ function pickCitySpinReward() {
   return CITY_SPIN_REWARDS[0];
 }
 
+function findSpinRewardById(id) {
+  const rewardId = Number(id);
+  return CITY_SPIN_REWARDS.find((item) => item.id === rewardId) || null;
+}
+
 function nextMidnightUTC(now = new Date()) {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+}
+
+function isAlreadySpunToday(user, todayKey) {
+  const alreadySpunByField = user?.lastCitySpinDayKey === todayKey;
+  const alreadySpunByFallback = user?.id ? citySpinFallbackDayByUserId.get(user.id) === todayKey : false;
+  return alreadySpunByField || alreadySpunByFallback;
+}
+
+async function applyCitySpinReward(user, reward, todayKey) {
+  const updateData = { lastCitySpinDayKey: todayKey };
+
+  if (reward.type === "xp") {
+    const fresh = await prisma.user.findUnique({ where: { id: user.id } });
+    let xp = fresh.xp + reward.amount;
+    let level = fresh.level;
+    let xpNext = fresh.xpNext;
+    while (xp >= xpNext) {
+      xp -= xpNext;
+      level += 1;
+      xpNext = Math.floor(xpNext * 1.1);
+    }
+    try {
+      return await prisma.user.update({ where: { id: user.id }, data: { ...updateData, xp, level, xpNext } });
+    } catch (error) {
+      if (!isMissingCitySpinFieldError(error)) throw error;
+      console.warn("[City Spin] Fallback cooldown mode active: missing lastCitySpinDayKey in Prisma client");
+      citySpinFallbackDayByUserId.set(user.id, todayKey);
+      return await prisma.user.update({ where: { id: user.id }, data: { xp, level, xpNext } });
+    }
+  }
+
+  if (reward.type === "token") {
+    try {
+      return await prisma.user.update({ where: { id: user.id }, data: { ...updateData, tokens: { increment: reward.amount } } });
+    } catch (error) {
+      if (!isMissingCitySpinFieldError(error)) throw error;
+      console.warn("[City Spin] Fallback cooldown mode active: missing lastCitySpinDayKey in Prisma client");
+      citySpinFallbackDayByUserId.set(user.id, todayKey);
+      return await prisma.user.update({ where: { id: user.id }, data: { tokens: { increment: reward.amount } } });
+    }
+  }
+
+  if (reward.type === "level") {
+    const fresh = await prisma.user.findUnique({ where: { id: user.id } });
+    const newLevel = fresh.level + 1;
+    const newXpNext = Math.floor(fresh.xpNext * 1.1);
+    try {
+      return await prisma.user.update({ where: { id: user.id }, data: { ...updateData, level: newLevel, xp: 0, xpNext: newXpNext } });
+    } catch (error) {
+      if (!isMissingCitySpinFieldError(error)) throw error;
+      console.warn("[City Spin] Fallback cooldown mode active: missing lastCitySpinDayKey in Prisma client");
+      citySpinFallbackDayByUserId.set(user.id, todayKey);
+      return await prisma.user.update({ where: { id: user.id }, data: { level: newLevel, xp: 0, xpNext: newXpNext } });
+    }
+  }
+
+  throw new Error("Unsupported city spin reward type");
 }
 
 app.get("/api/city/spin-status/:username", async (req, res) => {
@@ -2423,43 +2542,84 @@ app.post("/api/city/spin", async (req, res) => {
     const user = await prisma.user.findUnique({ where: { username: slugifyUsername(username) } });
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    const todayKey = getDateKey(new Date());
-    if (user.lastCitySpinDayKey === todayKey) {
-      return res.json({ ok: false, alreadySpun: true, nextSpinAt: nextMidnightUTC().toISOString() });
+    const now = new Date();
+    const todayKey = getDateKey(now);
+    const nextSpinAt = nextMidnightUTC(now).toISOString();
+    if (isAlreadySpunToday(user, todayKey)) {
+      return res.json({ ok: false, alreadySpun: true, nextSpinAt });
     }
 
     const reward = pickCitySpinReward();
-    const updateData = { lastCitySpinDayKey: todayKey };
-
-    let finalUser;
-    if (reward.type === "xp") {
-      const fresh = await prisma.user.findUnique({ where: { id: user.id } });
-      let xp = fresh.xp + reward.amount;
-      let level = fresh.level;
-      let xpNext = fresh.xpNext;
-      while (xp >= xpNext) {
-        xp -= xpNext;
-        level += 1;
-        xpNext = Math.floor(xpNext * 1.1);
-      }
-      finalUser = await prisma.user.update({ where: { id: user.id }, data: { ...updateData, xp, level, xpNext } });
-    } else if (reward.type === "token") {
-      finalUser = await prisma.user.update({ where: { id: user.id }, data: { ...updateData, tokens: { increment: reward.amount } } });
-    } else if (reward.type === "level") {
-      const fresh = await prisma.user.findUnique({ where: { id: user.id } });
-      const newLevel = fresh.level + 1;
-      const newXpNext = Math.floor(fresh.xpNext * 1.1);
-      finalUser = await prisma.user.update({ where: { id: user.id }, data: { ...updateData, level: newLevel, xp: 0, xpNext: newXpNext } });
-    }
+    const claimToken = createSpinClaimToken({
+      userId: user.id,
+      username: user.username,
+      reward,
+      dayKey: todayKey,
+      expiresAtMs: Date.parse(nextSpinAt)
+    });
 
     return res.json({
       ok: true,
+      pending: true,
       reward: { id: reward.id, type: reward.type, amount: reward.amount },
-      user: { level: finalUser.level, xp: finalUser.xp, xpNext: finalUser.xpNext, tokens: finalUser.tokens },
-      nextSpinAt: nextMidnightUTC().toISOString()
+      claimToken,
+      nextSpinAt
     });
   } catch (error) {
     console.error(`[City Spin Error] ${error?.message || error}`);
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+app.post("/api/city/spin/claim", async (req, res) => {
+  const schema = z.object({
+    username: z.string().min(2).max(64),
+    claimToken: z.string().min(12)
+  });
+
+  try {
+    const { username, claimToken } = schema.parse(req.body);
+    const normalizedUsername = slugifyUsername(username);
+    const user = await prisma.user.findUnique({ where: { username: normalizedUsername } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const payload = verifySpinClaimToken(claimToken);
+    if (!payload) {
+      return res.status(400).json({ error: "Invalid or expired claim token" });
+    }
+
+    const now = new Date();
+    const todayKey = getDateKey(now);
+    const nextSpinAt = nextMidnightUTC(now).toISOString();
+    if (isAlreadySpunToday(user, todayKey)) {
+      return res.json({ ok: false, alreadySpun: true, nextSpinAt });
+    }
+
+    if (
+      payload.v !== 1 ||
+      payload.userId !== user.id ||
+      payload.username !== user.username ||
+      payload.dayKey !== todayKey
+    ) {
+      return res.status(400).json({ error: "Claim token does not match current user/session" });
+    }
+
+    const reward = findSpinRewardById(payload?.reward?.id);
+    if (!reward || reward.type !== payload?.reward?.type || reward.amount !== Number(payload?.reward?.amount)) {
+      return res.status(400).json({ error: "Invalid claim reward payload" });
+    }
+
+    const finalUser = await applyCitySpinReward(user, reward, todayKey);
+
+    return res.json({
+      ok: true,
+      claimed: true,
+      reward: { id: reward.id, type: reward.type, amount: reward.amount },
+      user: { level: finalUser.level, xp: finalUser.xp, xpNext: finalUser.xpNext, tokens: finalUser.tokens },
+      nextSpinAt
+    });
+  } catch (error) {
+    console.error(`[City Spin Claim Error] ${error?.message || error}`);
     res.status(400).json({ error: "Invalid request", detail: error.message });
   }
 });

@@ -265,6 +265,13 @@ export function citySpin(username) {
   });
 }
 
+export function citySpinClaim(username, claimToken) {
+  return request("/api/city/spin/claim", {
+    method: "POST",
+    body: JSON.stringify({ username, claimToken })
+  });
+}
+
 export function citySpinStatus(username) {
   return request(`/api/city/spin-status/${encodeURIComponent(username)}`);
 }

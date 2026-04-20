@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { citySpin } from "../api";
+import { citySpin, citySpinClaim } from "../api";
 
 const REWARDS = [
   { id: 1,  type: "xp",    amount: 10,  emoji: "✨", darkText: false },
@@ -66,6 +66,7 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
   const [rotation, setRotation] = useState(0);
   const [spinResult, setSpinResult] = useState(null);
   const [error, setError] = useState(null);
+  const [claiming, setClaiming] = useState(false);
   const [timeLeft, setTimeLeft] = useState(null); // ms until next spin
 
   // Reset when opened
@@ -75,6 +76,7 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
       setRotation(0);
       setSpinResult(null);
       setError(null);
+      setClaiming(false);
       setTimeLeft(null);
     }
   }, [open]);
@@ -93,6 +95,10 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
 
   const handleSpin = useCallback(async () => {
     if (phase !== "idle") return;
+    if (!username) {
+      setError(t.spinNoProfile || "Profile is not ready yet. Please try again.");
+      return;
+    }
     setPhase("loading");
     setError(null);
     try {
@@ -116,11 +122,37 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
       setPhase("spinning");
 
       setTimeout(() => setPhase("result"), SPIN_DURATION_MS + 300);
-    } catch {
+    } catch (error) {
       setPhase("idle");
-      setError("Network error. Please try again.");
+      setError(error?.message || t.spinNetworkError || "Request failed. Please try again.");
     }
-  }, [phase, username]);
+  }, [phase, t.spinNetworkError, t.spinNoProfile, username]);
+
+  const handleClaim = useCallback(async () => {
+    if (claiming || !spinResult?.claimToken) {
+      if (!spinResult?.claimToken) {
+        setError(t.spinClaimError || "Claim token is missing. Please spin again.");
+      }
+      return;
+    }
+
+    setClaiming(true);
+    setError(null);
+    try {
+      const claimed = await citySpinClaim(username, spinResult.claimToken);
+      if (!claimed.ok) {
+        setSpinResult(claimed);
+        setPhase("cooldown");
+        return;
+      }
+      onRewardClaimed?.(claimed);
+      onClose();
+    } catch (claimError) {
+      setError(claimError?.message || t.spinClaimError || "Could not claim reward. Please try again.");
+    } finally {
+      setClaiming(false);
+    }
+  }, [claiming, onClose, onRewardClaimed, spinResult, t.spinClaimError, username]);
 
   if (!open) return null;
 
@@ -335,17 +367,19 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
           </p>
 
           <button
-            onClick={() => { onRewardClaimed?.(spinResult); onClose(); }}
+            onClick={handleClaim}
+            disabled={claiming}
             style={{
               padding: "13px 40px",
               background: "linear-gradient(135deg, var(--color-primary, #a78bfa), #c084fc)",
               border: "none", borderRadius: 14,
               color: "#0f172a", fontSize: 16, fontWeight: 900,
-              cursor: "pointer", width: "100%",
+              cursor: claiming ? "default" : "pointer", width: "100%",
+              opacity: claiming ? 0.82 : 1,
               boxShadow: "0 0 20px rgba(167,139,250,0.4)",
             }}
           >
-            {t.spinClose || "Claim! 🎉"}
+            {claiming ? (t.spinClaiming || "Claiming...") : (t.spinClose || "Claim! 🎉")}
           </button>
 
           {spinResult.nextSpinAt && (
