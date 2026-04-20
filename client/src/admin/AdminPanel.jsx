@@ -1,5 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 
+function copyEventToClipboard(e, d, identity) {
+  const lines = [
+    `🐛 BUG REPORT — GoHabit Admin`,
+    ``,
+    `Time: ${fmtTime(e.createdAt)}`,
+    `Severity: ${levelLabel(e.level)}`,
+    `Event type: ${e.type || "—"}`,
+    `Platform: ${e.platform || "—"}`,
+    ``,
+    `Title: ${d.title}`,
+    `Meaning: ${d.meaning}`,
+    `Impact: ${d.impact}`,
+    `Recommended action: ${d.action}`,
+    ``,
+    `User ID: ${identity.userId || "system event"}`,
+    `Username: ${e.username || "—"}`,
+    `Email: ${identity.email || "not provided"}`,
+    ``,
+    `Message: ${e.message || "—"}`,
+  ];
+  if (e.stack) lines.push(``, `Stack trace:`, e.stack);
+  if (e.meta) lines.push(``, `Meta:`, safeJson(e.meta));
+  navigator.clipboard.writeText(lines.join("\n")).catch(() => {});
+}
+
 const TOKEN_KEY = "life_rpg_admin_token";
 
 function resolveApiBase() {
@@ -606,6 +631,7 @@ export default function AdminPanel() {
                   <th style={styles.th}>Google email</th>
                   <th style={styles.th}>Platform</th>
                   <th style={styles.th}>Message</th>
+                  <th style={styles.th}>Copy</th>
                 </tr>
               </thead>
               <tbody>
@@ -654,6 +680,9 @@ export default function AdminPanel() {
                           <pre style={styles.pre}>{safeJson(e.meta)}</pre>
                         </details>
                       ) : null}
+                    </td>
+                    <td style={styles.td}>
+                      <CopyButton onClick={() => copyEventToClipboard(e, d, identity)} />
                     </td>
                         </>
                       );
@@ -780,6 +809,33 @@ function StatCard({ label, value, tone = "default" }) {
       <div style={styles.statLabel}>{label}</div>
       <div style={{ ...styles.statValue, color: tone === "danger" ? "#ff6b6b" : tone === "ok" ? "#34d399" : "#f1f5f9" }}>{value}</div>
     </div>
+  );
+}
+
+function CopyButton({ onClick }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      style={{
+        background: copied ? "#166534" : "#1e293b",
+        color: copied ? "#86efac" : "#94a3b8",
+        border: `1px solid ${copied ? "#166534" : "#334155"}`,
+        borderRadius: 6,
+        padding: "4px 10px",
+        fontSize: 12,
+        fontWeight: 600,
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+        transition: "all 0.2s",
+      }}
+      onClick={() => {
+        onClick();
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }}
+    >
+      {copied ? "✓ Copied!" : "📋 Copy for AI"}
+    </button>
   );
 }
 
