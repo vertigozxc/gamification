@@ -296,3 +296,7 @@
 2:00:22 PM [vite] (client) hmr update /src/main.jsx, /src/App.jsx, /src/components/modals/FreezeSuccessModal.jsx, /src/components/modals/LogoutConfirmModal.jsx, /src/components/modals/RerollConfirmModal.jsx, /src/components/modals/OnboardingModal.jsx, /src/components/modals/NotesModal.jsx, /src/components/modals/PinnedReplacementModal.jsx, /src/components/modals/CustomHabitManager.jsx, /src/components/TokenVault.jsx, /src/components/CityIllustration.jsx, /src/components/ProfilePanel.jsx, /src/components/QuestBoard.jsx and 1 more
 2:00:22 PM [vite] (client) hmr invalidate /src/main.jsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
 2:00:22 PM [vite] (client) page reload src/main.jsx
+2:08:09 PM [vite] (client) hmr update /src/styles.css
+2:09:55 PM [vite] (client) hmr update /src/styles.css
+2:11:36 PM [vite] (client) hmr update /src/styles.css
+2:12:08 PM [vite] (client) hmr update /src/styles.css
