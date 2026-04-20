@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import themes from "../../themeConfig";
 
 export default function ProfileTab({
@@ -11,6 +11,35 @@ export default function ProfileTab({
   onOpenThemePicker, onOpenLanguagePicker, onLogout, onDeleteProfile
 }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  useEffect(() => {
+    if (!showDeleteConfirm || typeof document === "undefined") return undefined;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [showDeleteConfirm]);
+
+  useEffect(() => {
+    if (!showDeleteConfirm || typeof window === "undefined") return undefined;
+
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setShowDeleteConfirm(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showDeleteConfirm]);
+
   return (
     <div className="mobile-tab-panel flex flex-col gap-4">
 
@@ -213,7 +242,7 @@ export default function ProfileTab({
             className="delete-profile-modal-card"
             role="dialog"
             aria-modal="true"
-            aria-label={t.deleteProfileTitle || "Delete Profile?"}
+            aria-label={t.deleteProfileTitle || "Delete Profile Permanently?"}
             onClick={(event) => event.stopPropagation()}
           >
             <button
@@ -237,19 +266,19 @@ export default function ProfileTab({
               </div>
               <div className="delete-profile-modal-title-wrap">
                 <h3 className="delete-profile-modal-title cinzel">
-                  {t.deleteProfileTitle || "Delete Profile?"}
+                  {t.deleteProfileTitle || "Delete Profile Permanently?"}
                 </h3>
                 <p className="delete-profile-modal-warning cinzel">
-                  {t.deleteProfileWarningBadge || "IRREVERSIBLE ACTION"}
+                  {t.deleteProfileWarningBadge || "PERMANENT DATA DELETION"}
                 </p>
               </div>
             </div>
 
             <p className="delete-profile-modal-desc">
-              {t.deleteProfileDesc || "This will permanently erase all your data, XP, streaks, and quests."}
+              {t.deleteProfileDesc || "This is a full and irreversible deletion of your profile and all your data: progress, XP, streak, habits, and quests."}
             </p>
             <p className="delete-profile-modal-alert cinzel">
-              {t.deleteProfileCannotUndo || "This action cannot be undone."}
+              {t.deleteProfileCannotUndo || "After deletion, recovery is not possible."}
             </p>
 
             <div className="delete-profile-modal-actions">
@@ -257,7 +286,7 @@ export default function ProfileTab({
                 className="delete-profile-modal-confirm"
                 onClick={() => { setShowDeleteConfirm(false); onDeleteProfile && onDeleteProfile(); }}
               >
-                {t.deleteProfileConfirm || "Yes, Delete Forever"}
+                {t.deleteProfileConfirm || "Yes, Permanently Delete"}
               </button>
               <button
                 className="delete-profile-modal-cancel"

@@ -86,7 +86,36 @@ uncaughtException Error: listen EADDRINUSE: address already in use :::4000
   port: 4000
 }
 Completed running 'src/index.js'. Waiting for file changes before restarting...
-dle [as _listen2] (node:net:1948:16)
+Restarting 'src/index.js'
+GoHabit API running on http://localhost:4000
+Restarting 'src/index.js'
+GoHabit API running on http://localhost:4000
+s/vertigozxc/Documents/gamification/server/node_modules/express/lib/application.js:635:24)
+    at bootstrap (file:///Users/vertigozxc/Documents/gamification/server/src/index.js:3596:9) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+Completed running 'src/index.js'. Waiting for file changes before restarting...
+Restarting 'src/index.js'
+uncaughtException Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (node:net:1948:16)
+    at listenInCluster (node:net:2005:12)
+    at Server.listen (node:net:2110:7)
+    at app.listen (/Users/vertigozxc/Documents/gamification/server/node_modules/express/lib/application.js:635:24)
+    at bootstrap (file:///Users/vertigozxc/Documents/gamification/server/src/index.js:3596:9) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+Completed running 'src/index.js'. Waiting for file changes before restarting...
+Restarting 'src/index.js'
+uncaughtException Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (node:net:1948:16)
     at listenInCluster (node:net:2005:12)
     at Server.listen (node:net:2110:7)
     at app.listen (/Users/vertigozxc/Documents/gamification/server/node_modules/express/lib/application.js:635:24)

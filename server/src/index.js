@@ -3607,12 +3607,23 @@ if (isMainModule) {
 export default app;
 
 app.delete("/api/profiles/:userId", async (req, res) => {
-  const userId = req.params.userId;
-  if (!userId || typeof userId !== "string" || userId.length > 128) {
+  const rawIdentifier = req.params.userId;
+  if (!rawIdentifier || typeof rawIdentifier !== "string" || rawIdentifier.length > 128) {
     return res.status(400).json({ error: "Invalid userId" });
   }
+
+  const normalizedUsername = slugifyUsername(rawIdentifier);
+
   try {
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { id: rawIdentifier },
+          ...(normalizedUsername ? [{ username: normalizedUsername }] : [])
+        ]
+      }
+    });
+
     if (!user) return res.status(404).json({ error: "User not found" });
 
     await prisma.$transaction([
@@ -3622,7 +3633,7 @@ app.delete("/api/profiles/:userId", async (req, res) => {
       prisma.questFeedback.deleteMany({ where: { userId: user.id } }),
       prisma.friendship.deleteMany({ where: { OR: [{ userAId: user.id }, { userBId: user.id }] } }),
       prisma.invite.deleteMany({ where: { OR: [{ inviterId: user.id }, { invitedUserId: user.id }] } }),
-      prisma.event.deleteMany({ where: { userId: user.id } }),
+      prisma.event.deleteMany({ where: { OR: [{ userId: user.id }, { username: user.username }] } }),
       prisma.user.delete({ where: { id: user.id } }),
     ]);
 

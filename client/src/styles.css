@@ -1532,7 +1532,7 @@ body[data-theme="light"] .portal-preloader__cityline span {
     padding: 16px 14px 14px;
     background:
         linear-gradient(175deg, color-mix(in srgb, var(--panel-bg) 95%, #000 5%), color-mix(in srgb, var(--card-bg) 93%, #000 7%));
-    box-shadow: 0 20px 46px -24px rgba(0, 0, 0, 0.78), 0 0 0 1px color-mix(in srgb, var(--color-danger) 28%, transparent) inset;
+    box-shadow: 0 20px 46px -24px rgba(0, 0, 0, 0.78), 0 0 0 1px color-mix(in srgb, var(--color-primary) 20%, transparent) inset;
 }
 
 .delete-profile-modal-close {
@@ -1601,7 +1601,7 @@ body[data-theme="light"] .portal-preloader__cityline span {
     font-size: .62rem;
     letter-spacing: .14em;
     text-transform: uppercase;
-    color: color-mix(in srgb, var(--color-danger) 82%, var(--color-muted));
+    color: color-mix(in srgb, var(--color-danger) 78%, var(--color-primary));
     font-weight: 800;
 }
 
@@ -1615,16 +1615,15 @@ body[data-theme="light"] .portal-preloader__cityline span {
 
 .delete-profile-modal-alert {
     margin: 11px 0 13px;
-    padding: 9px 11px;
-    border-radius: 12px;
-    border: 1px solid color-mix(in srgb, var(--color-danger) 42%, transparent);
-    background: color-mix(in srgb, var(--color-danger) 11%, transparent);
+    padding: 0;
+    border: 0;
+    background: transparent;
     color: color-mix(in srgb, var(--color-danger) 84%, var(--color-text));
-    font-size: .72rem;
-    letter-spacing: .08em;
-    text-transform: uppercase;
+    font-size: .78rem;
+    letter-spacing: .02em;
+    text-transform: none;
     font-weight: 800;
-    text-align: center;
+    text-align: left;
 }
 
 .delete-profile-modal-actions {
@@ -1640,7 +1639,7 @@ body[data-theme="light"] .portal-preloader__cityline span {
     font-family: var(--font-heading);
     font-size: .82rem;
     letter-spacing: .06em;
-    text-transform: uppercase;
+    text-transform: none;
     transition: transform .15s ease, filter .15s ease;
 }
 
@@ -1674,6 +1673,11 @@ body[data-theme="balance"] .delete-profile-modal-card {
     background: linear-gradient(180deg, rgba(20, 26, 34, 0.96), rgba(14, 18, 26, 0.94));
 }
 
+body[data-theme="balance"] .delete-profile-modal-icon {
+    border-color: color-mix(in srgb, var(--color-primary) 54%, transparent);
+    color: color-mix(in srgb, var(--color-danger) 70%, var(--color-primary));
+}
+
 body[data-theme="light"] .delete-profile-modal-backdrop {
     background: rgba(31, 41, 55, 0.44);
 }
@@ -1685,6 +1689,10 @@ body[data-theme="light"] .delete-profile-modal-card {
 
 body[data-theme="light"] .delete-profile-modal-desc {
     color: #475569;
+}
+
+body[data-theme="light"] .delete-profile-modal-alert {
+    color: #c2415d;
 }
 
 body[data-theme="light"] .delete-profile-modal-cancel {
