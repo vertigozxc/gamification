@@ -269,24 +269,24 @@ body[data-theme="light"] .daily-board-panel .daily-board-segment-milestone {
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-milestone-label {
-    color: #525c6b;
+    color: #424a56;
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-reward {
-    color: #495363;
+    color: #3a424f;
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-unlocked .daily-board-milestone-label {
-    color: #3f4858;
+    color: #323a46;
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-unlocked .daily-board-reward {
-    color: #465060;
+    color: #38404d;
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-milestone-label,
 body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-reward {
-    color: #4c5666;
+    color: #3d4552;
 }
 /* ===== Base Styles ===== */
 * {
@@ -1202,7 +1202,8 @@ body::before {
     justify-content: center;
     padding: 16px;
     padding-bottom: calc(var(--mobile-safe-bottom, 0px) + 92px);
-    background: rgba(5, 10, 20, 0.82);
+    background: rgba(255, 255, 255, 0.01);
+    -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);
 }
 
@@ -1314,7 +1315,7 @@ body[data-theme="balance"] .delete-profile-confirm-icon {
 }
 
 body[data-theme="light"] .delete-profile-confirm-overlay {
-    background: rgba(31, 41, 55, 0.5);
+    background: rgba(255, 255, 255, 0.01);
 }
 
 body[data-theme="light"] .delete-profile-confirm-card {
