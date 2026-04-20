@@ -1517,9 +1517,10 @@ body[data-theme="light"] .portal-preloader__cityline span {
     inset: 0;
     z-index: 99999;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
     padding: 16px;
+    padding-bottom: calc(var(--mobile-safe-bottom, 0px) + 92px);
     background: rgba(2, 6, 23, 0.74);
     backdrop-filter: blur(10px);
 }
@@ -1701,6 +1702,11 @@ body[data-theme="light"] .delete-profile-modal-cancel {
 }
 
 @media (max-width: 420px) {
+    .delete-profile-modal-backdrop {
+        padding: 12px;
+        padding-bottom: calc(var(--mobile-safe-bottom, 0px) + 88px);
+    }
+
     .delete-profile-modal-card {
         width: min(100%, 344px);
         border-radius: 20px;
