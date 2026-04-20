@@ -1299,10 +1299,9 @@ body::before {
 }
 
 .delete-profile-confirm-overlay {
-    align-items: flex-end;
+    align-items: center;
     justify-content: center;
-    padding: 16px;
-    padding-bottom: calc(var(--mobile-safe-bottom, 0px) + 92px);
+    padding: 1rem;
 }
 
 .delete-profile-confirm-card {
@@ -1455,8 +1454,7 @@ body[data-theme="light"] .delete-profile-confirm-cancel {
 
 @media (max-width: 420px) {
     .delete-profile-confirm-overlay {
-        padding: 12px;
-        padding-bottom: calc(var(--mobile-safe-bottom, 0px) + 88px);
+        padding: 1rem;
     }
 
     .delete-profile-confirm-card {
