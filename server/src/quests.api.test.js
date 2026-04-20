@@ -218,6 +218,63 @@ test("POST /api/reset-daily handles impossible excludeCategories without failing
   assert.equal(constrainedQuests.length, EXPECTED_OTHER_COUNT, `reroll should still provide ${EXPECTED_OTHER_COUNT} constrained quest slots`);
 });
 
+test("POST /api/reset-daily rerolls selected random quests and keeps unselected ones", async () => {
+  const username = `multi-reroll-${Date.now().toString().slice(-6)}`;
+
+  const upsertResponse = await fetch(`${baseUrl}/api/profiles/upsert`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, displayName: "Multi Reroll Tester" })
+  });
+  assert.equal(upsertResponse.status, 200);
+
+  await prisma.user.update({
+    where: { username },
+    data: {
+      preferredQuestIds: Array.from({ length: PINNED_COUNT }, (_, index) => index + 1).join(",")
+    }
+  });
+
+  const gameStateResponse = await fetch(`${baseUrl}/api/game-state/${encodeURIComponent(username)}`);
+  assert.equal(gameStateResponse.status, 200);
+  const gameStatePayload = await gameStateResponse.json();
+  const initialQuests = Array.isArray(gameStatePayload.quests) ? gameStatePayload.quests : [];
+  const initialRandomQuests = initialQuests.slice(PINNED_COUNT, PINNED_COUNT + EXPECTED_RANDOM_COUNT);
+
+  assert.equal(initialRandomQuests.length, EXPECTED_RANDOM_COUNT, `expected ${EXPECTED_RANDOM_COUNT} random quests`);
+
+  const selectedQuestIds = initialRandomQuests.slice(0, Math.min(3, initialRandomQuests.length)).map((quest) => quest.id);
+  const keptQuestIds = initialRandomQuests.slice(selectedQuestIds.length).map((quest) => quest.id);
+
+  const rerollResponse = await fetch(`${baseUrl}/api/reset-daily`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      username,
+      isReroll: true,
+      targetQuestIds: selectedQuestIds,
+      keepQuestIds: keptQuestIds
+    })
+  });
+  assert.equal(rerollResponse.status, 200);
+
+  const rerollPayload = await rerollResponse.json();
+  const rerolledQuests = Array.isArray(rerollPayload.quests) ? rerollPayload.quests : [];
+  const rerolledRandomQuests = rerolledQuests.slice(PINNED_COUNT, PINNED_COUNT + EXPECTED_RANDOM_COUNT);
+  const rerolledRandomIds = rerolledRandomQuests.map((quest) => quest.id);
+
+  for (const keptQuestId of keptQuestIds) {
+    assert.ok(rerolledRandomIds.includes(keptQuestId), `kept quest ${keptQuestId} should remain after reroll`);
+  }
+
+  for (const selectedQuestId of selectedQuestIds) {
+    assert.equal(rerolledRandomIds.includes(selectedQuestId), false, `selected quest ${selectedQuestId} should be replaced`);
+  }
+
+  const rerolledCategories = rerolledRandomQuests.map((quest) => String(quest?.category || "").toUpperCase());
+  assert.equal(new Set(rerolledCategories).size, EXPECTED_RANDOM_COUNT, "rerolled random quests must keep unique categories");
+});
+
 test("POST /api/quests/complete grants 2 tokens starting from level 10", async () => {
   const username = `lvl10_${Date.now().toString().slice(-6)}`;
 

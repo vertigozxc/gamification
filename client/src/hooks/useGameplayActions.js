@@ -334,10 +334,18 @@ function useGameplayActions({
     }
   }
 
-  async function doReroll(targetQuestId) {
+  async function doReroll(targetQuestIds) {
+    const selectedQuestIds = [...new Set((Array.isArray(targetQuestIds) ? targetQuestIds : [targetQuestIds])
+      .map((id) => Number(id))
+      .filter((id) => Number.isInteger(id) && id > 0))].slice(0, 3);
+
+    if (selectedQuestIds.length === 0) {
+      return;
+    }
+
     setShowRerollConfirm(false);
-    setRerollingQuestId(targetQuestId || null);
-    trackEvent("quest_reroll_requested", { targetQuestId });
+    setRerollingQuestId(selectedQuestIds[0] || null);
+    trackEvent("quest_reroll_requested", { targetQuestIds: selectedQuestIds });
     try {
       // Exclude categories already shown by non-pinned quests that stay locked (completed quests).
       const preferredQuestCount = Array.isArray(state.preferredQuestIds) && state.preferredQuestIds.length > 0 ? state.preferredQuestIds.length : 3;
@@ -347,12 +355,13 @@ function useGameplayActions({
         .filter((quest) => completedSet.has(quest?.id))
         .map((quest) => quest?.category)
         .filter((category) => category && category.length > 0);
+      const selectedQuestIdSet = new Set(selectedQuestIds);
       
       const keepQuestIds = currentOtherQuests
-        .filter((q) => q && q.id !== targetQuestId)
+        .filter((q) => q && !selectedQuestIdSet.has(q.id))
         .map((q) => q.id);
 
-      const result = await resetDaily(resolvedUsername, true, excludeCategories, targetQuestId, keepQuestIds);
+      const result = await resetDaily(resolvedUsername, true, excludeCategories, selectedQuestIds, keepQuestIds);
       if (typeof onServerTimeSync === "function") {
         onServerTimeSync(result);
       }
@@ -384,7 +393,7 @@ function useGameplayActions({
       }));
       questRenderCountRef.current = 0;
     } catch (err) {
-      trackEvent("quest_reroll_failed", { message: err?.message });
+      trackEvent("quest_reroll_failed", { message: err?.message, targetQuestIds: selectedQuestIds });
       addLog(vocab?.rerollFailed || "Reroll failed. Please try again.", "text-red-400 font-bold");
     } finally {
       setRerollingQuestId(null);

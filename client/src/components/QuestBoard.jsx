@@ -8,6 +8,8 @@ function QuestBoard({
   pinnedQuests,
   otherQuests,
   pinnedQuestProgressById,
+  dailyQuestFreshDayKey = "",
+  dailyQuestFreshStorageId = "",
   canRerollRandom,
   onRerollRandom,
   rerollButtonLabel,
@@ -30,6 +32,7 @@ function QuestBoard({
   if (hasOther) tabs.push("daily");
   const [activeQTab, setActiveQTab] = useState(tabs[0] || "habits");
   const [selectedRerollId, setSelectedRerollId] = useState(null);
+  const [showFreshDailyBadge, setShowFreshDailyBadge] = useState(false);
   const indicatorRef = useRef(null);
   const tabsRowRef = useRef(null);
 
@@ -37,6 +40,22 @@ function QuestBoard({
   const [otherListRef] = useAutoAnimate();
   const [fallbackListRef] = useAutoAnimate();
   const pendingSet = useMemo(() => new Set(Array.isArray(pendingQuestIds) ? pendingQuestIds : []), [pendingQuestIds]);
+  const dailySeenStorageKey = dailyQuestFreshStorageId ? `life_rpg_daily_quests_seen_${dailyQuestFreshStorageId}` : "";
+
+  const markDailyTabSeen = useCallback(() => {
+    if (!dailyQuestFreshDayKey || !dailySeenStorageKey || typeof window === "undefined") {
+      setShowFreshDailyBadge(false);
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(dailySeenStorageKey, dailyQuestFreshDayKey);
+    } catch {
+      // ignore storage failures
+    }
+
+    setShowFreshDailyBadge(false);
+  }, [dailyQuestFreshDayKey, dailySeenStorageKey]);
 
   const sortQuests = useCallback((quests) => {
     return [...quests].sort((a, b) => {
@@ -49,6 +68,26 @@ function QuestBoard({
 
   const sortedPinnedQuests = useMemo(() => sortQuests(pinnedQuests), [pinnedQuests, sortQuests]);
   const sortedOtherQuests = useMemo(() => sortQuests(otherQuests), [otherQuests, sortQuests]);
+
+  useLayoutEffect(() => {
+    if (!hasOther || !dailyQuestFreshDayKey || !dailySeenStorageKey || typeof window === "undefined") {
+      setShowFreshDailyBadge(false);
+      return;
+    }
+
+    try {
+      const lastSeenDayKey = window.localStorage.getItem(dailySeenStorageKey) || "";
+      setShowFreshDailyBadge(lastSeenDayKey !== dailyQuestFreshDayKey);
+    } catch {
+      setShowFreshDailyBadge(false);
+    }
+  }, [hasOther, dailyQuestFreshDayKey, dailySeenStorageKey]);
+
+  useLayoutEffect(() => {
+    if (activeQTab === "daily" && showFreshDailyBadge) {
+      markDailyTabSeen();
+    }
+  }, [activeQTab, showFreshDailyBadge, markDailyTabSeen]);
 
   useLayoutEffect(() => {
     if (!tabsRowRef.current || !indicatorRef.current) return;
@@ -98,9 +137,20 @@ function QuestBoard({
             type="button"
             data-qtab="daily"
             className={`qb-tab-btn ${activeQTab === "daily" ? "qb-tab-active" : ""}`}
-            onClick={() => setActiveQTab("daily")}
+            onClick={() => {
+              setActiveQTab("daily");
+              if (showFreshDailyBadge) {
+                markDailyTabSeen();
+              }
+            }}
           >
             <span>🎲</span> {t.otherSection} <span className="qb-tab-count">{otherDone}/{otherQuests.length}</span>
+            {showFreshDailyBadge ? (
+              <span className="qb-tab-fresh" aria-label={t.dailyQuestFreshBadge || "NEW"}>
+                <span className="qb-tab-fresh__spark">✦</span>
+                <span className="qb-tab-fresh__label">{t.dailyQuestFreshBadge || "NEW"}</span>
+              </span>
+            ) : null}
           </button>
         </div>
       )}
@@ -247,6 +297,8 @@ QuestBoard.propTypes = {
     icon: PropTypes.string
   })).isRequired,
   pinnedQuestProgressById: PropTypes.object,
+  dailyQuestFreshDayKey: PropTypes.string,
+  dailyQuestFreshStorageId: PropTypes.string,
   canRerollRandom: PropTypes.bool.isRequired,
   onRerollRandom: PropTypes.func.isRequired,
   rerollButtonLabel: PropTypes.string.isRequired,

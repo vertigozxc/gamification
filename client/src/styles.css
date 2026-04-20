@@ -275,6 +275,19 @@ body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-boar
 body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-reward {
     color: #6b7484;
 }
+
+body[data-theme="light"] .daily-board-panel .daily-board-card-unlocked .daily-board-milestone-label {
+    color: #4b5565;
+}
+
+body[data-theme="light"] .daily-board-panel .daily-board-card-unlocked .daily-board-reward {
+    color: #555f70;
+}
+
+body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-milestone-label,
+body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-reward {
+    color: #5f6978;
+}
 /* ===== Base Styles ===== */
 * {
     box-sizing: border-box;
@@ -1297,6 +1310,9 @@ body::before {
 .qb-tab-btn:hover{color:#e2e8f0}
 .qb-tab-active{color:#f8fafc}
 .qb-tab-count{opacity:.5;font-variant-numeric:tabular-nums;font-size:.62rem}
+.qb-tab-fresh{pointer-events:none;position:absolute;top:-14px;right:14px;display:inline-flex;align-items:center;gap:.28rem;padding:.28rem .62rem .26rem;border-radius:999px;background:linear-gradient(135deg,#ffe28a,#ffc947);border:1px solid rgba(255,221,112,.68);box-shadow:0 10px 18px -12px rgba(255,190,11,.9),0 0 0 1px rgba(255,255,255,.35) inset;transform:rotate(-4deg);animation:qbFreshBadgeFloat 2.2s ease-in-out infinite}
+.qb-tab-fresh__spark{font-size:.62rem;line-height:1;color:#7c2d12;opacity:.9}
+.qb-tab-fresh__label{font-family:"Caveat",var(--font-heading);font-size:1.15rem;line-height:1;color:#111827;font-weight:700;letter-spacing:.04em;text-transform:none}
 .qb-quest-item{-webkit-backdrop-filter:blur(16px);cursor:pointer;background:var(--quest-item-bg);border:1.5px solid var(--quest-item-border);border-radius:1.25rem;padding:1.15rem;transition:all .22s;animation:.35s cubic-bezier(.22,1,.36,1) both qbItemIn;position:relative;box-shadow:0 4px 16px #0006,inset 0 1px #ffffff0d}
 .qb-quest-item:active{filter:brightness(1.15);background:var(--quest-item-active-bg);border-color:var(--quest-item-active-border);transform:scale(.96)}
 .qb-quest-done{opacity:.5;box-shadow:none;background:var(--quest-item-done-bg);border-color:var(--quest-item-done-border)!important}
@@ -1322,6 +1338,7 @@ to{opacity:1;transform:translateY(0)}
 to{opacity:1;transform:translateY(0)}
 }
 @keyframes qbSpin{to{transform:rotate(360deg)}}
+@keyframes qbFreshBadgeFloat{0%,100%{transform:rotate(-4deg) translateY(0)}50%{transform:rotate(-2deg) translateY(-2px)}}
 .completed{opacity:.8;pointer-events:none;background:var(--color-success-bg);border-color:var(--color-success)!important}
 .completed-badge{letter-spacing:.18em;text-transform:uppercase;background:var(--completed-badge-bg);color:var(--completed-badge-text);box-shadow:inset 0 0 8px #ffffff21, var(--completed-badge-glow);text-shadow:0 0 6px #0003;border:2px solid #fff3;border-radius:.9rem;justify-content:center;align-items:center;padding:.42rem 1.14rem;font-size:.98rem;font-weight:900;display:inline-flex;position:absolute;bottom:1rem;right:1rem;transform:rotate(-2deg)}
 .bar-fill{background:var(--bar-fill);box-shadow:var(--bar-fill-glow);transition:width .6s cubic-bezier(.25,.46,.45,.94)}
@@ -1394,6 +1411,16 @@ body[data-theme="light"] .qb-tab-btn {
     color: #8b95a7;
 }
 
+body[data-theme="light"] .qb-tab-fresh {
+    background: linear-gradient(135deg, #ffd86f, #ffcc4d 58%, #ffc13a);
+    border-color: rgba(255, 193, 58, 0.72);
+    box-shadow: 0 12px 20px -14px rgba(255, 170, 25, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.58) inset;
+}
+
+body[data-theme="light"] .qb-tab-fresh__label {
+    color: #18181b;
+}
+
 body[data-theme="light"] .qb-tab-btn:hover,
 body[data-theme="light"] .qb-tab-active {
     color: #1f2937;
@@ -1426,6 +1453,14 @@ body[data-theme="light"] .qb-reroll-btn {
     color: #ffffff;
     background: linear-gradient(135deg, #ff739f, #ff5c8a);
     border-color: rgba(255, 92, 138, 0.4);
+}
+
+body[data-theme="light"] .reroll-option-selected .reroll-option-category {
+    color: #566189 !important;
+}
+
+body[data-theme="light"] .reroll-option-selected .reroll-option-xp {
+    color: #d39b00 !important;
 }
 
 body[data-theme="light"] .theme-picker-trigger {

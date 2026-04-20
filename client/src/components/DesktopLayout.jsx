@@ -11,6 +11,7 @@ export default function DesktopLayout({
   xpPercent, completedToday, milestoneProgressPercent, milestoneSteps,
   streakBonusPercent, weekResetTimer,
   pinnedQuests, otherQuests, pinnedQuestProgressById,
+  dailyQuestFreshDayKey, dailyQuestFreshStorageId,
   canReroll, questRenderCount,
   pendingQuestIds,
   onReroll, onCompleteQuest, rerollButtonLabel, rerollButtonTitle,
@@ -65,6 +66,8 @@ export default function DesktopLayout({
         <QuestBoard
           pinnedQuests={pinnedQuests} otherQuests={otherQuests}
           pinnedQuestProgressById={pinnedQuestProgressById}
+          dailyQuestFreshDayKey={dailyQuestFreshDayKey}
+          dailyQuestFreshStorageId={dailyQuestFreshStorageId}
           canRerollRandom={canReroll} onRerollRandom={onReroll}
           rerollButtonLabel={rerollButtonLabel} rerollButtonTitle={rerollButtonTitle}
           completedIds={state.completed} questRenderCount={questRenderCount}

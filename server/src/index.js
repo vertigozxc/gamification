@@ -1438,6 +1438,77 @@ function isValidRandomQuestSet(randomQuests, expectedCount) {
   return true;
 }
 
+function findReplacementQuestCombination({
+  questPool,
+  pinnedSet,
+  keepRandomQuests,
+  excludeCategories,
+  unavailableQuestIds,
+  replacementCount,
+  expectedRandomCount
+}) {
+  if (!replacementCount) {
+    return [];
+  }
+
+  const usedCategories = new Set(keepRandomQuests.map((quest) => normalizeCategory(quest?.category)));
+  const requiredEffort = expectedRandomCount === 3
+    ? 9 - sumEffort(keepRandomQuests)
+    : null;
+
+  const candidates = questPool.filter((quest) => {
+    if (pinnedSet.has(quest.id) || unavailableQuestIds.has(quest.id)) {
+      return false;
+    }
+
+    const category = normalizeCategory(quest.category);
+    return !excludeCategories.has(category) && !usedCategories.has(category);
+  });
+
+  let solution = null;
+
+  function backtrack(startIndex, chosen, chosenCategories, chosenEffort) {
+    if (solution) {
+      return;
+    }
+
+    if (chosen.length === replacementCount) {
+      if (requiredEffort !== null && chosenEffort !== requiredEffort) {
+        return;
+      }
+
+      solution = [...chosen];
+      return;
+    }
+
+    for (let index = startIndex; index < candidates.length; index += 1) {
+      const quest = candidates[index];
+      const category = normalizeCategory(quest.category);
+      if (chosenCategories.has(category)) {
+        continue;
+      }
+
+      const nextEffort = chosenEffort + (Number(quest.effortScore) || 0);
+      if (requiredEffort !== null && nextEffort > requiredEffort) {
+        continue;
+      }
+
+      chosen.push(quest);
+      chosenCategories.add(category);
+      backtrack(index + 1, chosen, chosenCategories, nextEffort);
+      chosen.pop();
+      chosenCategories.delete(category);
+
+      if (solution) {
+        return;
+      }
+    }
+  }
+
+  backtrack(0, [], new Set(), 0);
+  return solution;
+}
+
 function dailyQuestsForUser(user, date = new Date(), language = "en") {
   const preferredQuestIds = parsePreferredQuestIds(user.preferredQuestIds);
   const quests = getDailyQuests({
@@ -2669,6 +2740,7 @@ app.post("/api/reset-daily", async (req, res) => {
       username: z.string().min(2).max(64),
       isReroll: z.boolean().optional(),
       excludeCategories: z.array(z.string()).optional(),
+      targetQuestIds: z.array(z.number().int()).optional(),
       targetQuestId: z.number().int().optional().nullable(),
       keepQuestIds: z.array(z.number().int()).optional()
     });
@@ -2778,52 +2850,56 @@ app.post("/api/reset-daily", async (req, res) => {
   const userCustomQuests = await fetchUserCustomQuests(user.id);
   pushTiming("db_custom_quests", tCustomQuests);
 
-    if (parsed.isReroll && parsed.targetQuestId && Array.isArray(parsed.keepQuestIds)) {
+    const requestedTargetQuestIds = [...new Set([
+      ...(Array.isArray(parsed.targetQuestIds) ? parsed.targetQuestIds : []),
+      ...(Number.isInteger(parsed.targetQuestId) ? [parsed.targetQuestId] : [])
+    ])];
+
+    if (parsed.isReroll && requestedTargetQuestIds.length > 0) {
       const { preferredQuestIds: pinned } = onboardingStatus(user, userCustomQuests);
       const randomQuestCount = Math.max(0, Math.min(getRandomQuestCount(), getDailyQuestCount() - pinned.length));
       const questPool = getQuestPool({ language });
       const questById = new Map(questPool.map((quest) => [quest.id, quest]));
       const pinnedSet = new Set(pinned);
-      const keepRandomIds = [...new Set(parsed.keepQuestIds
+      const targetQuestIds = requestedTargetQuestIds
         .map((id) => Number(id))
-        .filter((id) => Number.isInteger(id) && id > 0 && !pinnedSet.has(id) && id !== parsed.targetQuestId))]
-        .slice(0, Math.max(0, randomQuestCount - 1));
+        .filter((id) => Number.isInteger(id) && id > 0 && !pinnedSet.has(id));
+
+      if (targetQuestIds.length === 0) {
+        return res.status(400).json({ error: "No valid reroll quests selected" });
+      }
+
+      if (targetQuestIds.length > randomQuestCount) {
+        return res.status(400).json({ error: `You can reroll up to ${randomQuestCount} quests at once` });
+      }
+
+      const keepRandomIds = [...new Set((parsed.keepQuestIds || [])
+        .map((id) => Number(id))
+        .filter((id) => Number.isInteger(id) && id > 0 && !pinnedSet.has(id) && !targetQuestIds.includes(id)))]
+        .slice(0, Math.max(0, randomQuestCount - targetQuestIds.length));
+
+      if (keepRandomIds.length + targetQuestIds.length !== randomQuestCount) {
+        return res.status(400).json({ error: "Invalid reroll selection" });
+      }
+
       const keepRandomQuests = keepRandomIds.map((id) => questById.get(id)).filter(Boolean);
 
       const excludedCategories = new Set((parsed.excludeCategories || []).map((item) => normalizeCategory(item)));
-      const usedCategories = new Set(keepRandomQuests.map((quest) => normalizeCategory(quest.category)));
-      const keepEffort = sumEffort(keepRandomQuests);
-
-      const requiredEffort = randomQuestCount === 3
-        ? 9 - keepEffort
-        : null;
-
-      const candidates = questPool.filter((quest) => {
-        if (pinnedSet.has(quest.id)) {
-          return false;
-        }
-        if (quest.id === parsed.targetQuestId || keepRandomIds.includes(quest.id)) {
-          return false;
-        }
-
-        const category = normalizeCategory(quest.category);
-        if (excludedCategories.has(category) || usedCategories.has(category)) {
-          return false;
-        }
-
-        if (requiredEffort !== null) {
-          return Number(quest.effortScore) === requiredEffort;
-        }
-
-        return true;
+      const replacementQuests = findReplacementQuestCombination({
+        questPool,
+        pinnedSet,
+        keepRandomQuests,
+        excludeCategories: excludedCategories,
+        unavailableQuestIds: new Set([...keepRandomIds, ...targetQuestIds]),
+        replacementCount: targetQuestIds.length,
+        expectedRandomCount: randomQuestCount
       });
 
-      const replacement = candidates[0] || null;
-      if (!replacement) {
+      if (!replacementQuests || replacementQuests.length !== targetQuestIds.length) {
         return res.status(400).json({ error: "No valid reroll quest found for unique category and effort constraints" });
       }
 
-      const finalNonPinnedIds = [...keepRandomIds, replacement.id].slice(0, randomQuestCount);
+      const finalNonPinnedIds = [...keepRandomIds, ...replacementQuests.map((quest) => quest.id)].slice(0, randomQuestCount);
       const finalNonPinnedQuests = finalNonPinnedIds.map((id) => questById.get(id)).filter(Boolean);
 
       if (!isValidRandomQuestSet(finalNonPinnedQuests, randomQuestCount)) {

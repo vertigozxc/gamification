@@ -187,3 +187,34 @@
 11:53:08 AM [vite] (client) hmr update /src/ThemeContext.jsx, /src/components/ThemePickerModal.jsx, /src/components/AppHeader.jsx, /src/components/tabs/ProfileTab.jsx
 11:53:39 AM [vite] (client) hmr update /src/ThemeContext.jsx, /src/components/ThemePickerModal.jsx, /src/components/AppHeader.jsx, /src/components/tabs/ProfileTab.jsx
 11:53:39 AM [vite] (client) hmr update /src/ThemeContext.jsx
+12:03:59 PM [vite] (client) hmr update /src/components/modals/RerollConfirmModal.jsx
+12:04:38 PM [vite] (client) hmr update /src/styles.css
+12:05:29 PM [vite] (client) hmr update /src/components/modals/RerollConfirmModal.jsx
+12:06:40 PM [vite] (client) hmr update /src/styles.css
+12:06:40 PM [vite] (client) hmr update /src/components/modals/RerollConfirmModal.jsx
+12:11:50 PM [vite] (client) hmr update /src/App.jsx, /src/components/SpinWheelModal.jsx, /src/components/tabs/CityTab.jsx
+12:12:01 PM [vite] (client) hmr update /src/App.jsx
+12:12:25 PM [vite] (client) hmr update /src/components/modals/RerollConfirmModal.jsx
+12:12:37 PM [vite] (client) hmr update /src/ThemeContext.jsx
+12:12:56 PM [vite] (client) hmr update /src/ThemeContext.jsx, /src/components/ThemePickerModal.jsx, /src/components/AppHeader.jsx, /src/components/tabs/ProfileTab.jsx
+12:16:26 PM [vite] (client) hmr update /src/ThemeContext.jsx, /src/components/ThemePickerModal.jsx, /src/components/AppHeader.jsx, /src/components/tabs/ProfileTab.jsx
+12:16:26 PM [vite] (client) hmr update /src/ThemeContext.jsx
+12:16:26 PM [vite] (client) hmr update /src/App.jsx, /src/components/SpinWheelModal.jsx, /src/components/tabs/CityTab.jsx
+12:16:26 PM [vite] (client) hmr update /src/components/modals/RerollConfirmModal.jsx
+12:16:26 PM [vite] (client) hmr update /src/App.jsx
+12:17:22 PM [vite] (client) hmr update /src/styles.css
+12:17:42 PM [vite] (client) hmr update /src/styles.css
+12:24:50 PM [vite] (client) hmr update /src/components/QuestBoard.jsx
+12:25:21 PM [vite] (client) hmr update /src/components/tabs/DashboardTab.jsx
+12:25:21 PM [vite] (client) hmr update /src/components/DesktopLayout.jsx
+12:25:48 PM [vite] (client) hmr update /src/App.jsx
+12:26:14 PM [vite] (client) hmr update /src/ThemeContext.jsx
+12:26:14 PM [vite] (client) hmr update /src/ThemeContext.jsx, /src/components/ThemePickerModal.jsx, /src/components/AppHeader.jsx, /src/components/tabs/ProfileTab.jsx
+12:26:33 PM [vite] (client) hmr update /src/styles.css
+12:28:27 PM [vite] (client) hmr update /src/ThemeContext.jsx, /src/components/ThemePickerModal.jsx, /src/components/AppHeader.jsx, /src/components/tabs/ProfileTab.jsx
+12:28:27 PM [vite] (client) hmr update /src/ThemeContext.jsx
+12:28:27 PM [vite] (client) hmr update /src/styles.css
+12:28:27 PM [vite] (client) hmr update /src/components/QuestBoard.jsx
+12:28:27 PM [vite] (client) hmr update /src/components/tabs/DashboardTab.jsx
+12:28:27 PM [vite] (client) hmr update /src/App.jsx
+12:28:27 PM [vite] (client) hmr update /src/components/DesktopLayout.jsx

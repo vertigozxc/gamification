@@ -5,6 +5,7 @@ export default function DashboardTab({
   xpPercent, completedToday, milestoneSteps,
   streakFreezeActive, streakBonusPercent = 0,
   pinnedQuests, otherQuests, pinnedQuestProgressById,
+  dailyQuestFreshDayKey, dailyQuestFreshStorageId,
   canReroll, allRandomCompleted, questRenderCount,
   pendingQuestIds,
   resetTimer,
@@ -91,6 +92,8 @@ export default function DashboardTab({
         <QuestBoard
           pinnedQuests={pinnedQuests} otherQuests={otherQuests}
           pinnedQuestProgressById={pinnedQuestProgressById}
+          dailyQuestFreshDayKey={dailyQuestFreshDayKey}
+          dailyQuestFreshStorageId={dailyQuestFreshStorageId}
           canRerollRandom={canReroll}
           onRerollRandom={onReroll}
           rerollButtonLabel={rerollButtonLabel}
