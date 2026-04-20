@@ -3,6 +3,7 @@ import CityIllustration from "../CityIllustration";
 import CityFireworks from "../CityFireworks";
 import InteractiveMapWrapper from "../InteractiveMapWrapper";
 import SpinWheelModal from "../SpinWheelModal";
+import { citySpinStatus } from "../../api";
 
 const SPIN_CACHE_KEY = "city_spin_cache"; // { dateKey, nextSpinAt }
 
@@ -33,6 +34,12 @@ function writeSpinCache(nextSpinAt) {
   } catch {}
 }
 
+function clearSpinCache() {
+  try {
+    localStorage.removeItem(SPIN_CACHE_KEY);
+  } catch {}
+}
+
 export default function CityTab({
   stage,
   t,
@@ -57,6 +64,37 @@ export default function CityTab({
       setCdRemaining(ms);
     }
   }, []);
+
+  useEffect(() => {
+    if (!username) return;
+    let cancelled = false;
+
+    // Server is the source of truth: local cache can be stale after admin cooldown reset.
+    citySpinStatus(username)
+      .then((status) => {
+        if (cancelled) return;
+        if (!status?.alreadySpun) {
+          clearSpinCache();
+          setAlreadySpun(false);
+          setCdRemaining(0);
+          return;
+        }
+
+        if (status?.nextSpinAt) {
+          writeSpinCache(status.nextSpinAt);
+          const ms = Math.max(0, new Date(status.nextSpinAt) - Date.now());
+          setCdRemaining(ms);
+        }
+        setAlreadySpun(true);
+      })
+      .catch(() => {
+        // Keep existing local cache behavior if server status request fails.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [username]);
 
   // Live countdown when already spun
   useEffect(() => {
