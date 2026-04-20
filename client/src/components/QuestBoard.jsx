@@ -136,7 +136,7 @@ function QuestBoard({
           <button
             type="button"
             data-qtab="daily"
-            className={`qb-tab-btn ${activeQTab === "daily" ? "qb-tab-active" : ""} ${showFreshDailyBadge ? "qb-tab-btn-with-fresh" : ""}`}
+            className={`qb-tab-btn ${activeQTab === "daily" ? "qb-tab-active" : ""}`}
             onClick={() => {
               setActiveQTab("daily");
               if (showFreshDailyBadge) {
