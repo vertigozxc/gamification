@@ -1,10 +1,9 @@
-export default function PortalPreloader({ title = "", caption = "", fullscreen = false, overlay = false }) {
+export default function PortalPreloader({ title = "", caption = "", fullscreen = false }) {
   return (
     <div
       className={[
         "portal-preloader-shell",
-        fullscreen ? "portal-preloader-shell--fullscreen" : "",
-        overlay ? "portal-preloader-shell--overlay" : ""
+        fullscreen ? "portal-preloader-shell--fullscreen" : ""
       ].filter(Boolean).join(" ")}
     >
       <div className="portal-preloader" aria-live="polite" aria-busy="true">

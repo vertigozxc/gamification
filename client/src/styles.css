@@ -1471,12 +1471,60 @@ body[data-theme="light"] .qb-reroll-btn {
     border-color: rgba(255, 92, 138, 0.4);
 }
 
+.reroll-option-xp {
+    color: #fef08a !important;
+    background: rgba(15, 23, 42, 0.28);
+    border: 1px solid rgba(250, 204, 21, 0.32);
+    border-radius: 999px;
+    padding: 2px 8px;
+    line-height: 1;
+    letter-spacing: 0.02em;
+}
+
+.reroll-option-selected .reroll-option-xp {
+    color: #fde68a !important;
+    background: rgba(15, 23, 42, 0.42);
+    border-color: rgba(250, 204, 21, 0.44);
+}
+
 body[data-theme="light"] .reroll-option-selected .reroll-option-category {
     color: #566189 !important;
 }
 
+body[data-theme="light"] .reroll-option-idle {
+    background: rgba(148, 163, 184, 0.24) !important;
+    border-color: rgba(148, 163, 184, 0.34) !important;
+}
+
+body[data-theme="light"] .reroll-option-selected {
+    background: linear-gradient(135deg, rgba(227, 232, 255, 0.96), rgba(245, 228, 255, 0.96)) !important;
+    border-color: rgba(116, 168, 255, 0.55) !important;
+    box-shadow: 0 10px 22px -18px rgba(116, 168, 255, 0.45), 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+
+body[data-theme="light"] .reroll-option-selected h4 {
+    color: #1f2937 !important;
+}
+
+body[data-theme="light"] .reroll-option-idle h4 {
+    color: #ffffff !important;
+}
+
+body[data-theme="light"] .reroll-option input[type="checkbox"] {
+    background: rgba(255, 255, 255, 0.96);
+    border-color: rgba(148, 163, 184, 0.5);
+}
+
+body[data-theme="light"] .reroll-option-xp {
+    color: #7c5100 !important;
+    background: rgba(255, 255, 255, 0.88);
+    border-color: rgba(217, 119, 6, 0.35);
+}
+
 body[data-theme="light"] .reroll-option-selected .reroll-option-xp {
-    color: #d39b00 !important;
+    color: #6b4600 !important;
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(217, 119, 6, 0.45);
 }
 
 body[data-theme="light"] .theme-picker-trigger {
@@ -1522,7 +1570,6 @@ body[data-theme="light"] .portal-preloader__cityline span {
     padding: 16px;
     padding-bottom: calc(var(--mobile-safe-bottom, 0px) + 92px);
     background: rgba(2, 6, 23, 0.74);
-    backdrop-filter: blur(10px);
 }
 
 .delete-profile-modal-card {

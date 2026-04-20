@@ -81,7 +81,7 @@ function RerollConfirmModal({ open, onCancel, onConfirm, quests = [], completedI
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center mb-1">
                     <span className="reroll-option-category text-[10px] font-bold tracking-wider uppercase text-slate-400">{quest.category}</span>
-                    <span className="reroll-option-xp text-xs font-bold text-yellow-500">+{quest.xp} XP</span>
+                    <span className="reroll-option-xp text-xs font-bold">+{quest.xp} XP</span>
                   </div>
                   <h4 className="cinzel text-sm text-white font-bold leading-snug">{quest.title}</h4>
                 </div>
