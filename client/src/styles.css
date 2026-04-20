@@ -1343,13 +1343,6 @@ to{opacity:1;transform:translateY(0)}
 
 .top-screen-block{border:2px solid color-mix(in srgb,var(--color-primary) 70%,var(--panel-border)) !important;box-shadow:0 0 0 1px color-mix(in srgb,var(--color-primary) 28%,transparent) inset,0 10px 28px -20px color-mix(in srgb,var(--color-primary) 48%,transparent)}
 
-body[data-theme="light"] .embedded-shell {
-    padding-top: calc(var(--mobile-safe-top, 0px) + 14px);
-}
-body[data-theme="light"] .embedded-content-safe {
-    padding-top: 52px;
-}
-
 body[data-theme="light"] .mobile-card,
 body[data-theme="light"] .dash-hero,
 body[data-theme="light"] .city-canvas-shell,
