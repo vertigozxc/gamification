@@ -222,7 +222,7 @@ function useOnboardingPinned({
     }
   }
 
-  function applyServerBootstrap(gameStateResponse, fallbackName) {
+  function applyServerBootstrap(gameStateResponse, _fallbackName) {
     const allQuests = Array.isArray(gameStateResponse?.allQuests)
       ? gameStateResponse.allQuests.map(normalizeQuest)
       : [];
@@ -244,7 +244,8 @@ function useOnboardingPinned({
       setOnboardingSaving(false);
       setOnboardingQuestSearch("");
       setOnboardingQuestIds(preferredQuestIds);
-      setOnboardingName((fallbackName || gameStateResponse?.user?.displayName || authUser?.displayName || "").trim());
+      // Name must be entered explicitly during onboarding.
+      setOnboardingName("");
     }
 
     return preferredQuestIds;
