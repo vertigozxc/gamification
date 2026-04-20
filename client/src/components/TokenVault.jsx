@@ -34,7 +34,7 @@ function TokenVault({
               </div>
               <div className="flex items-center gap-1 rounded-full px-3 py-1" style={{ background: "var(--xp-badge-bg)", border: "1px solid var(--color-primary-dim)" }}>
                 <span className="text-base">{t.tokenIcon}</span>
-                <span className="cinzel font-bold text-sm" style={{ color: "var(--color-primary)" }}>3</span>
+                <span className="cinzel font-bold text-sm" style={{ color: "var(--color-text)" }}>3</span>
               </div>
             </div>
             <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
@@ -70,7 +70,7 @@ function TokenVault({
               </div>
               <div className="flex items-center gap-1 rounded-full px-3 py-1" style={{ background: "var(--xp-badge-bg)", border: "1px solid var(--color-primary-dim)" }}>
                 <span className="text-base">{t.tokenIcon}</span>
-                <span className="cinzel font-bold text-sm" style={{ color: "var(--color-primary)" }}>1</span>
+                <span className="cinzel font-bold text-sm" style={{ color: "var(--color-text)" }}>1</span>
               </div>
             </div>
             <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
@@ -105,7 +105,7 @@ function TokenVault({
               </div>
               <div className="flex items-center gap-1 rounded-full px-3 py-1 self-start" style={{ background: "var(--xp-badge-bg)", border: "1px solid var(--color-primary-dim)" }}>
                 <span className="text-base">{t.tokenIcon}</span>
-                <span className="cinzel font-bold text-sm" style={{ color: "var(--color-primary)" }}>{isFreePinnedReroll ? t.freeLabel.toUpperCase() : "7"}</span>
+                <span className="cinzel font-bold text-sm" style={{ color: "var(--color-text)" }}>{isFreePinnedReroll ? t.freeLabel.toUpperCase() : "7"}</span>
               </div>
             </div>
             <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
@@ -130,25 +130,6 @@ function TokenVault({
             </button>
           </div>
 
-          <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)", opacity: 0.7 }}>
-            <div className="flex items-start gap-3">
-              <span className="text-3xl grayscale">🎴</span>
-              <div className="flex-1">
-                <p className="cinzel font-bold text-base tracking-wide" style={{ color: "var(--color-text)" }}>{t.mysteryItemTitle}</p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.mysteryItemDesc}</p>
-              </div>
-              <div className="flex items-center gap-1 rounded-full px-3 py-1 self-start" style={{ background: "var(--xp-badge-bg)", border: "1px solid var(--color-primary-dim)", filter: "grayscale(100%)" }}>
-                <span className="text-base">{t.tokenIcon}</span>
-                <span className="cinzel font-bold text-sm text-slate-400">?</span>
-              </div>
-            </div>
-            <button
-              disabled
-              className="mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-dashed border-slate-600 bg-slate-900/50 text-slate-500 text-sm flex items-center justify-center gap-2 cursor-not-allowed uppercase tracking-widest"
-            >
-              {t.comingSoon}
-            </button>
-          </div>
         </div>
       ) : (
         <div className="mt-8 mb-4">
