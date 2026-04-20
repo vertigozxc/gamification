@@ -1,6 +1,8 @@
 import Constants from "expo-constants";
 import { NativeModules } from "react-native";
 
+const PROD_API_BASE_URL = "https://life-rpg-api-router.evgeny-mahnach.workers.dev";
+
 function pickBundleHost() {
   const scriptURL = NativeModules?.SourceCode?.scriptURL;
   if (!scriptURL || typeof scriptURL !== "string") {
@@ -47,5 +49,5 @@ export function getApiBaseUrl() {
     return inferredFromBundle;
   }
 
-  return "https://api.life-rpg.app";
+  return PROD_API_BASE_URL;
 }
