@@ -269,24 +269,24 @@ body[data-theme="light"] .daily-board-panel .daily-board-segment-milestone {
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-milestone-label {
-    color: #111318;
+    color: #111318 !important;
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-reward {
-    color: #111318;
+    color: #111318 !important;
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-unlocked .daily-board-milestone-label {
-    color: #111318;
+    color: #111318 !important;
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-unlocked .daily-board-reward {
-    color: #111318;
+    color: #111318 !important;
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-milestone-label,
 body[data-theme="light"] .daily-board-panel .daily-board-card-locked .daily-board-reward {
-    color: #111318;
+    color: #111318 !important;
 }
 
 body[data-theme="light"] .daily-board-panel .daily-board-card-locked p:first-child {
