@@ -160,3 +160,8 @@
 11:12:50 AM [vite] (client) page reload src/main.jsx
 11:15:06 AM [vite] (client) hmr update /src/components/modals/OnboardingModal.jsx
 11:15:57 AM [vite] (client) hmr update /src/components/modals/OnboardingModal.jsx
+11:25:53 AM [vite] (client) hmr update /src/ThemeContext.jsx
+11:25:53 AM [vite] (client) hmr invalidate /src/ThemeContext.jsx Could not Fast Refresh ("useTheme" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+11:25:53 AM [vite] (client) hmr update /src/main.jsx, /src/App.jsx, /src/components/modals/FreezeSuccessModal.jsx, /src/components/modals/LogoutConfirmModal.jsx, /src/components/modals/RerollConfirmModal.jsx, /src/components/modals/OnboardingModal.jsx, /src/components/modals/NotesModal.jsx, /src/components/modals/PinnedReplacementModal.jsx, /src/components/modals/CustomHabitManager.jsx, /src/components/TokenVault.jsx, /src/components/CityIllustration.jsx, /src/components/ProfilePanel.jsx, /src/components/QuestBoard.jsx and 1 more
+11:25:53 AM [vite] (client) hmr invalidate /src/main.jsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+11:25:53 AM [vite] (client) page reload src/main.jsx

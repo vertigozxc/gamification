@@ -3370,7 +3370,15 @@ app.post("/api/sync-state", async (req, res) => {
 
 app.get("/api/leaderboard", async (_req, res) => {
   try {
+    const LEADERBOARD_TEST_USERNAME_PREFIX = "leader_test_";
+    const LEADERBOARD_TEST_DISPLAY_PREFIX = "Leaderboard Test";
     const users = await prisma.user.findMany({
+      where: {
+        AND: [
+          { username: { not: { startsWith: LEADERBOARD_TEST_USERNAME_PREFIX } } },
+          { displayName: { not: { startsWith: LEADERBOARD_TEST_DISPLAY_PREFIX } } }
+        ]
+      },
       select: {
         username: true,
         displayName: true,
