@@ -50,3 +50,7 @@
 9:33:58 AM [vite] (client) page reload index.html
 9:37:38 AM [vite] (client) hmr update /src/components/modals/PinnedReplacementModal.jsx
 9:37:50 AM [vite] (client) hmr update /src/styles.css
+9:39:43 AM [vite] (client) hmr update /src/styles.css
+9:39:43 AM [vite] (client) hmr update /src/components/modals/PinnedReplacementModal.jsx
+9:46:38 AM [vite] (client) hmr update /src/styles.css
+9:47:39 AM [vite] (client) hmr update /src/styles.css
