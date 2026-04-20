@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import themes from "../../themeConfig";
 
 export default function ProfileTab({
@@ -233,7 +234,7 @@ export default function ProfileTab({
       </button>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
+      {showDeleteConfirm && createPortal(
         <div
           className="logout-confirm-overlay logout-session-overlay"
           onClick={() => setShowDeleteConfirm(false)}
@@ -251,14 +252,7 @@ export default function ProfileTab({
             <h3 className="cinzel logout-confirm-title logout-session-title">
               {t.deleteProfileTitle || "Delete Profile Permanently?"}
             </h3>
-            <p className="delete-profile-confirm-badge cinzel">
-              {t.deleteProfileWarningBadge || "PERMANENT DATA DELETION"}
-            </p>
-
             <p className="logout-confirm-msg logout-session-msg">
-              {t.deleteProfileDesc || "This is a full and irreversible deletion of your profile and all your data: progress, XP, streak, habits, and quests."}
-            </p>
-            <p className="delete-profile-confirm-note">
               {t.deleteProfileCannotUndo || "After deletion, recovery is not possible."}
             </p>
 
@@ -267,17 +261,18 @@ export default function ProfileTab({
                 className="logout-confirm-cancel logout-session-cancel cinzel"
                 onClick={() => setShowDeleteConfirm(false)}
               >
-                {t.deleteProfileCancel || "No, Keep My Profile"}
+                {languageId === "ru" ? "Оставить" : "Keep"}
               </button>
               <button
                 className="logout-confirm-proceed logout-session-proceed cinzel"
                 onClick={() => { setShowDeleteConfirm(false); onDeleteProfile && onDeleteProfile(); }}
               >
-                {t.deleteProfileConfirm || "Yes, Permanently Delete"}
+                {languageId === "ru" ? "Удалить" : "Delete"}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
