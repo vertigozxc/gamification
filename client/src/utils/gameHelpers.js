@@ -95,7 +95,6 @@ export function createDefaultState() {
     xp: 0,
     xpNext: 250,
     tokens: 0,
-    districtLevels: [0, 0, 0, 0, 0],
     completed: [],
     logs: [],
     streak: 0,

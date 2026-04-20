@@ -1,13 +1,9 @@
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
+import CityIllustration from "../CityIllustration";
 import CityFireworks from "../CityFireworks";
-import CityIsometricOverview, { DISTRICTS } from "../CityIsometricOverview";
-import DistrictView from "../DistrictView";
 import InteractiveMapWrapper from "../InteractiveMapWrapper";
 import SpinWheelModal from "../SpinWheelModal";
-import { citySpinStatus, upgradeDistrict } from "../../api";
-
-const DISTRICT_UPGRADE_COSTS = [10, 25, 60, 120, 250];
-const DISTRICT_MAX_LEVEL = 5;
+import { citySpinStatus } from "../../api";
 
 const SPIN_CACHE_KEY = "city_spin_cache"; // { dateKey, nextSpinAt }
 
@@ -51,52 +47,13 @@ export default function CityTab({
   setCityFullscreen,
   dailyXpToday = 0,
   username,
-  onRewardClaimed,
-  districtLevels = [0, 0, 0, 0, 0],
-  tokens = 0,
-  onDistrictUpgraded
+  onRewardClaimed
 }) {
   const [fireworksActive, setFireworksActive] = useState(false);
   const [spinModalOpen, setSpinModalOpen] = useState(false);
   const [alreadySpun, setAlreadySpun] = useState(false);
   const [cdRemaining, setCdRemaining] = useState(0);
-  const [selectedDistrictIdx, setSelectedDistrictIdx] = useState(-1);
-  const [upgradePending, setUpgradePending] = useState(false);
-  const [upgradeError, setUpgradeError] = useState("");
   const cdIntervalRef = useRef(null);
-
-  const handleDistrictClick = useCallback((_districtId, idx) => {
-    setSelectedDistrictIdx(idx);
-    setUpgradeError("");
-    startTransition(() => {
-      setCityFullscreen(true);
-    });
-  }, [setCityFullscreen]);
-
-  const handleCloseDistrict = useCallback(() => {
-    setSelectedDistrictIdx(-1);
-    setUpgradeError("");
-    startTransition(() => {
-      setCityFullscreen(false);
-    });
-  }, [setCityFullscreen]);
-
-  const handleUpgradeDistrict = useCallback(async () => {
-    if (upgradePending || selectedDistrictIdx < 0 || !username) return;
-    const district = DISTRICTS[selectedDistrictIdx];
-    if (!district) return;
-    setUpgradePending(true);
-    setUpgradeError("");
-    try {
-      const result = await upgradeDistrict(username, district.id);
-      onDistrictUpgraded?.(result);
-      setFireworksActive(true);
-    } catch (err) {
-      setUpgradeError(err?.message || "Upgrade failed");
-    } finally {
-      setUpgradePending(false);
-    }
-  }, [upgradePending, selectedDistrictIdx, username, onDistrictUpgraded]);
 
   // Check localStorage cache on mount
   useEffect(() => {
@@ -268,101 +225,36 @@ export default function CityTab({
       <div className="city-canvas-shell animate-fade-in transition-all duration-500">
         {!cityFullscreen && (
           <>
+            <button
+              onClick={() => {
+                startTransition(() => {
+                  setCityFullscreen(true);
+                });
+              }}
+              className="city-action-btn"
+            >
+              <span className="city-action-btn__icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>
+                </svg>
+              </span>
+              <span className="city-action-btn__label">{t.cityExpand}</span>
+            </button>
             <div className="city-canvas-inner" style={{ position: "relative" }}>
               <InteractiveMapWrapper>
-                <CityIsometricOverview
-                  levels={districtLevels}
-                  onDistrictClick={handleDistrictClick}
-                  t={t}
-                />
+                <CityIllustration height="100%" stage={stage} />
               </InteractiveMapWrapper>
               <CityFireworks active={fireworksActive} onDone={handleFireworksDone} />
             </div>
-            <p className="text-[11px] text-center m-0 mt-2" style={{ color: "var(--color-muted)" }}>
-              {t.districtTapToEnterHint || "Tap a district to enter"}
-            </p>
           </>
         )}
-        {cityFullscreen && selectedDistrictIdx >= 0 && (() => {
-          const district = DISTRICTS[selectedDistrictIdx];
-          const level = Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(Number(districtLevels[selectedDistrictIdx]) || 0)));
-          const atMax = level >= DISTRICT_MAX_LEVEL;
-          const cost = atMax ? 0 : DISTRICT_UPGRADE_COSTS[level];
-          const canAfford = tokens >= cost;
-          const districtName = t?.[`district${district.id.charAt(0).toUpperCase() + district.id.slice(1)}`] || district.id;
-          return (
-            <div
-              className="absolute inset-0 z-10 flex flex-col"
-              style={{
-                background: "color-mix(in srgb, var(--panel-bg) 96%, transparent)",
-                padding: "12px"
-              }}
-            >
-              <div className="flex items-center justify-between mb-2 shrink-0">
-                <button
-                  onClick={handleCloseDistrict}
-                  style={{
-                    border: "1px solid var(--panel-border)",
-                    background: "transparent",
-                    color: "var(--color-text)",
-                    borderRadius: 10,
-                    padding: "8px 12px",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    minHeight: 44
-                  }}
-                >
-                  ← {t.back || "Back"}
-                </button>
-                <div className="text-center">
-                  <p className="cinzel m-0 font-bold" style={{ color: "var(--color-primary)", fontSize: 16 }}>{districtName}</p>
-                  <p className="text-[11px] m-0" style={{ color: "var(--color-muted)" }}>
-                    {(t.districtLevelLabel || "Level")}: {level}/{DISTRICT_MAX_LEVEL}
-                  </p>
-                </div>
-                <div style={{ minWidth: 60 }} />
-              </div>
-              <div style={{ flex: 1, minHeight: 0, borderRadius: 12, overflow: "hidden", border: "1px solid var(--panel-border)" }}>
-                <DistrictView districtId={district.id} level={level} />
-              </div>
-              <div className="mt-3 shrink-0">
-                {upgradeError && (
-                  <p className="text-center text-[11px] m-0 mb-2" style={{ color: "#e14b5a" }}>{upgradeError}</p>
-                )}
-                <button
-                  onClick={handleUpgradeDistrict}
-                  disabled={atMax || !canAfford || upgradePending}
-                  style={{
-                    width: "100%",
-                    minHeight: 48,
-                    padding: "12px 14px",
-                    textAlign: "center",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    letterSpacing: "0.3px",
-                    color: (atMax || !canAfford) ? "var(--color-muted)" : "var(--color-primary)",
-                    border: "1px solid " + ((atMax || !canAfford) ? "var(--panel-border)" : "var(--color-primary)"),
-                    borderRadius: 14,
-                    background: (atMax || !canAfford)
-                      ? "color-mix(in srgb, var(--panel-bg) 60%, transparent)"
-                      : "color-mix(in srgb, var(--color-primary) 10%, var(--panel-bg))",
-                    cursor: (atMax || !canAfford || upgradePending) ? "default" : "pointer",
-                    transition: "all 0.25s ease"
-                  }}
-                >
-                  {atMax
-                    ? (t.districtMaxLevel || "Max level reached")
-                    : !canAfford
-                      ? `${t.districtNotEnoughTokens || "Not enough tokens"} (${tokens}/${cost} 🪙)`
-                      : upgradePending
-                        ? "…"
-                        : `${t.districtUpgradeCta || "Upgrade"} · ${cost} 🪙`}
-                </button>
-              </div>
-            </div>
-          );
-        })()}
+        {cityFullscreen && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center px-6" style={{ background: "color-mix(in srgb, var(--panel-bg) 84%, transparent)" }}>
+            <p className="city-hint-strip text-center text-xs" style={{ color: "var(--color-text)" }}>
+              {t.cityFullscreenHint}
+            </p>
+          </div>
+        )}
       </div>
 
       {!cityFullscreen && (

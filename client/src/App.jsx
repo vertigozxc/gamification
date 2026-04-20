@@ -448,14 +448,6 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             xp: userData.xp ?? prev.xp,
             xpNext: userData.xpNext ?? prev.xpNext,
             tokens: userData.tokens ?? prev.tokens,
-            districtLevels: (() => {
-              const raw = userData.districtLevels;
-              if (Array.isArray(raw)) return raw.slice(0, 5).map((n) => Math.max(0, Math.min(5, Math.floor(Number(n) || 0))));
-              if (typeof raw === "string" && raw.length) {
-                return raw.split(",").slice(0, 5).map((n) => Math.max(0, Math.min(5, Math.floor(Number(n) || 0))));
-              }
-              return prev.districtLevels || [0, 0, 0, 0, 0];
-            })(),
             user: {
               ...prev.user,
               lastFreeTaskRerollAt: userData.lastFreeTaskRerollAt ?? null
@@ -509,14 +501,6 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           xp: userData.xp ?? prev.xp,
           xpNext: userData.xpNext ?? prev.xpNext,
           tokens: userData.tokens ?? prev.tokens,
-          districtLevels: (() => {
-            const raw = userData.districtLevels;
-            if (Array.isArray(raw)) return raw.slice(0, 5).map((n) => Math.max(0, Math.min(5, Math.floor(Number(n) || 0))));
-            if (typeof raw === "string" && raw.length) {
-              return raw.split(",").slice(0, 5).map((n) => Math.max(0, Math.min(5, Math.floor(Number(n) || 0))));
-            }
-            return prev.districtLevels || [0, 0, 0, 0, 0];
-          })(),
           user: {
             ...prev.user,
             lastFreeTaskRerollAt: userData.lastFreeTaskRerollAt ?? null
@@ -1087,15 +1071,6 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 t={t}
                 cityFullscreen={cityFullscreen}
                 setCityFullscreen={setCityFullscreen}
-                districtLevels={state.districtLevels || [0, 0, 0, 0, 0]}
-                tokens={state.tokens || 0}
-                onDistrictUpgraded={(result) => {
-                  setState((prev) => ({
-                    ...prev,
-                    tokens: typeof result?.tokens === "number" ? result.tokens : prev.tokens,
-                    districtLevels: Array.isArray(result?.districtLevels) ? result.districtLevels : prev.districtLevels
-                  }));
-                }}
               />
             ) : null}
 
