@@ -68,10 +68,50 @@ export default function QuestTimerControls({ quest, session, elapsedMs, onStart,
   }
 
   const percentColor = percent >= 100 ? "#4ade80" : percent >= 75 ? "#facc15" : percent >= 50 ? "#fb923c" : "#94a3b8";
+  const percentGlow = percent >= 100
+    ? "rgba(74, 222, 128, 0.22)"
+    : percent >= 75
+      ? "rgba(250, 204, 21, 0.22)"
+      : percent >= 50
+        ? "rgba(251, 146, 60, 0.22)"
+        : "rgba(148, 163, 184, 0.18)";
+  const fillWidth = `${Math.max(0, Math.min(100, percent))}%`;
 
   return (
-    <div className="qt-panel" style={panelStyle}>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
+    <div className="qt-panel" style={{ ...panelStyle, position: "relative", overflow: "hidden" }}>
+      {/* Progress fill — tier-colored wash across the panel. Transitions
+          smoothly as elapsed ticks, turns green at 100%. */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          bottom: 0,
+          width: fillWidth,
+          background: `linear-gradient(to right, ${percentGlow}, ${percentGlow} 70%, transparent)`,
+          transition: "width 900ms linear, background 400ms ease",
+          pointerEvents: "none"
+        }}
+      />
+      {/* Thin accent bar at the very bottom so the percent is legible
+          even when the wash is faint. */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          left: 0,
+          bottom: 0,
+          height: 3,
+          width: fillWidth,
+          background: percentColor,
+          boxShadow: `0 0 10px ${percentColor}`,
+          transition: "width 900ms linear, background 400ms ease",
+          pointerEvents: "none"
+        }}
+      />
+
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2, position: "relative", zIndex: 1 }}>
         <span style={{ ...timeStyle, color: percentColor }}>
           {formatMs(elapsedMs)} <span style={metaStyle}>/ {targetMin}:00</span>
         </span>
@@ -79,7 +119,7 @@ export default function QuestTimerControls({ quest, session, elapsedMs, onStart,
           {percent}% · {percent >= 100 ? "100% XP" : percent >= 75 ? "75% XP" : percent >= 50 ? "50% XP" : "no XP yet"}
         </span>
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: 8, position: "relative", zIndex: 1 }}>
         {running ? (
           <button
             type="button"
