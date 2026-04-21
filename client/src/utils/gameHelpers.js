@@ -32,6 +32,10 @@ export function normalizeQuest(quest, translateQuest, translateCategory) {
   const sourceId = String(quest?.sourceId || "");
   const title = String(quest?.title || "Quest");
   const desc = String(quest?.desc ?? quest?.description ?? "");
+  const effortScore = Number(quest?.effortScore ?? quest?.effort_score ?? 0);
+  const timeEstimateMin = Number(quest?.timeEstimateMin ?? quest?.time_estimate_min ?? 0);
+  const minStreak = Number(quest?.minStreak ?? quest?.min_streak ?? 0);
+  const minLevel = Number(quest?.minLevel ?? quest?.min_level ?? 1);
   return {
     id: Number(quest?.id),
     sourceId,
@@ -39,7 +43,16 @@ export function normalizeQuest(quest, translateQuest, translateCategory) {
     desc: translateQuest ? translateQuest({ ...quest, sourceId }, "description", desc) : desc,
     xp: Number.isFinite(xp) ? xp : 0,
     category: translateCategory ? translateCategory(rawCategory) : rawCategory,
-    isCustom: Boolean(quest?.isCustom) || sourceId.startsWith("custom_") || Number(quest?.id) >= 1_000_000
+    isCustom: Boolean(quest?.isCustom) || sourceId.startsWith("custom_") || Number(quest?.id) >= 1_000_000,
+    // Preserve fields the quest board + timer UI rely on. Without these
+    // needsTimer falls back to undefined, the timer panel never renders,
+    // and the long-press gesture wrongly routes to /api/quests/complete
+    // for timed quests — which the server rejects as timer_required.
+    needsTimer: Boolean(quest?.needsTimer ?? quest?.needs_timer),
+    effortScore: Number.isFinite(effortScore) && effortScore > 0 ? effortScore : 0,
+    timeEstimateMin: Number.isFinite(timeEstimateMin) && timeEstimateMin > 0 ? timeEstimateMin : 0,
+    minStreak: Number.isFinite(minStreak) && minStreak > 0 ? minStreak : 0,
+    minLevel: Number.isFinite(minLevel) && minLevel > 0 ? minLevel : 1
   };
 }
 
