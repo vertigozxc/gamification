@@ -614,6 +614,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const preferredQuestCount = Array.isArray(state.preferredQuestIds) && state.preferredQuestIds.length > 0
     ? state.preferredQuestIds.length
     : (Number(state.questSlots?.pinned) || 3);
+  const maxPinnedForLevel = Number(state.questSlots?.pinned) || preferredQuestCount;
+  const maxRandomForLevel = Number(state.questSlots?.random) || 3;
+  const emptyPinnedSlotCount = Math.max(0, maxPinnedForLevel - (Array.isArray(state.preferredQuestIds) ? state.preferredQuestIds.length : 0));
   const pinnedQuests = quests.slice(0, preferredQuestCount).map((q) => ({ ...q, xp: 30 }));
   const otherQuests = quests.slice(preferredQuestCount);
   const syncedNow = new Date(Date.now() + serverOffsetMs);
@@ -623,6 +626,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     normalizePinnedQuestProgress(state.pinnedQuestProgress21d).map((item) => [item.questId, item])
   );
   const allRandomCompleted = otherQuests.length > 0 && otherQuests.every(q => state.completed.includes(q.id));
+  const emptyOtherSlotCount = Math.max(0, maxRandomForLevel - otherQuests.length);
   const canReroll = (!state.hasRerolledToday || state.extraRerollsToday > 0) && completedToday < 6 && !allRandomCompleted;
   const languageShortLabel = languageId === "ru" ? "RU" : "EN";
   const isFreePinnedReroll = !state.user?.lastFreeTaskRerollAt || (Date.now() - new Date(state.user.lastFreeTaskRerollAt).getTime() >= FREE_PINNED_REROLL_INTERVAL_MS);
@@ -1209,6 +1213,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                     />
                   </Suspense>
                 )}
+                emptyPinnedSlotCount={emptyPinnedSlotCount}
+                emptyOtherSlotCount={emptyOtherSlotCount}
+                onOpenHabitPicker={openPinnedReplacementModal}
                 pinnedQuests={pinnedQuests}
                 otherQuests={otherQuests}
                 pinnedQuestProgressById={pinnedQuestProgressById}
@@ -1347,6 +1354,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 />
               </Suspense>
             )}
+            emptyPinnedSlotCount={emptyPinnedSlotCount}
+            emptyOtherSlotCount={emptyOtherSlotCount}
+            onOpenHabitPicker={openPinnedReplacementModal}
             pinnedQuests={pinnedQuests}
             otherQuests={otherQuests}
             pinnedQuestProgressById={pinnedQuestProgressById}

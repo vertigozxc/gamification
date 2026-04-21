@@ -4,6 +4,38 @@ import { useTheme } from "../ThemeContext";
 import { QuestItem } from "./QuestItem";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 
+function EmptySlotCard({ label, cta, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="qb-quest-item mobile-pressable"
+      style={{
+        borderStyle: "dashed",
+        borderColor: "rgba(250, 204, 21, 0.45)",
+        background: "rgba(2, 6, 23, 0.35)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        padding: "18px 12px",
+        minHeight: 90,
+        cursor: "pointer"
+      }}
+      aria-label={cta || "Pick"}
+    >
+      <span style={{ fontSize: 24, lineHeight: 1 }}>✨</span>
+      <span style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(253, 224, 71, 0.85)", fontWeight: 700 }}>
+        {label}
+      </span>
+      <span style={{ fontSize: 12, color: "#fde68a", fontWeight: 600 }}>
+        + {cta}
+      </span>
+    </button>
+  );
+}
+
 function QuestBoard({
   pinnedQuests,
   otherQuests,
@@ -22,7 +54,11 @@ function QuestBoard({
   rerollingQuestId = null,
   rerollingPinned = false,
   compact = false,
-  renderQuestTimer = null
+  renderQuestTimer = null,
+  emptyPinnedSlotCount = 0,
+  emptyOtherSlotCount = 0,
+  onOpenHabitPicker = null,
+  onRequestRandomReroll = null
 }) {
   const { t } = useTheme();
   const hasPinned = pinnedQuests.length > 0;
@@ -190,6 +226,16 @@ function QuestBoard({
                   </QuestItem>
                 );
               })}
+              {emptyPinnedSlotCount > 0 && onOpenHabitPicker ? (
+                Array.from({ length: emptyPinnedSlotCount }).map((_, idx) => (
+                  <EmptySlotCard
+                    key={`empty-pinned-${idx}`}
+                    label={t.emptyHabitSlotLabel || "New habit unlocked"}
+                    cta={t.emptyHabitSlotCta || "Pick a habit"}
+                    onClick={onOpenHabitPicker}
+                  />
+                ))
+              ) : null}
             </div>
           </div>
         )}
@@ -220,6 +266,16 @@ function QuestBoard({
                   </QuestItem>
                 );
               })}
+              {emptyOtherSlotCount > 0 ? (
+                Array.from({ length: emptyOtherSlotCount }).map((_, idx) => (
+                  <EmptySlotCard
+                    key={`empty-other-${idx}`}
+                    label={t.emptyQuestSlotLabel || "New quest unlocked"}
+                    cta={t.emptyQuestSlotCta || "Roll a quest"}
+                    onClick={onRequestRandomReroll || onRerollRandom}
+                  />
+                ))
+              ) : null}
             </div>
             <div className="mt-4 flex justify-center">
               <button

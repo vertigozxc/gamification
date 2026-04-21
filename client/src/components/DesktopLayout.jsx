@@ -20,6 +20,9 @@ export default function DesktopLayout({
   canRerollPinned, isFreePinnedReroll, daysUntilFreePinnedReroll,
   onOpenPinnedReplacement, onFreezeStreak, onBuyExtraReroll,
   renderQuestTimer,
+  emptyPinnedSlotCount,
+  emptyOtherSlotCount,
+  onOpenHabitPicker,
   t
 }) {
   return (
@@ -77,6 +80,9 @@ export default function DesktopLayout({
           rerollingQuestId={rerollingQuestId}
           rerollingPinned={rerollingPinned}
           renderQuestTimer={renderQuestTimer}
+          emptyPinnedSlotCount={emptyPinnedSlotCount}
+          emptyOtherSlotCount={emptyOtherSlotCount}
+          onOpenHabitPicker={onOpenHabitPicker}
         />
         <SidePanels leaderboard={leaderboard} authUser={authUser} logs={logs} />
       </div>

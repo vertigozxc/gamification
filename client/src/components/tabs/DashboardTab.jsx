@@ -14,7 +14,10 @@ export default function DashboardTab({
   onReroll, onCompleteQuest,
   rerollButtonLabel, rerollButtonTitle,
   rerollingQuestId, rerollingPinned,
-  renderQuestTimer
+  renderQuestTimer,
+  emptyPinnedSlotCount,
+  emptyOtherSlotCount,
+  onOpenHabitPicker
 }) {
   const { themeId } = useTheme();
   const isLight = themeId === "light";
@@ -123,6 +126,9 @@ export default function DashboardTab({
           rerollingQuestId={rerollingQuestId}
           rerollingPinned={rerollingPinned}
           renderQuestTimer={renderQuestTimer}
+          emptyPinnedSlotCount={emptyPinnedSlotCount}
+          emptyOtherSlotCount={emptyOtherSlotCount}
+          onOpenHabitPicker={onOpenHabitPicker}
           compact
         />
       </div>
