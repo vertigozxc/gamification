@@ -628,19 +628,23 @@ export default function CityTab({
                 levelLabel={t.districtLevelLabel || "Level"}
               />
 
-              {/* Back — arrow only, top-left */}
+              {/* Back — arrow only, top-left. Always dark so the arrow
+                  remains readable in the light theme (the district art
+                  behind it can be bright sand / pavement). */}
               <button
                 onClick={handleCloseDistrict}
                 aria-label="Back"
+                className="qt-btn"
                 style={{
                   position: "absolute", top: 10, left: 10, zIndex: 40,
-                  width: 40, height: 40, borderRadius: 10,
-                  border: "1px solid var(--panel-border)",
-                  background: "color-mix(in srgb, var(--panel-bg) 85%, transparent)",
+                  width: 42, height: 42, borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.55)",
+                  background: "rgba(15,23,42,0.78)",
                   backdropFilter: "blur(6px)",
-                  color: "var(--color-text)",
+                  color: "#f8fafc",
                   cursor: "pointer", padding: 0,
-                  display: "flex", alignItems: "center", justifyContent: "center"
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: "0 3px 10px rgba(0,0,0,0.35)"
                 }}
               >
                 <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
@@ -852,6 +856,7 @@ export default function CityTab({
                   <button
                     onClick={() => handleQuickUpgrade(district.id)}
                     disabled={!canUpgrade}
+                    className="qt-btn"
                     style={{
                       width: "100%",
                       minHeight: 46,
@@ -934,7 +939,7 @@ export default function CityTab({
           <button
             onClick={disabled ? undefined : handleBusinessClaim}
             disabled={disabled}
-            className="mt-3"
+            className="mt-3 qt-btn"
             style={{
               width: "100%",
               minHeight: 48,
@@ -1080,7 +1085,7 @@ export default function CityTab({
           <button
             onClick={disabled ? undefined : handleOpenSpin}
             disabled={disabled}
-            className="mt-3"
+            className="mt-3 qt-btn"
             style={{
               width: "100%",
               padding: "13px 14px",
@@ -1156,7 +1161,7 @@ export default function CityTab({
             )}
             <button
               onClick={() => setUpgradePopup(null)}
-              className="cinzel"
+              className="cinzel qt-btn"
               style={{
                 width: "100%",
                 minHeight: 46,
