@@ -276,8 +276,6 @@ function PerkRow({ lvl, levelShort = "LVL", text, unlocked, isNext }) {
 export default function CityTab({
   stage,
   t,
-  cityFullscreen,
-  setCityFullscreen,
   dailyXpToday = 0,
   username,
   onRewardClaimed,
@@ -297,15 +295,6 @@ export default function CityTab({
   const [alreadySpun, setAlreadySpun] = useState(false);
   const [cdRemaining, setCdRemaining] = useState(0);
   const [selectedDistrictIdx, setSelectedDistrictIdx] = useState(-1);
-  const [expandedView, setExpandedView] = useState("none"); // 'none' | 'iso' | 'district'
-
-  // Mirror expanded state to the app-level cityFullscreen flag so the mobile
-  // tab bar auto-hides during the rotated fullscreen view.
-  useEffect(() => {
-    if (typeof setCityFullscreen === "function") {
-      setCityFullscreen(expandedView !== "none");
-    }
-  }, [expandedView, setCityFullscreen]);
   const [upgradePopup, setUpgradePopup] = useState(null); // { districtId, level, name, perk } | null
   const cdIntervalRef = useRef(null);
   const { themeId, languageId } = useTheme();
@@ -593,25 +582,6 @@ export default function CityTab({
                 />
               </InteractiveMapWrapper>
               <CityFireworks active={fireworksActive} onDone={handleFireworksDone} />
-              {/* Expand city button */}
-              <button
-                onClick={() => setExpandedView("iso")}
-                aria-label="Expand city"
-                style={{
-                  position: "absolute", top: 10, right: 10, zIndex: 40,
-                  width: 40, height: 40, borderRadius: 10,
-                  border: "1px solid var(--panel-border)",
-                  background: "color-mix(in srgb, var(--panel-bg) 85%, transparent)",
-                  backdropFilter: "blur(6px)",
-                  color: "var(--color-text)",
-                  cursor: "pointer", padding: 0,
-                  display: "flex", alignItems: "center", justifyContent: "center"
-                }}
-              >
-                <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" />
-                </svg>
-              </button>
             </div>
             <p className="text-[11px] text-center m-0 mt-2" style={{ color: "var(--color-muted)" }}>
               {t.districtTapToEnterHint || "Tap a district to enter"}
@@ -627,8 +597,10 @@ export default function CityTab({
               className="absolute inset-0 z-10"
               style={{ background: "var(--panel-bg)" }}
             >
-              {/* District scene fills the whole shell */}
-              <DistrictView districtId={district.id} level={level} />
+              {/* District scene fills the whole shell; pan/zoom enabled. */}
+              <InteractiveMapWrapper background="var(--panel-bg)" initialScale={1.0}>
+                <DistrictView districtId={district.id} level={level} />
+              </InteractiveMapWrapper>
               <CityFireworks active={fireworksActive} onDone={handleFireworksDone} />
 
               {/* District name badge — framed, top-center, over the map */}
@@ -656,26 +628,6 @@ export default function CityTab({
               >
                 <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M15 6l-6 6 6 6" />
-                </svg>
-              </button>
-
-              {/* Expand district button — top-right */}
-              <button
-                onClick={() => setExpandedView("district")}
-                aria-label="Expand district"
-                style={{
-                  position: "absolute", top: 10, right: 10, zIndex: 40,
-                  width: 40, height: 40, borderRadius: 10,
-                  border: "1px solid var(--panel-border)",
-                  background: "color-mix(in srgb, var(--panel-bg) 85%, transparent)",
-                  backdropFilter: "blur(6px)",
-                  color: "var(--color-text)",
-                  cursor: "pointer", padding: 0,
-                  display: "flex", alignItems: "center", justifyContent: "center"
-                }}
-              >
-                <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" />
                 </svg>
               </button>
             </div>
@@ -1213,127 +1165,6 @@ export default function CityTab({
         onRewardClaimed={handleRewardClaimed}
       />
 
-      {expandedView !== "none" && (() => {
-        const district = selectedDistrictIdx >= 0 ? DISTRICTS[selectedDistrictIdx] : null;
-        const level = selectedDistrictIdx >= 0
-          ? Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(Number(districtLevels[selectedDistrictIdx]) || 0)))
-          : 0;
-        const fsDistrictName = district
-          ? (t?.[`district${district.id.charAt(0).toUpperCase() + district.id.slice(1)}`] || district.id)
-          : "";
-        return (
-          <>
-            <div className="city-fullscreen-mode" style={{ backgroundColor: grassBg }}>
-              <InteractiveMapWrapper rotated background={grassBg} initialScale={1.0}>
-                {expandedView === "iso" ? (
-                  <CityIsometricOverview
-                    levels={districtLevels}
-                    selectedIdx={selectedDistrictIdx}
-                    onDistrictClick={(_id, idx) => {
-                      setSelectedDistrictIdx(idx);
-                      setExpandedView("district");
-                    }}
-                    t={t}
-                    preserveAspectRatio="xMidYMid slice"
-                  />
-                ) : district ? (
-                  <DistrictView
-                    districtId={district.id}
-                    level={level}
-                    preserveAspectRatio="xMidYMax slice"
-                  />
-                ) : null}
-              </InteractiveMapWrapper>
-            </div>
-            {/* District name badge — fixed at top of rotated landscape view.
-                Positioned on the right edge of the portrait viewport (which is
-                the top edge once rotated) and rotated 90deg so it reads
-                upright in landscape orientation. */}
-            {expandedView === "district" && district && (
-              <div
-                className="cinzel"
-                style={{
-                  position: "fixed",
-                  top: "50%",
-                  right: "max(18px, env(safe-area-inset-right, 0px))",
-                  transform: "translateY(-50%) rotate(90deg)",
-                  transformOrigin: "right center",
-                  zIndex: 9999998,
-                  pointerEvents: "none",
-                  padding: "8px 18px",
-                  borderRadius: 14,
-                  background: "color-mix(in srgb, #000 55%, transparent)",
-                  border: "1.5px solid color-mix(in srgb, var(--color-primary) 75%, transparent)",
-                  backdropFilter: "blur(8px)",
-                  WebkitBackdropFilter: "blur(8px)",
-                  boxShadow: "0 4px 18px color-mix(in srgb, #000 45%, transparent)",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 2,
-                  maxWidth: "70dvh",
-                  textAlign: "center"
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 800,
-                    color: "var(--color-primary)",
-                    letterSpacing: "0.08em",
-                    lineHeight: 1.1,
-                    textShadow: "0 0 8px color-mix(in srgb, var(--color-primary) 35%, transparent)"
-                  }}
-                >
-                  {fsDistrictName}
-                </span>
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: "color-mix(in srgb, #fff 85%, transparent)",
-                    letterSpacing: "0.14em",
-                    textTransform: "uppercase",
-                    lineHeight: 1
-                  }}
-                >
-                  {t.districtLevelLabel || "Level"} {level}/{DISTRICT_MAX_LEVEL}
-                </span>
-              </div>
-            )}
-            {/* Close button — fixed to real viewport top-right (away from any
-                native mobile tab bar that might overlay the bottom). Rotated
-                90deg so its shrink-in arrows read correctly in landscape. */}
-            <button
-              onClick={() => setExpandedView("none")}
-              aria-label="Close fullscreen"
-              style={{
-                position: "fixed",
-                top: "max(18px, calc(env(safe-area-inset-top, 0px) + 8px))",
-                right: "max(18px, env(safe-area-inset-right, 0px))",
-                zIndex: 9999999,
-                width: 56, height: 56,
-                borderRadius: 28,
-                border: "2px solid var(--color-primary)",
-                background: "rgba(10, 10, 18, 0.88)",
-                backdropFilter: "blur(12px)",
-                color: "var(--color-primary)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                cursor: "pointer",
-                boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
-                transform: "rotate(90deg)"
-              }}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M8 3v3a2 2 0 0 1-2 2H3" />
-                <path d="M21 8h-3a2 2 0 0 1-2-2V3" />
-                <path d="M3 16h3a2 2 0 0 1 2 2v3" />
-                <path d="M16 21v-3a2 2 0 0 1 2-2h3" />
-              </svg>
-            </button>
-          </>
-        );
-      })()}
     </div>
   );
 }

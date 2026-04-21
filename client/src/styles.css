@@ -300,12 +300,19 @@ body[data-theme="light"] .daily-board-panel .daily-board-card-locked p:first-chi
     -moz-user-select: none;
     -ms-user-select: none;
 }
+html {
+    background: var(--bg-body);
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+}
 body {
     background: var(--bg-body);
     color: var(--color-text);
     font-family: var(--font-body), "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
     overflow-x: hidden;
     position: relative;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
 }
 body::before {
     content: '';
