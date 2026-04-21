@@ -41,7 +41,7 @@ function TokenVault({
             <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
               {t.freezeVaultDetail || t.freezeDetail}
             </p>
-            {streakFreezeCharges > 1 && (
+            {streakFreezeCharges >= 1 && (
               <div className="flex items-center gap-2 rounded-xl px-3 py-1.5" style={{ background: "color-mix(in srgb, #5ba0e0 14%, transparent)", border: "1px solid color-mix(in srgb, #5ba0e0 40%, transparent)" }}>
                 <span className="text-base">❄️</span>
                 <span className="cinzel text-xs font-bold tracking-wider" style={{ color: "#5ba0e0" }}>

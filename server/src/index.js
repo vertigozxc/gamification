@@ -2209,6 +2209,18 @@ app.get("/api/game-state/:username", async (req, res) => {
 
   const now = new Date();
 
+  // Self-heal: correct xpNext if it drifted out of sync with level.
+  // This can happen for users who received multiple dev-grant bumps before
+  // the dev-grant endpoint started recomputing xpNext on each level change.
+  const correctXpNext = getXpNextForLevel(user.level);
+  if (Number(user.xpNext) !== correctXpNext) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { xpNext: correctXpNext }
+    });
+    user.xpNext = correctXpNext;
+  }
+
   const dateKey = getDateKey(now);
   const [completions, customQuests] = await Promise.all([
     prisma.questCompletion.findMany({
@@ -3142,10 +3154,12 @@ app.post("/api/city/dev-grant-stats", async (req, res) => {
     const user = await prisma.user.findUnique({ where: { username: slugifyUsername(username) } });
     if (!user) return res.status(404).json({ error: "User not found" });
 
+    const nextLevel = (user.level || 1) + 1;
     const updated = await prisma.user.update({
       where: { id: user.id },
       data: {
-        level: { increment: 1 },
+        level: nextLevel,
+        xpNext: getXpNextForLevel(nextLevel),
         tokens: { increment: 1 },
         streak: { increment: 1 }
       },

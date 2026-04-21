@@ -1224,7 +1224,7 @@ export default function CityTab({
         return (
           <>
             <div className="city-fullscreen-mode" style={{ backgroundColor: grassBg }}>
-              <InteractiveMapWrapper rotated background={grassBg} initialScale={1.25}>
+              <InteractiveMapWrapper rotated background={grassBg} initialScale={1.0}>
                 {expandedView === "iso" ? (
                   <CityIsometricOverview
                     levels={districtLevels}
@@ -1234,21 +1234,30 @@ export default function CityTab({
                       setExpandedView("district");
                     }}
                     t={t}
+                    preserveAspectRatio="xMidYMid slice"
                   />
                 ) : district ? (
-                  <DistrictView districtId={district.id} level={level} />
+                  <DistrictView
+                    districtId={district.id}
+                    level={level}
+                    preserveAspectRatio="xMidYMid slice"
+                  />
                 ) : null}
               </InteractiveMapWrapper>
             </div>
-            {/* District name badge — fixed to viewport (not rotated) so it stays upright */}
+            {/* District name badge — fixed at top of rotated landscape view.
+                Positioned on the right edge of the portrait viewport (which is
+                the top edge once rotated) and rotated 90deg so it reads
+                upright in landscape orientation. */}
             {expandedView === "district" && district && (
               <div
                 className="cinzel"
                 style={{
                   position: "fixed",
-                  top: "max(18px, env(safe-area-inset-top, 0px))",
-                  left: "50%",
-                  transform: "translateX(-50%)",
+                  top: "50%",
+                  right: "max(18px, env(safe-area-inset-right, 0px))",
+                  transform: "translateY(-50%) rotate(90deg)",
+                  transformOrigin: "right center",
                   zIndex: 9999998,
                   pointerEvents: "none",
                   padding: "8px 18px",
@@ -1262,7 +1271,7 @@ export default function CityTab({
                   flexDirection: "column",
                   alignItems: "center",
                   gap: 2,
-                  maxWidth: "70vw",
+                  maxWidth: "70dvh",
                   textAlign: "center"
                 }}
               >

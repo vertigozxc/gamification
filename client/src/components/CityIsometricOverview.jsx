@@ -1805,7 +1805,7 @@ function PlotOverlay({ district, level, palette, t, isSelected, isLocked }) {
 
 // ---------- Root ----------
 
-export default function CityIsometricOverview({ levels = [0, 0, 0, 0, 0], selectedIdx = -1, onDistrictClick, t }) {
+export default function CityIsometricOverview({ levels = [0, 0, 0, 0, 0], selectedIdx = -1, onDistrictClick, t, preserveAspectRatio = "xMidYMid meet" }) {
   const { themeId } = useTheme();
   const isLight = themeId === "light";
 
@@ -1911,7 +1911,7 @@ export default function CityIsometricOverview({ levels = [0, 0, 0, 0, 0], select
   return (
     <svg
       viewBox={`${minX} ${minY} ${vbW} ${vbH}`}
-      preserveAspectRatio="xMidYMid meet"
+      preserveAspectRatio={preserveAspectRatio}
       style={{ width: "100%", height: "100%", display: "block", overflow: "visible" }}
       aria-label="City districts overview"
     >

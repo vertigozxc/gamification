@@ -2024,14 +2024,14 @@ const RENDERERS = {
   residential: ResidentialDistrict
 };
 
-export default function DistrictView({ districtId, level = 0 }) {
+export default function DistrictView({ districtId, level = 0, preserveAspectRatio = "xMidYMid meet" }) {
   const palette = useDistrictPalette();
   const Renderer = RENDERERS[districtId] || RENDERERS.sport;
   const lvl = Math.max(0, Math.min(5, Math.floor(Number(level) || 0)));
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="xMidYMid meet"
+      preserveAspectRatio={preserveAspectRatio}
       style={{ width: "100%", height: "100%", display: "block", overflow: "visible" }}
       aria-label={`${districtId} district detail`}
     >

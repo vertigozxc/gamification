@@ -52,7 +52,6 @@ const LevelUpPopup = lazy(() => import("./components/LevelUpPopup"));
 const HabitMilestonePopup = lazy(() => import("./components/HabitMilestonePopup"));
 const ThemePickerModal = lazy(() => import("./components/ThemePickerModal"));
 const LanguagePickerModal = lazy(() => import("./components/LanguagePickerModal"));
-const FullscreenCity = lazy(() => import("./components/FullscreenCity"));
 const FloatingTexts = lazy(() => import("./components/FloatingTexts"));
 const AppHeader = lazy(() => import("./components/AppHeader"));
 const DesktopLayout = lazy(() => import("./components/DesktopLayout"));
@@ -751,7 +750,6 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       import("./components/tabs/StoreTab.jsx").catch(() => {});
       import("./components/tabs/LeaderboardTab.jsx").catch(() => {});
       import("./components/tabs/ProfileTab.jsx").catch(() => {});
-      import("./components/FullscreenCity.jsx").catch(() => {});
 
       Promise.allSettled([
         fetchLeaderboard(),
@@ -952,13 +950,6 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     <>
       {dataLoading && !isEmbeddedApp ? <PortalPreloader title={t.loadingText} fullscreen /> : null}
 
-      {cityFullscreen && (
-        <FullscreenCity
-          stage={Math.max(0, Math.floor(state.lvl) || 0)}
-          onClose={() => setCityFullscreen(false)}
-        />
-      )}
-      
       <FreezeSuccessModal open={showFreezeSuccess} onClose={() => setShowFreezeSuccess(false)} />
 
       <RerollConfirmModal
