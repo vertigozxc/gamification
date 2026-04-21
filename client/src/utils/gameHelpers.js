@@ -127,7 +127,8 @@ export function createDefaultState() {
       baseTasksCompletedToday: 0
     },
     questSlots: { pinned: 2, random: 2, dailyTotal: 4, maxEffort: 3 },
-    activeTimers: []
+    activeTimers: [],
+    isDevTester: false
   };
 }
 

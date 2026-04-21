@@ -38,6 +38,7 @@ model User {
   lastVacationAt        DateTime?
   streakFreezeCharges   Int               @default(0)
   lastFreezePurchaseWeekKey String        @default("")
+  isDevTester           Boolean           @default(false)
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
   customQuests          CustomQuest[]

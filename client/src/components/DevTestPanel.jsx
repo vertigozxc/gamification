@@ -2,17 +2,16 @@ import { useState } from "react";
 import PropTypes from "prop-types";
 import { devGrantXp, devGrantTokens, devResetMe, devGrantStreak } from "../api";
 
-const DEV_TEST_USER_ID = "C0x6GY9LeyVhY12L1yF5QRHp3DP2";
+const LEGACY_DEV_TEST_USER_ID = "C0x6GY9LeyVhY12L1yF5QRHp3DP2";
 
-export function isDevTestUser(uid) {
-  return String(uid || "").trim() === DEV_TEST_USER_ID;
-}
-
-export default function DevTestPanel({ username, onRefresh, xp = 0, xpNext = 250 }) {
+export default function DevTestPanel({ username, onRefresh, xp = 0, xpNext = 250, isDevTester = false }) {
   const [busy, setBusy] = useState(false);
   const [expanded, setExpanded] = useState(true);
 
-  if (!isDevTestUser(username)) {
+  // Show for the legacy hardcoded UID or any user the admin flagged as a
+  // dev-tester via /admin. Both cases are accepted by the server-side gate.
+  const visible = isDevTester || String(username || "").trim() === LEGACY_DEV_TEST_USER_ID;
+  if (!visible) {
     return null;
   }
 
@@ -147,5 +146,6 @@ DevTestPanel.propTypes = {
   username: PropTypes.string,
   onRefresh: PropTypes.func,
   xp: PropTypes.number,
-  xpNext: PropTypes.number
+  xpNext: PropTypes.number,
+  isDevTester: PropTypes.bool
 };

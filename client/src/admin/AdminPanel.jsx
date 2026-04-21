@@ -315,6 +315,11 @@ export default function AdminPanel() {
         await adminFetch(`/api/admin/users/${encodeURIComponent(user.id)}/reset-full`, token, {
           method: "POST"
         });
+      } else if (action === "toggle-dev") {
+        await adminFetch(`/api/admin/users/${encodeURIComponent(user.id)}/set-dev-tester`, token, {
+          method: "POST",
+          body: { enabled: !user.isDevTester }
+        });
       }
       await loadUsers();
     } catch (err) {
@@ -734,6 +739,7 @@ export default function AdminPanel() {
                     <th style={styles.th}>Level</th>
                     <th style={styles.th}>Total XP</th>
                     <th style={styles.th}>Streak</th>
+                    <th style={styles.th}>DEV</th>
                     <th style={styles.th}>Actions</th>
                   </tr>
                 </thead>
@@ -756,6 +762,16 @@ export default function AdminPanel() {
                         <td style={styles.td}>{user.level}</td>
                         <td style={styles.td}>{user.totalXp}</td>
                         <td style={styles.td}>{user.streak}</td>
+                        <td style={styles.td}>
+                          <button
+                            style={user.isDevTester ? styles.actionButton : styles.smallButton}
+                            onClick={() => runUserAction(user, "toggle-dev")}
+                            disabled={isActing}
+                            title="Toggle DEV panel on the user's dashboard"
+                          >
+                            {user.isDevTester ? "ON" : "OFF"}
+                          </button>
+                        </td>
                         <td style={styles.tdWide}>
                           <div style={styles.userActionsRow}>
                             <button

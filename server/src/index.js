@@ -234,6 +234,7 @@ app.get("/api/admin/users", requireAdmin, async (req, res) => {
         xp: true,
         xpNext: true,
         streak: true,
+        isDevTester: true,
         updatedAt: true,
         createdAt: true
       },
@@ -284,12 +285,33 @@ app.get("/api/admin/users", requireAdmin, async (req, res) => {
         xpNext: user.xpNext,
         totalXp: getTotalXp(user.level, user.xp),
         streak: user.streak,
+        isDevTester: Boolean(user.isDevTester),
         updatedAt: user.updatedAt,
         createdAt: user.createdAt
       }))
     });
   } catch (error) {
     res.status(500).json({ error: "Failed to load users", detail: error.message });
+  }
+});
+
+// Admin: toggle the DEV panel (floating +1 LVL / +S / +5 🪙 / RESET
+// buttons) for a specific user. Flip this from the /admin UI.
+app.post("/api/admin/users/:userId/set-dev-tester", requireAdmin, async (req, res) => {
+  try {
+    const parsed = z.object({ enabled: z.boolean() }).parse(req.body || {});
+    const userId = String(req.params.userId || "").trim();
+    if (!userId) return res.status(400).json({ error: "userId is required" });
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: { isDevTester: parsed.enabled },
+      select: { id: true, username: true, displayName: true, isDevTester: true }
+    });
+    res.json({ ok: true, user: updated });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
   }
 });
 
@@ -348,12 +370,25 @@ app.post("/api/admin/users/:userId/grant-xp", requireAdmin, async (req, res) => 
   }
 });
 
-// Dev-only test grants used by floating dashboard buttons. Gated to a single
-// developer UID so the endpoints are harmless if left exposed in prod.
-const DEV_TEST_USER_ID = "C0x6GY9LeyVhY12L1yF5QRHp3DP2";
+// Dev-only test grants used by floating dashboard buttons. Gated to the
+// hardcoded original developer UID plus any user flipped via
+// /api/admin/users/:userId/set-dev-tester. The hardcoded UID keeps the
+// original tester working even before the isDevTester column is backfilled.
+const LEGACY_DEV_TEST_USER_ID = "C0x6GY9LeyVhY12L1yF5QRHp3DP2";
 
-function isDevTestUser(username) {
-  return String(username || "").trim() === DEV_TEST_USER_ID;
+async function assertDevTester(username) {
+  const trimmed = String(username || "").trim();
+  if (!trimmed) return false;
+  if (trimmed === LEGACY_DEV_TEST_USER_ID) return true;
+  try {
+    const user = await prisma.user.findUnique({
+      where: { username: slugifyUsername(trimmed) },
+      select: { isDevTester: true }
+    });
+    return Boolean(user?.isDevTester);
+  } catch {
+    return false;
+  }
 }
 
 app.post("/api/dev/grant-xp", async (req, res) => {
@@ -363,7 +398,7 @@ app.post("/api/dev/grant-xp", async (req, res) => {
       amount: z.number().int().min(1).max(100000).default(500)
     });
     const parsed = schema.parse(req.body || {});
-    if (!isDevTestUser(parsed.username)) {
+    if (!(await assertDevTester(parsed.username))) {
       return res.status(403).json({ error: "Dev test grants are restricted" });
     }
     const username = slugifyUsername(parsed.username);
@@ -394,7 +429,7 @@ app.post("/api/dev/reset-me", async (req, res) => {
     const parsed = z.object({
       username: z.string().min(2).max(64)
     }).parse(req.body || {});
-    if (!isDevTestUser(parsed.username)) {
+    if (!(await assertDevTester(parsed.username))) {
       return res.status(403).json({ error: "Dev test grants are restricted" });
     }
     const username = slugifyUsername(parsed.username);
@@ -456,7 +491,7 @@ app.post("/api/dev/grant-streak", async (req, res) => {
       amount: z.number().int().min(-999).max(999).default(1)
     });
     const parsed = schema.parse(req.body || {});
-    if (!isDevTestUser(parsed.username)) {
+    if (!(await assertDevTester(parsed.username))) {
       return res.status(403).json({ error: "Dev test grants are restricted" });
     }
     const username = slugifyUsername(parsed.username);
@@ -481,7 +516,7 @@ app.post("/api/dev/grant-tokens", async (req, res) => {
       amount: z.number().int().min(1).max(1000).default(5)
     });
     const parsed = schema.parse(req.body || {});
-    if (!isDevTestUser(parsed.username)) {
+    if (!(await assertDevTester(parsed.username))) {
       return res.status(403).json({ error: "Dev test grants are restricted" });
     }
     const username = slugifyUsername(parsed.username);
@@ -2435,6 +2470,7 @@ app.get("/api/game-state/:username", async (req, res) => {
     productivity,
     questSlots,
     activeTimers,
+    isDevTester: Boolean(user.isDevTester) || user.username === LEGACY_DEV_TEST_USER_ID,
     ...buildServerTimeMeta(now)
   });
 });
