@@ -833,10 +833,10 @@ export default function CityTab({
                       {tpl(t.districtReqForLevel, { level: level + 1 })}
                     </span>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                      <ReqChip icon="⭐" label={tpl(t.districtReqLevel, { n: nextReq.level })} met={userLevel >= nextReq.level} current={userLevel} />
-                      <ReqChip icon="🪙" label={tpl(t.districtReqTokens, { n: nextReq.tokens })} met={tokens >= nextReq.tokens} current={tokens} />
+                      <ReqChip icon="⭐" label={`${t.districtReqLevelPrefix || "Lvl"} ${userLevel} / ${nextReq.level}`} met={userLevel >= nextReq.level} current={userLevel} />
+                      <ReqChip icon="🪙" label={`${tokens} / ${nextReq.tokens}`} met={tokens >= nextReq.tokens} current={tokens} />
                       {nextReq.streak > 0 && (
-                        <ReqChip icon="🔥" label={tpl(t.districtReqStreak, { n: nextReq.streak })} met={userStreak >= nextReq.streak} current={userStreak} />
+                        <ReqChip icon="🔥" label={`${userStreak} / ${nextReq.streak}`} met={userStreak >= nextReq.streak} current={userStreak} />
                       )}
                     </div>
                   </div>

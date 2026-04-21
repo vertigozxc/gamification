@@ -282,6 +282,7 @@ export const languagePacks = {
       districtReqLevel: "Lv {n}",
       districtReqTokens: "{n}",
       districtReqStreak: "{n}",
+      districtReqLevelPrefix: "Lvl",
       // Sports — XP multiplier
       perkSport1: "+5% XP from every quest",
       perkSport2: "+10% XP from every quest",
@@ -756,6 +757,7 @@ export const languagePacks = {
       districtReqLevel: "Ур. {n}",
       districtReqTokens: "{n}",
       districtReqStreak: "{n}",
+      districtReqLevelPrefix: "Ур.",
       // Sports — XP multiplier
       perkSport1: "+5% к опыту со всех квестов",
       perkSport2: "+10% к опыту со всех квестов",
