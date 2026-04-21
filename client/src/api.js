@@ -342,6 +342,13 @@ export function devGrantTokens(username, amount = 5) {
   });
 }
 
+export function devResetMe(username) {
+  return request("/api/dev/reset-me", {
+    method: "POST",
+    body: JSON.stringify({ username })
+  });
+}
+
 export function claimBusinessTokens(username) {
   return request("/api/city/business/claim", {
     method: "POST",

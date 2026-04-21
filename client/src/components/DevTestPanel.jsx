@@ -1,6 +1,6 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
-import { devGrantXp, devGrantTokens } from "../api";
+import { devGrantXp, devGrantTokens, devResetMe } from "../api";
 
 const DEV_TEST_USER_ID = "C0x6GY9LeyVhY12L1yF5QRHp3DP2";
 
@@ -70,6 +70,20 @@ export default function DevTestPanel({ username, onRefresh }) {
             style={buttonStyle}
           >
             +5 🪙
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              if (!window.confirm("Full reset? (wipes progress, completions, pins, city, timers)")) return;
+              await run(async () => {
+                await devResetMe(username);
+                if (typeof window !== "undefined") window.location.reload();
+              });
+            }}
+            style={{ ...buttonStyle, borderColor: "rgba(239,68,68,0.6)", color: "#fecaca", background: "linear-gradient(135deg, rgba(239,68,68,0.25), rgba(2,6,23,0.5))" }}
+          >
+            RESET
           </button>
           <button
             type="button"

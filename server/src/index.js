@@ -388,6 +388,66 @@ app.post("/api/dev/grant-xp", async (req, res) => {
   }
 });
 
+app.post("/api/dev/reset-me", async (req, res) => {
+  try {
+    const parsed = z.object({
+      username: z.string().min(2).max(64)
+    }).parse(req.body || {});
+    if (!isDevTestUser(parsed.username)) {
+      return res.status(403).json({ error: "Dev test grants are restricted" });
+    }
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const now = new Date();
+    await prisma.$transaction([
+      prisma.questCompletion.deleteMany({ where: { userId: user.id } }),
+      prisma.dailyScore.deleteMany({ where: { userId: user.id } }),
+      prisma.questTimerSession.deleteMany({ where: { userId: user.id } }),
+      prisma.customQuest.deleteMany({ where: { userId: user.id } }),
+      prisma.questFeedback.deleteMany({ where: { userId: user.id } }),
+      prisma.user.update({
+        where: { id: user.id },
+        data: {
+          displayName: "",
+          photoUrl: "",
+          preferredQuestIds: "",
+          randomQuestIds: "",
+          level: 1,
+          xp: 0,
+          xpNext: 250,
+          streak: 0,
+          tokens: 0,
+          theme: "adventure",
+          lastStreakIncreaseAt: null,
+          streakFreezeExpiresAt: null,
+          lastFreeTaskRerollAt: null,
+          lastDailyRerollAt: null,
+          extraRerollsToday: 0,
+          lastDailyResetAt: now,
+          lastCitySpinDayKey: "",
+          districtLevels: "0,0,0,0,0",
+          lastCitySpinAt: null,
+          lastBusinessClaimDayKey: "",
+          lastSquareBonusDayKey: "",
+          monthlyFreezeClaims: "",
+          vacationStartedAt: null,
+          vacationEndsAt: null,
+          lastVacationAt: null,
+          streakFreezeCharges: 0,
+          lastFreezePurchaseWeekKey: ""
+        }
+      })
+    ]);
+
+    res.json({ ok: true, message: "Your account was fully reset. Onboarding will re-run on next sync." });
+  } catch (error) {
+    console.error(`[dev reset-me error] ${error?.message || error}`);
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
 app.post("/api/dev/grant-tokens", async (req, res) => {
   try {
     const schema = z.object({
