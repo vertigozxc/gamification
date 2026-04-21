@@ -945,12 +945,16 @@ export default function CityTab({
         );
       })()}
 
-      {/* Business: Claim daily tokens. Always shown for business district (disabled at lvl 0
-          so player sees the future mechanic; shows countdown until next daily reset after claim). */}
+      {/* Business: Claim daily tokens. Hidden entirely while the district
+          is still at level 0 — no point showing a disabled button for a
+          mechanic that isn't unlocked yet. Appears once bizLvl ≥ 1. */}
       {selectedDistrictIdx >= 0 && DISTRICTS[selectedDistrictIdx]?.id === "business" && (() => {
         const bizLvl = Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(Number(districtLevels[selectedDistrictIdx]) || 0)));
-        const locked = bizLvl < 1;
-        const disabled = locked || businessClaimedToday;
+        if (bizLvl < 1) {
+          return null;
+        }
+        const locked = false;
+        const disabled = businessClaimedToday;
         let label;
         if (locked) {
           label = `${t.businessClaimLocked || "Unlock at level 1"}`;
