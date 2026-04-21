@@ -1055,6 +1055,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         completed: Array.isArray(gameStateResponse?.completedQuestIds) ? gameStateResponse.completedQuestIds : prev.completed,
         productivity: gameStateResponse?.productivity ?? prev.productivity,
         questSlots: gameStateResponse?.questSlots ?? prev.questSlots,
+        preferredQuestIds: Array.isArray(gameStateResponse?.preferredQuestIds)
+          ? gameStateResponse.preferredQuestIds
+          : prev.preferredQuestIds,
         activeTimers: Array.isArray(gameStateResponse?.activeTimers) ? gameStateResponse.activeTimers : []
       }));
     } catch {
