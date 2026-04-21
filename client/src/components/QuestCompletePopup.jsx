@@ -16,9 +16,12 @@ export default function QuestCompletePopup({
   sportXp = 0,
   tokensAwarded = 0,
   streakCounted = false,
-  streakRemaining
+  streakRemaining,
+  completionPercent = 100
 }) {
   const { t, tf } = useTheme();
+  const isPartial = Number(completionPercent) < 100;
+  const percentTier = Number(completionPercent) >= 75 ? 75 : Number(completionPercent) >= 50 ? 50 : 0;
 
   useEffect(() => {
     if (!show || typeof window === "undefined") return undefined;
@@ -29,8 +32,13 @@ export default function QuestCompletePopup({
     return () => window.removeEventListener("keydown", onKey);
   }, [show, onClose]);
 
-  const heading = t.questCompletePopupHeading || "Quest complete!";
-  const praise = t.questCompletePopupPraise || "Nice work — keep the momentum going.";
+  const heading = isPartial
+    ? (t.questCompletePopupHeadingPartial || "Quest stopped early")
+    : (t.questCompletePopupHeading || "Quest complete!");
+  const praise = isPartial
+    ? (tf("questCompletePopupPartialPraise", { percent: percentTier })
+        || `You pushed through ${percentTier}% of the session — that's real effort, not nothing.`)
+    : (t.questCompletePopupPraise || "Nice work — keep the momentum going.");
   const tokenIcon = t.tokenIcon || "🪙";
   const streakIcon = t.streakIcon || "🔥";
   const streakYesTitle = t.questCompletePopupStreakYesTitle || "Counts toward your streak";
@@ -44,9 +52,14 @@ export default function QuestCompletePopup({
     const dynamic = tf("questCompletePopupStreakYesHintDynamic", { n: remaining });
     streakYesHint = dynamic || `${remaining} more to grow your streak — keep it up!`;
   }
-  const streakNoTitle = t.questCompletePopupStreakNoTitle || "Doesn't count toward streak";
-  const streakNoHint = t.questCompletePopupStreakNoHint
-    || "Only 100% finishes grow the streak. Partial finishes still fill the daily board.";
+  const streakNoTitle = isPartial
+    ? (t.questCompletePopupPartialStreakTitle || "Not counted in the streak")
+    : (t.questCompletePopupStreakNoTitle || "Doesn't count toward streak");
+  const streakNoHint = isPartial
+    ? (tf("questCompletePopupPartialStreakHint", { percent: percentTier })
+        || `You earned ${percentTier}% XP, but this one doesn't add to the streak. Finish the next at 100% to claim it.`)
+    : (t.questCompletePopupStreakNoHint
+        || "Only 100% finishes grow the streak. Partial finishes still fill the daily board.");
   const proceed = t.proceedLabel || "PROCEED";
 
   return (
@@ -196,5 +209,6 @@ QuestCompletePopup.propTypes = {
   sportXp: PropTypes.number,
   tokensAwarded: PropTypes.number,
   streakCounted: PropTypes.bool,
-  streakRemaining: PropTypes.number
+  streakRemaining: PropTypes.number,
+  completionPercent: PropTypes.number
 };

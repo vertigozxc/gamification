@@ -153,9 +153,9 @@ export default function QuestTimerControls({ quest, session, elapsedMs, onStart,
           onPointerDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
           className="qt-btn"
-          style={stopBtn}
+          style={percent >= 50 ? completeBtn : stopBtn}
         >
-          Stop
+          {percent >= 50 ? "Complete" : "Stop"}
         </button>
       </div>
     </div>
@@ -212,6 +212,22 @@ const stopBtn = {
   fontWeight: 700,
   fontSize: 12.5,
   cursor: "pointer",
+  transition: "transform 120ms ease, background 120ms ease, box-shadow 120ms ease",
+  touchAction: "manipulation"
+};
+
+const completeBtn = {
+  padding: "8px 20px",
+  minWidth: 96,
+  borderRadius: 10,
+  background: "linear-gradient(135deg, rgba(34,197,94,0.7), rgba(16,185,129,0.55))",
+  border: "1px solid rgba(34,197,94,0.85)",
+  color: "#f0fdf4",
+  fontWeight: 700,
+  fontSize: 12.5,
+  letterSpacing: "0.04em",
+  cursor: "pointer",
+  boxShadow: "0 0 14px rgba(34,197,94,0.35)",
   transition: "transform 120ms ease, background 120ms ease, box-shadow 120ms ease",
   touchAction: "manipulation"
 };
