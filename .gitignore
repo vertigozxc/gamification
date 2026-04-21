@@ -11,3 +11,4 @@ server/prisma/dev.db-journal
 server/.env
 client/.env
 server/dev.db
+server/prisma/schema.dev.prisma

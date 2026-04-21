@@ -389,3 +389,271 @@
 7:58:47 PM [vite] (client) hmr update /src/components/DistrictDetailView.jsx
 7:59:12 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
 8:00:17 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+8:44:43 PM [vite] (client) hmr update /src/App.jsx
+8:45:13 PM [vite] (client) hmr update /src/App.jsx, /src/components/SpinWheelModal.jsx, /src/components/tabs/CityTab.jsx
+8:45:24 PM [vite] (client) hmr update /src/App.jsx
+8:45:40 PM [vite] (client) hmr update /src/App.jsx
+8:47:50 PM [vite] (client) hmr update /src/App.jsx
+8:47:57 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+8:48:08 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+8:48:34 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+8:49:14 PM [vite] (client) hmr update /src/ThemeContext.jsx
+8:49:14 PM [vite] (client) hmr invalidate /src/ThemeContext.jsx Could not Fast Refresh ("useTheme" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+8:49:14 PM [vite] (client) hmr update /src/main.jsx, /src/App.jsx, /src/components/modals/FreezeSuccessModal.jsx, /src/components/modals/LogoutConfirmModal.jsx, /src/components/modals/RerollConfirmModal.jsx, /src/components/modals/OnboardingModal.jsx, /src/components/modals/NotesModal.jsx, /src/components/modals/PinnedReplacementModal.jsx, /src/components/modals/CustomHabitManager.jsx, /src/components/TokenVault.jsx, /src/components/CityIllustration.jsx, /src/components/ProfilePanel.jsx, /src/components/QuestBoard.jsx and 4 more
+8:49:14 PM [vite] (client) hmr invalidate /src/main.jsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+8:49:14 PM [vite] (client) page reload src/main.jsx
+8:49:14 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+8:49:14 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+8:49:22 PM [vite] (client) hmr update /src/ThemeContext.jsx
+8:49:22 PM [vite] (client) hmr invalidate /src/ThemeContext.jsx Could not Fast Refresh ("useTheme" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+8:49:22 PM [vite] (client) hmr update /src/main.jsx, /src/App.jsx, /src/components/modals/FreezeSuccessModal.jsx, /src/components/modals/LogoutConfirmModal.jsx, /src/components/modals/RerollConfirmModal.jsx, /src/components/modals/OnboardingModal.jsx, /src/components/modals/NotesModal.jsx, /src/components/modals/PinnedReplacementModal.jsx, /src/components/modals/CustomHabitManager.jsx, /src/components/TokenVault.jsx, /src/components/CityIllustration.jsx, /src/components/ProfilePanel.jsx, /src/components/QuestBoard.jsx and 4 more
+8:49:22 PM [vite] (client) hmr invalidate /src/main.jsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+8:49:22 PM [vite] (client) page reload src/main.jsx
+8:49:22 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+8:49:22 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+8:53:01 PM [vite] (client) hmr update /src/App.jsx
+8:53:01 PM [vite] (client) hmr update /src/App.jsx, /src/components/SpinWheelModal.jsx, /src/components/tabs/CityTab.jsx
+8:53:01 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+8:53:01 PM [vite] (client) hmr update /src/ThemeContext.jsx
+8:53:01 PM [vite] (client) hmr update /src/App.jsx
+8:53:01 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+8:53:01 PM [vite] (client) hmr update /src/components/DistrictView.jsx
+8:59:19 PM [vite] (client) hmr update /src/App.jsx
+8:59:19 PM [vite] (client) hmr update /src/App.jsx, /src/components/SpinWheelModal.jsx, /src/components/tabs/CityTab.jsx
+8:59:19 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+8:59:19 PM [vite] (client) hmr update /src/components/DistrictView.jsx
+8:59:19 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+8:59:19 PM [vite] (client) hmr update /src/ThemeContext.jsx
+8:59:19 PM [vite] (client) hmr update /src/App.jsx
+9:08:31 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:08:31 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:08:31 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:11:29 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:11:29 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:11:29 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:11:43 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:11:43 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:11:43 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:11:49 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:11:49 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:11:49 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:11:58 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:11:58 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:11:58 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:12:20 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:12:34 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:14:51 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:14:51 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:14:51 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:15:01 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:15:01 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:15:01 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:16:48 PM [vite] (client) hmr update /src/App.jsx, /src/components/SpinWheelModal.jsx, /src/components/tabs/CityTab.jsx
+9:17:05 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:17:05 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:17:05 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:17:13 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:17:13 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:17:13 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:17:21 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:17:21 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:17:21 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:17:31 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:17:40 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:18:11 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:18:46 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:19:00 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:19:16 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:19:27 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:21:47 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:22:07 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:22:24 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:27:53 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:27:53 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:27:53 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:38:10 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:38:10 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:38:10 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:38:16 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:39:27 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:39:27 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:39:27 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:46:35 PM [vite] (client) hmr update /src/styles.css
+9:47:21 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:47:21 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:47:21 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:48:01 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:48:01 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:48:01 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:48:10 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:48:10 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:48:10 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:52:59 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:52:59 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:52:59 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:53:12 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:53:12 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:53:12 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:53:23 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:53:23 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:53:23 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:55:09 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:55:09 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:55:09 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:55:43 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+9:55:43 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:55:43 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:01:21 PM [vite] (client) hmr update /src/components/InteractiveMapWrapper.jsx
+10:01:31 PM [vite] (client) hmr update /src/components/InteractiveMapWrapper.jsx
+10:01:36 PM [vite] (client) hmr update /src/components/InteractiveMapWrapper.jsx
+10:01:55 PM [vite] (client) hmr update /src/components/InteractiveMapWrapper.jsx
+10:02:18 PM [vite] (client) hmr update /src/components/InteractiveMapWrapper.jsx
+10:02:24 PM [vite] (client) hmr update /src/components/InteractiveMapWrapper.jsx
+10:02:34 PM [vite] (client) hmr update /src/components/InteractiveMapWrapper.jsx
+10:02:41 PM [vite] (client) hmr update /src/components/InteractiveMapWrapper.jsx
+10:02:49 PM [vite] (client) hmr update /src/components/InteractiveMapWrapper.jsx
+10:03:03 PM [vite] (client) hmr update /src/components/InteractiveMapWrapper.jsx
+10:03:11 PM [vite] (client) hmr update /src/components/InteractiveMapWrapper.jsx
+10:05:47 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+10:05:47 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:05:47 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:05:55 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+10:05:55 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:05:55 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:06:04 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+10:06:04 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:06:04 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:06:13 PM [vite] (client) hmr update /src/components/InteractiveMapWrapper.jsx
+10:06:19 PM [vite] (client) hmr update /src/components/InteractiveMapWrapper.jsx
+10:06:35 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:06:42 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:06:52 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:08:45 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+10:08:45 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:08:45 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:09:37 PM [vite] (client) hmr update /src/styles.css
+10:09:48 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+10:09:48 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:09:48 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:09:56 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+10:09:56 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:09:56 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:12:47 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+10:12:47 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:12:47 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:13:35 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+10:13:35 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:13:35 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:13:53 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+10:13:53 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:13:53 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:14:03 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+10:14:03 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:14:03 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:14:11 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+10:14:11 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:14:11 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:14:18 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+10:14:18 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:14:18 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:20:32 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+10:20:32 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:20:32 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:20:42 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+10:20:42 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:20:42 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:24:28 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+10:24:28 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:24:28 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:29:09 PM [vite] (client) hmr update /src/components/DistrictView.jsx
+10:30:49 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+10:30:49 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:30:49 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:43:02 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+10:43:02 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:43:02 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:43:30 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+10:43:30 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:43:30 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:45:18 PM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+10:45:18 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:45:18 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:47:32 PM [vite] (client) hmr update /src/components/DistrictView.jsx
+10:47:50 PM [vite] (client) hmr update /src/components/DistrictView.jsx
+10:59:10 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:59:22 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+10:59:38 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+11:00:04 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+11:03:42 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+11:03:50 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+11:07:00 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+11:07:21 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+11:10:26 PM [vite] (client) hmr update /src/components/InteractiveMapWrapper.jsx
+11:11:04 PM [vite] (client) hmr update /src/components/InteractiveMapWrapper.jsx
+11:11:11 PM [vite] (client) hmr update /src/components/InteractiveMapWrapper.jsx
+11:14:09 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+11:17:30 PM [vite] (client) hmr update /src/components/DistrictView.jsx
+11:22:28 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+11:27:01 PM [vite] (client) hmr update /src/components/DistrictView.jsx
+11:27:11 PM [vite] (client) hmr update /src/components/DistrictView.jsx
+11:27:31 PM [vite] (client) hmr update /src/components/DistrictView.jsx
+11:27:42 PM [vite] (client) hmr update /src/components/DistrictView.jsx
+11:45:41 PM [vite] (client) hmr update /src/components/DistrictView.jsx
+11:49:03 PM [vite] (client) hmr update /src/components/DistrictView.jsx
+11:49:48 PM [vite] (client) hmr update /src/components/DistrictView.jsx
+12:07:51 AM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+12:07:51 AM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:07:51 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+12:08:35 AM [vite] (client) hmr update /src/components/DistrictView.jsx
+12:14:28 AM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+12:14:28 AM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:14:28 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+12:14:58 AM [vite] (client) hmr update /src/components/DistrictView.jsx
+12:15:41 AM [vite] (client) hmr update /src/components/DistrictView.jsx
+12:16:16 AM [vite] (client) hmr update /src/components/DistrictView.jsx
+12:17:16 AM [vite] (client) hmr update /src/components/DistrictView.jsx
+12:18:17 AM [vite] (client) hmr update /src/components/DistrictView.jsx
+12:18:53 AM [vite] (client) hmr update /src/components/DistrictView.jsx
+12:24:44 AM [vite] (client) hmr update /src/components/DistrictView.jsx
+12:26:35 AM [vite] (client) hmr update /src/components/DistrictView.jsx
+12:26:44 AM [vite] (client) hmr update /src/components/DistrictView.jsx
+12:29:27 AM [vite] (client) hmr update /src/components/DistrictView.jsx
+12:31:18 AM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+12:31:18 AM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:31:18 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+12:31:48 AM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+12:31:48 AM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:31:48 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+12:32:08 AM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+12:32:08 AM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:32:08 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+12:32:55 AM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+12:32:55 AM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:32:55 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+12:35:15 AM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+12:35:15 AM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:35:15 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+12:35:24 AM [vite] (client) hmr update /src/components/CityIsometricOverview.jsx
+12:35:24 AM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:35:24 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+12:38:09 AM [vite] (client) hmr update /src/components/InteractiveMapWrapper.jsx
+12:38:28 AM [vite] (client) hmr update /src/components/InteractiveMapWrapper.jsx
+12:38:39 AM [vite] (client) hmr update /src/components/InteractiveMapWrapper.jsx
+1:03:43 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+1:04:13 AM [vite] (client) hmr update /src/App.jsx
+1:04:31 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+1:04:41 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+1:05:03 AM [vite] (client) hmr update /src/App.jsx, /src/components/SpinWheelModal.jsx, /src/components/tabs/CityTab.jsx
+1:05:15 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+1:05:46 AM [vite] (client) hmr update /src/App.jsx
+1:05:46 AM [vite] (client) hmr update /src/App.jsx, /src/components/SpinWheelModal.jsx, /src/components/tabs/CityTab.jsx
+1:05:46 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:29:14 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:29:31 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:29:50 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:30:12 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:37:41 AM [vite] (client) hmr update /src/App.jsx, /src/components/SpinWheelModal.jsx, /src/components/tabs/CityTab.jsx
+9:38:48 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:41:48 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:43:13 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+9:44:04 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx

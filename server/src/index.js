@@ -2725,6 +2725,103 @@ app.post("/api/city/spin/claim", async (req, res) => {
   }
 });
 
+const DISTRICT_IDS = ["sport", "business", "park", "square", "residential"];
+const DISTRICT_UPGRADE_COSTS = [10, 25, 60, 120, 250]; // index = currentLevel (0..4)
+const DISTRICT_MAX_LEVEL = 5;
+
+function parseDistrictLevels(value) {
+  const raw = String(value || "0,0,0,0,0").split(",");
+  const out = [0, 0, 0, 0, 0];
+  for (let i = 0; i < 5; i++) {
+    const n = Number(raw[i]);
+    out[i] = Number.isFinite(n) ? Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(n))) : 0;
+  }
+  return out;
+}
+
+function serializeDistrictLevels(levels) {
+  return levels.slice(0, 5).map((n) => String(Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(Number(n) || 0))))).join(",");
+}
+
+app.post("/api/city/upgrade-district", async (req, res) => {
+  const schema = z.object({
+    username: z.string().min(2).max(64),
+    districtId: z.enum(DISTRICT_IDS)
+  });
+  try {
+    const { username, districtId } = schema.parse(req.body);
+    const user = await prisma.user.findUnique({ where: { username: slugifyUsername(username) } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const levels = parseDistrictLevels(user.districtLevels);
+    const idx = DISTRICT_IDS.indexOf(districtId);
+    const currentLevel = levels[idx];
+    if (currentLevel >= DISTRICT_MAX_LEVEL) {
+      return res.status(400).json({ error: "District already at max level", code: "max_level" });
+    }
+
+    levels[idx] = currentLevel + 1;
+    const nextLevelsStr = serializeDistrictLevels(levels);
+
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: { districtLevels: nextLevelsStr },
+      select: { tokens: true, districtLevels: true }
+    });
+
+    return res.json({
+      ok: true,
+      districtId,
+      level: levels[idx],
+      cost: 0,
+      tokens: updated.tokens,
+      districtLevels: parseDistrictLevels(updated.districtLevels)
+    });
+  } catch (error) {
+    console.error(`[District Upgrade Error] ${error?.message || error}`);
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+app.post("/api/city/downgrade-district", async (req, res) => {
+  const schema = z.object({
+    username: z.string().min(2).max(64),
+    districtId: z.enum(DISTRICT_IDS)
+  });
+  try {
+    const { username, districtId } = schema.parse(req.body);
+    const user = await prisma.user.findUnique({ where: { username: slugifyUsername(username) } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const levels = parseDistrictLevels(user.districtLevels);
+    const idx = DISTRICT_IDS.indexOf(districtId);
+    const currentLevel = levels[idx];
+    if (currentLevel <= 0) {
+      return res.status(400).json({ error: "District already at minimum level", code: "min_level" });
+    }
+
+    levels[idx] = currentLevel - 1;
+    const nextLevelsStr = serializeDistrictLevels(levels);
+
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: { districtLevels: nextLevelsStr },
+      select: { tokens: true, districtLevels: true }
+    });
+
+    return res.json({
+      ok: true,
+      districtId,
+      level: levels[idx],
+      tokens: updated.tokens,
+      districtLevels: parseDistrictLevels(updated.districtLevels)
+    });
+  } catch (error) {
+    console.error(`[District Downgrade Error] ${error?.message || error}`);
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
 app.post("/api/reset-daily", async (req, res) => {
   const requestStartedAt = Date.now();
   const timingParts = [];

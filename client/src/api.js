@@ -275,3 +275,17 @@ export function citySpinClaim(username, claimToken) {
 export function citySpinStatus(username) {
   return request(`/api/city/spin-status/${encodeURIComponent(username)}`);
 }
+
+export function upgradeDistrict(username, districtId) {
+  return request("/api/city/upgrade-district", {
+    method: "POST",
+    body: JSON.stringify({ username, districtId })
+  });
+}
+
+export function downgradeDistrict(username, districtId) {
+  return request("/api/city/downgrade-district", {
+    method: "POST",
+    body: JSON.stringify({ username, districtId })
+  });
+}
