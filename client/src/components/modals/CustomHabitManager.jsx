@@ -24,6 +24,8 @@ function CustomHabitManager({
   const [editingId, setEditingId] = useState(null);
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
+  const [needsTimer, setNeedsTimer] = useState(false);
+  const [timeMinutes, setTimeMinutes] = useState("30");
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   useEffect(() => {
@@ -38,6 +40,8 @@ function CustomHabitManager({
   const resetForm = () => {
     setTitle("");
     setDesc("");
+    setNeedsTimer(false);
+    setTimeMinutes("30");
     setEditingId(null);
     setMode("list");
     onClearCustomError?.();
@@ -47,6 +51,8 @@ function CustomHabitManager({
     onClearCustomError?.();
     setTitle("");
     setDesc("");
+    setNeedsTimer(false);
+    setTimeMinutes("30");
     setMode("create");
   };
 
@@ -55,20 +61,33 @@ function CustomHabitManager({
     setEditingId(cq.id);
     setTitle(cq.title || "");
     setDesc(cq.desc || cq.description || "");
+    setNeedsTimer(Boolean(cq.needsTimer));
+    const mins = Number(cq.timeEstimateMin) || 0;
+    setTimeMinutes(mins > 0 ? String(mins) : "30");
     setMode("edit");
   };
 
   const handleSave = async () => {
     const cleanTitle = title.trim();
     if (!cleanTitle) return;
+    const minutes = needsTimer ? Math.max(1, Math.min(480, parseInt(timeMinutes, 10) || 0)) : 0;
+    const payload = {
+      title: cleanTitle,
+      description: desc.trim(),
+      needsTimer,
+      timeEstimateMin: minutes
+    };
     if (mode === "create") {
-      const created = await onCreateCustomQuest({ title: cleanTitle, description: desc.trim() });
+      const created = await onCreateCustomQuest(payload);
       if (created) resetForm();
     } else if (mode === "edit" && editingId != null) {
-      const updated = await onUpdateCustomQuest(editingId, { title: cleanTitle, description: desc.trim() });
+      const updated = await onUpdateCustomQuest(editingId, payload);
       if (updated) resetForm();
     }
   };
+
+  const previewMins = Math.max(0, parseInt(timeMinutes, 10) || 0);
+  const previewXp = !needsTimer ? 30 : previewMins >= 50 ? 50 : previewMins >= 40 ? 40 : 30;
 
   const handleDelete = async (id) => {
     const ok = await onDeleteCustomQuest(id);
@@ -124,6 +143,15 @@ function CustomHabitManager({
                       {cq.desc ? (
                         <p className="text-xs text-slate-400 mt-1">{cq.desc}</p>
                       ) : null}
+                      {cq.needsTimer && Number(cq.timeEstimateMin) > 0 ? (
+                        <p className="text-[11px] mt-1" style={{ color: "var(--color-muted)" }}>
+                          ⏱ {cq.timeEstimateMin} {t.customHabitMinutesShort || "min"} · +{cq.xp || 30} XP
+                        </p>
+                      ) : (
+                        <p className="text-[11px] mt-1" style={{ color: "var(--color-muted)" }}>
+                          +30 XP
+                        </p>
+                      )}
                     </button>
                     <div style={{ position: "absolute", top: 6, right: 6, display: "flex", gap: 4 }}>
                       <button
@@ -228,6 +256,52 @@ function CustomHabitManager({
                 placeholder={t.customHabitDescPlaceholder}
           />
           <div className="text-right text-xs text-slate-500 mt-1">{desc.length} / {DESC_MAX}</div>
+
+          {/* Timer toggle + minutes input */}
+          <div className="mt-3 rounded-lg p-3" style={{ border: "1px solid var(--card-border-idle)", background: "rgba(0,0,0,0.2)" }}>
+            <label
+              className="flex items-center gap-2 cursor-pointer"
+              style={{ fontSize: 13, color: "#e2e8f0" }}
+            >
+              <input
+                type="checkbox"
+                checked={needsTimer}
+                onChange={(e) => setNeedsTimer(e.target.checked)}
+                style={{ width: 18, height: 18, cursor: "pointer" }}
+              />
+              <span className="cinzel" style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", ...accentStyle }}>
+                {t.customHabitUseTimer || "Use timer"}
+              </span>
+            </label>
+            {needsTimer ? (
+              <div className="mt-2">
+                <label className="cinzel text-[11px] tracking-widest uppercase block mb-1" style={{ color: "var(--color-muted)" }}>
+                  {t.customHabitMinutesLabel || "Duration (minutes)"}
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={480}
+                    value={timeMinutes}
+                    onChange={(e) => setTimeMinutes(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
+                    className="rounded-md px-3 py-2 text-slate-100"
+                    style={{ width: 100, background: "rgba(0,0,0,0.35)", border: "1px solid var(--card-border-idle)", minHeight: 40 }}
+                    placeholder="30"
+                  />
+                  <span className="text-xs" style={{ color: "var(--color-muted)" }}>
+                    → <strong style={{ color: "#4ade80" }}>+{previewXp} XP</strong>{" "}
+                    {t.customHabitXpHint || "per completion"}
+                  </span>
+                </div>
+                <p className="text-[11px] mt-2" style={{ color: "var(--color-muted)", lineHeight: 1.45 }}>
+                  {t.customHabitXpExplain
+                    || "Up to 39 min → 30 XP · 40–49 min → 40 XP · 50+ min → 50 XP"}
+                </p>
+              </div>
+            ) : null}
+          </div>
 
           {customError ? (
             <p className="text-red-400 text-xs mt-2 font-bold">{customError}</p>

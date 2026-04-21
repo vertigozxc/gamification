@@ -141,7 +141,7 @@ function useOnboardingPinned({
     }
   }
 
-  async function handleCreateCustomQuest({ title, description }) {
+  async function handleCreateCustomQuest({ title, description, needsTimer, timeEstimateMin }) {
     const cleanTitle = String(title || "").trim().slice(0, CUSTOM_QUEST_TITLE_MAX);
     const cleanDesc = String(description || "").trim().slice(0, CUSTOM_QUEST_DESC_MAX);
     if (!cleanTitle) {
@@ -153,7 +153,9 @@ function useOnboardingPinned({
     try {
       const result = await apiCreateCustomQuest(resolvedUsername, {
         title: cleanTitle,
-        description: cleanDesc
+        description: cleanDesc,
+        needsTimer: Boolean(needsTimer),
+        timeEstimateMin: Math.max(0, Number(timeEstimateMin) || 0)
       });
       const created = result?.customQuest;
       if (created) {
@@ -168,7 +170,7 @@ function useOnboardingPinned({
     }
   }
 
-  async function handleUpdateCustomQuest(id, { title, description }) {
+  async function handleUpdateCustomQuest(id, { title, description, needsTimer, timeEstimateMin }) {
     const cleanTitle = title !== undefined ? String(title || "").trim().slice(0, CUSTOM_QUEST_TITLE_MAX) : undefined;
     const cleanDesc = description !== undefined ? String(description || "").trim().slice(0, CUSTOM_QUEST_DESC_MAX) : undefined;
     if (cleanTitle !== undefined && !cleanTitle) {
@@ -180,7 +182,9 @@ function useOnboardingPinned({
     try {
       const result = await apiUpdateCustomQuest(resolvedUsername, id, {
         title: cleanTitle,
-        description: cleanDesc
+        description: cleanDesc,
+        needsTimer,
+        timeEstimateMin
       });
       const updated = result?.customQuest;
       if (updated) {

@@ -233,19 +233,28 @@ export function fetchCustomQuests(username) {
   return request(`/api/custom-quests/${encodeURIComponent(username)}`);
 }
 
-export function createCustomQuest(username, { title, description }) {
+export function createCustomQuest(username, { title, description, needsTimer, timeEstimateMin }) {
   return request("/api/custom-quests", {
     method: "POST",
-    body: JSON.stringify({ username, title, description })
+    body: JSON.stringify({
+      username,
+      title,
+      description,
+      needsTimer: Boolean(needsTimer),
+      timeEstimateMin: Math.max(0, Number(timeEstimateMin) || 0)
+    })
   });
 }
 
-export function updateCustomQuest(username, id, { title, description }) {
+export function updateCustomQuest(username, id, { title, description, needsTimer, timeEstimateMin }) {
   const virtualId = Number(id);
   const dbId = virtualId >= 1_000_000 ? virtualId - 1_000_000 : virtualId;
+  const body = { username, title, description };
+  if (needsTimer !== undefined) body.needsTimer = Boolean(needsTimer);
+  if (timeEstimateMin !== undefined) body.timeEstimateMin = Math.max(0, Number(timeEstimateMin) || 0);
   return request(`/api/custom-quests/${dbId}`, {
     method: "PATCH",
-    body: JSON.stringify({ username, title, description })
+    body: JSON.stringify(body)
   });
 }
 

@@ -1492,15 +1492,31 @@ function fromCustomVirtualId(virtualId) {
   return Number(virtualId) - CUSTOM_QUEST_ID_OFFSET;
 }
 
+// XP payout for a custom habit — flat 30 when no timer, or scaled with
+// the user's chosen session length when the habit runs under a timer:
+//   ≤ 39 min → 30 XP,  40–49 min → 40 XP,  ≥ 50 min → 50 XP.
+function customHabitXpForMinutes(needsTimer, minutes) {
+  if (!needsTimer) return 30;
+  const safe = Math.max(0, Number(minutes) || 0);
+  if (safe >= 50) return 50;
+  if (safe >= 40) return 40;
+  return 30;
+}
+
 function buildCustomQuestEntry(customQuest) {
+  const needsTimer = Boolean(customQuest.needsTimer);
+  const timeEstimateMin = Math.max(0, Number(customQuest.timeEstimateMin) || 0);
+  const xp = customHabitXpForMinutes(needsTimer, timeEstimateMin);
   return {
     id: toCustomVirtualId(customQuest.id),
     title: customQuest.title,
     desc: customQuest.description || "",
-    xp: 30,
-    baseXp: 30,
+    xp,
+    baseXp: xp,
     category: "CUSTOM",
     effortScore: 3,
+    needsTimer,
+    timeEstimateMin,
     icon: "",
     isCustom: true,
     sourceId: `custom_${customQuest.id}`
@@ -2111,7 +2127,9 @@ app.get("/api/quests/all", (req, res) => {
 const customQuestSchema = z.object({
   username: z.string().min(2).max(64),
   title: z.string().trim().min(1).max(CUSTOM_QUEST_TITLE_MAX),
-  description: z.string().trim().max(CUSTOM_QUEST_DESC_MAX).optional().default("")
+  description: z.string().trim().max(CUSTOM_QUEST_DESC_MAX).optional().default(""),
+  needsTimer: z.boolean().optional().default(false),
+  timeEstimateMin: z.number().int().min(0).max(480).optional().default(0)
 });
 
 app.get("/api/custom-quests/:username", async (req, res) => {
@@ -2142,7 +2160,9 @@ app.post("/api/custom-quests", async (req, res) => {
       data: {
         userId: user.id,
         title: parsed.title,
-        description: parsed.description || ""
+        description: parsed.description || "",
+        needsTimer: Boolean(parsed.needsTimer),
+        timeEstimateMin: Boolean(parsed.needsTimer) ? Math.max(1, Number(parsed.timeEstimateMin) || 0) : 0
       }
     });
     res.json({ ok: true, customQuest: buildCustomQuestEntry(created) });
@@ -2156,7 +2176,9 @@ app.patch("/api/custom-quests/:id", async (req, res) => {
     const schema = z.object({
       username: z.string().min(2).max(64),
       title: z.string().trim().min(1).max(CUSTOM_QUEST_TITLE_MAX).optional(),
-      description: z.string().trim().max(CUSTOM_QUEST_DESC_MAX).optional()
+      description: z.string().trim().max(CUSTOM_QUEST_DESC_MAX).optional(),
+      needsTimer: z.boolean().optional(),
+      timeEstimateMin: z.number().int().min(0).max(480).optional()
     });
     const parsed = schema.parse(req.body);
     const id = Number(req.params.id);
@@ -2175,6 +2197,12 @@ app.patch("/api/custom-quests/:id", async (req, res) => {
     const data = {};
     if (parsed.title !== undefined) data.title = parsed.title;
     if (parsed.description !== undefined) data.description = parsed.description;
+    if (parsed.needsTimer !== undefined) data.needsTimer = Boolean(parsed.needsTimer);
+    if (parsed.timeEstimateMin !== undefined) {
+      data.timeEstimateMin = Math.max(0, Number(parsed.timeEstimateMin) || 0);
+    }
+    // If timer is being turned off, zero out the minutes to keep invariants.
+    if (data.needsTimer === false) data.timeEstimateMin = 0;
 
     const updated = await prisma.customQuest.update({ where: { id }, data });
     res.json({ ok: true, customQuest: buildCustomQuestEntry(updated) });
@@ -2477,7 +2505,12 @@ async function processQuestCompletion({ user, quest, dayKey, availableQuests, cu
   const customIds = customQuests.map((cq) => toCustomVirtualId(cq.id));
   const pinnedQuestIds = parsePreferredQuestIds(user.preferredQuestIds, customIds);
   const isHabit = pinnedQuestIds.includes(quest.id) || isCustomQuestVirtualId(quest.id);
-  const baseXpQuest = isHabit ? { ...quest, xp: 30 } : quest;
+  // Regular pinned habits pay a flat 30 XP regardless of their pool base_xp.
+  // Custom habits already carry the correct XP from buildCustomQuestEntry
+  // (30/40/50 based on their timeEstimateMin), so trust quest.xp for those.
+  const baseXpQuest = isHabit && !isCustomQuestVirtualId(quest.id)
+    ? { ...quest, xp: 30 }
+    : quest;
   // Scale awarded XP by completion percent. xpAfterQuest applies streak and
   // level multipliers; we scale its XP-pre-multiplier input so downstream
   // logic stays consistent.
