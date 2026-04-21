@@ -15,7 +15,8 @@ import {
   replacePinnedQuests,
   rerollPinned,
   fetchProfileStats,
-  deleteProfile
+  deleteProfile,
+  addPinnedQuest
 } from "./api";
 import useGameplayActions from "./hooks/useGameplayActions";
 import useAuthSession from "./hooks/useAuthSession";
@@ -60,6 +61,7 @@ const DevTestPanel = lazy(() => import("./components/DevTestPanel"));
 const AboutAppModal = lazy(() => import("./components/modals/AboutAppModal"));
 const QuestTimerControls = lazy(() => import("./components/QuestTimerControls"));
 const QuestCompletePopup = lazy(() => import("./components/QuestCompletePopup"));
+const SingleHabitPickerModal = lazy(() => import("./components/modals/SingleHabitPickerModal"));
 const CityTab = lazy(() => import("./components/tabs/CityTab"));
 const DashboardTab = lazy(() => import("./components/tabs/DashboardTab"));
 const LeaderboardTab = lazy(() => import("./components/tabs/LeaderboardTab"));
@@ -370,6 +372,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       || showLanguagePicker
       || deleteProfileOpen
       || questCompletePopup
+      || timerLimitPopup
+      || singleHabitPickerOpen
     );
     bridge.postMessage(JSON.stringify({
       type: "mobile-shell-state",
@@ -383,7 +387,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     showOnboarding, mobileTab, cityFullscreen, showPinnedReplaceModal,
     showAbout, showLogoutConfirm, showLevelUp, showHabitMilestone,
     showFreezeSuccess, showRerollConfirm, showNotesModal, showThemePicker,
-    showLanguagePicker, deleteProfileOpen, questCompletePopup, languageId
+    showLanguagePicker, deleteProfileOpen, questCompletePopup, timerLimitPopup,
+    singleHabitPickerOpen, languageId
   ]);
 
   useEffect(() => {
@@ -1008,6 +1013,21 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     );
   }
 
+  async function handlePickSingleHabit(questId) {
+    if (!username || !questId) return;
+    setSingleHabitPickerSaving(true);
+    setSingleHabitPickerError("");
+    try {
+      await addPinnedQuest(username, Number(questId));
+      await refreshFromServer();
+      setSingleHabitPickerOpen(false);
+    } catch (err) {
+      setSingleHabitPickerError(String(err?.message || "Could not add habit"));
+    } finally {
+      setSingleHabitPickerSaving(false);
+    }
+  }
+
   async function refreshFromServer() {
     if (!authUser?.uid) return;
     try {
@@ -1031,6 +1051,24 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       }));
     } catch {
       // Ignore — failures surface via network logs.
+    }
+  }
+
+  const [timerLimitPopup, setTimerLimitPopup] = useState(false);
+  const [singleHabitPickerOpen, setSingleHabitPickerOpen] = useState(false);
+  const [singleHabitPickerSaving, setSingleHabitPickerSaving] = useState(false);
+  const [singleHabitPickerError, setSingleHabitPickerError] = useState("");
+
+  async function handleTimerStart(questId) {
+    try {
+      const resp = await startQuestTimerAction(questId);
+      return resp;
+    } catch (err) {
+      const msg = String(err?.message || "");
+      if (/timer limit/i.test(msg) || /timer_limit/i.test(msg)) {
+        setTimerLimitPopup(true);
+      }
+      return null;
     }
   }
 
@@ -1105,6 +1143,23 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       </Suspense>
 
       <Suspense fallback={null}>
+        <SingleHabitPickerModal
+          open={singleHabitPickerOpen}
+          onClose={() => {
+            setSingleHabitPickerOpen(false);
+            setSingleHabitPickerError("");
+          }}
+          availableQuests={(() => {
+            const pinnedSet = new Set(Array.isArray(state.preferredQuestIds) ? state.preferredQuestIds : []);
+            return (filteredReplacePinnedQuests || []).filter((q) => !pinnedSet.has(q.id));
+          })()}
+          saving={singleHabitPickerSaving}
+          errorMessage={singleHabitPickerError}
+          onPick={handlePickSingleHabit}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
         <QuestCompletePopup
           show={Boolean(questCompletePopup)}
           onClose={() => setQuestCompletePopup(null)}
@@ -1116,6 +1171,37 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           streakCounted={Boolean(questCompletePopup?.streakCounted)}
         />
       </Suspense>
+
+      {timerLimitPopup ? (
+        <div
+          className="logout-confirm-overlay"
+          style={{ zIndex: 95 }}
+          onClick={() => setTimerLimitPopup(false)}
+        >
+          <div
+            className="logout-confirm-card"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 380 }}
+          >
+            <div className="logout-confirm-icon">⏱</div>
+            <h3 className="cinzel logout-confirm-title">{t.timerLimitTitle || "Too many timers running"}</h3>
+            <p className="logout-confirm-msg">
+              {t.timerLimitMessage || "You can only run 2 timer quests at the same time. Finish one or stop it before starting a new one."}
+            </p>
+            <div className="logout-confirm-actions">
+              <button
+                type="button"
+                className="logout-confirm-proceed cinzel"
+                onClick={() => setTimerLimitPopup(false)}
+              >
+                {t.proceedLabel || "OK"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <OnboardingModal
         open={showOnboarding}
@@ -1272,7 +1358,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                       quest={quest}
                       session={timerSessionsByQuestId[quest.id]}
                       elapsedMs={getTimerElapsedMs(quest.id)}
-                      onStart={startQuestTimerAction}
+                      onStart={handleTimerStart}
                       onPause={pauseQuestTimerAction}
                       onResume={resumeQuestTimerAction}
                       onStop={handleTimerStop}
@@ -1281,7 +1367,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 )}
                 emptyPinnedSlotCount={emptyPinnedSlotCount}
                 emptyOtherSlotCount={emptyOtherSlotCount}
-                onOpenHabitPicker={openPinnedReplacementModal}
+                onOpenHabitPicker={() => setSingleHabitPickerOpen(true)}
                 pinnedQuests={pinnedQuests}
                 otherQuests={otherQuests}
                 pinnedQuestProgressById={pinnedQuestProgressById}
@@ -1415,7 +1501,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                   quest={quest}
                   session={timerSessionsByQuestId[quest.id]}
                   elapsedMs={getTimerElapsedMs(quest.id)}
-                  onStart={startQuestTimerAction}
+                  onStart={handleTimerStart}
                   onPause={pauseQuestTimerAction}
                   onResume={resumeQuestTimerAction}
                   onStop={handleTimerStop}
@@ -1424,7 +1510,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             )}
             emptyPinnedSlotCount={emptyPinnedSlotCount}
             emptyOtherSlotCount={emptyOtherSlotCount}
-            onOpenHabitPicker={openPinnedReplacementModal}
+            onOpenHabitPicker={() => setSingleHabitPickerOpen(true)}
             pinnedQuests={pinnedQuests}
             otherQuests={otherQuests}
             pinnedQuestProgressById={pinnedQuestProgressById}

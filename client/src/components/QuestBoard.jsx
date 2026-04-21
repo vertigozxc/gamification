@@ -9,10 +9,12 @@ function EmptySlotCard({ label, cta, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="qb-quest-item mobile-pressable"
+      className="qb-empty-slot mobile-pressable"
       style={{
         borderStyle: "dashed",
+        borderWidth: 2,
         borderColor: "rgba(250, 204, 21, 0.45)",
+        borderRadius: 14,
         background: "rgba(2, 6, 23, 0.35)",
         display: "flex",
         flexDirection: "column",
@@ -21,7 +23,8 @@ function EmptySlotCard({ label, cta, onClick }) {
         gap: 6,
         padding: "18px 12px",
         minHeight: 90,
-        cursor: "pointer"
+        cursor: "pointer",
+        transition: "background 160ms ease, border-color 160ms ease, transform 120ms ease, box-shadow 160ms ease"
       }}
       aria-label={cta || "Pick"}
     >

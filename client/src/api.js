@@ -353,6 +353,13 @@ export function devResetMe(username) {
   });
 }
 
+export function addPinnedQuest(username, questId) {
+  return request("/api/habits/pin-one", {
+    method: "POST",
+    body: JSON.stringify({ username, questId })
+  });
+}
+
 export function claimBusinessTokens(username) {
   return request("/api/city/business/claim", {
     method: "POST",

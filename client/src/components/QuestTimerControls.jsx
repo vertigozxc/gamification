@@ -52,7 +52,15 @@ export default function QuestTimerControls({ quest, session, elapsedMs, onStart,
           <span style={metaStyle}>⏱ {targetMin} min target</span>
           <span style={hintStyle}>Finish at 100% for streak credit</span>
         </div>
-        <button type="button" disabled={busy} onClick={() => run(() => onStart(quest.id))} style={primaryBtn}>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={(e) => { e.stopPropagation(); run(() => onStart(quest.id)); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          className="qt-btn"
+          style={primaryBtn}
+        >
           Start
         </button>
       </div>
@@ -71,18 +79,42 @@ export default function QuestTimerControls({ quest, session, elapsedMs, onStart,
           {percent}% · {percent >= 100 ? "100% XP" : percent >= 75 ? "75% XP" : percent >= 50 ? "50% XP" : "no XP yet"}
         </span>
       </div>
-      <div style={{ display: "flex", gap: 6 }}>
+      <div style={{ display: "flex", gap: 8 }}>
         {running ? (
-          <button type="button" disabled={busy} onClick={() => run(() => onPause(quest.id))} style={secondaryBtn}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={(e) => { e.stopPropagation(); run(() => onPause(quest.id)); }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            className="qt-btn"
+            style={secondaryBtn}
+          >
             Pause
           </button>
         ) : null}
         {paused ? (
-          <button type="button" disabled={busy} onClick={() => run(() => onResume(quest.id))} style={primaryBtn}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={(e) => { e.stopPropagation(); run(() => onResume(quest.id)); }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            className="qt-btn"
+            style={primaryBtn}
+          >
             Resume
           </button>
         ) : null}
-        <button type="button" disabled={busy} onClick={() => run(() => onStop(quest.id))} style={stopBtn}>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={(e) => { e.stopPropagation(); run(() => onStop(quest.id)); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          className="qt-btn"
+          style={stopBtn}
+        >
           Stop
         </button>
       </div>
@@ -102,37 +134,46 @@ const panelStyle = {
 };
 
 const primaryBtn = {
-  padding: "6px 14px",
-  borderRadius: 8,
+  padding: "8px 18px",
+  minWidth: 78,
+  borderRadius: 10,
   background: "linear-gradient(135deg, rgba(34,197,94,0.45), rgba(16,185,129,0.25))",
   border: "1px solid rgba(34,197,94,0.6)",
   color: "#bbf7d0",
   fontWeight: 700,
-  fontSize: 12,
+  fontSize: 12.5,
   letterSpacing: "0.05em",
-  cursor: "pointer"
+  cursor: "pointer",
+  transition: "transform 120ms ease, background 120ms ease, box-shadow 120ms ease",
+  touchAction: "manipulation"
 };
 
 const secondaryBtn = {
-  padding: "6px 12px",
-  borderRadius: 8,
-  background: "rgba(148,163,184,0.12)",
-  border: "1px solid rgba(148,163,184,0.4)",
+  padding: "8px 16px",
+  minWidth: 76,
+  borderRadius: 10,
+  background: "rgba(148,163,184,0.14)",
+  border: "1px solid rgba(148,163,184,0.45)",
   color: "#e2e8f0",
   fontWeight: 700,
-  fontSize: 12,
-  cursor: "pointer"
+  fontSize: 12.5,
+  cursor: "pointer",
+  transition: "transform 120ms ease, background 120ms ease, box-shadow 120ms ease",
+  touchAction: "manipulation"
 };
 
 const stopBtn = {
-  padding: "6px 12px",
-  borderRadius: 8,
-  background: "linear-gradient(135deg, rgba(239,68,68,0.35), rgba(185,28,28,0.3))",
-  border: "1px solid rgba(239,68,68,0.55)",
+  padding: "8px 16px",
+  minWidth: 76,
+  borderRadius: 10,
+  background: "linear-gradient(135deg, rgba(239,68,68,0.4), rgba(185,28,28,0.32))",
+  border: "1px solid rgba(239,68,68,0.6)",
   color: "#fecaca",
   fontWeight: 700,
-  fontSize: 12,
-  cursor: "pointer"
+  fontSize: 12.5,
+  cursor: "pointer",
+  transition: "transform 120ms ease, background 120ms ease, box-shadow 120ms ease",
+  touchAction: "manipulation"
 };
 
 const timeStyle = {

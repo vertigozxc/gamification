@@ -2698,6 +2698,10 @@ async function loadActiveTimerSession(userId, questId, dayKey) {
   });
 }
 
+// A user may have at most this many timer sessions active (running OR paused)
+// at any moment — prevents opening Start on every timed quest at once.
+const MAX_CONCURRENT_TIMERS = 2;
+
 app.post("/api/quests/timer/start", async (req, res) => {
   try {
     const language = getRequestLanguage(req);
@@ -2730,6 +2734,22 @@ app.post("/api/quests/timer/start", async (req, res) => {
     const existing = await loadActiveTimerSession(user.id, quest.id, dayKey);
     if (existing) {
       return res.json({ ok: true, session: serializeTimerSession(existing, now), reused: true });
+    }
+
+    // Concurrency gate — a user may only run MAX_CONCURRENT_TIMERS timer
+    // sessions at once. Counts any running/paused session for today except
+    // the one this request is starting (the quest itself had no active
+    // session at this point — `existing` was null above).
+    const activeCount = await prisma.questTimerSession.count({
+      where: { userId: user.id, dayKey, status: { in: ["running", "paused"] } }
+    });
+    if (activeCount >= MAX_CONCURRENT_TIMERS) {
+      return res.status(409).json({
+        error: "Timer limit reached",
+        code: "timer_limit",
+        limit: MAX_CONCURRENT_TIMERS,
+        activeCount
+      });
     }
 
     const created = await prisma.questTimerSession.create({
@@ -4022,6 +4042,58 @@ app.post("/api/quests/reroll-pinned", async (req, res) => {
   }
 });
 
+
+// Append a single habit to the user's pinned list (no cost, no reroll).
+// Used by the empty-slot card on the dashboard when a level tier unlocks
+// a new habit slot.
+app.post("/api/habits/pin-one", async (req, res) => {
+  try {
+    const parsed = z.object({
+      username: z.string().min(2).max(64),
+      questId: z.number().int().min(1)
+    }).parse(req.body);
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const maxPinned = getPreferredQuestCount(user.level || 1, user.streak || 0);
+    const customQuests = await fetchUserCustomQuests(user.id);
+    const customVirtualIds = new Set(customQuests.map((cq) => toCustomVirtualId(cq.id)));
+    const current = parsePreferredQuestIds(user.preferredQuestIds, [...customVirtualIds]);
+
+    if (current.length >= maxPinned) {
+      return res.status(400).json({ error: "No free habit slots at your level" });
+    }
+    if (current.includes(parsed.questId)) {
+      return res.status(409).json({ error: "Habit already pinned" });
+    }
+
+    const questPool = getQuestPool();
+    const questById = new Map(questPool.map((q) => [q.id, q]));
+    const isKnown = questById.has(parsed.questId) || customVirtualIds.has(parsed.questId);
+    if (!isKnown) {
+      return res.status(400).json({ error: `Invalid quest id: ${parsed.questId}` });
+    }
+    const quest = questById.get(parsed.questId);
+    const maxEffort = getMaxEffortForLevel(user.level || 1, user.streak || 0);
+    if (quest && Number(quest.effortScore) > maxEffort) {
+      return res.status(400).json({ error: `Quest ${parsed.questId} exceeds the difficulty available at your level` });
+    }
+
+    const nextPinned = [...current, parsed.questId];
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { preferredQuestIds: serializePreferredQuestIds(nextPinned) }
+    });
+    res.json({
+      ok: true,
+      preferredQuestIds: nextPinned,
+      user: updatedUser
+    });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
 
 app.post("/api/shop/replace-pinned-quests", async (req, res) => {
   try {
