@@ -565,30 +565,38 @@ function useGameplayActions({
   }
 
   async function handleFreezeStreak() {
-    if (freezeStreakPending || state.streakFreezeActive) {
+    if (freezeStreakPending) {
       return;
     }
 
+    const prevTokens = state.tokens;
+    const prevCharges = Number(state.user?.streakFreezeCharges) || 0;
+
     setFreezeStreakPending(true);
-    // Optimistic: deduct tokens and activate freeze immediately
+    // Optimistic: deduct tokens and bump charge count (shop adds a charge to Profile)
     setState(prev => ({
       ...prev,
-      tokens: prev.tokens - 3,
-      streakFreezeActive: true
+      tokens: Math.max(0, prev.tokens - 3),
+      user: {
+        ...(prev.user || {}),
+        streakFreezeCharges: (Number(prev.user?.streakFreezeCharges) || 0) + 1
+      }
     }));
-    setShowFreezeSuccess(true);
     try {
       const result = await freezeStreak(resolvedUsername);
-      trackEvent("streak_freeze_activated", { tokens: result.tokens });
-      // Confirm with real server token count
+      trackEvent("streak_freeze_charge_purchased", { tokens: result.tokens, charges: result.streakFreezeCharges });
+      // Confirm with real server values
       setState((prev) => ({
         ...prev,
         tokens: result.tokens,
-        streakFreezeActive: true,
+        user: {
+          ...(prev.user || {}),
+          streakFreezeCharges: Number(result.streakFreezeCharges) || 0
+        },
         logs: [
           ...prev.logs,
           {
-            msg: (vocab?.freezeActivatedLog || "🧊 {title} activated!").replace("{title}", vocab?.freezeTitle || "Streak Freeze"),
+            msg: vocab?.freezeChargePurchasedLog || "❄️ Streak Freeze charge purchased — available in Profile",
             classes: "text-cyan-300 font-bold cinzel",
             timestamp: getTimestamp()
           }
@@ -598,10 +606,12 @@ function useGameplayActions({
       // Rollback
       setState(prev => ({
         ...prev,
-        tokens: prev.tokens + 3,
-        streakFreezeActive: false
+        tokens: prevTokens,
+        user: {
+          ...(prev.user || {}),
+          streakFreezeCharges: prevCharges
+        }
       }));
-      setShowFreezeSuccess(false);
       addLog(err?.message || vocab?.purchaseFailed || "Purchase failed. Please try again.", "text-red-400 font-bold");
     } finally {
       setFreezeStreakPending(false);

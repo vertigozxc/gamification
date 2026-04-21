@@ -2970,8 +2970,23 @@ app.post("/api/city/business/claim", async (req, res) => {
   }
 });
 
-// Residential — claim monthly free streak freezes (lvl 2 = 1/mo, lvl 4 = 2/mo).
-// Grants activate streak-freeze for tomorrow at no cost.
+// Residential — claim free streak freezes on a 30-day rolling cycle
+// (lvl 2–3 = 1 per cycle, lvl ≥4 = 2 per cycle).
+// Each claim adds a charge to the Profile pool; users activate from Profile.
+const FREEZE_CYCLE_DAYS = 30;
+const FREEZE_CYCLE_MS = FREEZE_CYCLE_DAYS * 24 * 3600_000;
+
+function readFreezeCycle(rawJson, now) {
+  let parsed = null;
+  try { parsed = JSON.parse(rawJson || "{}"); } catch { parsed = null; }
+  const cycleStartAt = parsed?.cycleStartAt ? new Date(parsed.cycleStartAt) : null;
+  const count = Number(parsed?.count) || 0;
+  if (!cycleStartAt || Number.isNaN(cycleStartAt.getTime()) || (now.getTime() - cycleStartAt.getTime()) >= FREEZE_CYCLE_MS) {
+    return { cycleStartAt: null, count: 0, cycleExpired: true };
+  }
+  return { cycleStartAt, count, cycleExpired: false };
+}
+
 app.post("/api/city/residential/claim-freeze", async (req, res) => {
   const schema = z.object({ username: z.string().min(2).max(64) });
   try {
@@ -2984,17 +2999,22 @@ app.post("/api/city/residential/claim-freeze", async (req, res) => {
       return res.status(400).json({ error: "Residential level too low", code: "not_unlocked" });
     }
     const now = new Date();
-    const monthKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
-    let claims = { key: monthKey, count: 0 };
-    try {
-      const parsed = JSON.parse(user.monthlyFreezeClaims || "{}");
-      if (parsed?.key === monthKey) claims = parsed;
-    } catch { /* fall through to fresh month */ }
-    if (claims.count >= cap) {
-      return res.status(400).json({ error: "Monthly freezes exhausted", code: "exhausted", cap, used: claims.count });
+    const cycle = readFreezeCycle(user.monthlyFreezeClaims, now);
+    const effectiveStart = cycle.cycleExpired ? now : cycle.cycleStartAt;
+    const effectiveCount = cycle.cycleExpired ? 0 : cycle.count;
+    if (effectiveCount >= cap) {
+      const nextCycleAt = new Date(effectiveStart.getTime() + FREEZE_CYCLE_MS);
+      return res.status(400).json({
+        error: "Cycle exhausted",
+        code: "exhausted",
+        cap,
+        used: effectiveCount,
+        cycleStartAt: effectiveStart.toISOString(),
+        nextCycleAt: nextCycleAt.toISOString()
+      });
     }
-    // Add 1 freeze charge to pool
-    const nextClaims = { key: monthKey, count: claims.count + 1 };
+    const nextCount = effectiveCount + 1;
+    const nextClaims = { cycleStartAt: effectiveStart.toISOString(), count: nextCount };
     const updated = await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -3006,8 +3026,10 @@ app.post("/api/city/residential/claim-freeze", async (req, res) => {
     return res.json({
       ok: true,
       cap,
-      used: nextClaims.count,
-      remaining: cap - nextClaims.count,
+      used: nextCount,
+      remaining: cap - nextCount,
+      cycleStartAt: effectiveStart.toISOString(),
+      nextCycleAt: new Date(effectiveStart.getTime() + FREEZE_CYCLE_MS).toISOString(),
       streakFreezeCharges: updated.streakFreezeCharges
     });
   } catch (error) {
@@ -3032,9 +3054,10 @@ app.post("/api/city/residential/start-vacation", async (req, res) => {
     if (user.vacationEndsAt && new Date(user.vacationEndsAt) > now) {
       return res.status(400).json({ error: "Vacation already active", code: "already_active", vacationEndsAt: user.vacationEndsAt });
     }
+    const VACATION_COOLDOWN_DAYS = 365;
     if (user.lastVacationAt) {
       const diff = now.getTime() - new Date(user.lastVacationAt).getTime();
-      const COOLDOWN_MS = 360 * 24 * 3600_000;
+      const COOLDOWN_MS = VACATION_COOLDOWN_DAYS * 24 * 3600_000;
       if (diff < COOLDOWN_MS) {
         const nextAvailableAt = new Date(new Date(user.lastVacationAt).getTime() + COOLDOWN_MS);
         return res.status(400).json({ error: "Vacation on cooldown", code: "cooldown", nextAvailableAt: nextAvailableAt.toISOString() });

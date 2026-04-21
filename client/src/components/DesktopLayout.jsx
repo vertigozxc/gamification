@@ -73,7 +73,6 @@ export default function DesktopLayout({
           completedIds={state.completed} questRenderCount={questRenderCount}
           pendingQuestIds={pendingQuestIds}
           onCompleteQuest={onCompleteQuest} resetTimer={resetTimer}
-          streakFreezeActive={state.streakFreezeActive}
           rerollingQuestId={rerollingQuestId}
           rerollingPinned={rerollingPinned}
         />
@@ -82,7 +81,7 @@ export default function DesktopLayout({
 
       <TokenVault
         tokens={state.tokens}
-        streakFreezeActive={state.streakFreezeActive}
+        streakFreezeCharges={Number(state.user?.streakFreezeCharges) || 0}
         extraRerollsToday={state.extraRerollsToday}
         hasRerolledToday={state.hasRerolledToday}
         canRerollPinned={canRerollPinned}

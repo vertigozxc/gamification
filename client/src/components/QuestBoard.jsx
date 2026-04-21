@@ -19,7 +19,6 @@ function QuestBoard({
   questRenderCount,
   onCompleteQuest,
   resetTimer,
-  streakFreezeActive,
   rerollingQuestId = null,
   rerollingPinned = false,
   compact = false
@@ -112,11 +111,6 @@ function QuestBoard({
           <span className="font-mono font-bold" style={{ color: "var(--color-primary)" }}>{resetTimer}</span>
         </div>
         <div className="flex items-center gap-2">
-          {streakFreezeActive && (
-            <span className="inline-flex items-center justify-center text-center gap-1 bg-cyan-900/40 rounded-full px-2 py-0.5 text-[10px] text-cyan-300 cinzel">
-              {t.streakProtectedBadge}
-            </span>
-          )}
           <span className="cinzel text-[11px]" style={{ color: "var(--color-muted)" }}>{completedTodayCount}/6</span>
         </div>
       </div>
@@ -308,7 +302,6 @@ QuestBoard.propTypes = {
   questRenderCount: PropTypes.number.isRequired,
   onCompleteQuest: PropTypes.func.isRequired,
   resetTimer: PropTypes.string.isRequired,
-  streakFreezeActive: PropTypes.bool.isRequired,
   compact: PropTypes.bool
 };
 

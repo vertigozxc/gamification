@@ -1118,7 +1118,15 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                     xp: typeof result?.xp === "number" ? result.xp : prev.xp,
                     xpNext: typeof result?.xpNext === "number" ? result.xpNext : prev.xpNext,
                     tokens: typeof result?.tokens === "number" ? result.tokens : prev.tokens,
-                    streak: typeof result?.streak === "number" ? result.streak : prev.streak
+                    streak: typeof result?.streak === "number" ? result.streak : prev.streak,
+                    user: {
+                      ...(prev.user || {}),
+                      ...(typeof result?.streakFreezeCharges === "number" ? { streakFreezeCharges: result.streakFreezeCharges } : {}),
+                      ...(typeof result?.monthlyFreezeClaims === "string" ? { monthlyFreezeClaims: result.monthlyFreezeClaims } : {}),
+                      ...(result?.vacationEndsAt !== undefined ? { vacationEndsAt: result.vacationEndsAt } : {}),
+                      ...(result?.vacationStartedAt !== undefined ? { vacationStartedAt: result.vacationStartedAt } : {}),
+                      ...(result?.lastVacationAt !== undefined ? { lastVacationAt: result.lastVacationAt } : {})
+                    }
                   }));
                 }}
               />
@@ -1132,7 +1140,6 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 xpPercent={xpPercent}
                 completedToday={completedToday}
                 milestoneSteps={milestoneSteps}
-                streakFreezeActive={state.streakFreezeActive}
                 streakBonusPercent={streakBonusPercent}
                 pinnedQuests={pinnedQuests}
                 otherQuests={otherQuests}
@@ -1165,7 +1172,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             {mobileTab === "store" ? (
               <StoreTab
                 tokens={state.tokens}
-                streakFreezeActive={state.streakFreezeActive}
+                streakFreezeCharges={Number(state.user?.streakFreezeCharges) || 0}
                 extraRerollsToday={state.extraRerollsToday}
                 hasRerolledToday={state.hasRerolledToday}
                 canRerollPinned={canRerollPinned}

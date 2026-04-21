@@ -328,18 +328,34 @@ export const languagePacks = {
       businessClaimWait: "Next claim in",
       streakFreezeTitle: "Streak Freeze",
       streakFreezeCharges: "Charges",
-      streakFreezeStatus: "Frozen until",
+      streakFreezeStatus: "Freeze period",
+      streakFreezeActiveRange: "From today to {date}",
+      streakFreezeTodayLabel: "today",
       streakFreezeNotActive: "Not active",
       streakFreezeDaysSuffix: "d",
       streakFreezeUseAll: "Use all",
-      streakFreezeHint: "Charges are earned from the shop, monthly Residential perk, or vacation (+20 at once).",
-      residentialFreezeAvailable: "Free freeze available · {remaining} left this month",
-      residentialFreezeNextIn: "Next free freeze in {days}d",
-      residentialVacationActive: "Vacation active · ends in {days}d",
+      streakFreezeHint: "Charges are earned from the shop, the Residential 30-day cycle, or vacation (+20 at once).",
+      chargesFormOne: "charge",
+      chargesFormFew: "charges",
+      chargesFormMany: "charges",
+      daysFormOne: "day",
+      daysFormFew: "days",
+      daysFormMany: "days",
+      vaultChargesLabel: "You have {n} {word} in inventory",
+      freezeVaultDetail: "Buy a Streak Freeze charge. Use it anytime from your Profile to protect your streak.",
+      freezeChargePurchasedToast: "Charge added — activate in Profile",
+      freezeChargePurchasedLog: "❄️ Streak Freeze charge purchased — available in Profile",
+      freezeBuyBtn: "Buy charge",
+      residentialFreezeAvailable: "Free freeze ready · {remaining} left this cycle",
+      residentialFreezeNextIn: "Next cycle in {days} {dayWord}",
+      residentialFreezeCycleHint: "30-day cycle · auto-granted to your Profile",
+      residentialVacationActive: "Vacation active · ends in {days} {dayWord}",
       residentialVacationAvailable: "Vacation available",
-      residentialVacationNextIn: "Next vacation in {days}d",
-      residentialFreezeBtn: "Claim Free Streak Freeze",
-      residentialVacationBtn: "Start 20-day Vacation",
+      residentialVacationNextIn: "Next vacation in {days} {dayWord}",
+      residentialVacationCycleHint: "365-day cycle · grants 20 charges at once",
+      residentialFreezeBtn: "Claim free freeze (+1 charge)",
+      residentialVacationBtn: "Start 20-day vacation (+20 charges)",
+      residentialGrantedToProfile: "Granted to Profile",
       launchFireworks: "🎆 Launch Fireworks",
       fireworksCooldown: "Next in {time}",
       spinTitle: "CITY FORTUNE",
@@ -780,18 +796,34 @@ export const languagePacks = {
       businessClaimWait: "Следующий сбор через",
       streakFreezeTitle: "Заморозка стрика",
       streakFreezeCharges: "Заряды",
-      streakFreezeStatus: "Заморожен до",
+      streakFreezeStatus: "Период заморозки",
+      streakFreezeActiveRange: "С сегодня до {date}",
+      streakFreezeTodayLabel: "сегодня",
       streakFreezeNotActive: "Не активно",
       streakFreezeDaysSuffix: "дн.",
       streakFreezeUseAll: "Всё",
-      streakFreezeHint: "Заряды получаются из магазина, ежемесячного бонуса Жилого квартала или отпуска (+20 сразу).",
-      residentialFreezeAvailable: "Бесплатная заморозка доступна · осталось {remaining} в этом месяце",
-      residentialFreezeNextIn: "Следующая бесплатная заморозка через {days}дн.",
-      residentialVacationActive: "Отпуск активен · ещё {days}дн.",
+      streakFreezeHint: "Заряды получаются из магазина, 30-дневного цикла Жилого квартала или отпуска (+20 сразу).",
+      chargesFormOne: "заряд",
+      chargesFormFew: "заряда",
+      chargesFormMany: "зарядов",
+      daysFormOne: "день",
+      daysFormFew: "дня",
+      daysFormMany: "дней",
+      vaultChargesLabel: "У вас {n} {word} в инвентаре",
+      freezeVaultDetail: "Купите заряд заморозки стрика. Активировать можно в профиле в любой момент.",
+      freezeChargePurchasedToast: "Заряд начислен — активируйте в профиле",
+      freezeChargePurchasedLog: "❄️ Заряд заморозки куплен — доступен в профиле",
+      freezeBuyBtn: "Купить заряд",
+      residentialFreezeAvailable: "Бесплатная заморозка готова · осталось {remaining} в цикле",
+      residentialFreezeNextIn: "Следующий цикл через {days} {dayWord}",
+      residentialFreezeCycleHint: "Цикл 30 дней · начисляется автоматически в профиль",
+      residentialVacationActive: "Отпуск активен · ещё {days} {dayWord}",
       residentialVacationAvailable: "Отпуск доступен",
-      residentialVacationNextIn: "Следующий отпуск через {days}дн.",
-      residentialFreezeBtn: "Забрать бесплатную заморозку стрика",
-      residentialVacationBtn: "Начать 20-дневный отпуск",
+      residentialVacationNextIn: "Следующий отпуск через {days} {dayWord}",
+      residentialVacationCycleHint: "Цикл 365 дней · начисляет 20 зарядов сразу",
+      residentialFreezeBtn: "Забрать бесплатную заморозку (+1 заряд)",
+      residentialVacationBtn: "Начать 20-дневный отпуск (+20 зарядов)",
+      residentialGrantedToProfile: "Начислено в профиль",
       launchFireworks: "🎆 Запустить салют",
       fireworksCooldown: "Следующий через {time}",
       spinTitle: "УДАЧА ГОРОДА",
@@ -853,4 +885,30 @@ export const languageIds = Object.keys(languagePacks);
 
 export function normalizeLanguageId(value) {
   return languageIds.includes(value) ? value : "en";
+}
+
+export function pluralizeCharges(count, languageId) {
+  const n = Math.abs(Number(count) || 0);
+  const pack = languagePacks[languageId] || languagePacks.en;
+  if (languageId === "ru") {
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return pack.ui.chargesFormOne;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return pack.ui.chargesFormFew;
+    return pack.ui.chargesFormMany;
+  }
+  return n === 1 ? pack.ui.chargesFormOne : pack.ui.chargesFormMany;
+}
+
+export function pluralizeDays(count, languageId) {
+  const n = Math.abs(Number(count) || 0);
+  const pack = languagePacks[languageId] || languagePacks.en;
+  if (languageId === "ru") {
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return pack.ui.daysFormOne;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return pack.ui.daysFormFew;
+    return pack.ui.daysFormMany;
+  }
+  return n === 1 ? pack.ui.daysFormOne : pack.ui.daysFormMany;
 }

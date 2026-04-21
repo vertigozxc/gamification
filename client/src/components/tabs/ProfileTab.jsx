@@ -370,11 +370,11 @@ function StreakFreezeCard({ username, t, charges, expiresAt, streak, onFreezeUse
           borderRadius: 10
         }}>
           <span style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-muted)", fontWeight: 700 }}>
-            {t.streakFreezeStatus || "Frozen until"}
+            {t.streakFreezeStatus || "Freeze period"}
           </span>
           <div style={{ fontSize: 13, fontWeight: 700, color: active ? "#4fa85e" : "var(--color-muted)", marginTop: 2 }}>
             {active
-              ? `${new Date(expiryMs).toLocaleDateString()} · ${daysLeft} ${t.streakFreezeDaysSuffix || "d"}`
+              ? `${(t.streakFreezeActiveRange || "From today to {date}").replace("{date}", new Date(expiryMs).toLocaleDateString())} · ${daysLeft} ${t.streakFreezeDaysSuffix || "d"}`
               : (t.streakFreezeNotActive || "Not active")}
           </div>
         </div>

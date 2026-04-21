@@ -4,7 +4,7 @@ import { useTheme } from "../../ThemeContext";
 export default function DashboardTab({
   state, characterName, t,
   xpPercent, completedToday, milestoneSteps,
-  streakFreezeActive, streakBonusPercent = 0,
+  streakBonusPercent = 0,
   pinnedQuests, otherQuests, pinnedQuestProgressById,
   dailyQuestFreshDayKey, dailyQuestFreshStorageId,
   canReroll, allRandomCompleted, questRenderCount,
@@ -106,7 +106,6 @@ export default function DashboardTab({
           questRenderCount={questRenderCount}
           onCompleteQuest={onCompleteQuest}
           resetTimer={resetTimer}
-          streakFreezeActive={state.streakFreezeActive}
           rerollingQuestId={rerollingQuestId}
           rerollingPinned={rerollingPinned}
           compact

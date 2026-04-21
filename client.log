@@ -801,3 +801,61 @@
 11:44:46 AM [vite] (client) page reload src/main.jsx
 11:44:46 AM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
 11:44:46 AM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+12:07:07 PM [vite] (client) hmr update /src/components/QuestBoard.jsx
+12:07:09 PM [vite] (client) hmr update /src/components/QuestBoard.jsx
+12:08:39 PM [vite] (client) hmr update /src/ThemeContext.jsx
+12:08:39 PM [vite] (client) hmr invalidate /src/ThemeContext.jsx Could not Fast Refresh ("useTheme" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:08:39 PM [vite] (client) hmr update /src/main.jsx, /src/App.jsx, /src/components/modals/FreezeSuccessModal.jsx, /src/components/modals/LogoutConfirmModal.jsx, /src/components/modals/RerollConfirmModal.jsx, /src/components/modals/OnboardingModal.jsx, /src/components/modals/NotesModal.jsx, /src/components/modals/PinnedReplacementModal.jsx, /src/components/modals/CustomHabitManager.jsx, /src/components/TokenVault.jsx, /src/components/CityIllustration.jsx, /src/components/ProfilePanel.jsx, /src/components/QuestBoard.jsx and 5 more
+12:08:39 PM [vite] (client) hmr invalidate /src/main.jsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:08:39 PM [vite] (client) page reload src/main.jsx
+12:08:39 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:08:39 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+12:08:55 PM [vite] (client) hmr update /src/ThemeContext.jsx
+12:08:55 PM [vite] (client) hmr invalidate /src/ThemeContext.jsx Could not Fast Refresh ("useTheme" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:08:55 PM [vite] (client) hmr update /src/main.jsx, /src/App.jsx, /src/components/modals/FreezeSuccessModal.jsx, /src/components/modals/LogoutConfirmModal.jsx, /src/components/modals/RerollConfirmModal.jsx, /src/components/modals/OnboardingModal.jsx, /src/components/modals/NotesModal.jsx, /src/components/modals/PinnedReplacementModal.jsx, /src/components/modals/CustomHabitManager.jsx, /src/components/TokenVault.jsx, /src/components/CityIllustration.jsx, /src/components/ProfilePanel.jsx, /src/components/QuestBoard.jsx and 5 more
+12:08:55 PM [vite] (client) hmr invalidate /src/main.jsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:08:55 PM [vite] (client) page reload src/main.jsx
+12:08:55 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:08:55 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+12:09:07 PM [vite] (client) hmr update /src/ThemeContext.jsx
+12:09:07 PM [vite] (client) hmr invalidate /src/ThemeContext.jsx Could not Fast Refresh ("useTheme" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:09:07 PM [vite] (client) hmr update /src/main.jsx, /src/App.jsx, /src/components/modals/FreezeSuccessModal.jsx, /src/components/modals/LogoutConfirmModal.jsx, /src/components/modals/RerollConfirmModal.jsx, /src/components/modals/OnboardingModal.jsx, /src/components/modals/NotesModal.jsx, /src/components/modals/PinnedReplacementModal.jsx, /src/components/modals/CustomHabitManager.jsx, /src/components/TokenVault.jsx, /src/components/CityIllustration.jsx, /src/components/ProfilePanel.jsx, /src/components/QuestBoard.jsx and 5 more
+12:09:07 PM [vite] (client) hmr invalidate /src/main.jsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:09:07 PM [vite] (client) page reload src/main.jsx
+12:09:07 PM [vite] (client) hmr invalidate /src/components/CityIsometricOverview.jsx Could not Fast Refresh ("DISTRICTS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:09:07 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+12:09:22 PM [vite] (client) hmr update /src/App.jsx
+12:09:33 PM [vite] (client) hmr update /src/components/TokenVault.jsx
+12:09:54 PM [vite] (client) hmr update /src/components/TokenVault.jsx
+12:09:58 PM [vite] (client) hmr update /src/components/TokenVault.jsx
+12:10:05 PM [vite] (client) hmr update /src/components/tabs/StoreTab.jsx
+12:10:09 PM [vite] (client) hmr update /src/components/tabs/StoreTab.jsx
+12:10:13 PM [vite] (client) hmr update /src/App.jsx
+12:10:25 PM [vite] (client) hmr update /src/components/DesktopLayout.jsx
+12:12:20 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+12:12:42 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+12:12:45 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+12:13:01 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+12:13:08 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+12:13:16 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+12:13:43 PM [vite] (client) hmr update /src/App.jsx
+12:13:56 PM [vite] (client) hmr update /src/components/tabs/CityTab.jsx
+12:14:35 PM [vite] (client) hmr update /src/components/QuestBoard.jsx
+12:14:35 PM [vite] (client) hmr update /src/components/QuestBoard.jsx
+12:14:38 PM [vite] (client) hmr update /src/components/QuestBoard.jsx
+12:14:39 PM [vite] (client) hmr update /src/components/QuestBoard.jsx
+12:14:42 PM [vite] (client) hmr update /src/components/tabs/DashboardTab.jsx
+12:14:46 PM [vite] (client) hmr update /src/components/tabs/DashboardTab.jsx
+12:14:50 PM [vite] (client) hmr update /src/components/DesktopLayout.jsx
+12:14:53 PM [vite] (client) hmr update /src/App.jsx
+12:26:00 PM [vite] (client) hmr update /src/ThemeContext.jsx, /src/components/TokenVault.jsx, /src/components/tabs/CityTab.jsx
+12:26:00 PM [vite] (client) hmr invalidate /src/ThemeContext.jsx Could not Fast Refresh ("useTheme" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:26:00 PM [vite] (client) hmr update /src/main.jsx, /src/App.jsx, /src/components/modals/FreezeSuccessModal.jsx, /src/components/modals/LogoutConfirmModal.jsx, /src/components/modals/RerollConfirmModal.jsx, /src/components/modals/OnboardingModal.jsx, /src/components/modals/NotesModal.jsx, /src/components/modals/PinnedReplacementModal.jsx, /src/components/modals/CustomHabitManager.jsx, /src/components/TokenVault.jsx, /src/components/CityIllustration.jsx, /src/components/ProfilePanel.jsx, /src/components/QuestBoard.jsx and 5 more
+12:26:00 PM [vite] (client) hmr invalidate /src/main.jsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:26:00 PM [vite] (client) page reload src/main.jsx
+12:26:05 PM [vite] (client) hmr update /src/ThemeContext.jsx, /src/components/TokenVault.jsx, /src/components/tabs/CityTab.jsx
+12:26:05 PM [vite] (client) hmr invalidate /src/ThemeContext.jsx Could not Fast Refresh ("useTheme" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:26:05 PM [vite] (client) hmr update /src/main.jsx, /src/App.jsx, /src/components/modals/FreezeSuccessModal.jsx, /src/components/modals/LogoutConfirmModal.jsx, /src/components/modals/RerollConfirmModal.jsx, /src/components/modals/OnboardingModal.jsx, /src/components/modals/NotesModal.jsx, /src/components/modals/PinnedReplacementModal.jsx, /src/components/modals/CustomHabitManager.jsx, /src/components/TokenVault.jsx, /src/components/CityIllustration.jsx, /src/components/ProfilePanel.jsx, /src/components/QuestBoard.jsx and 5 more
+12:26:05 PM [vite] (client) hmr invalidate /src/main.jsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:26:05 PM [vite] (client) page reload src/main.jsx
+12:26:14 PM [vite] (client) hmr update /src/components/tabs/ProfileTab.jsx

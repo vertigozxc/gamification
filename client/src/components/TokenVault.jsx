@@ -1,9 +1,10 @@
 import PropTypes from "prop-types";
 import { useTheme } from "../ThemeContext";
+import { pluralizeCharges } from "../i18nConfig";
 
 function TokenVault({
   tokens,
-  streakFreezeActive,
+  streakFreezeCharges = 0,
   freezeStreakPending = false,
   extraRerollsToday,
   hasRerolledToday,
@@ -15,7 +16,7 @@ function TokenVault({
   onBuyExtraReroll,
   compact = false
 }) {
-  const { t, tf } = useTheme();
+  const { t, tf, languageId } = useTheme();
 
   function getPluralizedToken(count, singular = String(t.tokenSingular || "TOKEN").toUpperCase(), plural = String(t.tokenPlural || "TOKENS").toUpperCase()) {
     return count === 1 ? singular : plural;
@@ -25,7 +26,7 @@ function TokenVault({
     <>
       {compact ? (
         <div className="flex flex-col gap-4">
-          <div className={`mobile-card flex flex-col gap-3 ${streakFreezeActive ? "border-cyan-500/60 shadow-[0_0_18px_rgba(6,182,212,0.15)]" : ""}`} style={streakFreezeActive ? { background: "rgba(8, 51, 68, 0.4)" } : { background: "var(--panel-bg)" }}>
+          <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
             <div className="flex items-center gap-3">
               <span className="text-3xl">🧊</span>
               <div className="flex-1">
@@ -38,27 +39,30 @@ function TokenVault({
               </div>
             </div>
             <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
-              {t.freezeDetail}
+              {t.freezeVaultDetail || t.freezeDetail}
             </p>
-            {streakFreezeActive ? (
-              <div className="mt-auto flex items-center gap-2 bg-cyan-900/40 border border-cyan-500/60 rounded-xl px-4 py-2">
-                <span className="text-cyan-300 text-lg">✦</span>
-                <span className="cinzel text-cyan-300 text-sm font-bold tracking-widest">{t.freezeActive}</span>
+            {streakFreezeCharges > 1 && (
+              <div className="flex items-center gap-2 rounded-xl px-3 py-1.5" style={{ background: "color-mix(in srgb, #5ba0e0 14%, transparent)", border: "1px solid color-mix(in srgb, #5ba0e0 40%, transparent)" }}>
+                <span className="text-base">❄️</span>
+                <span className="cinzel text-xs font-bold tracking-wider" style={{ color: "#5ba0e0" }}>
+                  {(t.vaultChargesLabel || "You have {n} {word} in inventory")
+                    .replace("{n}", streakFreezeCharges)
+                    .replace("{word}", pluralizeCharges(streakFreezeCharges, languageId))}
+                </span>
               </div>
-            ) : (
-              <button
-                onClick={onFreezeStreak}
-                disabled={tokens < 3 || freezeStreakPending}
-                className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 ${
-                  tokens >= 3 && !freezeStreakPending
-                    ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:from-cyan-600 hover:to-blue-600 shadow-md"
-                    : "bg-slate-800/80 text-slate-500 cursor-not-allowed"
-                }`}
-              >
-                <span>{t.tokenIcon}</span>
-                {freezeStreakPending ? t.processingLabel : tokens < 3 ? t.notEnough : `${t.buyPrefix} 3 ${getPluralizedToken(3)}`}
-              </button>
             )}
+            <button
+              onClick={onFreezeStreak}
+              disabled={tokens < 3 || freezeStreakPending}
+              className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 ${
+                tokens >= 3 && !freezeStreakPending
+                  ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:from-cyan-600 hover:to-blue-600 shadow-md"
+                  : "bg-slate-800/80 text-slate-500 cursor-not-allowed"
+              }`}
+            >
+              <span>{t.tokenIcon}</span>
+              {freezeStreakPending ? t.processingLabel : tokens < 3 ? t.notEnough : `${t.buyPrefix} 3 ${getPluralizedToken(3)}`}
+            </button>
           </div>
 
           <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
@@ -204,7 +208,7 @@ function TokenVault({
 
 TokenVault.propTypes = {
   tokens: PropTypes.number.isRequired,
-  streakFreezeActive: PropTypes.bool.isRequired,
+  streakFreezeCharges: PropTypes.number,
   freezeStreakPending: PropTypes.bool,
   extraRerollsToday: PropTypes.number.isRequired,
   hasRerolledToday: PropTypes.bool.isRequired,

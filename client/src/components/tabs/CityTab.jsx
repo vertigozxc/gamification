@@ -5,6 +5,7 @@ import DistrictView from "../DistrictView";
 import InteractiveMapWrapper from "../InteractiveMapWrapper";
 import SpinWheelModal from "../SpinWheelModal";
 import { useTheme } from "../../ThemeContext";
+import { pluralizeDays } from "../../i18nConfig";
 import { citySpinStatus, upgradeDistrict, downgradeDistrict, devGrantStats, claimBusinessTokens, claimMonthlyFreeze, startVacation } from "../../api";
 
 const DISTRICT_MAX_LEVEL = 5;
@@ -31,25 +32,36 @@ function tpl(str, vars) {
   return String(str || "").replace(/\{(\w+)\}/g, (_, k) => (k in vars ? String(vars[k]) : ""));
 }
 
-// Describe Residential monthly-freeze status at-a-glance.
-// Returns { used, cap, remaining, nextResetInDays } where nextResetInDays is
-// days until the start of next UTC month (claims reset there).
+// Residential free-freeze status — 30-day rolling cycle.
+// Cap: lvl 2–3 = 1 per cycle; lvl ≥4 = 2 per cycle.
+// Returns { cap, used, remaining, nextResetInDays, availableNow } where
+// nextResetInDays counts down to the end of the current cycle (if the cap is
+// exhausted); 0 otherwise.
+const FREEZE_CYCLE_DAYS = 30;
+const FREEZE_CYCLE_MS = FREEZE_CYCLE_DAYS * 24 * 3600_000;
+const VACATION_COOLDOWN_DAYS = 365;
+const VACATION_COOLDOWN_MS = VACATION_COOLDOWN_DAYS * 24 * 3600_000;
+
 function residentialFreezeStatus(resLvl, monthlyFreezeClaimsJson, nowMs) {
   const cap = resLvl >= 4 ? 2 : resLvl >= 2 ? 1 : 0;
-  if (cap === 0) return { cap: 0, used: 0, remaining: 0, nextResetInDays: 0 };
-  const now = new Date(nowMs);
-  const monthKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
-  let used = 0;
-  try {
-    const parsed = JSON.parse(monthlyFreezeClaimsJson || "{}");
-    if (parsed?.key === monthKey) used = Math.max(0, Number(parsed.count) || 0);
-  } catch { /* ignore malformed */ }
-  const firstOfNextMonth = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
-  const nextResetInDays = Math.max(0, Math.ceil((firstOfNextMonth - nowMs) / (24 * 3600_000)));
-  return { cap, used, remaining: Math.max(0, cap - used), nextResetInDays };
+  if (cap === 0) return { cap: 0, used: 0, remaining: 0, nextResetInDays: 0, availableNow: false };
+  let parsed = null;
+  try { parsed = JSON.parse(monthlyFreezeClaimsJson || "{}"); } catch { parsed = null; }
+  const cycleStartMs = parsed?.cycleStartAt ? new Date(parsed.cycleStartAt).getTime() : NaN;
+  const count = Math.max(0, Number(parsed?.count) || 0);
+  const inCycle = Number.isFinite(cycleStartMs) && (nowMs - cycleStartMs) < FREEZE_CYCLE_MS;
+  if (!inCycle) {
+    return { cap, used: 0, remaining: cap, nextResetInDays: 0, availableNow: true };
+  }
+  const used = Math.min(cap, count);
+  const remaining = Math.max(0, cap - used);
+  const nextResetInDays = remaining > 0
+    ? 0
+    : Math.max(0, Math.ceil((cycleStartMs + FREEZE_CYCLE_MS - nowMs) / (24 * 3600_000)));
+  return { cap, used, remaining, nextResetInDays, availableNow: remaining > 0 };
 }
 
-// Residential vacation status.
+// Residential vacation status — 365-day rolling cooldown.
 function residentialVacationStatus(resLvl, lastVacationAt, vacationEndsAt, nowMs) {
   if (resLvl < 3) return { unlocked: false };
   const active = vacationEndsAt && new Date(vacationEndsAt).getTime() > nowMs;
@@ -58,8 +70,7 @@ function residentialVacationStatus(resLvl, lastVacationAt, vacationEndsAt, nowMs
     return { unlocked: true, active: true, endsInDays };
   }
   if (lastVacationAt) {
-    const COOLDOWN_MS = 360 * 24 * 3600_000;
-    const nextAvailableMs = new Date(lastVacationAt).getTime() + COOLDOWN_MS;
+    const nextAvailableMs = new Date(lastVacationAt).getTime() + VACATION_COOLDOWN_MS;
     const daysUntil = Math.max(0, Math.ceil((nextAvailableMs - nowMs) / (24 * 3600_000)));
     if (nextAvailableMs > nowMs) {
       return { unlocked: true, active: false, nextAvailableInDays: daysUntil };
@@ -234,7 +245,7 @@ export default function CityTab({
   const [expandedView, setExpandedView] = useState("none"); // 'none' | 'iso' | 'district'
   const [upgradePopup, setUpgradePopup] = useState(null); // { districtId, level, name, perk } | null
   const cdIntervalRef = useRef(null);
-  const { themeId } = useTheme();
+  const { themeId, languageId } = useTheme();
   const grassBg = themeId === "light" ? "#7ec382" : "#1d3a28";
 
   const handleDistrictClick = useCallback((_districtId, idx) => {
@@ -314,26 +325,38 @@ export default function CityTab({
     if (!username) return;
     try {
       const result = await claimMonthlyFreeze(username);
-      setActionMsg(`Freeze activated · ${result.remaining}/${result.cap} left this month`);
+      const nextMonthlyClaims = result.cycleStartAt
+        ? JSON.stringify({ cycleStartAt: result.cycleStartAt, count: result.used })
+        : undefined;
+      onStatsGranted?.({
+        streakFreezeCharges: result.streakFreezeCharges,
+        ...(nextMonthlyClaims ? { monthlyFreezeClaims: nextMonthlyClaims } : {})
+      });
+      setActionMsg(`❄️ +1 · ${t.residentialGrantedToProfile || "Granted to Profile"}`);
       setTimeout(() => setActionMsg(""), 3500);
     } catch (err) {
       setActionMsg(err?.data?.error || err?.message || "Failed");
       setTimeout(() => setActionMsg(""), 3000);
     }
-  }, [username]);
+  }, [username, onStatsGranted, t]);
 
   const handleStartVacation = useCallback(async () => {
     if (!username) return;
     try {
       const result = await startVacation(username);
-      const ends = result.vacationEndsAt ? new Date(result.vacationEndsAt).toLocaleDateString() : "";
-      setActionMsg(`Vacation started · ends ${ends}`);
+      onStatsGranted?.({
+        streakFreezeCharges: result.streakFreezeCharges,
+        vacationStartedAt: result.vacationStartedAt ?? null,
+        vacationEndsAt: result.vacationEndsAt ?? null,
+        lastVacationAt: result.lastVacationAt ?? null
+      });
+      setActionMsg(`🏖️ +${result.grantedCharges ?? 20} · ${t.residentialGrantedToProfile || "Granted to Profile"}`);
       setTimeout(() => setActionMsg(""), 3500);
     } catch (err) {
       setActionMsg(err?.data?.error || err?.message || "Failed");
       setTimeout(() => setActionMsg(""), 3000);
     }
-  }, [username]);
+  }, [username, onStatsGranted, t]);
 
   // Check localStorage cache on mount
   useEffect(() => {
@@ -618,19 +641,19 @@ export default function CityTab({
               const fz = residentialFreezeStatus(lvl, monthlyFreezeClaims, nowMs);
               if (fz.cap > 0) {
                 if (fz.remaining > 0) {
-                  timers.push(tpl(t.residentialFreezeAvailable || "Monthly freeze available · {remaining} left", { remaining: fz.remaining, cap: fz.cap }));
+                  timers.push(tpl(t.residentialFreezeAvailable || "Free freeze ready · {remaining} left this cycle", { remaining: fz.remaining, cap: fz.cap }));
                 } else {
-                  timers.push(tpl(t.residentialFreezeNextIn || "Next free freeze in {days}d", { days: fz.nextResetInDays }));
+                  timers.push(tpl(t.residentialFreezeNextIn || "Next cycle in {days} {dayWord}", { days: fz.nextResetInDays, dayWord: pluralizeDays(fz.nextResetInDays, languageId) }));
                 }
               }
               const vac = residentialVacationStatus(lvl, lastVacationAt, vacationEndsAt, nowMs);
               if (vac.unlocked) {
                 if (vac.active) {
-                  timers.push(tpl(t.residentialVacationActive || "Vacation active · ends in {days}d", { days: vac.endsInDays }));
+                  timers.push(tpl(t.residentialVacationActive || "Vacation active · ends in {days} {dayWord}", { days: vac.endsInDays, dayWord: pluralizeDays(vac.endsInDays, languageId) }));
                 } else if (vac.availableNow) {
                   timers.push(t.residentialVacationAvailable || "Vacation available");
                 } else if (typeof vac.nextAvailableInDays === "number") {
-                  timers.push(tpl(t.residentialVacationNextIn || "Next vacation in {days}d", { days: vac.nextAvailableInDays }));
+                  timers.push(tpl(t.residentialVacationNextIn || "Next vacation in {days} {dayWord}", { days: vac.nextAvailableInDays, dayWord: pluralizeDays(vac.nextAvailableInDays, languageId) }));
                 }
               }
             }
@@ -981,8 +1004,11 @@ export default function CityTab({
                 <span className="text-[11px] text-center" style={{ color: "var(--color-muted)", lineHeight: 1.3 }}>
                   ⏱{" "}
                   {fz.remaining > 0
-                    ? tpl(t.residentialFreezeAvailable || "Available now · {remaining} left this month", { remaining: fz.remaining, cap: fz.cap })
-                    : tpl(t.residentialFreezeNextIn || "Next free freeze in {days}d", { days: fz.nextResetInDays })}
+                    ? tpl(t.residentialFreezeAvailable || "Free freeze ready · {remaining} left this cycle", { remaining: fz.remaining, cap: fz.cap })
+                    : tpl(t.residentialFreezeNextIn || "Next cycle in {days} {dayWord}", { days: fz.nextResetInDays, dayWord: pluralizeDays(fz.nextResetInDays, languageId) })}
+                </span>
+                <span className="text-[10px] text-center" style={{ color: "var(--color-muted)", opacity: 0.7, lineHeight: 1.3 }}>
+                  {t.residentialFreezeCycleHint || "30-day cycle · auto-granted to your Profile"}
                 </span>
               </div>
             )}
@@ -1013,10 +1039,13 @@ export default function CityTab({
                 <span className="text-[11px] text-center" style={{ color: "var(--color-muted)", lineHeight: 1.3 }}>
                   ⏱{" "}
                   {vac.active
-                    ? tpl(t.residentialVacationActive || "Vacation active · ends in {days}d", { days: vac.endsInDays })
+                    ? tpl(t.residentialVacationActive || "Vacation active · ends in {days} {dayWord}", { days: vac.endsInDays, dayWord: pluralizeDays(vac.endsInDays, languageId) })
                     : vac.availableNow
                       ? (t.residentialVacationAvailable || "Available now")
-                      : tpl(t.residentialVacationNextIn || "Next vacation in {days}d", { days: vac.nextAvailableInDays })}
+                      : tpl(t.residentialVacationNextIn || "Next vacation in {days} {dayWord}", { days: vac.nextAvailableInDays, dayWord: pluralizeDays(vac.nextAvailableInDays, languageId) })}
+                </span>
+                <span className="text-[10px] text-center" style={{ color: "var(--color-muted)", opacity: 0.7, lineHeight: 1.3 }}>
+                  {t.residentialVacationCycleHint || "365-day cycle · grants 20 charges at once"}
                 </span>
               </div>
             )}
