@@ -222,12 +222,12 @@ function ReqChip({ icon, label, met, current }) {
   );
 }
 
-function PerkRow({ lvl, levelShort = "LVL", text, unlocked, isNext }) {
-  const marker = unlocked ? "✓" : isNext ? "✦" : "🔒";
-  const markerColor = unlocked ? "#4fa85e" : isNext ? "var(--color-primary)" : "var(--color-muted)";
-  const textColor = unlocked ? "var(--color-text)" : isNext ? "var(--color-text)" : "var(--color-muted)";
-  const bg = isNext
-    ? "color-mix(in srgb, var(--color-primary) 8%, transparent)"
+function PerkRow({ lvl, levelShort = "LVL", text, unlocked, isCurrent }) {
+  const marker = unlocked ? "✓" : "🔒";
+  const markerColor = unlocked ? "#4fa85e" : "var(--color-muted)";
+  const textColor = unlocked ? "var(--color-text)" : "var(--color-muted)";
+  const bg = isCurrent
+    ? "color-mix(in srgb, var(--color-primary) 12%, transparent)"
     : "transparent";
   return (
     <div
@@ -238,8 +238,13 @@ function PerkRow({ lvl, levelShort = "LVL", text, unlocked, isNext }) {
         padding: "7px 10px",
         borderRadius: 10,
         background: bg,
-        border: isNext ? "1px dashed color-mix(in srgb, var(--color-primary) 45%, transparent)" : "1px solid transparent",
-        opacity: unlocked || isNext ? 1 : 0.72
+        border: isCurrent
+          ? "1.5px solid color-mix(in srgb, var(--color-primary) 70%, transparent)"
+          : "1px solid transparent",
+        boxShadow: isCurrent
+          ? "0 0 14px color-mix(in srgb, var(--color-primary) 22%, transparent)"
+          : "none",
+        opacity: unlocked ? 1 : 0.72
       }}
     >
       <span
@@ -255,18 +260,25 @@ function PerkRow({ lvl, levelShort = "LVL", text, unlocked, isNext }) {
           color: markerColor,
           background: unlocked
             ? "color-mix(in srgb, #4fa85e 18%, transparent)"
-            : isNext
-              ? "color-mix(in srgb, var(--color-primary) 18%, transparent)"
-              : "color-mix(in srgb, var(--panel-bg) 80%, transparent)",
-          border: `1px solid ${unlocked ? "color-mix(in srgb, #4fa85e 55%, transparent)" : isNext ? "color-mix(in srgb, var(--color-primary) 55%, transparent)" : "var(--panel-border)"}`
+            : "color-mix(in srgb, var(--panel-bg) 80%, transparent)",
+          border: `1px solid ${unlocked ? "color-mix(in srgb, #4fa85e 55%, transparent)" : "var(--panel-border)"}`
         }}
       >
         {marker}
       </span>
-      <span style={{ fontSize: 10, color: "var(--color-muted)", fontWeight: 700, letterSpacing: "0.08em", minWidth: 36 }}>
+      <span
+        style={{
+          fontSize: 10,
+          color: isCurrent ? "var(--color-primary)" : "var(--color-muted)",
+          fontWeight: isCurrent ? 800 : 700,
+          letterSpacing: "0.08em",
+          minWidth: 36,
+          textShadow: isCurrent ? "0 0 6px color-mix(in srgb, var(--color-primary) 45%, transparent)" : "none"
+        }}
+      >
         {levelShort}&nbsp;{lvl}
       </span>
-      <span style={{ fontSize: 13, fontWeight: 600, color: textColor, flex: 1, lineHeight: 1.25 }}>
+      <span style={{ fontSize: 13, fontWeight: isCurrent ? 700 : 600, color: textColor, flex: 1, lineHeight: 1.25 }}>
         {text}
       </span>
     </div>
@@ -877,7 +889,7 @@ export default function CityTab({
                 </span>
                 {[1, 2, 3, 4, 5].map((lvl) => {
                   const unlocked = level >= lvl;
-                  const isNext = !atMax && lvl === level + 1;
+                  const isCurrent = level > 0 && lvl === level;
                   return (
                     <PerkRow
                       key={lvl}
@@ -885,7 +897,7 @@ export default function CityTab({
                       levelShort={t.districtLevelShort || "LVL"}
                       text={perkText(t, district.id, lvl)}
                       unlocked={unlocked}
-                      isNext={isNext}
+                      isCurrent={isCurrent}
                     />
                   );
                 })}
