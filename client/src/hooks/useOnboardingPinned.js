@@ -63,8 +63,18 @@ function useOnboardingPinned({
       category: cq.category || "CUSTOM",
       isCustom: true
     })) : [];
-    return [...customEntries, ...allQuestOptions];
-  }, [allQuestOptions, customQuests]);
+    // Defensive client-side filter: hide quests above the user's current
+    // difficulty cap. The server already filters allQuests but the initial
+    // fetchAllQuests preload may seed the pool before game-state lands.
+    const maxEffort = Math.max(1, Number(state?.questSlots?.maxEffort) || 3);
+    const currentStreak = Math.max(0, Number(state?.streak) || 0);
+    const eligibleOptions = allQuestOptions.filter((q) => {
+      const effort = Number(q?.effortScore ?? q?.effort_score ?? 0);
+      const minStreak = Number(q?.minStreak ?? q?.min_streak ?? 0);
+      return (effort === 0 || effort <= maxEffort) && minStreak <= currentStreak;
+    });
+    return [...customEntries, ...eligibleOptions];
+  }, [allQuestOptions, customQuests, state?.questSlots?.maxEffort, state?.streak]);
 
   const filteredOnboardingQuests = useMemo(() => {
     const normalizedQuestSearch = onboardingQuestSearch.trim().toLowerCase();

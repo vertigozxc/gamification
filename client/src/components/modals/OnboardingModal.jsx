@@ -2,8 +2,6 @@
 import { useTheme } from "../../ThemeContext";
 import CustomHabitManager from "./CustomHabitManager";
 
-const SELECTION_LIMIT = 3;
-
 function OnboardingModal({
   open,
   onClose,
@@ -23,8 +21,10 @@ function OnboardingModal({
   onClearCustomError,
   onCreateCustomQuest,
   onUpdateCustomQuest,
-  onDeleteCustomQuest
+  onDeleteCustomQuest,
+  selectionLimit = 2
 }) {
+  const SELECTION_LIMIT = Math.max(1, Number(selectionLimit) || 2);
   const { t } = useTheme();
   const [showWarning, setShowWarning] = useState(false);
   const [sheetAnim, setSheetAnim] = useState(false);

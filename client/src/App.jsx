@@ -432,7 +432,13 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           return;
         }
 
-        const [{ users }, allQuestsResponse] = await Promise.all([fetchLeaderboard(), fetchAllQuests()]);
+        const gsUser = gameStateResponse?.user || {};
+        const gsLevel = Number(gsUser.level) || 1;
+        const gsStreak = Number(gameStateResponse?.streak ?? gsUser.streak ?? 0);
+        const [{ users }, allQuestsResponse] = await Promise.all([
+          fetchLeaderboard(),
+          fetchAllQuests({ level: gsLevel, streak: gsStreak })
+        ]);
         setDataLoading(false);
         setInitialDataResolved(true);
         applyServerTimeSync(gameStateResponse);
@@ -1074,6 +1080,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         onCreateCustomQuest={handleCreateCustomQuest}
         onUpdateCustomQuest={handleUpdateCustomQuest}
         onDeleteCustomQuest={handleDeleteCustomQuest}
+        selectionLimit={Number(state.questSlots?.pinned) || 2}
       />
 
       <PinnedReplacementModal

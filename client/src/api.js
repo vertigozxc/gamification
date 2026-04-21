@@ -108,8 +108,12 @@ export function fetchGameState(username) {
   return request(`/api/game-state/${encodeURIComponent(username)}`);
 }
 
-export function fetchAllQuests() {
-  return request("/api/quests/all");
+export function fetchAllQuests({ level, streak } = {}) {
+  const params = new URLSearchParams();
+  if (Number.isFinite(level)) params.set("level", String(level));
+  if (Number.isFinite(streak)) params.set("streak", String(streak));
+  const qs = params.toString();
+  return request(`/api/quests/all${qs ? `?${qs}` : ""}`);
 }
 
 export function completeOnboarding(username, displayName, preferredQuestIds, photoUrl) {

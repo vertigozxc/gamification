@@ -2071,7 +2071,15 @@ app.get("/api/quests", (req, res) => {
 
 app.get("/api/quests/all", (req, res) => {
   const language = getRequestLanguage(req);
-  res.json({ quests: getQuestPool({ language }) });
+  const level = Number(req.query.level) || 0;
+  const streak = Number(req.query.streak) || 0;
+  const pool = getQuestPool({ language });
+  if (!level) {
+    return res.json({ quests: pool });
+  }
+  const maxEffort = getMaxEffortForLevel(level, streak);
+  const filtered = pool.filter((q) => Number(q.effortScore) <= maxEffort && Number(q.minStreak) <= streak);
+  res.json({ quests: filtered });
 });
 
 // ── Custom habit CRUD ──
@@ -2325,7 +2333,9 @@ app.get("/api/game-state/:username", async (req, res) => {
     preferredQuestIds,
     pinnedQuestProgress21d,
     needsOnboarding,
-    allQuests: needsOnboarding ? getQuestPool({ language }) : [],
+    allQuests: needsOnboarding
+      ? getQuestPool({ language }).filter((q) => Number(q.effortScore) <= questSlots.maxEffort && Number(q.minStreak) <= (user.streak || 0))
+      : [],
     customQuests: customQuests.map(buildCustomQuestEntry),
     productivity,
     questSlots,
