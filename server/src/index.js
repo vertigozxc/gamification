@@ -2228,10 +2228,20 @@ app.get("/api/game-state/:username", async (req, res) => {
   ]);
 
   const questSlots = getQuestSlotsForLevel(user.level || 1, user.streak || 0);
+  const activeTimerRows = await prisma.questTimerSession.findMany({
+    where: { userId: user.id, dayKey: dateKey, status: { in: ["running", "paused"] } },
+    orderBy: { createdAt: "desc" }
+  });
+  const activeTimers = activeTimerRows.map((row) => serializeTimerSession(row, now));
+  const activeCompletionRows = await prisma.questCompletion.findMany({
+    where: { userId: user.id, dayKey: dateKey },
+    select: { questId: true, completionPercent: true, elapsedMs: true }
+  });
   res.json({
     user,
     dateKey,
     completedQuestIds: completionIds,
+    completions: activeCompletionRows,
     streak: user.streak,
     hasRerolledToday: hasUsedDailyRerollToday(user, now),
     extraRerollsToday: Number(user.extraRerollsToday || 0),
@@ -2244,6 +2254,7 @@ app.get("/api/game-state/:username", async (req, res) => {
     customQuests: customQuests.map(buildCustomQuestEntry),
     productivity,
     questSlots,
+    activeTimers,
     ...buildServerTimeMeta(now)
   });
 });
@@ -2342,6 +2353,182 @@ app.post("/api/onboarding/complete", async (req, res) => {
   }
 });
 
+// Quantize a raw completion percent to the scoring tiers: <50 → 0 (rejected),
+// 50-74 → 50, 75-99 → 75, >=100 → 100.
+function quantizeCompletionPercent(rawPercent) {
+  const safe = Math.max(0, Math.min(200, Number(rawPercent) || 0));
+  if (safe < 50) return 0;
+  if (safe < 75) return 50;
+  if (safe < 100) return 75;
+  return 100;
+}
+
+async function processQuestCompletion({ user, quest, dayKey, availableQuests, customQuests, completionPercent, elapsedMs, now }) {
+  const customIds = customQuests.map((cq) => toCustomVirtualId(cq.id));
+  const pinnedQuestIds = parsePreferredQuestIds(user.preferredQuestIds, customIds);
+  const isHabit = pinnedQuestIds.includes(quest.id) || isCustomQuestVirtualId(quest.id);
+  const baseXpQuest = isHabit ? { ...quest, xp: 30 } : quest;
+  // Scale awarded XP by completion percent. xpAfterQuest applies streak and
+  // level multipliers; we scale its XP-pre-multiplier input so downstream
+  // logic stays consistent.
+  const scaledBaseXp = Math.max(0, Math.round(Number(baseXpQuest.xp || 0) * completionPercent / 100));
+  const questForXp = { ...baseXpQuest, xp: scaledBaseXp };
+  const previousPinnedQuestStreak = pinnedQuestIds.includes(quest.id)
+    ? await getQuestConsecutiveDaysForUser(user.id, quest.id)
+    : 0;
+
+  await prisma.questCompletion.create({
+    data: { userId: user.id, questId: quest.id, dayKey, completionPercent, elapsedMs }
+  });
+
+  const todayRows = await prisma.questCompletion.findMany({
+    where: { userId: user.id, dayKey },
+    select: { completionPercent: true }
+  });
+  const todayCompletionsCount = todayRows.length;
+  const todayHundredCount = todayRows.filter((row) => Number(row.completionPercent) >= 100).length;
+
+  const milestoneReward = milestoneRewardForCount(todayCompletionsCount);
+  let habitMilestoneReached = false;
+  let habitMilestoneTokens = 0;
+
+  if (pinnedQuestIds.includes(quest.id) && completionPercent >= 100) {
+    const nextPinnedQuestStreak = await getQuestConsecutiveDaysForUser(user.id, quest.id);
+    if (previousPinnedQuestStreak < 21 && nextPinnedQuestStreak >= 21) {
+      habitMilestoneReached = true;
+      habitMilestoneTokens = 10;
+    }
+  }
+
+  // Streak counts only 100%-completions (timer full-time or no-timer quest).
+  const newStreak = calculateStreak(todayHundredCount, user.streak);
+
+  return {
+    pinnedQuestIds,
+    questForXp,
+    milestoneReward,
+    habitMilestoneReached,
+    habitMilestoneTokens,
+    todayCompletionsCount,
+    todayHundredCount,
+    newStreak
+  };
+}
+
+// Run the XP award + token/streak bookkeeping transaction shared by
+// /api/quests/complete and the timer stop endpoint.
+async function awardQuestCompletion({ user, quest, dayKey, availableQuests, customQuests, completionPercent, elapsedMs, now }) {
+  const {
+    questForXp,
+    milestoneReward,
+    habitMilestoneReached,
+    habitMilestoneTokens,
+    todayCompletionsCount,
+    newStreak
+  } = await processQuestCompletion({
+    user,
+    quest,
+    dayKey,
+    availableQuests,
+    customQuests,
+    completionPercent,
+    elapsedMs,
+    now
+  });
+  const streakIncreased = newStreak > user.streak;
+  const lastIncreaseKey = user.lastStreakIncreaseAt ? getDateKey(user.lastStreakIncreaseAt) : null;
+  const canIncreaseStreakToday = lastIncreaseKey !== dayKey;
+
+  // Atomic XP read+compute+write: lock the user row so concurrent completions
+  // (e.g. mobile + web simultaneously) cannot both read the same stale XP and
+  // overwrite each other, causing lost XP.
+  const baseTokenIncrement = milestoneReward.bonusTokens + (habitMilestoneReached ? habitMilestoneTokens : 0);
+  const { updatedUser, xpState, sportBonusXp, squareBonusTokens, isFullBoard } = await prisma.$transaction(async (tx) => {
+    try {
+      await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${user.id} FOR UPDATE`;
+    } catch (lockErr) {
+      const msg = String(lockErr?.message || "");
+      if (!/FOR/i.test(msg)) throw lockErr;
+    }
+    const freshUser = await tx.user.findUnique({ where: { id: user.id } });
+    const freshXpState = xpAfterQuest(freshUser, questForXp, freshUser.streak || 0);
+
+    const sportLvl = districtLevelOf(freshUser.districtLevels, "sport");
+    const sportMultiplier = sportXpBonus(sportLvl);
+    const sportBonusXpInner = Math.max(0, Math.round(freshXpState.awardedXp * (sportMultiplier - 1)));
+
+    const freshXpStateWithMilestone = applyBonusXpProgress(
+      freshXpState,
+      milestoneReward.bonusXp + sportBonusXpInner
+    );
+
+    let freshTokenIncrement = baseTokenIncrement;
+    if (freshXpStateWithMilestone.level > freshUser.level) {
+      for (let lvl = freshUser.level + 1; lvl <= freshXpStateWithMilestone.level; lvl++) {
+        freshTokenIncrement += lvl >= 10 ? 2 : 1;
+      }
+    }
+
+    const squareLvl = districtLevelOf(freshUser.districtLevels, "square");
+    const isFullBoardInner = todayCompletionsCount >= availableQuests.length && availableQuests.length > 0;
+    const alreadyGranted = freshUser.lastSquareBonusDayKey === dayKey;
+    const squareBonusTokensInner = (squareLvl > 0 && isFullBoardInner && !alreadyGranted) ? squareLvl : 0;
+    if (squareBonusTokensInner > 0) {
+      freshTokenIncrement += squareBonusTokensInner;
+    }
+
+    const txUpdateData = {
+      xp: freshXpStateWithMilestone.xp,
+      level: freshXpStateWithMilestone.level,
+      xpNext: freshXpStateWithMilestone.xpNext
+    };
+    if (freshTokenIncrement > 0) {
+      txUpdateData.tokens = { increment: freshTokenIncrement };
+    }
+    if (streakIncreased && canIncreaseStreakToday) {
+      txUpdateData.streak = newStreak;
+      txUpdateData.lastStreakIncreaseAt = now;
+    }
+    if (squareBonusTokensInner > 0) {
+      txUpdateData.lastSquareBonusDayKey = dayKey;
+    }
+
+    const updated = await tx.user.update({ where: { id: user.id }, data: txUpdateData });
+    return {
+      updatedUser: updated,
+      xpState: freshXpState,
+      sportBonusXp: sportBonusXpInner,
+      squareBonusTokens: squareBonusTokensInner,
+      isFullBoard: isFullBoardInner
+    };
+  });
+
+  const productivityState = await updateAndReadProductivity(updatedUser, now);
+  const finalUser = productivityState.user;
+
+  return {
+    ok: true,
+    streak: finalUser.streak,
+    awardedXp: xpState.awardedXp,
+    multiplier: xpState.multiplier,
+    milestoneBonusXp: milestoneReward.bonusXp,
+    milestoneTokens: milestoneReward.bonusTokens,
+    sportBonusXp: sportBonusXp || 0,
+    squareBonusTokens: squareBonusTokens || 0,
+    fullBoardCompleted: !!isFullBoard,
+    totalAwardedXp: xpState.awardedXp + milestoneReward.bonusXp + (sportBonusXp || 0),
+    habitMilestoneReached,
+    habitMilestoneTokens,
+    habitMilestoneQuestId: quest.id,
+    tokens: finalUser.tokens,
+    productivity: productivityState.productivity,
+    questSlots: getQuestSlotsForLevel(finalUser.level || 1, finalUser.streak || 0),
+    completionPercent,
+    elapsedMs,
+    ...buildServerTimeMeta(now)
+  };
+}
+
 app.post("/api/quests/complete", async (req, res) => {
   const schema = z.object({
     username: z.string().min(2).max(64),
@@ -2372,158 +2559,271 @@ app.post("/api/quests/complete", async (req, res) => {
       return res.status(404).json({ error: "Quest not found" });
     }
 
+    if (quest.needsTimer && !isCustomQuestVirtualId(quest.id)) {
+      return res.status(400).json({ error: "This quest requires a timer. Use /api/quests/timer/start.", code: "timer_required" });
+    }
+
     const existing = await prisma.questCompletion.findUnique({
       where: {
-        userId_questId_dayKey: {
-          userId: user.id,
-          questId: quest.id,
-          dayKey
-        }
+        userId_questId_dayKey: { userId: user.id, questId: quest.id, dayKey }
       }
     });
-
     if (existing) {
       return res.status(409).json({ error: "Quest already completed today" });
     }
 
-    const customIds = customQuests.map((cq) => toCustomVirtualId(cq.id));
-    const pinnedQuestIds = parsePreferredQuestIds(user.preferredQuestIds, customIds);
-    const isHabit = pinnedQuestIds.includes(quest.id) || isCustomQuestVirtualId(quest.id);
-    const questForXp = isHabit ? { ...quest, xp: 30 } : quest;
-    const previousPinnedQuestStreak = pinnedQuestIds.includes(quest.id)
-      ? await getQuestConsecutiveDaysForUser(user.id, quest.id)
-      : 0;
-
-    await prisma.questCompletion.create({
-      data: { userId: user.id, questId: quest.id, dayKey }
-    });
-
-    const todayCompletionsCount = await prisma.questCompletion.count({
-      where: { userId: user.id, dayKey }
-    });
-
-    const milestoneReward = milestoneRewardForCount(todayCompletionsCount);
-    let habitMilestoneReached = false;
-    let habitMilestoneTokens = 0;
-
-    if (pinnedQuestIds.includes(quest.id)) {
-      const nextPinnedQuestStreak = await getQuestConsecutiveDaysForUser(user.id, quest.id);
-      if (previousPinnedQuestStreak < 21 && nextPinnedQuestStreak >= 21) {
-        habitMilestoneReached = true;
-        habitMilestoneTokens = 10;
-      }
-    }
-    
-    const newStreak = calculateStreak(todayCompletionsCount, user.streak);
-    const streakIncreased = newStreak > user.streak;
     const now = new Date();
-    const todayKey = getDateKey(now);
-    const lastIncreaseKey = user.lastStreakIncreaseAt ? getDateKey(user.lastStreakIncreaseAt) : null;
-    const canIncreaseStreakToday = lastIncreaseKey !== todayKey;
-
-    // Atomic XP read+compute+write: lock the user row so concurrent completions
-    // (e.g. mobile + web simultaneously) cannot both read the same stale XP and
-    // overwrite each other, causing lost XP.
-    const baseTokenIncrement = milestoneReward.bonusTokens + (habitMilestoneReached ? habitMilestoneTokens : 0);
-    const { updatedUser, xpState, xpStateWithMilestone, sportBonusXp, squareBonusTokens, isFullBoard } = await prisma.$transaction(async (tx) => {
-      // Acquire an exclusive row lock so any concurrent transaction for the same
-      // user blocks here until this one commits. SQLite (dev) does not support
-      // FOR UPDATE and already serializes writes via its own lock, so we skip
-      // the explicit row-lock there.
-      try {
-        await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${user.id} FOR UPDATE`;
-      } catch (lockErr) {
-        const msg = String(lockErr?.message || "");
-        if (!/FOR/i.test(msg)) throw lockErr;
-      }
-      const freshUser = await tx.user.findUnique({ where: { id: user.id } });
-      const freshXpState = xpAfterQuest(freshUser, questForXp, freshUser.streak || 0);
-
-      // --- Sport district XP bonus: +5% per district level ---
-      const sportLvl = districtLevelOf(freshUser.districtLevels, "sport");
-      const sportMultiplier = sportXpBonus(sportLvl);
-      const sportBonusXpInner = Math.max(0, Math.round(freshXpState.awardedXp * (sportMultiplier - 1)));
-
-      const freshXpStateWithMilestone = applyBonusXpProgress(
-        freshXpState,
-        milestoneReward.bonusXp + sportBonusXpInner
-      );
-
-      let freshTokenIncrement = baseTokenIncrement;
-      if (freshXpStateWithMilestone.level > freshUser.level) {
-        for (let lvl = freshUser.level + 1; lvl <= freshXpStateWithMilestone.level; lvl++) {
-          freshTokenIncrement += lvl >= 10 ? 2 : 1;
-        }
-      }
-
-      // --- Square district full-board bonus: +N tokens when board is fully completed today ---
-      // (Once per day, based on square district level.)
-      const squareLvl = districtLevelOf(freshUser.districtLevels, "square");
-      const isFullBoardInner = todayCompletionsCount >= availableQuests.length && availableQuests.length > 0;
-      const alreadyGranted = freshUser.lastSquareBonusDayKey === dayKey;
-      const squareBonusTokensInner = (squareLvl > 0 && isFullBoardInner && !alreadyGranted) ? squareLvl : 0;
-      if (squareBonusTokensInner > 0) {
-        freshTokenIncrement += squareBonusTokensInner;
-      }
-
-      const txUpdateData = {
-        xp: freshXpStateWithMilestone.xp,
-        level: freshXpStateWithMilestone.level,
-        xpNext: freshXpStateWithMilestone.xpNext
-      };
-      if (freshTokenIncrement > 0) {
-        txUpdateData.tokens = { increment: freshTokenIncrement };
-      }
-      if (streakIncreased && canIncreaseStreakToday) {
-        txUpdateData.streak = newStreak;
-        txUpdateData.lastStreakIncreaseAt = now;
-      }
-      if (squareBonusTokensInner > 0) {
-        txUpdateData.lastSquareBonusDayKey = dayKey;
-      }
-
-      const updated = await tx.user.update({ where: { id: user.id }, data: txUpdateData });
-      return {
-        updatedUser: updated,
-        xpState: freshXpState,
-        xpStateWithMilestone: freshXpStateWithMilestone,
-        sportBonusXp: sportBonusXpInner,
-        squareBonusTokens: squareBonusTokensInner,
-        isFullBoard: isFullBoardInner
-      };
+    const payload = await awardQuestCompletion({
+      user,
+      quest,
+      dayKey,
+      availableQuests,
+      customQuests,
+      completionPercent: 100,
+      elapsedMs: 0,
+      now
     });
-
-    const productivityState = await updateAndReadProductivity(updatedUser, now);
-    const finalUser = productivityState.user;
-
-    const responsePayload = {
-      ok: true,
-      streak: finalUser.streak,
-      awardedXp: xpState.awardedXp,
-      multiplier: xpState.multiplier,
-      milestoneBonusXp: milestoneReward.bonusXp,
-      milestoneTokens: milestoneReward.bonusTokens,
-      sportBonusXp: sportBonusXp || 0,
-      squareBonusTokens: squareBonusTokens || 0,
-      fullBoardCompleted: !!isFullBoard,
-      totalAwardedXp: xpState.awardedXp + milestoneReward.bonusXp + (sportBonusXp || 0),
-      habitMilestoneReached,
-      habitMilestoneTokens,
-      habitMilestoneQuestId: quest.id,
-      tokens: finalUser.tokens,
-      productivity: productivityState.productivity,
-      questSlots: getQuestSlotsForLevel(finalUser.level || 1, finalUser.streak || 0),
-      ...buildServerTimeMeta(now)
-    };
-
-    console.error(`[Quest Complete Response] totalAwardedXp: ${responsePayload.totalAwardedXp}, awardedXp: ${responsePayload.awardedXp}, user.xp: ${finalUser.xp}, user.level: ${finalUser.level}`);
-
-    res.json(responsePayload);
+    res.json(payload);
   } catch (error) {
     console.error(`[Quest Complete Error] ${error?.message || error}`, error);
     res.status(400).json({ error: "Invalid request", detail: error.message });
   }
 });
+
+// ─────────────────────────────────────────────────────────────
+// Quest timer endpoints. Lifecycle: start → (pause → resume)* → stop.
+// On stop, elapsed time is compared to quest.timeEstimateMin. The
+// completion is finalized (partial XP 50/75/100%, or no award when
+// <50%). Only 100% completions count toward the streak; <100%
+// completions still register on the daily board.
+// ─────────────────────────────────────────────────────────────
+
+function computeTimerElapsedMs(session, now = new Date()) {
+  const started = session.startedAt ? new Date(session.startedAt).getTime() : 0;
+  if (!started) return 0;
+  const pauseBaseline = session.pausedAt ? new Date(session.pausedAt).getTime() : now.getTime();
+  const raw = Math.max(0, pauseBaseline - started - Number(session.totalPausedMs || 0));
+  return raw;
+}
+
+async function loadActiveTimerSession(userId, questId, dayKey) {
+  return prisma.questTimerSession.findFirst({
+    where: { userId, questId, dayKey, status: { in: ["running", "paused"] } },
+    orderBy: { createdAt: "desc" }
+  });
+}
+
+app.post("/api/quests/timer/start", async (req, res) => {
+  try {
+    const language = getRequestLanguage(req);
+    const parsed = z.object({
+      username: z.string().min(2).max(64),
+      questId: z.number().int().min(1)
+    }).parse(req.body);
+
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const now = new Date();
+    const dayKey = getDateKey(now);
+    const todayCompletions = await prisma.questCompletion.findMany({
+      where: { userId: user.id, dayKey },
+      select: { questId: true }
+    });
+    const customQuests = await fetchUserCustomQuests(user.id);
+    const available = composeDailyQuests(user, todayCompletions.map((t) => t.questId), now, [], language, customQuests);
+    const quest = available.find((q) => q.id === parsed.questId);
+    if (!quest) return res.status(404).json({ error: "Quest not on today's board" });
+    if (!quest.needsTimer) return res.status(400).json({ error: "Quest has no timer" });
+
+    const already = await prisma.questCompletion.findUnique({
+      where: { userId_questId_dayKey: { userId: user.id, questId: quest.id, dayKey } }
+    });
+    if (already) return res.status(409).json({ error: "Quest already completed today" });
+
+    const existing = await loadActiveTimerSession(user.id, quest.id, dayKey);
+    if (existing) {
+      return res.json({ ok: true, session: serializeTimerSession(existing, now), reused: true });
+    }
+
+    const created = await prisma.questTimerSession.create({
+      data: {
+        userId: user.id,
+        questId: quest.id,
+        dayKey,
+        startedAt: now,
+        status: "running"
+      }
+    });
+    res.json({ ok: true, session: serializeTimerSession(created, now) });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+app.post("/api/quests/timer/pause", async (req, res) => {
+  try {
+    const parsed = z.object({
+      username: z.string().min(2).max(64),
+      questId: z.number().int().min(1)
+    }).parse(req.body);
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const now = new Date();
+    const dayKey = getDateKey(now);
+    const session = await loadActiveTimerSession(user.id, parsed.questId, dayKey);
+    if (!session) return res.status(404).json({ error: "No active timer" });
+    if (session.status === "paused") {
+      return res.json({ ok: true, session: serializeTimerSession(session, now) });
+    }
+
+    const updated = await prisma.questTimerSession.update({
+      where: { id: session.id },
+      data: { status: "paused", pausedAt: now }
+    });
+    res.json({ ok: true, session: serializeTimerSession(updated, now) });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+app.post("/api/quests/timer/resume", async (req, res) => {
+  try {
+    const parsed = z.object({
+      username: z.string().min(2).max(64),
+      questId: z.number().int().min(1)
+    }).parse(req.body);
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const now = new Date();
+    const dayKey = getDateKey(now);
+    const session = await loadActiveTimerSession(user.id, parsed.questId, dayKey);
+    if (!session) return res.status(404).json({ error: "No timer to resume" });
+    if (session.status === "running") {
+      return res.json({ ok: true, session: serializeTimerSession(session, now) });
+    }
+
+    const pausedMsAdded = session.pausedAt
+      ? Math.max(0, now.getTime() - new Date(session.pausedAt).getTime())
+      : 0;
+    const updated = await prisma.questTimerSession.update({
+      where: { id: session.id },
+      data: {
+        status: "running",
+        pausedAt: null,
+        totalPausedMs: Number(session.totalPausedMs || 0) + pausedMsAdded
+      }
+    });
+    res.json({ ok: true, session: serializeTimerSession(updated, now) });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+app.post("/api/quests/timer/stop", async (req, res) => {
+  try {
+    const language = getRequestLanguage(req);
+    const parsed = z.object({
+      username: z.string().min(2).max(64),
+      questId: z.number().int().min(1)
+    }).parse(req.body);
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const now = new Date();
+    const dayKey = getDateKey(now);
+    const session = await loadActiveTimerSession(user.id, parsed.questId, dayKey);
+    if (!session) return res.status(404).json({ error: "No active timer" });
+
+    // If we stop while paused, finalize paused duration into totalPausedMs
+    // so elapsed excludes pause time.
+    const pausedMsAdded = session.pausedAt
+      ? Math.max(0, now.getTime() - new Date(session.pausedAt).getTime())
+      : 0;
+    const totalPausedMs = Number(session.totalPausedMs || 0) + pausedMsAdded;
+    const elapsedMs = Math.max(0, now.getTime() - new Date(session.startedAt).getTime() - totalPausedMs);
+
+    const todayCompletions = await prisma.questCompletion.findMany({
+      where: { userId: user.id, dayKey },
+      select: { questId: true }
+    });
+    const customQuests = await fetchUserCustomQuests(user.id);
+    const availableQuests = composeDailyQuests(user, todayCompletions.map((t) => t.questId), now, [], language, customQuests);
+    const quest = availableQuests.find((q) => q.id === parsed.questId);
+    if (!quest) return res.status(404).json({ error: "Quest not on today's board" });
+
+    const targetMs = Math.max(1, Number(quest.timeEstimateMin || 0) * 60 * 1000);
+    const rawPercent = (elapsedMs / targetMs) * 100;
+    const completionPercent = quantizeCompletionPercent(rawPercent);
+
+    // Always finalize the timer session, even when below threshold, so the
+    // user is not stuck with a stale "running" session on their board.
+    await prisma.questTimerSession.update({
+      where: { id: session.id },
+      data: {
+        status: "stopped",
+        pausedAt: null,
+        totalPausedMs,
+        stoppedAt: now,
+        elapsedMs,
+        percent: completionPercent
+      }
+    });
+
+    if (completionPercent < 50) {
+      return res.json({
+        ok: true,
+        completed: false,
+        completionPercent: 0,
+        elapsedMs,
+        rawPercent: Math.round(rawPercent),
+        message: "Below 50% threshold — no XP awarded."
+      });
+    }
+
+    const alreadyCompleted = await prisma.questCompletion.findUnique({
+      where: { userId_questId_dayKey: { userId: user.id, questId: quest.id, dayKey } }
+    });
+    if (alreadyCompleted) {
+      return res.status(409).json({ error: "Quest already completed today" });
+    }
+
+    const payload = await awardQuestCompletion({
+      user,
+      quest,
+      dayKey,
+      availableQuests,
+      customQuests,
+      completionPercent,
+      elapsedMs,
+      now
+    });
+    res.json({ ...payload, completed: true, rawPercent: Math.round(rawPercent) });
+  } catch (error) {
+    console.error(`[Timer Stop Error] ${error?.message || error}`, error);
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+function serializeTimerSession(session, now = new Date()) {
+  return {
+    id: session.id,
+    questId: session.questId,
+    status: session.status,
+    startedAt: session.startedAt,
+    pausedAt: session.pausedAt ?? null,
+    totalPausedMs: Number(session.totalPausedMs || 0),
+    elapsedMs: session.status === "stopped"
+      ? Number(session.elapsedMs || 0)
+      : computeTimerElapsedMs(session, now)
+  };
+}
 
 const CITY_SPIN_REWARDS = [
   { id: 1,  type: "xp",    amount: 10,  weight: 25 },

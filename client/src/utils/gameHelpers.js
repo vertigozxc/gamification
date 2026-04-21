@@ -113,7 +113,8 @@ export function createDefaultState() {
       tasksCompletedToday: 0,
       baseTasksCompletedToday: 0
     },
-    questSlots: { pinned: 2, random: 2, dailyTotal: 4, maxEffort: 3 }
+    questSlots: { pinned: 2, random: 2, dailyTotal: 4, maxEffort: 3 },
+    activeTimers: []
   };
 }
 
@@ -150,6 +151,7 @@ export function normalizeState(rawState) {
     ...state.questSlots,
     ...(rawState.questSlots && typeof rawState.questSlots === "object" ? rawState.questSlots : {})
   };
+  state.activeTimers = Array.isArray(rawState.activeTimers) ? rawState.activeTimers : [];
   return state;
 }
 

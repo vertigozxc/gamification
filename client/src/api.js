@@ -119,6 +119,34 @@ export function completeOnboarding(username, displayName, preferredQuestIds, pho
   });
 }
 
+export function startQuestTimer(username, questId) {
+  return request("/api/quests/timer/start", {
+    method: "POST",
+    body: JSON.stringify({ username, questId })
+  });
+}
+
+export function pauseQuestTimer(username, questId) {
+  return request("/api/quests/timer/pause", {
+    method: "POST",
+    body: JSON.stringify({ username, questId })
+  });
+}
+
+export function resumeQuestTimer(username, questId) {
+  return request("/api/quests/timer/resume", {
+    method: "POST",
+    body: JSON.stringify({ username, questId })
+  });
+}
+
+export function stopQuestTimer(username, questId) {
+  return request("/api/quests/timer/stop", {
+    method: "POST",
+    body: JSON.stringify({ username, questId })
+  });
+}
+
 export function completeQuest(username, questId) {
   return request("/api/quests/complete", {
     method: "POST",

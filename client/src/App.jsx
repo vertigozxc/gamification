@@ -21,6 +21,7 @@ import useGameplayActions from "./hooks/useGameplayActions";
 import useAuthSession from "./hooks/useAuthSession";
 import useOnboardingPinned from "./hooks/useOnboardingPinned";
 import useTimers from "./hooks/useTimers";
+import useQuestTimers from "./hooks/useQuestTimers";
 import { useTheme } from "./ThemeContext";
 import {
   saveKey,
@@ -56,6 +57,7 @@ const FloatingTexts = lazy(() => import("./components/FloatingTexts"));
 const AppHeader = lazy(() => import("./components/AppHeader"));
 const DesktopLayout = lazy(() => import("./components/DesktopLayout"));
 const DevTestPanel = lazy(() => import("./components/DevTestPanel"));
+const QuestTimerControls = lazy(() => import("./components/QuestTimerControls"));
 const CityTab = lazy(() => import("./components/tabs/CityTab"));
 const DashboardTab = lazy(() => import("./components/tabs/DashboardTab"));
 const LeaderboardTab = lazy(() => import("./components/tabs/LeaderboardTab"));
@@ -195,6 +197,18 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const normalizeLocalizedQuest = (quest) => normalizeQuest(quest, translateQuest, translateCategory);
 
   const { resetTimer } = useTimers(serverOffsetMs);
+  const {
+    sessionsByQuestId: timerSessionsByQuestId,
+    getElapsedMs: getTimerElapsedMs,
+    start: startQuestTimerAction,
+    pause: pauseQuestTimerAction,
+    resume: resumeQuestTimerAction,
+    stop: stopQuestTimerAction
+  } = useQuestTimers({
+    username,
+    initialSessions: state.activeTimers || [],
+    serverOffsetMs
+  });
 
   function handleCityRewardClaimed(result) {
     const user = result?.user;
@@ -465,7 +479,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             productivity: gameStateResponse?.productivity ?? prev.productivity,
             pinnedQuestProgress21d: normalizePinnedQuestProgress(gameStateResponse?.pinnedQuestProgress21d),
             preferredQuestIds,
-            questSlots: gameStateResponse?.questSlots ?? prev.questSlots
+            questSlots: gameStateResponse?.questSlots ?? prev.questSlots,
+            activeTimers: Array.isArray(gameStateResponse?.activeTimers) ? gameStateResponse.activeTimers : []
           }));
         }
         setLeaderboard(users || []);
@@ -526,6 +541,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           },
           productivity: gameStateResponse?.productivity ?? prev.productivity,
           questSlots: gameStateResponse?.questSlots ?? prev.questSlots,
+          activeTimers: Array.isArray(gameStateResponse?.activeTimers) ? gameStateResponse.activeTimers : [],
           pinnedQuestProgress21d: normalizePinnedQuestProgress(gameStateResponse?.pinnedQuestProgress21d),
           lastReset: Date.now(),
           hasRerolledToday: false,
@@ -973,10 +989,21 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         streak: Number(gameStateResponse?.streak ?? prev.streak),
         completed: Array.isArray(gameStateResponse?.completedQuestIds) ? gameStateResponse.completedQuestIds : prev.completed,
         productivity: gameStateResponse?.productivity ?? prev.productivity,
-        questSlots: gameStateResponse?.questSlots ?? prev.questSlots
+        questSlots: gameStateResponse?.questSlots ?? prev.questSlots,
+        activeTimers: Array.isArray(gameStateResponse?.activeTimers) ? gameStateResponse.activeTimers : []
       }));
     } catch {
-      // Ignore — dev panel only; failures surface via network logs.
+      // Ignore — failures surface via network logs.
+    }
+  }
+
+  async function handleTimerStop(questId) {
+    try {
+      const result = await stopQuestTimerAction(questId);
+      await refreshFromServer();
+      return result;
+    } catch {
+      return null;
     }
   }
 
@@ -1169,6 +1196,19 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 milestoneSteps={milestoneSteps}
                 streakBonusPercent={streakBonusPercent}
                 maxDailyQuests={maxDailyQuests}
+                renderQuestTimer={(quest) => (
+                  <Suspense fallback={null}>
+                    <QuestTimerControls
+                      quest={quest}
+                      session={timerSessionsByQuestId[quest.id]}
+                      elapsedMs={getTimerElapsedMs(quest.id)}
+                      onStart={startQuestTimerAction}
+                      onPause={pauseQuestTimerAction}
+                      onResume={resumeQuestTimerAction}
+                      onStop={handleTimerStop}
+                    />
+                  </Suspense>
+                )}
                 pinnedQuests={pinnedQuests}
                 otherQuests={otherQuests}
                 pinnedQuestProgressById={pinnedQuestProgressById}
@@ -1294,6 +1334,19 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             milestoneSteps={milestoneSteps}
             streakBonusPercent={streakBonusPercent}
             maxDailyQuests={maxDailyQuests}
+            renderQuestTimer={(quest) => (
+              <Suspense fallback={null}>
+                <QuestTimerControls
+                  quest={quest}
+                  session={timerSessionsByQuestId[quest.id]}
+                  elapsedMs={getTimerElapsedMs(quest.id)}
+                  onStart={startQuestTimerAction}
+                  onPause={pauseQuestTimerAction}
+                  onResume={resumeQuestTimerAction}
+                  onStop={handleTimerStop}
+                />
+              </Suspense>
+            )}
             pinnedQuests={pinnedQuests}
             otherQuests={otherQuests}
             pinnedQuestProgressById={pinnedQuestProgressById}

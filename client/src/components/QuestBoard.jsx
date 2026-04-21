@@ -21,7 +21,8 @@ function QuestBoard({
   resetTimer,
   rerollingQuestId = null,
   rerollingPinned = false,
-  compact = false
+  compact = false,
+  renderQuestTimer = null
 }) {
   const { t } = useTheme();
   const hasPinned = pinnedQuests.length > 0;
@@ -161,6 +162,7 @@ function QuestBoard({
                 const pinnedProgress = pinnedQuestProgressById?.[quest.id] || { daysCompleted: 0, totalDays: 21 };
                 const progressPercent = Math.max(0, Math.min(100, (pinnedProgress.daysCompleted / pinnedProgress.totalDays) * 100));
 
+                const timerNode = renderQuestTimer && quest.needsTimer && !isDone ? renderQuestTimer(quest) : null;
                 return (
                   <QuestItem
                     key={`pinned-${quest.id}`}
@@ -173,6 +175,7 @@ function QuestBoard({
                     onCompleteQuest={onCompleteQuest}
                     isLongTapOnly={true}
                     isRerolling={rerollingPinned}
+                    timerActive={Boolean(timerNode)}
                   >
                     <div className="mt-2.5 pl-9 pointer-events-none">
                       <div className="flex items-center gap-2 mb-1">
@@ -183,6 +186,7 @@ function QuestBoard({
                         <div className="qb-progress-fill" style={{ width: `${progressPercent}%` }} />
                       </div>
                     </div>
+                    {timerNode ? <div className="pointer-events-auto">{timerNode}</div> : null}
                   </QuestItem>
                 );
               })}
@@ -197,6 +201,7 @@ function QuestBoard({
               {sortedOtherQuests.map((quest, index) => {
                 const isDone = completedIds.includes(quest.id);
                 const isPending = pendingSet.has(quest.id);
+                const timerNode = renderQuestTimer && quest.needsTimer && !isDone ? renderQuestTimer(quest) : null;
                 return (
                   <QuestItem
                     key={quest.id}
@@ -209,7 +214,10 @@ function QuestBoard({
                     onCompleteQuest={onCompleteQuest}
                     isLongTapOnly={true}
                     isRerolling={quest.id === rerollingQuestId}
-                  />
+                    timerActive={Boolean(timerNode)}
+                  >
+                    {timerNode ? <div className="pointer-events-auto">{timerNode}</div> : null}
+                  </QuestItem>
                 );
               })}
             </div>
@@ -238,6 +246,7 @@ function QuestBoard({
               {sortedOtherQuests.map((quest, index) => {
                 const isDone = completedIds.includes(quest.id);
                 const isPending = pendingSet.has(quest.id);
+                const timerNode = renderQuestTimer && quest.needsTimer && !isDone ? renderQuestTimer(quest) : null;
                 return (
                   <QuestItem
                     key={quest.id}
@@ -250,7 +259,10 @@ function QuestBoard({
                     onCompleteQuest={onCompleteQuest}
                     isLongTapOnly={true}
                     isRerolling={quest.id === rerollingQuestId}
-                  />
+                    timerActive={Boolean(timerNode)}
+                  >
+                    {timerNode ? <div className="pointer-events-auto">{timerNode}</div> : null}
+                  </QuestItem>
                 );
               })}
             </div>

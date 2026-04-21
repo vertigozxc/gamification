@@ -46,6 +46,7 @@ model User {
   invitesReceived       Invite[]          @relation("invitesReceived")
   invitesSent           Invite[]          @relation("invitesSent")
   completions           QuestCompletion[]
+  timerSessions         QuestTimerSession[]
 }
 
 model CustomQuest {
@@ -75,16 +76,39 @@ model DailyScore {
 }
 
 model QuestCompletion {
-  id          String   @id @default(cuid())
-  userId      String
-  questId     Int
-  dayKey      String
-  completedAt DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String   @id @default(cuid())
+  userId            String
+  questId           Int
+  dayKey            String
+  completedAt       DateTime @default(now())
+  completionPercent Int      @default(100)
+  elapsedMs         Int      @default(0)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, questId, dayKey])
   @@index([userId, dayKey])
   @@index([userId, completedAt])
+}
+
+model QuestTimerSession {
+  id            String    @id @default(cuid())
+  userId        String
+  questId       Int
+  dayKey        String
+  startedAt     DateTime
+  totalPausedMs Int       @default(0)
+  pausedAt      DateTime?
+  stoppedAt     DateTime?
+  status        String    @default("running")
+  elapsedMs     Int?
+  percent       Int?
+  xpAwarded     Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, questId, dayKey])
+  @@index([userId, status])
 }
 
 model Invite {

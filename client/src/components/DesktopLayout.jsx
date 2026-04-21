@@ -19,6 +19,7 @@ export default function DesktopLayout({
   resetTimer, leaderboard, authUser, logs,
   canRerollPinned, isFreePinnedReroll, daysUntilFreePinnedReroll,
   onOpenPinnedReplacement, onFreezeStreak, onBuyExtraReroll,
+  renderQuestTimer,
   t
 }) {
   return (
@@ -75,6 +76,7 @@ export default function DesktopLayout({
           onCompleteQuest={onCompleteQuest} resetTimer={resetTimer}
           rerollingQuestId={rerollingQuestId}
           rerollingPinned={rerollingPinned}
+          renderQuestTimer={renderQuestTimer}
         />
         <SidePanels leaderboard={leaderboard} authUser={authUser} logs={logs} />
       </div>
