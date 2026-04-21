@@ -1682,13 +1682,16 @@ function PlotBody({ district, level, palette, isSelected, isLocked, onClick, cli
   const selectionStroke = "#ffd24a";
 
   // Locked plot: dark slab with a padlock, no decor or people.
+  // Click still fires so the parent can explain *why* it's locked via
+  // a popup; we just don't navigate into the district.
   if (isLocked) {
     return (
       <g
         role="button"
-        tabIndex={-1}
-        aria-disabled="true"
-        style={{ cursor: "not-allowed", outline: "none", opacity: 1 }}
+        tabIndex={0}
+        onClick={onClick}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick?.(); } }}
+        style={{ cursor: "pointer", outline: "none", opacity: 1 }}
       >
         <path d={top} fill="#1a1f2b" stroke={palette.stroke} strokeWidth={1} />
         <path d={top} fill="rgba(0,0,0,0.35)" />

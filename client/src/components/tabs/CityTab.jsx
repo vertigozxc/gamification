@@ -26,13 +26,16 @@ function perkKey(districtId, lvl) {
   return `perk${capped}${lvl}`;
 }
 function perkText(t, districtId, lvl) {
-  // Residential benefits stack non-linearly (shop discount + monthly
-  // freezes + vacation mode). The overview pane keeps things vague on
-  // purpose — the user opens the district to see the exact perks.
-  if (districtId === "residential" && lvl > 0) {
-    return t?.residentialActiveBenefitsBlurb || "Custom benefits & privileges";
-  }
   return t?.[perkKey(districtId, lvl)] || "—";
+}
+
+// Short blurb used ONLY on the overview's active-benefits list.
+// Inside the district detail the user sees the full per-level perks.
+function overviewPerkText(t, districtId, lvl) {
+  if (districtId === "residential" && lvl > 0) {
+    return t?.residentialActiveBenefitsBlurb || "Custom benefits";
+  }
+  return perkText(t, districtId, lvl);
 }
 
 function tpl(str, vars) {
@@ -696,7 +699,7 @@ export default function CityTab({
           {DISTRICTS.filter((d) => !d.locked).map((d) => {
             const actualIdx = DISTRICTS.findIndex((x) => x.id === d.id);
             const lvl = Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(Number(districtLevels[actualIdx]) || 0)));
-            const text = lvl > 0 ? perkText(t, d.id, lvl) : (t.districtNotUpgradedYet || "Not upgraded yet");
+            const text = lvl > 0 ? overviewPerkText(t, d.id, lvl) : (t.districtNotUpgradedYet || "Not upgraded yet");
             const districtName = t?.[`district${d.id.charAt(0).toUpperCase() + d.id.slice(1)}`] || d.id;
             const unlocked = lvl > 0;
 
