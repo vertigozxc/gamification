@@ -464,7 +464,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             },
             productivity: gameStateResponse?.productivity ?? prev.productivity,
             pinnedQuestProgress21d: normalizePinnedQuestProgress(gameStateResponse?.pinnedQuestProgress21d),
-            preferredQuestIds
+            preferredQuestIds,
+            questSlots: gameStateResponse?.questSlots ?? prev.questSlots
           }));
         }
         setLeaderboard(users || []);
@@ -524,6 +525,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             lastFreeTaskRerollAt: userData.lastFreeTaskRerollAt ?? null
           },
           productivity: gameStateResponse?.productivity ?? prev.productivity,
+          questSlots: gameStateResponse?.questSlots ?? prev.questSlots,
           pinnedQuestProgress21d: normalizePinnedQuestProgress(gameStateResponse?.pinnedQuestProgress21d),
           lastReset: Date.now(),
           hasRerolledToday: false,
@@ -573,19 +575,29 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
               : 1.00;
   const streakBonusPercent = Math.round((streakMultiplier - 1) * 100);
   const completedToday = state.completed.length;
-  const milestoneProgressPercent = Math.min(100, (completedToday / 6) * 100);
+  const maxDailyQuests = Number(state.questSlots?.dailyTotal) || 6;
+  const milestoneProgressPercent = Math.min(100, (completedToday / Math.max(1, maxDailyQuests)) * 100);
   const milestoneRunes = Array.isArray(t.milestoneRunes) && t.milestoneRunes.length >= 3
     ? t.milestoneRunes
     : ["✓", "★", "🏆"];
   // Square district adds tokens on top of the base full-board reward.
   const squareLvlForMilestone = Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[3]) || 0)));
   const fullBoardTokenReward = 1 + squareLvlForMilestone;
-  const milestoneSteps = [
-    { target: 4, reward: `+20 ${t.xpLabel} / +1 ${t.streakIcon}`, rune: milestoneRunes[0] },
-    { target: 5, reward: "+25 " + t.xpLabel, rune: milestoneRunes[1] },
-    { target: 6, reward: `+25 ${t.xpLabel} / +${fullBoardTokenReward} ${t.tokenIcon}`, rune: milestoneRunes[2] }
+  // Milestone targets scale to the user's daily quest capacity: X-2, X-1, X.
+  // Below a capacity of 3 the lower targets clamp to 1 so cards stay visible.
+  const milestoneTargets = [
+    Math.max(1, maxDailyQuests - 2),
+    Math.max(1, maxDailyQuests - 1),
+    maxDailyQuests
   ];
-  const preferredQuestCount = Array.isArray(state.preferredQuestIds) && state.preferredQuestIds.length > 0 ? state.preferredQuestIds.length : 3;
+  const milestoneSteps = [
+    { target: milestoneTargets[0], reward: `+20 ${t.xpLabel} / +1 ${t.streakIcon}`, rune: milestoneRunes[0] },
+    { target: milestoneTargets[1], reward: "+25 " + t.xpLabel, rune: milestoneRunes[1] },
+    { target: milestoneTargets[2], reward: `+25 ${t.xpLabel} / +${fullBoardTokenReward} ${t.tokenIcon}`, rune: milestoneRunes[2] }
+  ];
+  const preferredQuestCount = Array.isArray(state.preferredQuestIds) && state.preferredQuestIds.length > 0
+    ? state.preferredQuestIds.length
+    : (Number(state.questSlots?.pinned) || 3);
   const pinnedQuests = quests.slice(0, preferredQuestCount).map((q) => ({ ...q, xp: 30 }));
   const otherQuests = quests.slice(preferredQuestCount);
   const syncedNow = new Date(Date.now() + serverOffsetMs);
@@ -960,7 +972,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         tokens: userData.tokens ?? prev.tokens,
         streak: Number(gameStateResponse?.streak ?? prev.streak),
         completed: Array.isArray(gameStateResponse?.completedQuestIds) ? gameStateResponse.completedQuestIds : prev.completed,
-        productivity: gameStateResponse?.productivity ?? prev.productivity
+        productivity: gameStateResponse?.productivity ?? prev.productivity,
+        questSlots: gameStateResponse?.questSlots ?? prev.questSlots
       }));
     } catch {
       // Ignore — dev panel only; failures surface via network logs.
@@ -1155,6 +1168,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 completedToday={completedToday}
                 milestoneSteps={milestoneSteps}
                 streakBonusPercent={streakBonusPercent}
+                maxDailyQuests={maxDailyQuests}
                 pinnedQuests={pinnedQuests}
                 otherQuests={otherQuests}
                 pinnedQuestProgressById={pinnedQuestProgressById}
@@ -1279,6 +1293,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             milestoneProgressPercent={milestoneProgressPercent}
             milestoneSteps={milestoneSteps}
             streakBonusPercent={streakBonusPercent}
+            maxDailyQuests={maxDailyQuests}
             pinnedQuests={pinnedQuests}
             otherQuests={otherQuests}
             pinnedQuestProgressById={pinnedQuestProgressById}

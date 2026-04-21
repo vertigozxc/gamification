@@ -9,7 +9,7 @@ export default function DesktopLayout({
   editingName, nameDraft, characterName,
   onNameDraftChange, onSubmitNameEdit, onStartEditingName, onCancelEditingName,
   xpPercent, completedToday, milestoneProgressPercent, milestoneSteps,
-  streakBonusPercent,
+  streakBonusPercent, maxDailyQuests,
   pinnedQuests, otherQuests, pinnedQuestProgressById,
   dailyQuestFreshDayKey, dailyQuestFreshStorageId,
   canReroll, questRenderCount,
@@ -59,6 +59,7 @@ export default function DesktopLayout({
         milestoneProgressPercent={milestoneProgressPercent}
         milestoneSteps={milestoneSteps}
         streakBonusPercent={streakBonusPercent}
+        maxDailyQuests={maxDailyQuests}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -5,6 +5,7 @@ export default function DashboardTab({
   state, characterName, t,
   xpPercent, completedToday, milestoneSteps,
   streakBonusPercent = 0,
+  maxDailyQuests = 6,
   pinnedQuests, otherQuests, pinnedQuestProgressById,
   dailyQuestFreshDayKey, dailyQuestFreshStorageId,
   canReroll, allRandomCompleted, questRenderCount,
@@ -16,6 +17,8 @@ export default function DashboardTab({
 }) {
   const { themeId } = useTheme();
   const isLight = themeId === "light";
+  const totalSegments = Math.max(1, Number(maxDailyQuests) || 6);
+  const milestoneTargetSet = new Set(milestoneSteps.map((step) => step.target));
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
       {/* Hero: XP + Level compact row */}
@@ -58,13 +61,13 @@ export default function DashboardTab({
             <span className="cinzel text-[11px] font-bold tracking-[0.15em] uppercase drop-shadow-sm flex items-center gap-1.5" style={{color: "var(--color-primary)"}}>
               <span className="text-[12px]">{t.dailyBoardIcon}</span> {t.dailyBoard}
             </span>
-            <span className="cinzel text-[11px] font-bold opacity-80" style={{ color: "var(--color-text)" }}>{completedToday}<span className="opacity-50">/6</span></span>
+            <span className="cinzel text-[11px] font-bold opacity-80" style={{ color: "var(--color-text)" }}>{completedToday}<span className="opacity-50">/{totalSegments}</span></span>
           </div>
           <div className="dash-progress-strip">
             <div className="flex gap-1 flex-1">
-              {Array.from({ length: 6 }).map((_, i) => {
+              {Array.from({ length: totalSegments }).map((_, i) => {
                 const isActive = completedToday > i;
-                const isMilestone = i + 1 === 4 || i + 1 === 5 || i + 1 === 6;
+                const isMilestone = milestoneTargetSet.has(i + 1);
                 return (
                   <div key={i} className="flex-1 flex flex-col items-center gap-1">
                     <div className="w-full h-1.5 rounded-full transition-all duration-300" style={{ background: isActive ? "var(--color-primary)" : isMilestone ? "var(--card-border-idle)" : "rgba(255,255,255,0.1)", boxShadow: isActive ? "0 0 6px var(--color-primary-glow)" : "none" }} />

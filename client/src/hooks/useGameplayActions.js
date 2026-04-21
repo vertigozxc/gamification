@@ -170,6 +170,7 @@ function useGameplayActions({
               tokens: latest?.user?.tokens ?? prev.tokens,
               streak: Number(latest?.streak ?? prev.streak),
               productivity: latest?.productivity ?? prev.productivity,
+              questSlots: latest?.questSlots ?? prev.questSlots,
               pinnedQuestProgress21d: normalizePinnedQuestProgress(latest?.pinnedQuestProgress21d)
             }));
           } catch (_) {
@@ -305,6 +306,7 @@ function useGameplayActions({
             streak: response.streak,
             tokens: gameState.tokens,
             productivity: response?.productivity ?? prev.productivity,
+            questSlots: response?.questSlots ?? prev.questSlots,
             pinnedQuestProgress21d: normalizePinnedQuestProgress(response?.pinnedQuestProgress21d),
             completed: prev.completed.includes(questId) ? prev.completed : [...prev.completed, questId],
             logs: [...prev.logs, ...newLogEntries]
@@ -376,6 +378,7 @@ function useGameplayActions({
         ...prev,
         completed: nextCompleted,
         productivity: result?.productivity ?? prev.productivity,
+        questSlots: result?.questSlots ?? prev.questSlots,
         pinnedQuestProgress21d: Array.isArray(result?.pinnedQuestProgress21d)
           ? normalizePinnedQuestProgress(result?.pinnedQuestProgress21d)
           : prev.pinnedQuestProgress21d,
@@ -413,6 +416,7 @@ function useGameplayActions({
         ...prev,
         completed: [],
         productivity: result?.productivity ?? prev.productivity,
+        questSlots: result?.questSlots ?? prev.questSlots,
         pinnedQuestProgress21d: Array.isArray(result?.pinnedQuestProgress21d)
           ? normalizePinnedQuestProgress(result?.pinnedQuestProgress21d)
           : prev.pinnedQuestProgress21d,

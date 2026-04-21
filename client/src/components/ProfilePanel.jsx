@@ -19,9 +19,12 @@ function ProfilePanel({
   milestoneProgressPercent,
   milestoneSteps,
   streakBonusPercent,
+  maxDailyQuests,
   compact = false
 }) {
   const { t } = useTheme();
+  const totalSegments = Math.max(1, Number(maxDailyQuests) || 6);
+  const milestoneTargets = new Set(milestoneSteps.map((step) => step.target));
   return (
     <div className={`${compact ? "p-4 mb-4" : "p-4 mb-8"} rounded-3xl shadow-2xl`} style={{ background: "var(--panel-bg)", border: "2px solid var(--panel-border)" }}>
       <div className={`grid grid-cols-1 ${compact ? "gap-4" : "lg:grid-cols-3 gap-8 items-center"}`}>
@@ -104,21 +107,21 @@ function ProfilePanel({
             <div className="flex justify-between items-center mb-2">
               <p className="cinzel text-[10px] tracking-widest uppercase" style={{ color: "var(--color-primary)" }}>{t.dailyBoard}</p>
               <div className="flex items-center gap-3">
-                <span className="daily-board-count text-[10px] cinzel text-slate-400"><span className="text-white font-bold">{completedToday}</span> / <span>6</span></span>
+                <span className="daily-board-count text-[10px] cinzel text-slate-400"><span className="text-white font-bold">{completedToday}</span> / <span>{totalSegments}</span></span>
               </div>
             </div>
             
             {/* Segmented Progress Tracker */}
             <div className="flex gap-1 w-full h-2 mt-2 mb-3">
-              {Array.from({ length: 6 }).map((_, i) => {
+              {Array.from({ length: totalSegments }).map((_, i) => {
                 const isActive = completedToday > i;
-                const isMilestone = i + 1 === 4 || i + 1 === 5 || i + 1 === 6;
+                const isMilestone = milestoneTargets.has(i + 1);
                 return (
-                  <div 
-                    key={i} 
+                  <div
+                    key={i}
                     className={`daily-board-segment flex-1 rounded-sm transition-all duration-300 ${
-                      isActive 
-                        ? "daily-board-segment-active bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.5)]" 
+                      isActive
+                        ? "daily-board-segment-active bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.5)]"
                         : "daily-board-segment-inactive bg-slate-800"
                     } ${isMilestone && !isActive ? "daily-board-segment-milestone bg-slate-600" : ""}`}
                   />
@@ -188,6 +191,7 @@ ProfilePanel.propTypes = {
     rune: PropTypes.string.isRequired
   })).isRequired,
   streakBonusPercent: PropTypes.number.isRequired,
+  maxDailyQuests: PropTypes.number,
   compact: PropTypes.bool
 };
 

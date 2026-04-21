@@ -2227,6 +2227,7 @@ app.get("/api/game-state/:username", async (req, res) => {
     updateAndReadProductivity(user, now, { precomputedProgress })
   ]);
 
+  const questSlots = getQuestSlotsForLevel(user.level || 1, user.streak || 0);
   res.json({
     user,
     dateKey,
@@ -2242,6 +2243,7 @@ app.get("/api/game-state/:username", async (req, res) => {
     allQuests: needsOnboarding ? getQuestPool({ language }) : [],
     customQuests: customQuests.map(buildCustomQuestEntry),
     productivity,
+    questSlots,
     ...buildServerTimeMeta(now)
   });
 });
@@ -2332,6 +2334,7 @@ app.post("/api/onboarding/complete", async (req, res) => {
       needsOnboarding: false,
       customQuests: customQuests.map(buildCustomQuestEntry),
       productivity,
+      questSlots: getQuestSlotsForLevel(updatedUser.level || 1, updatedUser.streak || 0),
       ...buildServerTimeMeta(now)
     });
   } catch (error) {
@@ -2509,6 +2512,7 @@ app.post("/api/quests/complete", async (req, res) => {
       habitMilestoneQuestId: quest.id,
       tokens: finalUser.tokens,
       productivity: productivityState.productivity,
+      questSlots: getQuestSlotsForLevel(finalUser.level || 1, finalUser.streak || 0),
       ...buildServerTimeMeta(now)
     };
 
@@ -3434,6 +3438,7 @@ app.post("/api/reset-daily", async (req, res) => {
       pinnedQuestProgress21d,
       customQuests: userCustomQuests.map(buildCustomQuestEntry),
       productivity: productivityState.productivity,
+      questSlots: getQuestSlotsForLevel(finalUser.level || 1, finalUser.streak || 0),
       ...buildServerTimeMeta(now)
     });
   } catch (error) {

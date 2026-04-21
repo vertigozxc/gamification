@@ -421,6 +421,7 @@ function useOnboardingPinned({
           lastFreeTaskRerollAt: result?.user?.lastFreeTaskRerollAt ?? null
         },
         productivity: result?.productivity ?? prev.productivity,
+        questSlots: result?.questSlots ?? prev.questSlots,
         preferredQuestIds: Array.isArray(result?.preferredQuestIds) ? result.preferredQuestIds : prev.preferredQuestIds,
         pinnedQuestProgress21d: normalizePinnedQuestProgress(result?.pinnedQuestProgress21d),
         logs: [

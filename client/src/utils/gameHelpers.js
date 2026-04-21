@@ -112,7 +112,8 @@ export function createDefaultState() {
       xpToday: 0,
       tasksCompletedToday: 0,
       baseTasksCompletedToday: 0
-    }
+    },
+    questSlots: { pinned: 2, random: 2, dailyTotal: 4, maxEffort: 3 }
   };
 }
 
@@ -144,6 +145,10 @@ export function normalizeState(rawState) {
   state.productivity = {
     ...state.productivity,
     ...(rawState.productivity && typeof rawState.productivity === "object" ? rawState.productivity : {})
+  };
+  state.questSlots = {
+    ...state.questSlots,
+    ...(rawState.questSlots && typeof rawState.questSlots === "object" ? rawState.questSlots : {})
   };
   return state;
 }
