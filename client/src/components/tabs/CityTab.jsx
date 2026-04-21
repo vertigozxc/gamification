@@ -26,6 +26,12 @@ function perkKey(districtId, lvl) {
   return `perk${capped}${lvl}`;
 }
 function perkText(t, districtId, lvl) {
+  // Residential benefits stack non-linearly (shop discount + monthly
+  // freezes + vacation mode). The overview pane keeps things vague on
+  // purpose — the user opens the district to see the exact perks.
+  if (districtId === "residential" && lvl > 0) {
+    return t?.residentialActiveBenefitsBlurb || "Custom benefits & privileges";
+  }
   return t?.[perkKey(districtId, lvl)] || "—";
 }
 
@@ -718,8 +724,12 @@ export default function CityTab({
             }
 
             return (
-              <div
+              <button
+                type="button"
                 key={`act-${d.id}`}
+                onClick={() => setSelectedDistrictIdx(actualIdx)}
+                className="qt-btn"
+                aria-label={districtName}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -732,7 +742,11 @@ export default function CityTab({
                   border: unlocked
                     ? "1px solid color-mix(in srgb, #4fa85e 35%, transparent)"
                     : "1px dashed var(--panel-border)",
-                  opacity: unlocked ? 1 : 0.6
+                  opacity: unlocked ? 1 : 0.6,
+                  textAlign: "left",
+                  color: "var(--color-text)",
+                  cursor: "pointer",
+                  width: "100%"
                 }}
               >
                 <span
@@ -797,7 +811,7 @@ export default function CityTab({
                     </span>
                   ))}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -994,16 +1008,13 @@ export default function CityTab({
                     textTransform: "uppercase"
                   }}
                 >
-                  {t.residentialFreezeBtn || "Claim Free Streak Freeze"}
+                  {t.residentialFreezeBtn || "Claim Streak Freeze"}
                 </button>
                 <span className="text-[11px] text-center" style={{ color: "var(--color-muted)", lineHeight: 1.3 }}>
                   ⏱{" "}
                   {fz.remaining > 0
                     ? tpl(t.residentialFreezeAvailable || "Free freeze ready · {remaining} left this cycle", { remaining: fz.remaining, cap: fz.cap })
                     : tpl(t.residentialFreezeNextIn || "Next cycle in {days} {dayWord}", { days: fz.nextResetInDays, dayWord: pluralizeDays(fz.nextResetInDays, languageId) })}
-                </span>
-                <span className="text-[10px] text-center" style={{ color: "var(--color-muted)", opacity: 0.7, lineHeight: 1.3 }}>
-                  {t.residentialFreezeCycleHint || "30-day cycle · auto-granted to your Profile"}
                 </span>
               </div>
             )}
