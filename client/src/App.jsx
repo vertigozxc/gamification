@@ -1081,6 +1081,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         onUpdateCustomQuest={handleUpdateCustomQuest}
         onDeleteCustomQuest={handleDeleteCustomQuest}
         selectionLimit={Number(state.questSlots?.pinned) || 2}
+        randomQuestCount={Number(state.questSlots?.random) || 2}
       />
 
       <PinnedReplacementModal
@@ -1103,6 +1104,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         onCreateCustomQuest={handleCreateCustomQuest}
         onUpdateCustomQuest={handleUpdateCustomQuest}
         onDeleteCustomQuest={handleDeleteCustomQuest}
+        selectionLimit={Number(state.questSlots?.pinned) || 2}
       />
 
       <NotesModal

@@ -2,7 +2,6 @@
 import { useTheme } from "../../ThemeContext";
 import CustomHabitManager from "./CustomHabitManager";
 
-const SELECTION_LIMIT = 3;
 const TOKEN_COST = 7;
 
 function PinnedReplacementModal({
@@ -24,9 +23,11 @@ function PinnedReplacementModal({
   onClearCustomError,
   onCreateCustomQuest,
   onUpdateCustomQuest,
-  onDeleteCustomQuest
+  onDeleteCustomQuest,
+  selectionLimit = 2
 }) {
-  const { t } = useTheme();
+  const { t, tf } = useTheme();
+  const SELECTION_LIMIT = Math.max(1, Number(selectionLimit) || 2);
   const [sheetAnim, setSheetAnim] = useState(false);
 
   useEffect(() => {
@@ -112,7 +113,7 @@ function PinnedReplacementModal({
                 {t.replacePinnedHeading}
               </h2>
               <p style={{ fontSize: 12, color: "#94a3b8", margin: "4px 0 0" }}>
-                {t.replacePinnedTitle}
+                {tf("replacePinnedTitle", { pinned: SELECTION_LIMIT })}
               </p>
             </div>
             <button

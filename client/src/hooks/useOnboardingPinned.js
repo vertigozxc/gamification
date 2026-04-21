@@ -8,7 +8,9 @@ import {
   fetchGameState as apiFetchGameState
 } from "../api";
 
-const PREFERRED_QUEST_LIMIT = 3;
+// Fallback used before /api/game-state returns the user's questSlots.
+// Replaced at runtime by state.questSlots.pinned inside the hook.
+const DEFAULT_preferredQuestLimit = 2;
 export const CUSTOM_QUEST_TITLE_MAX = 40;
 export const CUSTOM_QUEST_DESC_MAX = 120;
 const CUSTOM_QUEST_ID_OFFSET = 1_000_000;
@@ -39,6 +41,7 @@ function useOnboardingPinned({
 }) {
   const { t, tf } = useTheme();
   const resolvedUsername = username || authUser?.uid || null;
+  const preferredQuestLimit = Math.max(1, Number(state?.questSlots?.pinned) || DEFAULT_PREFERRED_QUEST_LIMIT);
   const [showPinnedReplaceModal, setShowPinnedReplaceModal] = useState(false);
   const [replacePinnedQuestIds, setReplacePinnedQuestIds] = useState([]);
   const [replacePinnedSearch, setReplacePinnedSearch] = useState("");
@@ -271,7 +274,7 @@ function useOnboardingPinned({
       if (prev.includes(questId)) {
         return prev.filter((id) => id !== questId);
       }
-      if (prev.length >= PREFERRED_QUEST_LIMIT) {
+      if (prev.length >= preferredQuestLimit) {
         return prev;
       }
       return [...prev, questId];
@@ -285,7 +288,7 @@ function useOnboardingPinned({
       if (prev.includes(questId)) {
         return prev.filter((id) => id !== questId);
       }
-      if (prev.length >= PREFERRED_QUEST_LIMIT) {
+      if (prev.length >= preferredQuestLimit) {
         return prev;
       }
       return [...prev, questId];
@@ -296,7 +299,7 @@ function useOnboardingPinned({
     setReplacePinnedError("");
     setReplacePinnedSaving(true);
     setReplacePinnedSearch("");
-    setReplacePinnedQuestIds(Array.isArray(state.preferredQuestIds) ? state.preferredQuestIds.slice(0, PREFERRED_QUEST_LIMIT) : []);
+    setReplacePinnedQuestIds(Array.isArray(state.preferredQuestIds) ? state.preferredQuestIds.slice(0, preferredQuestLimit) : []);
 
     // Fetch authoritative state before showing the modal so token-dependent UI
     // does not flash stale values from persisted local state.
@@ -308,8 +311,8 @@ function useOnboardingPinned({
             setCustomQuests(resp.customQuests);
           }
           const nextPreferred = Array.isArray(resp.preferredQuestIds)
-            ? resp.preferredQuestIds.slice(0, PREFERRED_QUEST_LIMIT)
-            : (Array.isArray(state.preferredQuestIds) ? state.preferredQuestIds.slice(0, PREFERRED_QUEST_LIMIT) : []);
+            ? resp.preferredQuestIds.slice(0, preferredQuestLimit)
+            : (Array.isArray(state.preferredQuestIds) ? state.preferredQuestIds.slice(0, preferredQuestLimit) : []);
           setReplacePinnedQuestIds(nextPreferred);
           setState((prev) => ({
             ...prev,
@@ -332,8 +335,8 @@ function useOnboardingPinned({
   }
 
   async function handleBuyPinnedReplacement() {
-    if (replacePinnedQuestIds.length !== PREFERRED_QUEST_LIMIT) {
-      setReplacePinnedError(t.pickExactly4Quests);
+    if (replacePinnedQuestIds.length !== preferredQuestLimit) {
+      setReplacePinnedError(tf("pickExactly4Quests", { n: preferredQuestLimit }));
       return;
     }
 
@@ -396,8 +399,8 @@ function useOnboardingPinned({
       setOnboardingError(t.nicknameRequired);
       return;
     }
-    if (onboardingQuestIds.length !== PREFERRED_QUEST_LIMIT) {
-      setOnboardingError(t.pickExactly4PreferredQuests);
+    if (onboardingQuestIds.length !== preferredQuestLimit) {
+      setOnboardingError(tf("pickExactly4PreferredQuests", { n: preferredQuestLimit }));
       return;
     }
 
@@ -437,7 +440,7 @@ function useOnboardingPinned({
         logs: [
           ...prev.logs,
           {
-            msg: t.onboardingSetupComplete,
+            msg: tf("onboardingSetupComplete", { pinned: preferredQuestLimit }),
             classes: "text-emerald-300 font-bold cinzel",
             timestamp: getTimestamp()
           }

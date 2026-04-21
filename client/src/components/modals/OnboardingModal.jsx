@@ -22,10 +22,12 @@ function OnboardingModal({
   onCreateCustomQuest,
   onUpdateCustomQuest,
   onDeleteCustomQuest,
-  selectionLimit = 2
+  selectionLimit = 2,
+  randomQuestCount = 2
 }) {
   const SELECTION_LIMIT = Math.max(1, Number(selectionLimit) || 2);
-  const { t } = useTheme();
+  const RANDOM_COUNT = Math.max(1, Number(randomQuestCount) || 2);
+  const { t, tf } = useTheme();
   const [showWarning, setShowWarning] = useState(false);
   const [sheetAnim, setSheetAnim] = useState(false);
 
@@ -112,8 +114,8 @@ function OnboardingModal({
               >
                 {t.onboardingTitle}
               </h2>
-              <p style={{ fontSize: 12, color: "#94a3b8", margin: "4px 0 0" }}>
-                {t.onboardingIntro}
+              <p style={{ fontSize: 12, color: "#94a3b8", margin: "4px 0 0", whiteSpace: "pre-line" }}>
+                {tf("onboardingIntro", { pinned: SELECTION_LIMIT, random: RANDOM_COUNT })}
               </p>
             </div>
             <button
@@ -175,7 +177,7 @@ function OnboardingModal({
             >
               <span style={{ fontSize: 14 }}>🧭</span>
               <span className="cinzel" style={{ fontWeight: 700 }}>
-                {t.onboardingPick}
+                {tf("onboardingPick", { pinned: SELECTION_LIMIT })}
               </span>
             </div>
           </div>
@@ -409,7 +411,7 @@ function OnboardingModal({
             <h2 className="cinzel text-center text-2xl mb-4" style={{ color: "var(--color-primary)" }}>{t.confirmTitle}</h2>
             <div className="mb-5 px-3 py-2 text-center">
               <p className="text-lg text-slate-100 font-medium leading-relaxed mb-3">
-                {t.confirmPinnedMessage}
+                {tf("confirmPinnedMessage", { pinned: SELECTION_LIMIT })}
               </p>
               <p className="text-sm text-slate-300 leading-relaxed">
                 {t.confirmPinnedSub}
