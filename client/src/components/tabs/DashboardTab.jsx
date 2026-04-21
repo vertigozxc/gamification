@@ -46,7 +46,7 @@ export default function DashboardTab({
               if (sportBonusPct <= 0) return null;
               return (
                 <p className="text-[10px] opacity-70 cinzel tracking-wider" style={{ color: "var(--color-muted)" }}>
-                  +{sportBonusPct}% {t.districtSport || "Sports"}
+                  +{sportBonusPct}% {t.dashSportBonusFrom || "from"} {t.districtSport || "Sports"}
                 </p>
               );
             })()}

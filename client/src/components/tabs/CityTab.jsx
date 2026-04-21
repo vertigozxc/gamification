@@ -708,9 +708,11 @@ export default function CityTab({
             const districtName = t?.[`district${d.id.charAt(0).toUpperCase() + d.id.slice(1)}`] || d.id;
             const unlocked = lvl > 0;
 
-            // Residential — extra timer sub-lines for monthly freeze / vacation
+            // Residential — overview row intentionally stays a single-line
+            // "Custom benefits" chip; specifics (freeze cycle, vacation
+            // timer) live inside the district detail screen.
             const timers = [];
-            if (d.id === "residential" && unlocked) {
+            if (false && d.id === "residential" && unlocked) {
               const fz = residentialFreezeStatus(lvl, monthlyFreezeClaims, nowMs);
               if (fz.cap > 0) {
                 if (fz.remaining > 0) {
@@ -1052,14 +1054,10 @@ export default function CityTab({
                 >
                   {t.residentialVacationBtn || "Start 20-day Vacation"}
                 </button>
-                <span className="text-[11px] text-center" style={{ color: "var(--color-muted)", lineHeight: 1.3 }}>
-                  ⏱{" "}
-                  {vac.active
-                    ? tpl(t.residentialVacationActive || "Vacation active · ends in {days} {dayWord}", { days: vac.endsInDays, dayWord: pluralizeDays(vac.endsInDays, languageId) })
-                    : vac.availableNow
-                      ? (t.residentialVacationAvailable || "Available now")
-                      : tpl(t.residentialVacationNextIn || "Next vacation in {days} {dayWord}", { days: vac.nextAvailableInDays, dayWord: pluralizeDays(vac.nextAvailableInDays, languageId) })}
-                </span>
+                {/* Status ('Vacation active · ends in N') intentionally
+                    removed — it was showing next to the Start button even
+                    when vacation wasn't actually running, which was
+                    confusing. The cycle hint below is enough context. */}
                 <span className="text-[10px] text-center" style={{ color: "var(--color-muted)", opacity: 0.7, lineHeight: 1.3 }}>
                   {t.residentialVacationCycleHint || "365-day cycle · grants 20 charges at once"}
                 </span>
