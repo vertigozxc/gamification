@@ -61,8 +61,9 @@ function useOnboardingPinned({
   const combinedQuestOptions = useMemo(() => {
     const customEntries = Array.isArray(customQuests) ? customQuests.map((cq) => ({
       ...cq,
-      // Custom quests always show 30 XP and are tagged for UI affordances.
-      xp: 30,
+      // Trust the server-calculated XP (30/40/50 for timer habits, flat 30
+      // otherwise). Don't clobber it with a hardcoded value here.
+      xp: Number(cq.xp) || 30,
       category: cq.category || "CUSTOM",
       isCustom: true
     })) : [];

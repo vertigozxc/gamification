@@ -1036,6 +1036,26 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     }
   }
 
+  async function handleCreateAndPinSingleHabit(payload) {
+    if (!username) return;
+    setSingleHabitPickerSaving(true);
+    setSingleHabitPickerError("");
+    try {
+      const created = await handleCreateCustomQuest(payload);
+      if (!created || !created.id) {
+        setSingleHabitPickerError("Could not create habit");
+        return;
+      }
+      await addPinnedQuest(username, Number(created.id));
+      await refreshFromServer();
+      setSingleHabitPickerOpen(false);
+    } catch (err) {
+      setSingleHabitPickerError(String(err?.message || "Could not create habit"));
+    } finally {
+      setSingleHabitPickerSaving(false);
+    }
+  }
+
   async function refreshFromServer() {
     if (!authUser?.uid) return;
     try {
@@ -1173,6 +1193,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           saving={singleHabitPickerSaving}
           errorMessage={singleHabitPickerError}
           onPick={handlePickSingleHabit}
+          onCreateCustom={handleCreateAndPinSingleHabit}
+          createSaving={singleHabitPickerSaving}
+          createError={singleHabitPickerError}
         />
       </Suspense>
 

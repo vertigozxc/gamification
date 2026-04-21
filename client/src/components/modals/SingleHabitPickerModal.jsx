@@ -11,19 +11,32 @@ export default function SingleHabitPickerModal({
   availableQuests = [],
   onPick,
   saving = false,
-  errorMessage = ""
+  errorMessage = "",
+  onCreateCustom,
+  createSaving = false,
+  createError = ""
 }) {
   const { t, themeId } = useTheme();
   const isLight = themeId === "light";
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [sheetAnim, setSheetAnim] = useState(false);
+  const [mode, setMode] = useState("pick"); // "pick" | "create"
+  const [newTitle, setNewTitle] = useState("");
+  const [newDesc, setNewDesc] = useState("");
+  const [newNeedsTimer, setNewNeedsTimer] = useState(false);
+  const [newMinutes, setNewMinutes] = useState("30");
 
   useEffect(() => {
     if (!open) {
       setSearch("");
       setSelectedId(null);
       setSheetAnim(false);
+      setMode("pick");
+      setNewTitle("");
+      setNewDesc("");
+      setNewNeedsTimer(false);
+      setNewMinutes("30");
       return undefined;
     }
     const id = requestAnimationFrame(() => setSheetAnim(true));
@@ -67,6 +80,31 @@ export default function SingleHabitPickerModal({
   const placeholder = t.onboardingSearch || "Search habits…";
   const confirmLabel = t.singleHabitPickerConfirm || "Add habit";
   const empty = t.singleHabitPickerEmpty || "No matching habits.";
+  const pickTabLabel = t.singleHabitPickerTabPick || "Pick from list";
+  const createTabLabel = t.singleHabitPickerTabCreate || "Create new";
+  const createTitleLabel = t.customHabitTitleLabel || "Title";
+  const createDescLabel = t.customHabitDescLabel || "Description";
+  const createTimerLabel = t.customHabitUseTimer || "Use a timer";
+  const createMinutesLabel = t.customHabitMinutesLabel || "Session length (minutes)";
+  const createXpExplain = t.customHabitXpExplain
+    || "Up to 39 min → 30 XP · 40–49 min → 40 XP · 50+ min → 50 XP";
+  const createConfirmLabel = t.singleHabitPickerCreateConfirm || "Create & add";
+
+  const newMinutesNum = Math.max(0, parseInt(newMinutes, 10) || 0);
+  const previewXp = !newNeedsTimer ? 30 : newMinutesNum >= 50 ? 50 : newMinutesNum >= 40 ? 40 : 30;
+
+  const handleCreate = async () => {
+    if (!onCreateCustom) return;
+    const cleanTitle = newTitle.trim();
+    if (!cleanTitle) return;
+    const minutes = newNeedsTimer ? Math.max(1, Math.min(480, newMinutesNum)) : 0;
+    await onCreateCustom({
+      title: cleanTitle,
+      description: newDesc.trim(),
+      needsTimer: newNeedsTimer,
+      timeEstimateMin: minutes
+    });
+  };
 
   return createPortal(
     <div
@@ -132,31 +170,158 @@ export default function SingleHabitPickerModal({
             </button>
           </div>
 
-          <div style={{ marginTop: 12 }}>
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={placeholder}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                borderRadius: 12,
-                background: "rgba(0,0,0,0.35)",
-                border: "1px solid var(--card-border-idle)",
-                color: "#e2e8f0",
-                fontSize: 16,
-                minHeight: 44,
-                outline: "none"
-              }}
-            />
-          </div>
+          {onCreateCustom ? (
+            <div style={{ display: "flex", gap: 6, marginTop: 12, padding: 3, borderRadius: 12, background: "rgba(0,0,0,0.3)", border: "1px solid var(--panel-border)" }}>
+              <button
+                type="button"
+                onClick={() => setMode("pick")}
+                className="cinzel"
+                style={{
+                  flex: 1,
+                  padding: "8px 10px",
+                  borderRadius: 9,
+                  border: "none",
+                  background: mode === "pick" ? "color-mix(in srgb, #4ade80 18%, transparent)" : "transparent",
+                  color: mode === "pick" ? "#bbf7d0" : "var(--color-muted)",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: "0.06em",
+                  cursor: "pointer"
+                }}
+              >
+                {pickTabLabel}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("create")}
+                className="cinzel"
+                style={{
+                  flex: 1,
+                  padding: "8px 10px",
+                  borderRadius: 9,
+                  border: "none",
+                  background: mode === "create" ? "color-mix(in srgb, #4ade80 18%, transparent)" : "transparent",
+                  color: mode === "create" ? "#bbf7d0" : "var(--color-muted)",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: "0.06em",
+                  cursor: "pointer"
+                }}
+              >
+                + {createTabLabel}
+              </button>
+            </div>
+          ) : null}
+
+          {mode === "pick" ? (
+            <div style={{ marginTop: 12 }}>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={placeholder}
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  background: "rgba(0,0,0,0.35)",
+                  border: "1px solid var(--card-border-idle)",
+                  color: "#e2e8f0",
+                  fontSize: 16,
+                  minHeight: 44,
+                  outline: "none"
+                }}
+              />
+            </div>
+          ) : null}
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "12px 16px 100px" }}>
-          {filteredQuests.length === 0 ? (
-            <p style={{ textAlign: "center", color: "var(--color-muted)", fontSize: 13, marginTop: 24 }}>{empty}</p>
-          ) : (
+        {mode === "create" ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <label className="cinzel" style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-primary)", display: "block", marginBottom: 6 }}>
+                {createTitleLabel}
+              </label>
+              <input
+                type="text"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value.slice(0, 40))}
+                maxLength={40}
+                placeholder={t.customHabitTitlePlaceholder || "e.g. Morning meditation"}
+                style={{
+                  width: "100%", padding: "12px 14px", borderRadius: 12,
+                  background: "rgba(0,0,0,0.35)", border: "1px solid var(--card-border-idle)",
+                  color: "#e2e8f0", fontSize: 16, minHeight: 44, outline: "none"
+                }}
+              />
+            </div>
+            <div>
+              <label className="cinzel" style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-primary)", display: "block", marginBottom: 6 }}>
+                {createDescLabel}
+              </label>
+              <textarea
+                value={newDesc}
+                onChange={(e) => setNewDesc(e.target.value.slice(0, 120))}
+                maxLength={120}
+                rows={2}
+                placeholder={t.customHabitDescPlaceholder || "Optional note"}
+                style={{
+                  width: "100%", padding: "12px 14px", borderRadius: 12,
+                  background: "rgba(0,0,0,0.35)", border: "1px solid var(--card-border-idle)",
+                  color: "#e2e8f0", fontSize: 14, resize: "vertical", outline: "none"
+                }}
+              />
+            </div>
+            <div style={{ borderRadius: 12, border: "1px solid var(--panel-border)", padding: 12, background: "rgba(0,0,0,0.22)" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "#e2e8f0", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={newNeedsTimer}
+                  onChange={(e) => setNewNeedsTimer(e.target.checked)}
+                  style={{ width: 18, height: 18, cursor: "pointer" }}
+                />
+                <span className="cinzel" style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-primary)" }}>
+                  {createTimerLabel}
+                </span>
+              </label>
+              {newNeedsTimer ? (
+                <div style={{ marginTop: 10 }}>
+                  <label className="cinzel" style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-muted)", display: "block", marginBottom: 6 }}>
+                    {createMinutesLabel}
+                  </label>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={480}
+                      value={newMinutes}
+                      onChange={(e) => setNewMinutes(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
+                      placeholder="30"
+                      style={{
+                        width: 100, padding: "10px 12px", borderRadius: 10,
+                        background: "rgba(0,0,0,0.35)", border: "1px solid var(--card-border-idle)",
+                        color: "#e2e8f0", fontSize: 15, minHeight: 42
+                      }}
+                    />
+                    <span style={{ fontSize: 12, color: "var(--color-muted)" }}>
+                      → <strong style={{ color: "#4ade80" }}>+{previewXp} XP</strong>
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 11, color: "var(--color-muted)", marginTop: 8, lineHeight: 1.45 }}>
+                    {createXpExplain}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+            {createError ? (
+              <p style={{ fontSize: 12, color: "#f87171", margin: 0 }}>{createError}</p>
+            ) : null}
+          </div>
+        ) : filteredQuests.length === 0 ? (
+          <p style={{ textAlign: "center", color: "var(--color-muted)", fontSize: 13, marginTop: 24 }}>{empty}</p>
+        ) : (
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 }}>
               {filteredQuests.map((quest) => {
                 const isSelected = selectedId === quest.id;
@@ -255,8 +420,14 @@ export default function SingleHabitPickerModal({
           ) : null}
           <button
             type="button"
-            disabled={!selectedId || saving}
-            onClick={() => selectedId && onPick?.(selectedId)}
+            disabled={mode === "create" ? (!newTitle.trim() || createSaving) : (!selectedId || saving)}
+            onClick={() => {
+              if (mode === "create") {
+                handleCreate();
+              } else if (selectedId) {
+                onPick?.(selectedId);
+              }
+            }}
             className="cinzel"
             style={{
               width: "100%",
@@ -266,16 +437,18 @@ export default function SingleHabitPickerModal({
               fontSize: 15,
               letterSpacing: "0.08em",
               border: "1px solid rgba(34,197,94,0.65)",
-              background: selectedId
+              background: (mode === "create" ? Boolean(newTitle.trim()) : Boolean(selectedId))
                 ? "linear-gradient(135deg, rgba(34,197,94,0.85), rgba(16,185,129,0.7))"
                 : "rgba(148,163,184,0.18)",
-              color: selectedId ? "#ffffff" : "#94a3b8",
-              cursor: selectedId ? "pointer" : "not-allowed",
-              boxShadow: selectedId ? "0 6px 18px rgba(22,163,74,0.35)" : "none",
+              color: (mode === "create" ? Boolean(newTitle.trim()) : Boolean(selectedId)) ? "#ffffff" : "#94a3b8",
+              cursor: (mode === "create" ? Boolean(newTitle.trim()) : Boolean(selectedId)) ? "pointer" : "not-allowed",
+              boxShadow: (mode === "create" ? Boolean(newTitle.trim()) : Boolean(selectedId)) ? "0 6px 18px rgba(22,163,74,0.35)" : "none",
               transition: "background 150ms ease, box-shadow 150ms ease"
             }}
           >
-            {saving ? (t.onboardingSaving || "Saving…") : confirmLabel}
+            {mode === "create"
+              ? (createSaving ? (t.onboardingSaving || "Saving…") : createConfirmLabel)
+              : (saving ? (t.onboardingSaving || "Saving…") : confirmLabel)}
           </button>
         </div>
       </div>
