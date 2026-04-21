@@ -15,6 +15,7 @@ import {
   getQuestSlotsForLevel,
   getRandomQuestCount,
   getStreakRuleConfig,
+  getTargetEffort,
   normalizeQuestLanguage
 } from "./quests.js";
 import { buildInviteCode, getDateKey, slugifyUsername, xpAfterQuest } from "./utils.js";
@@ -1574,7 +1575,7 @@ function sumEffort(quests) {
   return quests.reduce((sum, quest) => sum + (Number(quest?.effortScore) || 0), 0);
 }
 
-function isValidRandomQuestSet(randomQuests, expectedCount) {
+function isValidRandomQuestSet(randomQuests, expectedCount, streak = 0) {
   if (!Array.isArray(randomQuests)) {
     return false;
   }
@@ -1587,7 +1588,8 @@ function isValidRandomQuestSet(randomQuests, expectedCount) {
     return false;
   }
 
-  if (expectedCount === 3 && sumEffort(randomQuests) !== 9) {
+  const targetEffort = getTargetEffort(expectedCount, streak);
+  if (targetEffort > 0 && sumEffort(randomQuests) !== targetEffort) {
     return false;
   }
 
@@ -1601,15 +1603,19 @@ function findReplacementQuestCombination({
   excludeCategories,
   unavailableQuestIds,
   replacementCount,
-  expectedRandomCount
+  expectedRandomCount,
+  streak = 0
 }) {
   if (!replacementCount) {
     return [];
   }
 
   const usedCategories = new Set(keepRandomQuests.map((quest) => normalizeCategory(quest?.category)));
-  const requiredEffort = expectedRandomCount === 3
-    ? 9 - sumEffort(keepRandomQuests)
+  const totalTargetEffort = getTargetEffort(expectedRandomCount, streak);
+  // Remaining effort the replacement picks must contribute so the final
+  // group still sums to the streak-aware target (9 / 11 / 12 / 14 etc.).
+  const requiredEffort = totalTargetEffort > 0
+    ? totalTargetEffort - sumEffort(keepRandomQuests)
     : null;
 
   const candidates = questPool.filter((quest) => {
@@ -1688,12 +1694,20 @@ function composeDailyQuests(user, completedQuestIds = [], date = new Date(), exc
 
   const userLevel = user.level || 1;
   const userStreak = user.streak || 0;
+  // Exclude the previous random quest IDs so a fresh daily-reset or reroll
+  // cannot repeat the user's last rotation. Stored when the daily-reset /
+  // reroll endpoint runs and cleared once this new rotation is persisted.
+  const previousRandomIds = (user.previousRandomQuestIds || "")
+    .split(",")
+    .map((id) => Number(id))
+    .filter((id) => Number.isInteger(id) && id > 0);
   let baseQuests = getDailyQuests({
     date,
     username: user.username,
     resetSeed: user.lastDailyResetAt?.getTime?.() ?? 0,
     pinnedQuestIds: regularPinnedIds,
     excludeCategories,
+    excludeIds: previousRandomIds,
     level: userLevel,
     streak: userStreak,
     language
@@ -1730,7 +1744,7 @@ function composeDailyQuests(user, completedQuestIds = [], date = new Date(), exc
     .filter((quest) => !pinnedSet.has(quest.id))
     .slice(0, expectedRandomCount);
 
-  const useSavedRandomQuests = isValidRandomQuestSet(savedRandomQuests, expectedRandomCount);
+  const useSavedRandomQuests = isValidRandomQuestSet(savedRandomQuests, expectedRandomCount, userStreak);
   const randomQuests = useSavedRandomQuests ? savedRandomQuests : generatedRandomQuests;
 
   const resultQuests = [...pinnedEntries, ...randomQuests];
@@ -2347,6 +2361,34 @@ app.get("/api/game-state/:username", async (req, res) => {
     getPinnedQuestProgress21d(user, preferredQuestIds, now),
     updateAndReadProductivity(user, now, { precomputedProgress })
   ]);
+
+  // Persist the random-quest IDs the user will actually see today, and
+  // clear previousRandomQuestIds once they've served as "exclude these".
+  // This makes tomorrow's reset stash TODAY's set as previous, so each
+  // daily rotation is guaranteed not to repeat the one before it.
+  try {
+    const composedToday = composeDailyQuests(user, completionIds, now, [], language, customQuests);
+    const pinnedSetToday = new Set(preferredQuestIds);
+    const randomIdsToday = composedToday
+      .filter((q) => q && !pinnedSetToday.has(q.id) && !isCustomQuestVirtualId(q.id))
+      .map((q) => q.id);
+    const storedRandomIds = (user.randomQuestIds || "").split(",").map(Number).filter(Boolean);
+    const ordersDiffer = randomIdsToday.join(",") !== storedRandomIds.join(",");
+    const needsClear = (user.previousRandomQuestIds || "").length > 0;
+    if ((ordersDiffer && randomIdsToday.length > 0) || needsClear) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          randomQuestIds: randomIdsToday.join(","),
+          previousRandomQuestIds: ""
+        }
+      });
+      user.randomQuestIds = randomIdsToday.join(",");
+      user.previousRandomQuestIds = "";
+    }
+  } catch (persistErr) {
+    console.error(`[game-state] persist random quest rotation failed: ${persistErr?.message || persistErr}`);
+  }
 
   const questSlots = getQuestSlotsForLevel(user.level || 1, user.streak || 0);
   // These queries touch new columns/tables added in the 2026-04-21 timer
@@ -3819,14 +3861,21 @@ app.post("/api/reset-daily", async (req, res) => {
       const keepRandomQuests = keepRandomIds.map((id) => questById.get(id)).filter(Boolean);
 
       const excludedCategories = new Set((parsed.excludeCategories || []).map((item) => normalizeCategory(item)));
+      // Exclude the quests being rerolled PLUS anything from the previous
+      // rotation so the replacements can't repeat what the user just saw.
+      const previousRandomIds = (user.previousRandomQuestIds || "")
+        .split(",")
+        .map((id) => Number(id))
+        .filter((id) => Number.isInteger(id) && id > 0);
       const replacementQuests = findReplacementQuestCombination({
         questPool,
         pinnedSet,
         keepRandomQuests,
         excludeCategories: excludedCategories,
-        unavailableQuestIds: new Set([...keepRandomIds, ...targetQuestIds]),
+        unavailableQuestIds: new Set([...keepRandomIds, ...targetQuestIds, ...previousRandomIds]),
         replacementCount: targetQuestIds.length,
-        expectedRandomCount: randomQuestCount
+        expectedRandomCount: randomQuestCount,
+        streak: user.streak || 0
       });
 
       if (!replacementQuests || replacementQuests.length !== targetQuestIds.length) {
@@ -3836,7 +3885,7 @@ app.post("/api/reset-daily", async (req, res) => {
       const finalNonPinnedIds = [...keepRandomIds, ...replacementQuests.map((quest) => quest.id)].slice(0, randomQuestCount);
       const finalNonPinnedQuests = finalNonPinnedIds.map((id) => questById.get(id)).filter(Boolean);
 
-      if (!isValidRandomQuestSet(finalNonPinnedQuests, randomQuestCount)) {
+      if (!isValidRandomQuestSet(finalNonPinnedQuests, randomQuestCount, user.streak || 0)) {
         return res.status(400).json({ error: "Reroll result violates random quest category/effort constraints" });
       }
 
@@ -3856,6 +3905,14 @@ app.post("/api/reset-daily", async (req, res) => {
           : { lastDailyRerollAt: now })
       : { lastDailyRerollAt: null, extraRerollsToday: 0 };
 
+    // Stash the just-ended rotation so the next composeDailyQuests call
+    // excludes those IDs. If we already produced a fresh non-repeating
+    // rotation synchronously (the reroll path above), we don't need the
+    // stash and clear it to avoid over-excluding the day after.
+    const previousRandomIdsNext = newRandomQuestIds
+      ? "" // reroll path generated new IDs that already avoided previous set
+      : (user.randomQuestIds || "");
+
     const tUserUpdate = Date.now();
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
@@ -3863,6 +3920,7 @@ app.post("/api/reset-daily", async (req, res) => {
         lastDailyResetAt: now,
         lastStreakIncreaseAt: parsed.isReroll ? user.lastStreakIncreaseAt : null,
         randomQuestIds: newRandomQuestIds, // Always replace or clear it!
+        previousRandomQuestIds: previousRandomIdsNext,
         ...rerollStateData,
         ...streakDecayData
       }

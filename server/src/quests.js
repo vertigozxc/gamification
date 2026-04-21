@@ -34,6 +34,19 @@ const LEVEL_TIERS = [
 
 const EFFORT_5_MIN_STREAK = 14;
 
+// Target total effort for a random-quest group. Base table is slot×3,
+// streak-14+ unlocks a slightly higher budget so combinations involving
+// effort-5 quests become reachable (14 → 2+5 / 4+3, etc.).
+const TARGET_EFFORT_BASE = { 2: 6, 3: 9, 4: 12 };
+const TARGET_EFFORT_STREAK14 = { 2: 7, 3: 11, 4: 14 };
+
+export function getTargetEffort(slotCount = 0, streak = 0) {
+  const safeCount = Math.max(0, Math.floor(Number(slotCount) || 0));
+  const safeStreak = Math.max(0, Number(streak) || 0);
+  const table = safeStreak >= EFFORT_5_MIN_STREAK ? TARGET_EFFORT_STREAK14 : TARGET_EFFORT_BASE;
+  return Number.isFinite(table[safeCount]) ? table[safeCount] : safeCount * 3;
+}
+
 export function getQuestSlotsForLevel(level = 1, streak = 0) {
   const safeLevel = Math.max(1, Number(level) || 1);
   const safeStreak = Math.max(0, Number(streak) || 0);
@@ -333,20 +346,39 @@ function buildEffortBalancedCategoryUniqueQuests(quests, count, targetEffort, ex
     return [];
   }
 
-  const sorted = [...combinations].sort((left, right) => {
-    const leftKey = left.map((quest) => Number(quest.id) || 0).sort((a, b) => a - b).join("-");
-    const rightKey = right.map((quest) => Number(quest.id) || 0).sort((a, b) => a - b).join("-");
-    return leftKey.localeCompare(rightKey);
-  });
+  // Group by effort-signature ("1-4-4", "2-3-4", "3-3-3" etc) so each
+  // distinct effort pattern gets an equal chance of being picked. Without
+  // this step, patterns over-represented in the pool (typically 3+3+3
+  // because effort-3 has the most quests across categories) would dominate
+  // the output and make the daily board look monotonous.
+  const groupsBySignature = new Map();
+  for (const combo of combinations) {
+    const sig = combo
+      .map((quest) => Number(quest.effortScore) || 0)
+      .sort((a, b) => a - b)
+      .join("-");
+    if (!groupsBySignature.has(sig)) {
+      groupsBySignature.set(sig, []);
+    }
+    groupsBySignature.get(sig).push(combo);
+  }
+  const signatures = [...groupsBySignature.keys()].sort();
 
-  // Randomly select one of the valid combinations using seeded RNG
   let state = seed >>> 0;
   const rand = () => {
     state = (state * 1664525 + 1013904223) >>> 0;
     return state / 0x100000000;
   };
-  const selectedIndex = Math.floor(rand() * sorted.length);
-  return sorted[selectedIndex];
+
+  const chosenSig = signatures[Math.floor(rand() * signatures.length)];
+  const group = groupsBySignature.get(chosenSig);
+  // Sort within group deterministically so the seed reproduces the pick.
+  const sortedGroup = [...group].sort((left, right) => {
+    const leftKey = left.map((quest) => Number(quest.id) || 0).sort((a, b) => a - b).join("-");
+    const rightKey = right.map((quest) => Number(quest.id) || 0).sort((a, b) => a - b).join("-");
+    return leftKey.localeCompare(rightKey);
+  });
+  return sortedGroup[Math.floor(rand() * sortedGroup.length)];
 }
 
 function normalizeQuestIds(value) {
@@ -401,6 +433,14 @@ export function getDailyQuests(options = {}) {
   const slots = getQuestSlotsForLevel(userLevel, currentStreak);
   const pinnedQuestIds = normalizeQuestIds(options.pinnedQuestIds).slice(0, slots.pinned);
   const excludeCategories = new Set(options.excludeCategories || []);
+  // Quest IDs that must NOT appear in the random group — used to avoid
+  // repeating yesterday's set after a daily reset or the previous set
+  // after a reroll. Does not affect pinned habits (those stay visible).
+  const excludeIds = new Set(
+    (Array.isArray(options.excludeIds) ? options.excludeIds : [])
+      .map((id) => Number(id))
+      .filter((id) => Number.isInteger(id) && id > 0)
+  );
 
   let questPool = buildQuestPool(options.language);
   const effortFiltered = questPool.filter((quest) => Number(quest.effortScore) <= slots.maxEffort);
@@ -425,13 +465,18 @@ export function getDailyQuests(options = {}) {
   const pinnedQuests = pinnedQuestIds
     .map((id) => unfilteredPool.find((quest) => quest.id === id))
     .filter(Boolean);
-  const randomQuests = shuffled.filter((quest) => !pinnedSet.has(quest.id));
+  const randomCandidatesPrimary = shuffled.filter((quest) => !pinnedSet.has(quest.id) && !excludeIds.has(quest.id));
+  // Fallback if excluding previous IDs leaves too few candidates to satisfy
+  // the slot count — prefer filling the board over strictly avoiding repeats.
   const totalCount = Math.min(slots.dailyTotal, unfilteredPool.length);
   const randomCount = Math.max(0, Math.min(totalCount - pinnedQuests.length, slots.random));
+  const randomQuests = randomCandidatesPrimary.length >= randomCount
+    ? randomCandidatesPrimary
+    : shuffled.filter((quest) => !pinnedSet.has(quest.id));
 
   let finalOtherQuests = [];
   if (randomCount > 0) {
-    const targetEffort = randomCount * 3;
+    const targetEffort = getTargetEffort(randomCount, currentStreak);
     const combinationSeed = hashString(`${baseSeed}_combo`);
     finalOtherQuests = buildEffortBalancedCategoryUniqueQuests(
       randomQuests,

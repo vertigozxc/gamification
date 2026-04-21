@@ -14,6 +14,7 @@ model User {
   photoUrl              String            @default("")
   preferredQuestIds     String            @default("")
   randomQuestIds        String            @default("")
+  previousRandomQuestIds String           @default("")
   level                 Int               @default(1)
   xp                    Int               @default(0)
   xpNext                Int               @default(250)
