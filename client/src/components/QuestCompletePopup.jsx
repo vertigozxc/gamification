@@ -30,11 +30,8 @@ export default function QuestCompletePopup({
 
   const heading = t.questCompletePopupHeading || "Quest complete!";
   const praise = t.questCompletePopupPraise || "Nice work — keep the momentum going.";
-  const xpLabel = t.xpLabel || "XP";
   const tokenIcon = t.tokenIcon || "🪙";
   const streakIcon = t.streakIcon || "🔥";
-  const milestoneLabel = t.questCompletePopupMilestoneLabel || "Milestone";
-  const sportLabel = t.questCompletePopupSportLabel || "Sport bonus";
   const streakYesTitle = t.questCompletePopupStreakYesTitle || "Counts toward your streak";
   const streakYesHint = t.questCompletePopupStreakYesHint
     || "Finish 4 quests at 100% today to grow your streak — this one counts.";
@@ -107,47 +104,16 @@ export default function QuestCompletePopup({
             {praise}
           </p>
 
-          <div
-            className="flex flex-col items-center gap-2 mb-3"
-            style={{ animation: "fadeInUp 1.2s ease-out" }}
-          >
-            {questXp > 0 ? (
-              <div
-                className="inline-flex justify-center items-center gap-2 bg-black/40 border border-emerald-500/60 rounded-xl px-5 py-2 shadow-[inset_0_0_12px_rgba(74,222,128,0.15)]"
-              >
-                <span className="text-2xl font-black text-emerald-300 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">
-                  +{questXp} {xpLabel}
-                </span>
-              </div>
-            ) : null}
-            {(milestoneXp > 0 || sportXp > 0 || tokensAwarded > 0) ? (
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                {milestoneXp > 0 ? (
-                  <span
-                    className="inline-flex items-center gap-1 bg-cyan-900/40 border border-cyan-500/50 rounded-lg px-3 py-1 text-sm font-bold text-cyan-200"
-                    title={milestoneLabel}
-                  >
-                    🏅 +{milestoneXp} {xpLabel}
-                  </span>
-                ) : null}
-                {sportXp > 0 ? (
-                  <span
-                    className="inline-flex items-center gap-1 bg-sky-900/40 border border-sky-500/50 rounded-lg px-3 py-1 text-sm font-bold text-sky-200"
-                    title={sportLabel}
-                  >
-                    🏃 +{sportXp} {xpLabel}
-                  </span>
-                ) : null}
-                {tokensAwarded > 0 ? (
-                  <span
-                    className="inline-flex items-center gap-1 bg-amber-900/40 border border-amber-500/50 rounded-lg px-3 py-1 text-sm font-bold text-amber-200"
-                  >
-                    +{tokensAwarded} {tokenIcon}
-                  </span>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
+          {tokensAwarded > 0 ? (
+            <div
+              className="flex items-center justify-center mb-3"
+              style={{ animation: "fadeInUp 1.2s ease-out" }}
+            >
+              <span className="inline-flex items-center gap-1 bg-amber-900/40 border border-amber-500/50 rounded-xl px-4 py-2 text-xl font-black text-amber-200 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]">
+                +{tokensAwarded} <span className="text-2xl">{tokenIcon}</span>
+              </span>
+            </div>
+          ) : null}
 
           <div
             style={{
