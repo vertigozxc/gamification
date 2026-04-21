@@ -2228,15 +2228,30 @@ app.get("/api/game-state/:username", async (req, res) => {
   ]);
 
   const questSlots = getQuestSlotsForLevel(user.level || 1, user.streak || 0);
-  const activeTimerRows = await prisma.questTimerSession.findMany({
-    where: { userId: user.id, dayKey: dateKey, status: { in: ["running", "paused"] } },
-    orderBy: { createdAt: "desc" }
-  });
-  const activeTimers = activeTimerRows.map((row) => serializeTimerSession(row, now));
-  const activeCompletionRows = await prisma.questCompletion.findMany({
-    where: { userId: user.id, dayKey: dateKey },
-    select: { questId: true, completionPercent: true, elapsedMs: true }
-  });
+  // These queries touch new columns/tables added in the 2026-04-21 timer
+  // migration. If a region restarts before its schema is synced we must not
+  // crash the whole game-state endpoint — degrade gracefully so the user
+  // still gets their quests, and the timer features unlock on next request
+  // once the migration lands.
+  let activeTimers = [];
+  try {
+    const activeTimerRows = await prisma.questTimerSession.findMany({
+      where: { userId: user.id, dayKey: dateKey, status: { in: ["running", "paused"] } },
+      orderBy: { createdAt: "desc" }
+    });
+    activeTimers = activeTimerRows.map((row) => serializeTimerSession(row, now));
+  } catch (timerErr) {
+    console.error(`[game-state] active timer read failed: ${timerErr?.message || timerErr}`);
+  }
+  let activeCompletionRows = [];
+  try {
+    activeCompletionRows = await prisma.questCompletion.findMany({
+      where: { userId: user.id, dayKey: dateKey },
+      select: { questId: true, completionPercent: true, elapsedMs: true }
+    });
+  } catch (completionsErr) {
+    console.error(`[game-state] completion metadata read failed: ${completionsErr?.message || completionsErr}`);
+  }
   res.json({
     user,
     dateKey,
