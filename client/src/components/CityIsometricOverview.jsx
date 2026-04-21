@@ -1812,7 +1812,10 @@ export default function CityIsometricOverview({ levels = [0, 0, 0, 0, 0], select
   const palette = {
     stroke: isLight ? "#2a2f3a" : "#0a0e16",
     shadow: isLight ? "rgba(0,0,0,0.2)" : "rgba(0,0,0,0.55)",
-    labelBg: isLight ? "rgba(255,255,255,0.96)" : "rgba(18,24,38,0.94)",
+    // Dark themes (adventure / balance) previously used rgba(18,24,38) which
+    // blended too much with the shadowed plots. Lightened slightly so the
+    // pill reads as its own chip.
+    labelBg: isLight ? "rgba(255,255,255,0.96)" : "rgba(44,54,78,0.92)",
     labelText: isLight ? "#1a1f2b" : "#f0f3f8",
     trunk: isLight ? "#6a4a2c" : "#3a2a1a",
     leafDark: isLight ? "#2f7a3e" : "#1e4a27",
