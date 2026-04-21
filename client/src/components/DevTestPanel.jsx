@@ -1,6 +1,6 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
-import { devGrantXp, devGrantTokens, devResetMe } from "../api";
+import { devGrantXp, devGrantTokens, devResetMe, devGrantStreak } from "../api";
 
 const DEV_TEST_USER_ID = "C0x6GY9LeyVhY12L1yF5QRHp3DP2";
 
@@ -8,7 +8,7 @@ export function isDevTestUser(uid) {
   return String(uid || "").trim() === DEV_TEST_USER_ID;
 }
 
-export default function DevTestPanel({ username, onRefresh }) {
+export default function DevTestPanel({ username, onRefresh, xp = 0, xpNext = 250 }) {
   const [busy, setBusy] = useState(false);
   const [expanded, setExpanded] = useState(true);
 
@@ -58,10 +58,25 @@ export default function DevTestPanel({ username, onRefresh }) {
           <button
             type="button"
             disabled={busy}
-            onClick={() => run(() => devGrantXp(username, 500))}
+            onClick={() => {
+              // Award exactly the XP required to hit the next level — same
+              // path the normal quest completion would take if a quest
+              // happened to pay out (xpNext - xp) XP.
+              const needed = Math.max(1, Number(xpNext) - Number(xp));
+              run(() => devGrantXp(username, needed));
+            }}
+            style={buttonStyle}
+            title={`+${Math.max(1, Number(xpNext) - Number(xp))} XP`}
+          >
+            +1 LVL
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => run(() => devGrantStreak(username, 1))}
             style={buttonStyle}
           >
-            +500 XP
+            +S 🔥
           </button>
           <button
             type="button"
@@ -130,5 +145,7 @@ const buttonStyle = {
 
 DevTestPanel.propTypes = {
   username: PropTypes.string,
-  onRefresh: PropTypes.func
+  onRefresh: PropTypes.func,
+  xp: PropTypes.number,
+  xpNext: PropTypes.number
 };

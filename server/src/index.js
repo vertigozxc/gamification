@@ -448,6 +448,31 @@ app.post("/api/dev/reset-me", async (req, res) => {
   }
 });
 
+app.post("/api/dev/grant-streak", async (req, res) => {
+  try {
+    const schema = z.object({
+      username: z.string().min(2).max(64),
+      amount: z.number().int().min(-999).max(999).default(1)
+    });
+    const parsed = schema.parse(req.body || {});
+    if (!isDevTestUser(parsed.username)) {
+      return res.status(403).json({ error: "Dev test grants are restricted" });
+    }
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const nextStreak = Math.max(0, Number(user.streak || 0) + parsed.amount);
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { streak: nextStreak, lastStreakIncreaseAt: new Date() }
+    });
+    res.json({ ok: true, streak: updatedUser.streak });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
 app.post("/api/dev/grant-tokens", async (req, res) => {
   try {
     const schema = z.object({

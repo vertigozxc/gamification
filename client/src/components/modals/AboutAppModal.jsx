@@ -76,48 +76,94 @@ export default function AboutAppModal({ open, onClose }) {
             minHeight: 0,
             overflowY: "auto",
             WebkitOverflowScrolling: "touch",
-            padding: "8px 16px 28px"
+            padding: "14px 16px 28px"
           }}
         >
-          {/* Title bar scrolls with content so it never blocks the body */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0 14px" }}>
+          {/* Hero header card — mirrors the panel framing used on the
+              dashboard / profile so the About screen feels at home in
+              the rest of the app. Taller than before so the title
+              breathes a bit and isn't cramped with the close button. */}
+          <div
+            className="mobile-card"
+            style={{
+              position: "relative",
+              overflow: "hidden",
+              padding: "18px 18px 20px",
+              marginBottom: 14,
+              background: "var(--card-bg)",
+              border: "1px solid var(--panel-border)",
+              borderRadius: "var(--border-radius-panel, 1.25rem)",
+              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.22)"
+            }}
+          >
             <div
+              aria-hidden="true"
               style={{
-                width: 40, height: 40, borderRadius: 12,
-                background: "linear-gradient(135deg, rgba(var(--color-primary-rgb,251,191,36),0.22), rgba(0,0,0,0.2))",
-                border: "1px solid var(--color-primary-dim, var(--panel-border))",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 20, flexShrink: 0
+                position: "absolute",
+                inset: 0,
+                background: "radial-gradient(140% 120% at 100% 0%, rgba(var(--color-primary-rgb,251,191,36),0.16), transparent 60%)",
+                pointerEvents: "none"
               }}
-            >
-              📖
+            />
+            <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
+              <div
+                style={{
+                  width: 56, height: 56, borderRadius: 16,
+                  background: "linear-gradient(135deg, rgba(var(--color-primary-rgb,251,191,36),0.32), rgba(0,0,0,0.3))",
+                  border: "1px solid color-mix(in srgb, var(--color-primary) 55%, transparent)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 28, flexShrink: 0,
+                  boxShadow: "0 4px 14px rgba(0,0,0,0.35), inset 0 0 12px rgba(255,255,255,0.05)"
+                }}
+              >
+                📖
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h2
+                  className="cinzel"
+                  style={{
+                    color: "var(--color-primary)",
+                    fontSize: 22,
+                    fontWeight: 700,
+                    margin: 0,
+                    lineHeight: 1.15,
+                    letterSpacing: "0.02em",
+                    textShadow: "0 2px 10px rgba(0,0,0,0.45)"
+                  }}
+                >
+                  {copy.title}
+                </h2>
+                <p
+                  style={{
+                    fontSize: 12.5,
+                    color: "var(--color-muted)",
+                    margin: "6px 0 0",
+                    letterSpacing: "0.05em",
+                    lineHeight: 1.35
+                  }}
+                >
+                  {copy.subtitle}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label={copy.close}
+                style={{
+                  width: 42, height: 42, borderRadius: 999,
+                  background: isLight ? "rgba(15,23,42,0.88)" : "rgba(255,255,255,0.08)",
+                  border: `1px solid ${isLight ? "rgba(15,23,42,0.75)" : "var(--card-border-idle, var(--panel-border))"}`,
+                  color: isLight ? "#f8fafc" : "#e2e8f0",
+                  cursor: "pointer",
+                  fontSize: 20,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                  boxShadow: isLight ? "0 2px 8px rgba(15,23,42,0.25)" : "0 2px 6px rgba(0,0,0,0.35)"
+                }}
+              >
+                ✕
+              </button>
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h2 className="cinzel" style={{ color: "var(--color-primary)", fontSize: 18, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>
-                {copy.title}
-              </h2>
-              <p style={{ fontSize: 11.5, color: "#94a3b8", margin: "3px 0 0", letterSpacing: "0.04em" }}>
-                {copy.subtitle}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label={copy.close}
-              style={{
-                width: 40, height: 40, borderRadius: 999,
-                background: isLight ? "rgba(15,23,42,0.85)" : "rgba(255,255,255,0.08)",
-                border: `1px solid ${isLight ? "rgba(15,23,42,0.75)" : "var(--card-border-idle, var(--panel-border))"}`,
-                color: isLight ? "#f8fafc" : "#e2e8f0",
-                cursor: "pointer",
-                fontSize: 20,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                flexShrink: 0,
-                boxShadow: isLight ? "0 2px 8px rgba(15,23,42,0.25)" : "none"
-              }}
-            >
-              ✕
-            </button>
           </div>
 
           {/* Accordion sections. Tap a card to expand the details. */}

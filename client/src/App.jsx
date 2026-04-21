@@ -1106,7 +1106,12 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       {dataLoading && !isEmbeddedApp ? <PortalPreloader title={t.loadingText} fullscreen /> : null}
 
       <Suspense fallback={null}>
-        <DevTestPanel username={authUser?.uid} onRefresh={refreshFromServer} />
+        <DevTestPanel
+          username={authUser?.uid}
+          onRefresh={refreshFromServer}
+          xp={state.xp}
+          xpNext={state.xpNext}
+        />
       </Suspense>
 
       <FreezeSuccessModal open={showFreezeSuccess} onClose={() => setShowFreezeSuccess(false)} />

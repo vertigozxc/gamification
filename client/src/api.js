@@ -346,6 +346,13 @@ export function devGrantTokens(username, amount = 5) {
   });
 }
 
+export function devGrantStreak(username, amount = 1) {
+  return request("/api/dev/grant-streak", {
+    method: "POST",
+    body: JSON.stringify({ username, amount })
+  });
+}
+
 export function devResetMe(username) {
   return request("/api/dev/reset-me", {
     method: "POST",
