@@ -1972,7 +1972,7 @@ export default function CityIsometricOverview({ levels = [0, 0, 0, 0, 0], select
                   palette={palette}
                   isSelected={idx === selectedIdx}
                   isLocked={isLocked}
-                  onClick={() => { if (!isLocked) onDistrictClick?.(d.id, idx); }}
+                  onClick={() => onDistrictClick?.(d.id, idx, { locked: isLocked })}
                   clipId={`plot-clip-${d.id}`}
                 />
               );

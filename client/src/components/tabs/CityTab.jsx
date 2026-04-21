@@ -312,7 +312,12 @@ export default function CityTab({
   const { themeId, languageId } = useTheme();
   const grassBg = themeId === "light" ? "#7ec382" : "#1d3a28";
 
-  const handleDistrictClick = useCallback((_districtId, idx) => {
+  const [lockedInfoOpen, setLockedInfoOpen] = useState(false);
+  const handleDistrictClick = useCallback((_districtId, idx, meta) => {
+    if (meta?.locked) {
+      setLockedInfoOpen(true);
+      return;
+    }
     setSelectedDistrictIdx(idx);
   }, []);
 
@@ -1176,6 +1181,46 @@ export default function CityTab({
         onClose={handleSpinModalClose}
         onRewardClaimed={handleRewardClaimed}
       />
+
+      {lockedInfoOpen && createPortal(
+        <div
+          className="logout-confirm-overlay"
+          onClick={() => setLockedInfoOpen(false)}
+        >
+          <div
+            className="logout-confirm-card"
+            role="dialog"
+            aria-modal="true"
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              border: "2px solid color-mix(in srgb, var(--color-primary) 55%, transparent)",
+              boxShadow: "0 0 40px color-mix(in srgb, var(--color-primary) 18%, transparent), 0 25px 50px rgba(0, 0, 0, 0.5)"
+            }}
+          >
+            <div className="logout-confirm-icon">🔒</div>
+            <h3 className="cinzel logout-confirm-title" style={{ color: "var(--color-primary)" }}>
+              {t.districtLockedTitle || "District locked"}
+            </h3>
+            <p className="logout-confirm-msg">
+              {t.districtLockedBody || "Upgrade every existing district to the maximum level to unlock new territories."}
+            </p>
+            <div className="logout-confirm-actions" style={{ justifyContent: "center" }}>
+              <button
+                className="logout-confirm-proceed cinzel"
+                onClick={() => setLockedInfoOpen(false)}
+                style={{
+                  borderColor: "color-mix(in srgb, var(--color-primary) 60%, transparent)",
+                  background: "color-mix(in srgb, var(--color-primary) 22%, var(--panel-bg))",
+                  color: "var(--color-primary)"
+                }}
+              >
+                {t.districtLockedAck || t.freezeAck || "Got it"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
     </div>
   );

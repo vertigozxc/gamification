@@ -283,6 +283,9 @@ export const languagePacks = {
       districtReqTokens: "{n}",
       districtReqStreak: "{n}",
       districtReqLevelPrefix: "Lvl",
+      districtLockedTitle: "District locked",
+      districtLockedBody: "Upgrade every existing district to the maximum level to unlock new territories.",
+      districtLockedAck: "Got it",
       // Sports — XP multiplier
       perkSport1: "+5% XP from every quest",
       perkSport2: "+10% XP from every quest",
@@ -758,6 +761,9 @@ export const languagePacks = {
       districtReqTokens: "{n}",
       districtReqStreak: "{n}",
       districtReqLevelPrefix: "Ур.",
+      districtLockedTitle: "Район закрыт",
+      districtLockedBody: "Чтобы разблокировать новые территории, прокачайте все имеющиеся районы до максимального уровня.",
+      districtLockedAck: "Понятно",
       // Sports — XP multiplier
       perkSport1: "+5% к опыту со всех квестов",
       perkSport2: "+10% к опыту со всех квестов",
