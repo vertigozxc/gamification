@@ -522,7 +522,7 @@ export const languagePacks = {
       notesSave: "Сохранить заметки",
       closeLabel: "Закрыть",
       tokenSection: "🪙 Хранилище токенов",
-      dailyQuestFreshBadge: "НОВОЕ",
+      dailyQuestFreshBadge: "НОВЫЕ",
       tokenUnit: "токенов",
       tokenIcon: "🪙",
       freezeTitle: "Заморозка стрика",
