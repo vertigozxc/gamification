@@ -17,11 +17,7 @@ import {
 } from "./quests.js";
 import { buildInviteCode, getDateKey, slugifyUsername, xpAfterQuest } from "./utils.js";
 import {
-  calculatePI,
-  calculateRank,
-  getTier,
   getWeekKey,
-  normalizeTier,
   summarizeTodayProgress
 } from "./productivity.js";
 const app = express();
@@ -433,11 +429,6 @@ app.post("/api/admin/users/:userId/reset-hard", requireAdmin, async (req, res) =
           streak: 0,
           tokens: 0,
           randomQuestIds: "",
-          currentPI: null,
-          currentTier: "IRON",
-          weeksInCurrentTier: 0,
-          rankLevel: 1,
-          lastTierWeekKey: "",
           lastStreakIncreaseAt: null,
           streakFreezeExpiresAt: null,
           lastDailyRerollAt: null,
@@ -500,16 +491,8 @@ app.post("/api/admin/users/:userId/reset-full", requireAdmin, async (req, res) =
           level: 1,
           xp: 0,
           xpNext: 250,
-          strPoints: 0,
-          intPoints: 0,
-          staPoints: 0,
           streak: 0,
           tokens: 0,
-          currentPI: null,
-          currentTier: "IRON",
-          weeksInCurrentTier: 0,
-          rankLevel: 1,
-          lastTierWeekKey: "",
           theme: "adventure",
           lastStreakIncreaseAt: null,
           streakFreezeExpiresAt: null,
@@ -1363,7 +1346,6 @@ function buildCustomQuestEntry(customQuest) {
     desc: customQuest.description || "",
     xp: 30,
     baseXp: 30,
-    stat: customQuest.stat || "sta",
     category: "CUSTOM",
     effortScore: 3,
     icon: "",
@@ -1612,20 +1594,10 @@ function applyBonusXpProgress(state, bonusXp) {
   return { xp, level, xpNext };
 }
 
-function getNextWeekResetAt(date = new Date()) {
-  const utcDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-  const dayOfWeek = utcDate.getUTCDay() || 7;
-  const daysUntilNextMonday = 8 - dayOfWeek;
-  utcDate.setUTCDate(utcDate.getUTCDate() + daysUntilNextMonday);
-  utcDate.setUTCHours(0, 0, 0, 0);
-  return utcDate;
-}
-
 function buildServerTimeMeta(now = new Date()) {
   const current = now instanceof Date ? now : new Date(now);
   return {
-    serverNowMs: current.getTime(),
-    nextWeekResetAtMs: getNextWeekResetAt(current).getTime()
+    serverNowMs: current.getTime()
   };
 }
 
@@ -1804,7 +1776,7 @@ async function computeTodayProgress(user, date = new Date()) {
 }
 
 async function updateAndReadProductivity(user, date = new Date(), options = {}) {
-  const { updateTierState = false, precomputedProgress = null } = options;
+  const { precomputedProgress = null } = options;
   const { dayKey, progress } = precomputedProgress || await computeTodayProgress(user, date);
 
   await prisma.dailyScore.upsert({
@@ -1818,82 +1790,20 @@ async function updateAndReadProductivity(user, date = new Date(), options = {}) 
       userId: user.id,
       dayKey,
       xpToday: progress.xpToday,
-      tasksCompleted: progress.tasksCompleted,
-      baseTasksCompleted: progress.baseTasksCompleted,
-      score: progress.dailyScore
+      tasksCompleted: progress.tasksCompleted
     },
     update: {
       xpToday: progress.xpToday,
-      tasksCompleted: progress.tasksCompleted,
-      baseTasksCompleted: progress.baseTasksCompleted,
-      score: progress.dailyScore
+      tasksCompleted: progress.tasksCompleted
     }
   });
-
-  const historyRows = await prisma.dailyScore.findMany({
-    where: { userId: user.id },
-    orderBy: { dayKey: "asc" },
-    take: 30,
-    select: {
-      dayKey: true,
-      score: true,
-      xpToday: true,
-      tasksCompleted: true,
-      baseTasksCompleted: true
-    }
-  });
-
-  const scoreSeries = historyRows.map((row) => Number(row.score) || 0);
-  const pi = calculatePI(scoreSeries, progress.dailyScore);
-
-  let currentTier = normalizeTier(user.currentTier);
-  let weeksInCurrentTier = Math.max(0, Number(user.weeksInCurrentTier) || 0);
-  let lastTierWeekKey = user.lastTierWeekKey || "";
-
-  if (pi !== null) {
-    const nextTier = getTier(pi);
-    const currentWeekKey = getWeekKey(date);
-
-    if (nextTier !== currentTier) {
-      currentTier = nextTier;
-      weeksInCurrentTier = 0;
-      lastTierWeekKey = currentWeekKey;
-    } else if (lastTierWeekKey !== currentWeekKey) {
-      weeksInCurrentTier += 1;
-      lastTierWeekKey = currentWeekKey;
-    }
-  }
-
-  const rank = calculateRank(currentTier, weeksInCurrentTier);
-  let effectiveUser = user;
-
-  if (updateTierState) {
-    effectiveUser = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        currentPI: pi,
-        currentTier,
-        weeksInCurrentTier,
-        rankLevel: rank.rankLevel,
-        lastTierWeekKey
-      }
-    });
-  }
 
   return {
-    user: effectiveUser,
+    user,
     productivity: {
       xpToday: progress.xpToday,
       tasksCompletedToday: progress.tasksCompleted,
-      baseTasksCompletedToday: progress.baseTasksCompleted,
-      dailyScore: progress.dailyScore,
-      dailyScoreHistory: historyRows,
-      currentPI: pi,
-      piStatus: pi === null ? "calibrating" : "ready",
-      currentTier,
-      weeksInCurrentTier,
-      rankLevel: rank.rankLevel,
-      rankLabel: `${currentTier} ${["I", "II", "III", "IV", "V"][Math.max(1, rank.rankLevel) - 1]}`
+      baseTasksCompletedToday: progress.baseTasksCompleted
     }
   };
 }
@@ -2029,8 +1939,7 @@ app.get("/api/quests/all", (req, res) => {
 const customQuestSchema = z.object({
   username: z.string().min(2).max(64),
   title: z.string().trim().min(1).max(CUSTOM_QUEST_TITLE_MAX),
-  description: z.string().trim().max(CUSTOM_QUEST_DESC_MAX).optional().default(""),
-  stat: z.enum(["str", "int", "sta"]).optional().default("sta")
+  description: z.string().trim().max(CUSTOM_QUEST_DESC_MAX).optional().default("")
 });
 
 app.get("/api/custom-quests/:username", async (req, res) => {
@@ -2061,8 +1970,7 @@ app.post("/api/custom-quests", async (req, res) => {
       data: {
         userId: user.id,
         title: parsed.title,
-        description: parsed.description || "",
-        stat: parsed.stat
+        description: parsed.description || ""
       }
     });
     res.json({ ok: true, customQuest: buildCustomQuestEntry(created) });
@@ -2076,8 +1984,7 @@ app.patch("/api/custom-quests/:id", async (req, res) => {
     const schema = z.object({
       username: z.string().min(2).max(64),
       title: z.string().trim().min(1).max(CUSTOM_QUEST_TITLE_MAX).optional(),
-      description: z.string().trim().max(CUSTOM_QUEST_DESC_MAX).optional(),
-      stat: z.enum(["str", "int", "sta"]).optional()
+      description: z.string().trim().max(CUSTOM_QUEST_DESC_MAX).optional()
     });
     const parsed = schema.parse(req.body);
     const id = Number(req.params.id);
@@ -2096,7 +2003,6 @@ app.patch("/api/custom-quests/:id", async (req, res) => {
     const data = {};
     if (parsed.title !== undefined) data.title = parsed.title;
     if (parsed.description !== undefined) data.description = parsed.description;
-    if (parsed.stat !== undefined) data.stat = parsed.stat;
 
     const updated = await prisma.customQuest.update({ where: { id }, data });
     res.json({ ok: true, customQuest: buildCustomQuestEntry(updated) });
@@ -2239,10 +2145,7 @@ app.get("/api/game-state/:username", async (req, res) => {
   const precomputedProgress = buildTodayProgressSnapshot(user, completionIds, customQuests, now);
   const [pinnedQuestProgress21d, { productivity }] = await Promise.all([
     getPinnedQuestProgress21d(user, preferredQuestIds, now),
-    updateAndReadProductivity(user, now, {
-      updateTierState: false,
-      precomputedProgress
-    })
+    updateAndReadProductivity(user, now, { precomputedProgress })
   ]);
 
   res.json({
@@ -2323,7 +2226,7 @@ app.post("/api/onboarding/complete", async (req, res) => {
       ? getDateKey(new Date(updatedUser.streakFreezeExpiresAt)) >= todayKey
       : false;
     const pinnedQuestProgress21d = await getPinnedQuestProgress21d(updatedUser, uniquePreferredQuestIds, now);
-    const { productivity } = await updateAndReadProductivity(updatedUser, now, { updateTierState: false });
+    const { productivity } = await updateAndReadProductivity(updatedUser, now);
 
     res.json({
       ok: true,
@@ -2497,7 +2400,7 @@ app.post("/api/quests/complete", async (req, res) => {
       };
     });
 
-    const productivityState = await updateAndReadProductivity(updatedUser, now, { updateTierState: true });
+    const productivityState = await updateAndReadProductivity(updatedUser, now);
     const finalUser = productivityState.user;
 
     const responsePayload = {
@@ -3411,7 +3314,7 @@ app.post("/api/reset-daily", async (req, res) => {
 
     const tPostUpdate = Date.now();
     const [productivityState, completedQuestIds] = await Promise.all([
-      updateAndReadProductivity(updatedUser, now, { updateTierState: true }),
+      updateAndReadProductivity(updatedUser, now),
       completedQuestIdsPromise
     ]);
     pushTiming("post_update", tPostUpdate);
@@ -3743,11 +3646,6 @@ app.post("/api/reset-hard", async (req, res) => {
         streak: 0,
         tokens: 0,
         randomQuestIds: "",
-        currentPI: null,
-        currentTier: "IRON",
-        weeksInCurrentTier: 0,
-        rankLevel: 1,
-        lastTierWeekKey: "",
         lastStreakIncreaseAt: null,
         streakFreezeExpiresAt: null,
         lastDailyRerollAt: null,
@@ -3996,16 +3894,8 @@ app.post("/api/admin/reset-all-users", async (req, res) => {
           level: 1,
           xp: 0,
           xpNext: 250,
-          strPoints: 0,
-          intPoints: 0,
-          staPoints: 0,
           streak: 0,
           tokens: 0,
-          currentPI: null,
-          currentTier: "IRON",
-          weeksInCurrentTier: 0,
-          rankLevel: 1,
-          lastTierWeekKey: "",
           lastStreakIncreaseAt: null,
           streakFreezeExpiresAt: null,
           lastFreeTaskRerollAt: null,

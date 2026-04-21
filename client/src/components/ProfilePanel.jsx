@@ -1,58 +1,6 @@
 ﻿import PropTypes from "prop-types";
 import { useTheme } from "../ThemeContext";
 
-function getTierStyle(rankLabel) {
-  const tier = String(rankLabel || "IRON I").split(" ")[0].toUpperCase();
-
-  if (tier === "DIAMOND") {
-    return {
-      borderColor: "#67e8f9",
-      background: "linear-gradient(135deg, rgba(6, 182, 212, 0.28), rgba(30, 41, 59, 0.55))",
-      color: "#a5f3fc",
-      glow: "0 0 20px rgba(34, 211, 238, 0.45)"
-    };
-  }
-  if (tier === "PLATINUM") {
-    return {
-      borderColor: "#93c5fd",
-      background: "linear-gradient(135deg, rgba(59, 130, 246, 0.28), rgba(30, 41, 59, 0.55))",
-      color: "#bfdbfe",
-      glow: "0 0 18px rgba(59, 130, 246, 0.38)"
-    };
-  }
-  if (tier === "GOLD") {
-    return {
-      borderColor: "#facc15",
-      background: "linear-gradient(135deg, rgba(202, 138, 4, 0.3), rgba(51, 30, 7, 0.55))",
-      color: "#fde68a",
-      glow: "0 0 18px rgba(234, 179, 8, 0.4)"
-    };
-  }
-  if (tier === "SILVER") {
-    return {
-      borderColor: "#cbd5e1",
-      background: "linear-gradient(135deg, rgba(100, 116, 139, 0.32), rgba(30, 41, 59, 0.55))",
-      color: "#e2e8f0",
-      glow: "0 0 14px rgba(148, 163, 184, 0.35)"
-    };
-  }
-  if (tier === "BRONZE") {
-    return {
-      borderColor: "#fb923c",
-      background: "linear-gradient(135deg, rgba(194, 65, 12, 0.35), rgba(51, 30, 7, 0.6))",
-      color: "#fdba74",
-      glow: "0 0 14px rgba(249, 115, 22, 0.35)"
-    };
-  }
-
-  return {
-    borderColor: "#94a3b8",
-    background: "linear-gradient(135deg, rgba(71, 85, 105, 0.34), rgba(15, 23, 42, 0.6))",
-    color: "#cbd5e1",
-    glow: "0 0 12px rgba(100, 116, 139, 0.3)"
-  };
-}
-
 function ProfilePanel({
   portraitUploadRef,
   portraitData,
@@ -71,31 +19,13 @@ function ProfilePanel({
   milestoneProgressPercent,
   milestoneSteps,
   streakBonusPercent,
-  weekResetTimer,
   compact = false
 }) {
-  const { t, tf } = useTheme();
-  const rankLabel = state.productivity?.rankLabel || "IRON I";
-  const tierStyle = getTierStyle(rankLabel);
-  const showRankSection = false;
+  const { t } = useTheme();
   return (
     <div className={`${compact ? "p-4 mb-4" : "p-4 mb-8"} rounded-3xl shadow-2xl`} style={{ background: "var(--panel-bg)", border: "2px solid var(--panel-border)" }}>
       <div className={`grid grid-cols-1 ${compact ? "gap-4" : "lg:grid-cols-3 gap-8 items-center"}`}>
         <div className={`flex flex-col items-center justify-center ${compact ? "" : "lg:col-span-1"}`}>
-          {showRankSection && (
-            <div className="w-full rounded-lg border px-4 py-3 mb-6 shadow-lg flex flex-col items-center justify-center gap-2" style={{ background: "var(--card-bg)", borderColor: "var(--card-border-idle)" }}>
-              <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{t.profileRankLabel}</span>
-              <div className="px-4 py-1 rounded border-2 shadow-lg" style={{ borderColor: tierStyle.borderColor, background: tierStyle.background, boxShadow: tierStyle.glow }}>
-                <span className="cinzel text-xs font-bold tracking-[0.08em]" style={{ color: tierStyle.color }}>{rankLabel}</span>
-              </div>
-              <span className="text-[11px] text-slate-400">{tf("profileWeeksInRank", { weeks: state.productivity?.weeksInCurrentTier ?? 0 })}</span>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-[10px] uppercase tracking-[0.12em] text-slate-400">{t.weekResetLabel}</span>
-                <span className="cinzel text-sm font-bold week-reset-timer" style={{ color: "var(--color-primary)" }}>⏳ {weekResetTimer}</span>
-              </div>
-            </div>
-          )}
-
           <div className="text-center">
             <div className="flex flex-col items-center">
               <p className={`cinzel tracking-widest uppercase mb-1 font-bold ${compact ? "text-sm" : "text-xl"}`} style={{ color: "var(--color-primary)" }}>{t.levelLabel}</p>
@@ -239,11 +169,7 @@ ProfilePanel.propTypes = {
     streak: PropTypes.number.isRequired,
     completed: PropTypes.arrayOf(PropTypes.number).isRequired,
     hasRerolledToday: PropTypes.bool.isRequired,
-    extraRerollsToday: PropTypes.number.isRequired,
-    productivity: PropTypes.shape({
-      rankLabel: PropTypes.string,
-      weeksInCurrentTier: PropTypes.number
-    }).isRequired
+    extraRerollsToday: PropTypes.number.isRequired
   }).isRequired,
   levelDisplayRef: PropTypes.shape({ current: PropTypes.any }).isRequired,
   editingName: PropTypes.bool.isRequired,
@@ -262,7 +188,6 @@ ProfilePanel.propTypes = {
     rune: PropTypes.string.isRequired
   })).isRequired,
   streakBonusPercent: PropTypes.number.isRequired,
-  weekResetTimer: PropTypes.string.isRequired,
   compact: PropTypes.bool
 };
 

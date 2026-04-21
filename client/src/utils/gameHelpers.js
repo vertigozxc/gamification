@@ -111,14 +111,7 @@ export function createDefaultState() {
     productivity: {
       xpToday: 0,
       tasksCompletedToday: 0,
-      baseTasksCompletedToday: 0,
-      dailyScore: 0,
-      currentPI: null,
-      piStatus: "calibrating",
-      currentTier: "IRON",
-      weeksInCurrentTier: 0,
-      rankLevel: 1,
-      rankLabel: "IRON I"
+      baseTasksCompletedToday: 0
     }
   };
 }
@@ -187,13 +180,3 @@ export function formatTwoDigits(num) {
   return String(num).padStart(2, "0");
 }
 
-export function formatDurationWithDays(ms) {
-  const totalSecs = Math.floor(Math.max(0, ms) / 1000);
-  const days = Math.floor(totalSecs / 86400);
-  const hrs = Math.floor((totalSecs % 86400) / 3600);
-  const mins = Math.floor((totalSecs % 3600) / 60);
-  const secs = totalSecs % 60;
-
-  const hms = `${formatTwoDigits(hrs)}:${formatTwoDigits(mins)}:${formatTwoDigits(secs)}`;
-  return days > 0 ? `${days}d ${hms}` : hms;
-}

@@ -139,7 +139,6 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const [nameDraft, setNameDraft] = useState(defaultCharacterName);
   const [portraitData, setPortraitData] = useState("");
   const [serverOffsetMs, setServerOffsetMs] = useState(0);
-  const [nextWeekResetAtMs, setNextWeekResetAtMs] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
   const [quests, setQuests] = useState([]);
   const [dataLoading, setDataLoading] = useState(false);
@@ -194,7 +193,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const tabPrefetchDoneForUidRef = useRef("");
   const normalizeLocalizedQuest = (quest) => normalizeQuest(quest, translateQuest, translateCategory);
 
-  const { resetTimer, weekResetTimer } = useTimers(serverOffsetMs, nextWeekResetAtMs);
+  const { resetTimer } = useTimers(serverOffsetMs);
 
   function handleCityRewardClaimed(result) {
     const user = result?.user;
@@ -211,13 +210,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   function applyServerTimeSync(payload) {
     if (!payload || typeof payload !== "object") return;
     const serverNowMs = Number(payload.serverNowMs);
-    const nextWeekResetAt = Number(payload.nextWeekResetAtMs);
 
     if (Number.isFinite(serverNowMs)) {
       setServerOffsetMs(serverNowMs - Date.now());
-    }
-    if (Number.isFinite(nextWeekResetAt)) {
-      setNextWeekResetAtMs(nextWeekResetAt);
     }
   }
 
@@ -1255,7 +1250,6 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             milestoneProgressPercent={milestoneProgressPercent}
             milestoneSteps={milestoneSteps}
             streakBonusPercent={streakBonusPercent}
-            weekResetTimer={weekResetTimer}
             pinnedQuests={pinnedQuests}
             otherQuests={otherQuests}
             pinnedQuestProgressById={pinnedQuestProgressById}

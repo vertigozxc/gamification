@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
-import { getMsUntilNextUtcMidnight, formatTwoDigits, formatDurationWithDays } from "../utils/gameHelpers";
+import { getMsUntilNextUtcMidnight, formatTwoDigits } from "../utils/gameHelpers";
 
-export default function useTimers(serverOffsetMs, nextWeekResetAtMs) {
+export default function useTimers(serverOffsetMs) {
   const [resetTimer, setResetTimer] = useState("--:--:--");
-  const [weekResetTimer, setWeekResetTimer] = useState("--:--:--");
 
   useEffect(() => {
     const tick = () => {
@@ -20,21 +19,5 @@ export default function useTimers(serverOffsetMs, nextWeekResetAtMs) {
     return () => clearInterval(intervalId);
   }, [serverOffsetMs]);
 
-  useEffect(() => {
-    const tick = () => {
-      if (!Number.isFinite(nextWeekResetAtMs)) {
-        setWeekResetTimer("--:--:--");
-        return;
-      }
-      const syncedNowMs = Date.now() + serverOffsetMs;
-      const msLeft = Math.max(0, nextWeekResetAtMs - syncedNowMs);
-      setWeekResetTimer(formatDurationWithDays(msLeft));
-    };
-
-    tick();
-    const intervalId = setInterval(tick, 1000);
-    return () => clearInterval(intervalId);
-  }, [nextWeekResetAtMs, serverOffsetMs]);
-
-  return { resetTimer, weekResetTimer };
+  return { resetTimer };
 }

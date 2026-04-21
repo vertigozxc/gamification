@@ -452,14 +452,7 @@ function useGameplayActions({
         productivity: {
           xpToday: 0,
           tasksCompletedToday: 0,
-          baseTasksCompletedToday: 0,
-          dailyScore: 0,
-          currentPI: null,
-          piStatus: "calibrating",
-          currentTier: "IRON",
-          weeksInCurrentTier: 0,
-          rankLevel: 1,
-          rankLabel: "IRON I"
+          baseTasksCompletedToday: 0
         },
         completed: Array.isArray(result?.completedQuestIds) ? result.completedQuestIds : [],
         logs: [
