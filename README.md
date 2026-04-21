@@ -113,7 +113,11 @@ This repo is now prepared for a dual-region setup:
 - API EU service: `life-rpg-api-eu` (Frankfurt) → URL: `https://life-rpg-api-eu.onrender.com`
 - Global router endpoint used by web/mobile: `https://api.life-rpg.app`
 
-**Note:** Render URLs differ from service names: `life-rpg-api-us` service → `life-rpg-api.onrender.com` URL (no suffix).
+> ⚠️ **Gotcha — service name ≠ hostname.** Render assigned the US service its URL when it was first named `life-rpg-api`. Renaming the service in `render.yaml` to `life-rpg-api-us` **did not** change its URL. Always use:
+> - **US:** `https://life-rpg-api.onrender.com` (the `-us` suffix 404s)
+> - **EU:** `https://life-rpg-api-eu.onrender.com`
+>
+> When debugging "is region X deployed?", curl `/healthz` at these exact hostnames, not at a guessed `<service-name>.onrender.com`.
 
 Important data note:
 - Production should use one shared PostgreSQL database for both API regions.

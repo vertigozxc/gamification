@@ -64,10 +64,11 @@ function buildThemeObserverScript() {
         const i = computed.getPropertyValue('--mobile-tab-inactive').trim();
         const o = computed.getPropertyValue('--mobile-tab-orb').trim();
         const ot = computed.getPropertyValue('--mobile-tab-orb-text').trim();
+        const pageBg = computed.getPropertyValue('--mobile-page-bg').trim();
         if (b) {
           bridge.postMessage(JSON.stringify({
             type: 'mobile-theme-update',
-            colors: { bg: b, active: a, inactive: i, orb: o, orbText: ot }
+            colors: { bg: b, active: a, inactive: i, orb: o, orbText: ot, pageBg: pageBg }
           }));
         }
       }
@@ -163,7 +164,7 @@ export default function WebAppScreen({ onShellReady }) {
   const [errorText, setErrorText] = useState("");
   const [showTabBar, setShowTabBar] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [theme, setTheme] = useState({ bg: "rgba(255, 255, 255, 0.92)", active: "#ff5c8a", inactive: "#96a0af", orb: "#ff5c8a", orbText: "#ffffff" });
+  const [theme, setTheme] = useState({ bg: "rgba(255, 255, 255, 0.92)", active: "#ff5c8a", inactive: "#96a0af", orb: "#ff5c8a", orbText: "#ffffff", pageBg: "#020617" });
   const [pressedTab, setPressedTab] = useState("");
   const bridgeId = useMemo(() => createBridgeId(), []);
   const webUrl = useMemo(() => {
@@ -479,7 +480,7 @@ export default function WebAppScreen({ onShellReady }) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.pageBg || "#020617" }]}>
       <WebView
         ref={webViewRef}
         key={webKey}
@@ -535,7 +536,11 @@ export default function WebAppScreen({ onShellReady }) {
             document.documentElement.style.setProperty("--mobile-footer-offset", "${Math.round(footerOffsetPx)}px");
             document.documentElement.style.setProperty("--mobile-safe-bottom", "${Math.max(0, Math.round(safeBottomPx))}px");
             document.documentElement.style.setProperty("--mobile-safe-top", "${Math.max(0, Math.round(safeTopPx))}px");
-            document.documentElement.style.background = "#020617";
+            // Intentionally do NOT set html/body background here — the web app's
+            // theme variables (--bg-body) must own the page chrome so switching
+            // light/dark/adventure themes is reflected in the safe-area strip
+            // around the native tab bar. The RN container bg handles initial
+            // load flash prevention instead.
             document.documentElement.style.overscrollBehavior = "none";
             document.documentElement.style.height = "100%";
             document.documentElement.style.minHeight = "100%";
@@ -543,7 +548,6 @@ export default function WebAppScreen({ onShellReady }) {
               document.body.style.setProperty("--mobile-footer-offset", "${Math.round(footerOffsetPx)}px");
               document.body.style.setProperty("--mobile-safe-bottom", "${Math.max(0, Math.round(safeBottomPx))}px");
               document.body.style.setProperty("--mobile-safe-top", "${Math.max(0, Math.round(safeTopPx))}px");
-              document.body.style.background = "#020617";
               document.body.style.margin = "0";
               document.body.style.height = "100%";
               document.body.style.minHeight = "100%";
@@ -641,8 +645,10 @@ export default function WebAppScreen({ onShellReady }) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: "#020617"
+    flex: 1
+    // backgroundColor is applied dynamically from `theme.bg` (see render) so
+    // the safe-area around the floating native tab bar matches the web app's
+    // active theme instead of a hardcoded dark navy.
   },
   banner: {
     paddingHorizontal: 12,
@@ -671,7 +677,7 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1,
-    backgroundColor: "#020617"
+    backgroundColor: "transparent"
   },
   preloaderOverlay: {
     ...StyleSheet.absoluteFillObject,

@@ -84,6 +84,7 @@ body[data-theme="adventure"] {
     --mobile-tab-inactive: #94a3b8;
     --mobile-tab-orb: var(--color-primary);
     --mobile-tab-orb-text: #111827;
+    --mobile-page-bg: #0a0e14;
 }
 body[data-theme="balance"] {
     --bg-body: linear-gradient(135deg, #0a1612 0%, #132721 50%, #0d1a16 100%);
@@ -168,6 +169,7 @@ body[data-theme="balance"] {
     --mobile-tab-inactive: #9ca3af;
     --mobile-tab-orb: var(--color-primary);
     --mobile-tab-orb-text: #111827;
+    --mobile-page-bg: #0a1612;
 }
 body[data-theme="light"] {
     --bg-body: linear-gradient(180deg, #fdf7fb 0%, #f7f9ff 48%, #f5f7fb 100%);
@@ -254,6 +256,7 @@ body[data-theme="light"] {
     --mobile-tab-inactive: #96a0af;
     --mobile-tab-orb: #ff5c8a;
     --mobile-tab-orb-text: #ffffff;
+    --mobile-page-bg: #fdf7fb;
 }
 /* Light theme only: improve daily board gray readability */
 body[data-theme="light"] .daily-board-panel .daily-board-count {

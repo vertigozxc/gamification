@@ -13,5 +13,10 @@
 - Diagnostic patterns that worked: visible banner overlay above WebView showing real-time auth status; per-step fetch status logging directly in callback HTML body.
 - Always verify state on the server before signaling success to client (e.g. bridge-check after store).
 - Reproduce 500/4xx errors with curl directly against the deployed endpoint before assuming code logic is wrong — could be CORS/middleware throwing.
+- **Production URL map — do not guess.** Render service names and their public URLs diverge for this project. Canonical mapping (see `render.yaml`, `infra/cloudflare/worker.js`, `README.md` "Multi-Region API"):
+  - `life-rpg-api-us` service (Oregon) → **`https://life-rpg-api.onrender.com`** (NOT `life-rpg-api-us.onrender.com` — that subdomain returns 404 and is a wrong guess).
+  - `life-rpg-api-eu` service (Frankfurt) → **`https://life-rpg-api-eu.onrender.com`**.
+  - Client and mobile talk to the Cloudflare Worker router at `https://life-rpg-api-router.evgeny-mahnach.workers.dev` (and the custom `https://api.life-rpg.app`), which fans out to the two origins above.
+  - Before concluding "region X is stale", curl BOTH canonical URLs (`/healthz`) — never rely on the service name as a hostname.
 - **NEVER delete, revert, reset, overwrite, or otherwise destroy uncommitted work, files, database rows, or any other data without EXPLICIT user approval in the current turn.** No `git checkout --`, `git reset`, `rm`, `DROP`, `Write` over an existing file, etc., as a silent cleanup step. If a rollback or cleanup seems useful, ASK first with specifics (which files, which lines) and wait for the user to say yes. Even when the user sounds frustrated or asks to stop, stop in place — do not retroactively "clean up" by throwing away work.
 - **NEVER push to `main` (or merge to `main`) unless the user writes the literal word "ПУШ" in the current turn.** Pushing to feature branches is fine with a normal "save/commit" instruction, but `main` auto-deploys to Render prod — treat it as protected. No creating PRs that target `main` for auto-merge, no `git push origin main`, no `gh pr merge` without the explicit "ПУШ" keyword from the user.
