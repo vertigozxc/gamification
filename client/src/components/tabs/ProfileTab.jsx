@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import themes from "../../themeConfig";
+import { useFreeze } from "../../api";
 
 export default function ProfileTab({
   characterName, editingName, nameDraft, portraitData,
@@ -9,7 +10,8 @@ export default function ProfileTab({
   avatarError, t,
   onAvatarClick, onAvatarErrorClear,
   onStartEditingName, onNameDraftChange, onSubmitNameEdit, onCancelEditingName,
-  onOpenThemePicker, onOpenLanguagePicker, onLogout, onDeleteProfile
+  onOpenThemePicker, onOpenLanguagePicker, onLogout, onDeleteProfile,
+  username, onFreezeUsed
 }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -119,6 +121,16 @@ export default function ProfileTab({
           </div>
         )}
       </div>
+
+      {/* Streak Freeze inventory */}
+      <StreakFreezeCard
+        username={username}
+        t={t}
+        charges={Number(state.user?.streakFreezeCharges) || 0}
+        expiresAt={state.user?.streakFreezeExpiresAt || null}
+        streak={state.streak}
+        onFreezeUsed={onFreezeUsed}
+      />
 
       {/* XP Progress */}
       <div className="mobile-card" style={{ background: "var(--panel-bg)" }}>
@@ -274,6 +286,120 @@ export default function ProfileTab({
         </div>,
         document.body
       )}
+    </div>
+  );
+}
+
+function StreakFreezeCard({ username, t, charges, expiresAt, streak, onFreezeUsed }) {
+  const [pending, setPending] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const now = Date.now();
+  const expiryMs = expiresAt ? new Date(expiresAt).getTime() : 0;
+  const active = expiryMs > now;
+  const daysLeft = active ? Math.ceil((expiryMs - now) / (24 * 3600_000)) : 0;
+
+  async function activate(days) {
+    if (pending || !username || charges < days) return;
+    setPending(true);
+    setMsg("");
+    try {
+      const result = await useFreeze(username, days);
+      onFreezeUsed?.(result);
+      setMsg(`+${days} ${t.streakFreezeDaysSuffix || "d"} ❄️`);
+      setTimeout(() => setMsg(""), 2500);
+    } catch (err) {
+      setMsg(err?.data?.error || err?.message || "Failed");
+      setTimeout(() => setMsg(""), 3000);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const btnStyle = (disabled) => ({
+    minHeight: 44,
+    padding: "8px 14px",
+    borderRadius: 10,
+    border: `1.5px solid ${disabled ? "var(--panel-border)" : "#5ba0e0"}`,
+    background: disabled
+      ? "color-mix(in srgb, var(--panel-bg) 70%, transparent)"
+      : "color-mix(in srgb, #5ba0e0 18%, var(--panel-bg))",
+    color: disabled ? "var(--color-muted)" : "#5ba0e0",
+    fontWeight: 800,
+    fontSize: 13,
+    cursor: disabled ? "not-allowed" : "pointer",
+    letterSpacing: "0.06em",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6
+  });
+
+  return (
+    <div className="mobile-card" style={{ background: "var(--panel-bg)" }}>
+      <div className="flex items-center justify-between mb-2">
+        <p className="cinzel text-xs font-bold tracking-widest uppercase m-0" style={{ color: "var(--color-primary)" }}>
+          ❄️ {t.streakFreezeTitle || "Streak Freeze"}
+        </p>
+        <span className="text-[10px] uppercase tracking-wider" style={{ color: "var(--color-muted)" }}>
+          {t.streakIcon} {streak}
+        </span>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div style={{
+          display: "flex", flexDirection: "column", gap: 2, minWidth: 110,
+          padding: "8px 12px",
+          background: "color-mix(in srgb, #5ba0e0 12%, transparent)",
+          border: "1px solid color-mix(in srgb, #5ba0e0 45%, transparent)",
+          borderRadius: 10
+        }}>
+          <span style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-muted)", fontWeight: 700 }}>
+            {t.streakFreezeCharges || "Charges"}
+          </span>
+          <span style={{ fontSize: 22, fontWeight: 800, color: "#5ba0e0", lineHeight: 1 }}>
+            {charges}
+          </span>
+        </div>
+        <div style={{
+          flex: 1, minWidth: 160,
+          padding: "8px 12px",
+          background: active
+            ? "color-mix(in srgb, #4fa85e 12%, transparent)"
+            : "color-mix(in srgb, var(--panel-bg) 60%, transparent)",
+          border: `1px ${active ? "solid color-mix(in srgb, #4fa85e 45%, transparent)" : "dashed var(--panel-border)"}`,
+          borderRadius: 10
+        }}>
+          <span style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-muted)", fontWeight: 700 }}>
+            {t.streakFreezeStatus || "Frozen until"}
+          </span>
+          <div style={{ fontSize: 13, fontWeight: 700, color: active ? "#4fa85e" : "var(--color-muted)", marginTop: 2 }}>
+            {active
+              ? `${new Date(expiryMs).toLocaleDateString()} · ${daysLeft} ${t.streakFreezeDaysSuffix || "d"}`
+              : (t.streakFreezeNotActive || "Not active")}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button onClick={() => activate(1)} disabled={pending || charges < 1} style={btnStyle(pending || charges < 1)}>
+          +1 {t.streakFreezeDaysSuffix || "d"}
+        </button>
+        <button onClick={() => activate(3)} disabled={pending || charges < 3} style={btnStyle(pending || charges < 3)}>
+          +3 {t.streakFreezeDaysSuffix || "d"}
+        </button>
+        <button onClick={() => activate(7)} disabled={pending || charges < 7} style={btnStyle(pending || charges < 7)}>
+          +7 {t.streakFreezeDaysSuffix || "d"}
+        </button>
+        <button onClick={() => activate(Math.max(1, charges))} disabled={pending || charges < 1} style={btnStyle(pending || charges < 1)}>
+          {t.streakFreezeUseAll || "Use all"} ({charges})
+        </button>
+      </div>
+      {msg && (
+        <p className="text-[11px] mt-2 m-0" style={{ color: "var(--color-muted)" }}>{msg}</p>
+      )}
+      <p className="text-[10px] mt-2 m-0 opacity-70" style={{ color: "var(--color-text)" }}>
+        {t.streakFreezeHint || "Charges earned from shop, monthly Residential perk, or vacation (20×)."}
+      </p>
     </div>
   );
 }

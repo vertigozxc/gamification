@@ -2417,19 +2417,45 @@ app.post("/api/quests/complete", async (req, res) => {
     // (e.g. mobile + web simultaneously) cannot both read the same stale XP and
     // overwrite each other, causing lost XP.
     const baseTokenIncrement = milestoneReward.bonusTokens + (habitMilestoneReached ? habitMilestoneTokens : 0);
-    const { updatedUser, xpState, xpStateWithMilestone } = await prisma.$transaction(async (tx) => {
+    const { updatedUser, xpState, xpStateWithMilestone, sportBonusXp, squareBonusTokens, isFullBoard } = await prisma.$transaction(async (tx) => {
       // Acquire an exclusive row lock so any concurrent transaction for the same
-      // user blocks here until this one commits.
-      await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${user.id} FOR UPDATE`;
+      // user blocks here until this one commits. SQLite (dev) does not support
+      // FOR UPDATE and already serializes writes via its own lock, so we skip
+      // the explicit row-lock there.
+      try {
+        await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${user.id} FOR UPDATE`;
+      } catch (lockErr) {
+        const msg = String(lockErr?.message || "");
+        if (!/FOR/i.test(msg)) throw lockErr;
+      }
       const freshUser = await tx.user.findUnique({ where: { id: user.id } });
       const freshXpState = xpAfterQuest(freshUser, questForXp, freshUser.streak || 0);
-      const freshXpStateWithMilestone = applyBonusXpProgress(freshXpState, milestoneReward.bonusXp);
+
+      // --- Sport district XP bonus: +5% per district level ---
+      const sportLvl = districtLevelOf(freshUser.districtLevels, "sport");
+      const sportMultiplier = sportXpBonus(sportLvl);
+      const sportBonusXpInner = Math.max(0, Math.round(freshXpState.awardedXp * (sportMultiplier - 1)));
+
+      const freshXpStateWithMilestone = applyBonusXpProgress(
+        freshXpState,
+        milestoneReward.bonusXp + sportBonusXpInner
+      );
 
       let freshTokenIncrement = baseTokenIncrement;
       if (freshXpStateWithMilestone.level > freshUser.level) {
         for (let lvl = freshUser.level + 1; lvl <= freshXpStateWithMilestone.level; lvl++) {
           freshTokenIncrement += lvl >= 10 ? 2 : 1;
         }
+      }
+
+      // --- Square district full-board bonus: +N tokens when board is fully completed today ---
+      // (Once per day, based on square district level.)
+      const squareLvl = districtLevelOf(freshUser.districtLevels, "square");
+      const isFullBoardInner = todayCompletionsCount >= availableQuests.length && availableQuests.length > 0;
+      const alreadyGranted = freshUser.lastSquareBonusDayKey === dayKey;
+      const squareBonusTokensInner = (squareLvl > 0 && isFullBoardInner && !alreadyGranted) ? squareLvl : 0;
+      if (squareBonusTokensInner > 0) {
+        freshTokenIncrement += squareBonusTokensInner;
       }
 
       const txUpdateData = {
@@ -2444,9 +2470,19 @@ app.post("/api/quests/complete", async (req, res) => {
         txUpdateData.streak = newStreak;
         txUpdateData.lastStreakIncreaseAt = now;
       }
+      if (squareBonusTokensInner > 0) {
+        txUpdateData.lastSquareBonusDayKey = dayKey;
+      }
 
       const updated = await tx.user.update({ where: { id: user.id }, data: txUpdateData });
-      return { updatedUser: updated, xpState: freshXpState, xpStateWithMilestone: freshXpStateWithMilestone };
+      return {
+        updatedUser: updated,
+        xpState: freshXpState,
+        xpStateWithMilestone: freshXpStateWithMilestone,
+        sportBonusXp: sportBonusXpInner,
+        squareBonusTokens: squareBonusTokensInner,
+        isFullBoard: isFullBoardInner
+      };
     });
 
     const productivityState = await updateAndReadProductivity(updatedUser, now, { updateTierState: true });
@@ -2459,7 +2495,10 @@ app.post("/api/quests/complete", async (req, res) => {
       multiplier: xpState.multiplier,
       milestoneBonusXp: milestoneReward.bonusXp,
       milestoneTokens: milestoneReward.bonusTokens,
-      totalAwardedXp: xpState.awardedXp + milestoneReward.bonusXp,
+      sportBonusXp: sportBonusXp || 0,
+      squareBonusTokens: squareBonusTokens || 0,
+      fullBoardCompleted: !!isFullBoard,
+      totalAwardedXp: xpState.awardedXp + milestoneReward.bonusXp + (sportBonusXp || 0),
       habitMilestoneReached,
       habitMilestoneTokens,
       habitMilestoneQuestId: quest.id,
@@ -2572,6 +2611,21 @@ function isAlreadySpunToday(user, todayKey) {
   return alreadySpunByField || alreadySpunByFallback;
 }
 
+// Returns next allowed spin time based on Park district level. If no
+// lastCitySpinAt, uses legacy midnight cooldown.
+function computeNextSpinAt(user, now = new Date()) {
+  const parkLvl = districtLevelOf(user?.districtLevels, "park");
+  const hours = PARK_SPIN_COOLDOWN_HOURS[Math.max(0, Math.min(5, parkLvl))];
+  if (user?.lastCitySpinAt) {
+    return new Date(new Date(user.lastCitySpinAt).getTime() + hours * 3600_000);
+  }
+  return nextMidnightUTC(now);
+}
+function isSpinOnCooldown(user, now = new Date()) {
+  const next = computeNextSpinAt(user, now);
+  return next.getTime() > now.getTime();
+}
+
 async function applyCitySpinReward(user, reward, todayKey) {
   const updateData = { lastCitySpinDayKey: todayKey };
 
@@ -2626,11 +2680,15 @@ async function applyCitySpinReward(user, reward, todayKey) {
 app.get("/api/city/spin-status/:username", async (req, res) => {
   try {
     const username = slugifyUsername(req.params.username);
-    const user = await prisma.user.findUnique({ where: { username }, select: { lastCitySpinDayKey: true } });
+    const user = await prisma.user.findUnique({
+      where: { username },
+      select: { lastCitySpinDayKey: true, lastCitySpinAt: true, districtLevels: true }
+    });
     if (!user) return res.status(404).json({ error: "User not found" });
-    const todayKey = getDateKey(new Date());
-    const alreadySpun = user.lastCitySpinDayKey === todayKey;
-    return res.json({ alreadySpun, nextSpinAt: nextMidnightUTC().toISOString() });
+    const now = new Date();
+    const next = computeNextSpinAt(user, now);
+    const alreadySpun = next.getTime() > now.getTime();
+    return res.json({ alreadySpun, nextSpinAt: next.toISOString() });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
   }
@@ -2645,8 +2703,8 @@ app.post("/api/city/spin", async (req, res) => {
 
     const now = new Date();
     const todayKey = getDateKey(now);
-    const nextSpinAt = nextMidnightUTC(now).toISOString();
-    if (isAlreadySpunToday(user, todayKey)) {
+    const nextSpinAt = computeNextSpinAt(user, now).toISOString();
+    if (isSpinOnCooldown(user, now)) {
       return res.json({ ok: false, alreadySpun: true, nextSpinAt });
     }
 
@@ -2691,9 +2749,8 @@ app.post("/api/city/spin/claim", async (req, res) => {
 
     const now = new Date();
     const todayKey = getDateKey(now);
-    const nextSpinAt = nextMidnightUTC(now).toISOString();
-    if (isAlreadySpunToday(user, todayKey)) {
-      return res.json({ ok: false, alreadySpun: true, nextSpinAt });
+    if (isSpinOnCooldown(user, now)) {
+      return res.json({ ok: false, alreadySpun: true, nextSpinAt: computeNextSpinAt(user, now).toISOString() });
     }
 
     if (
@@ -2711,6 +2768,13 @@ app.post("/api/city/spin/claim", async (req, res) => {
     }
 
     const finalUser = await applyCitySpinReward(user, reward, todayKey);
+    // Stamp actual spin time so cooldown starts from now
+    try {
+      await prisma.user.update({ where: { id: user.id }, data: { lastCitySpinAt: now } });
+    } catch (e) {
+      console.warn("[City Spin] failed to set lastCitySpinAt:", e?.message || e);
+    }
+    const nextSpinAt = computeNextSpinAt({ ...finalUser, lastCitySpinAt: now, districtLevels: user.districtLevels }, now).toISOString();
 
     return res.json({
       ok: true,
@@ -2726,8 +2790,39 @@ app.post("/api/city/spin/claim", async (req, res) => {
 });
 
 const DISTRICT_IDS = ["sport", "business", "park", "square", "residential"];
-const DISTRICT_UPGRADE_COSTS = [10, 25, 60, 120, 250]; // index = currentLevel (0..4)
+const DISTRICT_UPGRADE_REQS = [
+  { level: 2,  tokens: 5,   streak: 0  },
+  { level: 7,  tokens: 15,  streak: 0  },
+  { level: 13, tokens: 25,  streak: 5  },
+  { level: 21, tokens: 50,  streak: 10 },
+  { level: 33, tokens: 100, streak: 21 }
+];
 const DISTRICT_MAX_LEVEL = 5;
+
+function districtLevelOf(levelsStr, id) {
+  const idx = DISTRICT_IDS.indexOf(id);
+  if (idx < 0) return 0;
+  const raw = String(levelsStr || "0,0,0,0,0").split(",");
+  const n = Number(raw[idx]);
+  return Number.isFinite(n) ? Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(n))) : 0;
+}
+// Spin Wheel cooldown in hours, by Park district level (0..5)
+const PARK_SPIN_COOLDOWN_HOURS = [48, 24, 20, 16, 12, 8];
+// Sport XP multiplier: +5% per level
+function sportXpBonus(lvl) { return 1 + Math.max(0, Math.min(5, lvl)) * 0.05; }
+// Square: tokens on full daily board = district level
+// Residential shop discount tokens
+function residentialShopDiscount(lvl) {
+  if (lvl >= 5) return 2;
+  if (lvl >= 1) return 1;
+  return 0;
+}
+// Residential monthly freeze grants (0/0/1/1/2/2)
+function residentialMonthlyFreezeCap(lvl) {
+  if (lvl >= 4) return 2;
+  if (lvl >= 2) return 1;
+  return 0;
+}
 
 function parseDistrictLevels(value) {
   const raw = String(value || "0,0,0,0,0").split(",");
@@ -2759,13 +2854,29 @@ app.post("/api/city/upgrade-district", async (req, res) => {
     if (currentLevel >= DISTRICT_MAX_LEVEL) {
       return res.status(400).json({ error: "District already at max level", code: "max_level" });
     }
+    const req_ = DISTRICT_UPGRADE_REQS[currentLevel];
+    const userLevel = Number(user.level) || 0;
+    const userTokens = Number(user.tokens) || 0;
+    const userStreak = Number(user.streak) || 0;
+    if (userLevel < req_.level) {
+      return res.status(400).json({ error: "Player level too low", code: "insufficient_level", required: req_.level, current: userLevel });
+    }
+    if (userTokens < req_.tokens) {
+      return res.status(400).json({ error: "Not enough tokens", code: "insufficient_tokens", required: req_.tokens, current: userTokens });
+    }
+    if (userStreak < req_.streak) {
+      return res.status(400).json({ error: "Streak too low", code: "insufficient_streak", required: req_.streak, current: userStreak });
+    }
 
     levels[idx] = currentLevel + 1;
     const nextLevelsStr = serializeDistrictLevels(levels);
 
     const updated = await prisma.user.update({
       where: { id: user.id },
-      data: { districtLevels: nextLevelsStr },
+      data: {
+        tokens: { decrement: req_.tokens },
+        districtLevels: nextLevelsStr
+      },
       select: { tokens: true, districtLevels: true }
     });
 
@@ -2773,7 +2884,7 @@ app.post("/api/city/upgrade-district", async (req, res) => {
       ok: true,
       districtId,
       level: levels[idx],
-      cost: 0,
+      cost: req_.tokens,
       tokens: updated.tokens,
       districtLevels: parseDistrictLevels(updated.districtLevels)
     });
@@ -2818,6 +2929,216 @@ app.post("/api/city/downgrade-district", async (req, res) => {
     });
   } catch (error) {
     console.error(`[District Downgrade Error] ${error?.message || error}`);
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// Business district — daily token claim (1 token/day per business level).
+// Uses server day-key so users across zones share one reset.
+app.post("/api/city/business/claim", async (req, res) => {
+  const schema = z.object({ username: z.string().min(2).max(64) });
+  try {
+    const { username } = schema.parse(req.body);
+    const user = await prisma.user.findUnique({ where: { username: slugifyUsername(username) } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+    const businessLvl = districtLevelOf(user.districtLevels, "business");
+    if (businessLvl <= 0) {
+      return res.status(400).json({ error: "Business district not upgraded", code: "not_unlocked" });
+    }
+    const today = getDateKey(new Date());
+    if (user.lastBusinessClaimDayKey === today) {
+      return res.status(400).json({ error: "Already claimed today", code: "already_claimed", nextClaimAt: nextMidnightUTC().toISOString() });
+    }
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        tokens: { increment: businessLvl },
+        lastBusinessClaimDayKey: today
+      },
+      select: { tokens: true, lastBusinessClaimDayKey: true }
+    });
+    return res.json({
+      ok: true,
+      granted: businessLvl,
+      tokens: updated.tokens,
+      lastBusinessClaimDayKey: updated.lastBusinessClaimDayKey,
+      nextClaimAt: nextMidnightUTC().toISOString()
+    });
+  } catch (error) {
+    console.error(`[Business Claim Error] ${error?.message || error}`);
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// Residential — claim monthly free streak freezes (lvl 2 = 1/mo, lvl 4 = 2/mo).
+// Grants activate streak-freeze for tomorrow at no cost.
+app.post("/api/city/residential/claim-freeze", async (req, res) => {
+  const schema = z.object({ username: z.string().min(2).max(64) });
+  try {
+    const { username } = schema.parse(req.body);
+    const user = await prisma.user.findUnique({ where: { username: slugifyUsername(username) } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+    const resLvl = districtLevelOf(user.districtLevels, "residential");
+    const cap = residentialMonthlyFreezeCap(resLvl);
+    if (cap <= 0) {
+      return res.status(400).json({ error: "Residential level too low", code: "not_unlocked" });
+    }
+    const now = new Date();
+    const monthKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+    let claims = { key: monthKey, count: 0 };
+    try {
+      const parsed = JSON.parse(user.monthlyFreezeClaims || "{}");
+      if (parsed?.key === monthKey) claims = parsed;
+    } catch { /* fall through to fresh month */ }
+    if (claims.count >= cap) {
+      return res.status(400).json({ error: "Monthly freezes exhausted", code: "exhausted", cap, used: claims.count });
+    }
+    // Add 1 freeze charge to pool
+    const nextClaims = { key: monthKey, count: claims.count + 1 };
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        streakFreezeCharges: { increment: 1 },
+        monthlyFreezeClaims: JSON.stringify(nextClaims)
+      },
+      select: { streakFreezeCharges: true, monthlyFreezeClaims: true }
+    });
+    return res.json({
+      ok: true,
+      cap,
+      used: nextClaims.count,
+      remaining: cap - nextClaims.count,
+      streakFreezeCharges: updated.streakFreezeCharges
+    });
+  } catch (error) {
+    console.error(`[Residential Claim Freeze Error] ${error?.message || error}`);
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// Residential — start 20-day vacation (requires lvl >= 3, 360-day cooldown).
+// During active vacation, streak decay is suspended.
+app.post("/api/city/residential/start-vacation", async (req, res) => {
+  const schema = z.object({ username: z.string().min(2).max(64) });
+  try {
+    const { username } = schema.parse(req.body);
+    const user = await prisma.user.findUnique({ where: { username: slugifyUsername(username) } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+    const resLvl = districtLevelOf(user.districtLevels, "residential");
+    if (resLvl < 3) {
+      return res.status(400).json({ error: "Residential level too low", code: "not_unlocked", required: 3 });
+    }
+    const now = new Date();
+    if (user.vacationEndsAt && new Date(user.vacationEndsAt) > now) {
+      return res.status(400).json({ error: "Vacation already active", code: "already_active", vacationEndsAt: user.vacationEndsAt });
+    }
+    if (user.lastVacationAt) {
+      const diff = now.getTime() - new Date(user.lastVacationAt).getTime();
+      const COOLDOWN_MS = 360 * 24 * 3600_000;
+      if (diff < COOLDOWN_MS) {
+        const nextAvailableAt = new Date(new Date(user.lastVacationAt).getTime() + COOLDOWN_MS);
+        return res.status(400).json({ error: "Vacation on cooldown", code: "cooldown", nextAvailableAt: nextAvailableAt.toISOString() });
+      }
+    }
+    const endsAt = new Date(now);
+    endsAt.setUTCDate(endsAt.getUTCDate() + 20);
+    // Vacation = 20 streak-freeze charges (added to pool).
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        vacationStartedAt: now,
+        vacationEndsAt: endsAt,
+        lastVacationAt: now,
+        streakFreezeCharges: { increment: 20 }
+      },
+      select: { vacationStartedAt: true, vacationEndsAt: true, lastVacationAt: true, streakFreezeCharges: true }
+    });
+    return res.json({
+      ok: true,
+      vacationStartedAt: updated.vacationStartedAt,
+      vacationEndsAt: updated.vacationEndsAt,
+      lastVacationAt: updated.lastVacationAt,
+      streakFreezeCharges: updated.streakFreezeCharges,
+      grantedCharges: 20
+    });
+  } catch (error) {
+    console.error(`[Start Vacation Error] ${error?.message || error}`);
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// Consume N freeze charges to extend streak freeze expiry by N days.
+// If not already frozen, starts at tomorrow; otherwise extends beyond current expiry.
+app.post("/api/streak/use-freeze", async (req, res) => {
+  const schema = z.object({
+    username: z.string().min(2).max(64),
+    days: z.number().int().min(1).max(365).default(1)
+  });
+  try {
+    const { username, days } = schema.parse(req.body);
+    const user = await prisma.user.findUnique({ where: { username: slugifyUsername(username) } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+    const charges = Number(user.streakFreezeCharges) || 0;
+    if (charges < days) {
+      return res.status(400).json({ error: "Not enough freeze charges", code: "insufficient_charges", available: charges, requested: days });
+    }
+    const now = new Date();
+    const base = user.streakFreezeExpiresAt && new Date(user.streakFreezeExpiresAt) > now
+      ? new Date(user.streakFreezeExpiresAt)
+      : now;
+    const extendedTo = new Date(base);
+    extendedTo.setUTCDate(extendedTo.getUTCDate() + days);
+    extendedTo.setUTCHours(0, 0, 0, 0);
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        streakFreezeCharges: { decrement: days },
+        streakFreezeExpiresAt: extendedTo
+      },
+      select: { streakFreezeCharges: true, streakFreezeExpiresAt: true }
+    });
+    return res.json({
+      ok: true,
+      days,
+      streakFreezeCharges: updated.streakFreezeCharges,
+      streakFreezeExpiresAt: updated.streakFreezeExpiresAt
+    });
+  } catch (error) {
+    console.error(`[Use Freeze Error] ${error?.message || error}`);
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// Dev helper: bumps level/tokens/streak by +1 each. Not gated — used by the
+// testing button next to +1 in the district controls while gating mechanics
+// are tuned.
+app.post("/api/city/dev-grant-stats", async (req, res) => {
+  const schema = z.object({ username: z.string().min(2).max(64) });
+  try {
+    const { username } = schema.parse(req.body);
+    const user = await prisma.user.findUnique({ where: { username: slugifyUsername(username) } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        level: { increment: 1 },
+        tokens: { increment: 1 },
+        streak: { increment: 1 }
+      },
+      select: { level: true, xp: true, xpNext: true, tokens: true, streak: true }
+    });
+
+    return res.json({
+      ok: true,
+      level: updated.level,
+      xp: updated.xp,
+      xpNext: updated.xpNext,
+      tokens: updated.tokens,
+      streak: updated.streak
+    });
+  } catch (error) {
+    console.error(`[Dev Grant Stats Error] ${error?.message || error}`);
     res.status(400).json({ error: "Invalid request", detail: error.message });
   }
 });
@@ -2882,7 +3203,18 @@ app.post("/api/reset-daily", async (req, res) => {
       const freezeActive = user.streakFreezeExpiresAt
         ? getDateKey(new Date(user.streakFreezeExpiresAt)) >= streakEvaluationDayKey
         : false;
-      if (decayRows.length < 3 && !freezeActive && user.streak > 0) {
+      const vacationActive = user.vacationEndsAt
+        ? new Date(user.vacationEndsAt) > now
+        : false;
+      const streakWouldBurn = decayRows.length < 3 && user.streak > 0;
+      const charges = Number(user.streakFreezeCharges) || 0;
+
+      if (streakWouldBurn && !freezeActive && !vacationActive && charges > 0) {
+        // Auto-consume 1 charge: extend freeze expiry by 1 day from today, decrement pool, keep streak.
+        const nextExpiry = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+        streakDecayData.streakFreezeCharges = { decrement: 1 };
+        streakDecayData.streakFreezeExpiresAt = nextExpiry;
+      } else if (streakWouldBurn && !freezeActive && !vacationActive) {
         streakDecayData.streak = 0;
       }
 
@@ -3087,53 +3419,30 @@ app.post("/api/shop/freeze-streak", async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    const now = new Date();
-    const today = getDateKey(now);
-    const todayStart = new Date(now);
-    todayStart.setUTCHours(0, 0, 0, 0);
-    const tomorrow = new Date(now);
-    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-    tomorrow.setUTCHours(0, 0, 0, 0);
 
-    // One guarded write prevents multi-tap races from charging repeatedly.
-    const guardedUpdate = await prisma.user.updateMany({
-      where: {
-        id: user.id,
-        tokens: { gte: 3 },
-        OR: [
-          { streakFreezeExpiresAt: null },
-          { streakFreezeExpiresAt: { lt: todayStart } }
-        ]
-      },
-      data: { tokens: { decrement: 3 }, streakFreezeExpiresAt: tomorrow }
-    });
+    // Residential district shop discount
+    const resLvl = districtLevelOf(user.districtLevels, "residential");
+    const discount = residentialShopDiscount(resLvl);
+    const freezeCost = Math.max(0, 3 - discount);
 
-    if (guardedUpdate.count === 0) {
-      const latestUser = await prisma.user.findUnique({ where: { id: user.id } });
-      if (!latestUser) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      const alreadyFrozen = latestUser.streakFreezeExpiresAt
-        ? getDateKey(new Date(latestUser.streakFreezeExpiresAt)) >= today
-        : false;
-
-      if (alreadyFrozen) {
-        return res.status(400).json({ error: "Streak is already frozen for today" });
-      }
-      if (latestUser.tokens < 3) {
-        return res.status(400).json({ error: "Not enough tokens" });
-      }
-
-      return res.status(409).json({ error: "Freeze purchase conflicted, please retry" });
+    if (user.tokens < freezeCost) {
+      return res.status(400).json({ error: "Not enough tokens" });
     }
 
-    const updatedUser = await prisma.user.findUnique({ where: { id: user.id } });
+    // Streak Freeze now adds a charge to the pool (redeem via profile).
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        tokens: { decrement: freezeCost },
+        streakFreezeCharges: { increment: 1 }
+      }
+    });
     res.json({
       ok: true,
-      tokens: updatedUser?.tokens ?? Math.max(0, user.tokens - 3),
-      streakFreezeActive: true,
-      streakFreezeExpiresAt: tomorrow.toISOString()
+      tokens: updated.tokens,
+      cost: freezeCost,
+      discount,
+      streakFreezeCharges: updated.streakFreezeCharges
     });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
@@ -3148,14 +3457,16 @@ app.post("/api/shop/extra-reroll", async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    if (user.tokens < 1) {
+    const resLvl = districtLevelOf(user.districtLevels, "residential");
+    const discount = residentialShopDiscount(resLvl);
+    const rerollCost = Math.max(0, 1 - discount);
+    if (user.tokens < rerollCost) {
       return res.status(400).json({ error: "Not enough tokens" });
     }
-    const updatedUser = await prisma.user.update({
-      where: { id: user.id },
-      data: { tokens: { decrement: 1 } }
-    });
-    res.json({ ok: true, tokens: updatedUser.tokens });
+    const updatedUser = rerollCost > 0
+      ? await prisma.user.update({ where: { id: user.id }, data: { tokens: { decrement: rerollCost } } })
+      : user;
+    res.json({ ok: true, tokens: updatedUser.tokens, cost: rerollCost, discount });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
   }
@@ -3183,8 +3494,10 @@ app.post("/api/quests/reroll-pinned", async (req, res) => {
     const now = new Date();
     const isFreeAvailable = !user.lastFreeTaskRerollAt || (now.getTime() - new Date(user.lastFreeTaskRerollAt).getTime() >= FREE_PINNED_REROLL_INTERVAL_MS);
     const shouldUseTokens = parsed.useTokens || !isFreeAvailable;
+    const resLvlRr = districtLevelOf(user.districtLevels, "residential");
+    const rerollCost = Math.max(0, 7 - residentialShopDiscount(resLvlRr));
 
-    if (shouldUseTokens && user.tokens < 7) {
+    if (shouldUseTokens && user.tokens < rerollCost) {
       return res.status(400).json({ error: "Not enough tokens" });
     }
     if (!shouldUseTokens && !isFreeAvailable) {
@@ -3220,7 +3533,7 @@ app.post("/api/quests/reroll-pinned", async (req, res) => {
       preferredQuestIds: serializePreferredQuestIds(rerolledPreferredQuestIds)
     };
     if (shouldUseTokens) {
-      updateData.tokens = { decrement: 7 };
+      updateData.tokens = { decrement: rerollCost };
     } else {
       updateData.lastFreeTaskRerollAt = now;
     }
@@ -3280,8 +3593,10 @@ app.post("/api/shop/replace-pinned-quests", async (req, res) => {
     const isFreeAvailable = !user.lastFreeTaskRerollAt || (now.getTime() - new Date(user.lastFreeTaskRerollAt).getTime() >= FREE_PINNED_REROLL_INTERVAL_MS);
     // If free reroll is available, always use it regardless of client flag.
     const shouldUseTokens = !isFreeAvailable;
+    const resLvlPinned = districtLevelOf(user.districtLevels, "residential");
+    const pinnedRerollCost = Math.max(0, 7 - residentialShopDiscount(resLvlPinned));
 
-    if (shouldUseTokens && user.tokens < 7) {
+    if (shouldUseTokens && user.tokens < pinnedRerollCost) {
       return res.status(400).json({ error: "Not enough tokens" });
     }
 
@@ -3302,7 +3617,7 @@ app.post("/api/shop/replace-pinned-quests", async (req, res) => {
       preferredQuestIds: serializePreferredQuestIds(uniquePreferredQuestIds)
     };
     if (shouldUseTokens) {
-      updateData.tokens = { decrement: 7 };
+      updateData.tokens = { decrement: pinnedRerollCost };
     } else {
       updateData.lastFreeTaskRerollAt = now;
     }

@@ -458,7 +458,13 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             })(),
             user: {
               ...prev.user,
-              lastFreeTaskRerollAt: userData.lastFreeTaskRerollAt ?? null
+              lastFreeTaskRerollAt: userData.lastFreeTaskRerollAt ?? null,
+              lastBusinessClaimDayKey: userData.lastBusinessClaimDayKey ?? "",
+              vacationEndsAt: userData.vacationEndsAt ?? null,
+              lastVacationAt: userData.lastVacationAt ?? null,
+              monthlyFreezeClaims: userData.monthlyFreezeClaims ?? "",
+              streakFreezeCharges: Number(userData.streakFreezeCharges) || 0,
+              streakFreezeExpiresAt: userData.streakFreezeExpiresAt ?? null
             },
             productivity: gameStateResponse?.productivity ?? prev.productivity,
             pinnedQuestProgress21d: normalizePinnedQuestProgress(gameStateResponse?.pinnedQuestProgress21d),
@@ -575,10 +581,13 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const milestoneRunes = Array.isArray(t.milestoneRunes) && t.milestoneRunes.length >= 3
     ? t.milestoneRunes
     : ["✓", "★", "🏆"];
+  // Square district adds tokens on top of the base full-board reward.
+  const squareLvlForMilestone = Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[3]) || 0)));
+  const fullBoardTokenReward = 1 + squareLvlForMilestone;
   const milestoneSteps = [
     { target: 4, reward: `+20 ${t.xpLabel} / +1 ${t.streakIcon}`, rune: milestoneRunes[0] },
     { target: 5, reward: "+25 " + t.xpLabel, rune: milestoneRunes[1] },
-    { target: 6, reward: `+25 ${t.xpLabel} / +1 ${t.tokenIcon}`, rune: milestoneRunes[2] }
+    { target: 6, reward: `+25 ${t.xpLabel} / +${fullBoardTokenReward} ${t.tokenIcon}`, rune: milestoneRunes[2] }
   ];
   const preferredQuestCount = Array.isArray(state.preferredQuestIds) && state.preferredQuestIds.length > 0 ? state.preferredQuestIds.length : 3;
   const pinnedQuests = quests.slice(0, preferredQuestCount).map((q) => ({ ...q, xp: 30 }));
@@ -1089,11 +1098,27 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 setCityFullscreen={setCityFullscreen}
                 districtLevels={state.districtLevels || [0, 0, 0, 0, 0]}
                 tokens={state.tokens || 0}
+                userLevel={Math.floor(Number(state.lvl) || 0)}
+                userStreak={Number(state.streak) || 0}
+                lastBusinessClaimDayKey={state.user?.lastBusinessClaimDayKey || ""}
+                monthlyFreezeClaims={state.user?.monthlyFreezeClaims || ""}
+                lastVacationAt={state.user?.lastVacationAt || null}
+                vacationEndsAt={state.user?.vacationEndsAt || null}
                 onDistrictUpgraded={(result) => {
                   setState((prev) => ({
                     ...prev,
                     tokens: typeof result?.tokens === "number" ? result.tokens : prev.tokens,
                     districtLevels: Array.isArray(result?.districtLevels) ? result.districtLevels : prev.districtLevels
+                  }));
+                }}
+                onStatsGranted={(result) => {
+                  setState((prev) => ({
+                    ...prev,
+                    lvl: typeof result?.level === "number" ? result.level : prev.lvl,
+                    xp: typeof result?.xp === "number" ? result.xp : prev.xp,
+                    xpNext: typeof result?.xpNext === "number" ? result.xpNext : prev.xpNext,
+                    tokens: typeof result?.tokens === "number" ? result.tokens : prev.tokens,
+                    streak: typeof result?.streak === "number" ? result.streak : prev.streak
                   }));
                 }}
               />
@@ -1169,6 +1194,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 getLanguageMeta={getLanguageMeta}
                 avatarError={avatarError}
                 t={t}
+                username={username}
                 onAvatarClick={() => { setAvatarError(""); portraitUploadRef.current?.click(); }}
                 onAvatarErrorClear={() => setAvatarError("")}
                 onStartEditingName={() => { setNameDraft(characterName); setEditingName(true); }}
@@ -1179,6 +1205,16 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 onOpenLanguagePicker={() => setShowLanguagePicker(true)}
                 onLogout={() => setShowLogoutConfirm(true)}
                 onDeleteProfile={handleDeleteProfile}
+                onFreezeUsed={(result) => {
+                  setState((prev) => ({
+                    ...prev,
+                    user: {
+                      ...prev.user,
+                      streakFreezeCharges: typeof result?.streakFreezeCharges === "number" ? result.streakFreezeCharges : prev.user?.streakFreezeCharges,
+                      streakFreezeExpiresAt: result?.streakFreezeExpiresAt ?? prev.user?.streakFreezeExpiresAt
+                    }
+                  }));
+                }}
               />
             ) : null}
           </div>

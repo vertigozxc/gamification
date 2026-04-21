@@ -88,7 +88,10 @@ async function request(path, options = {}) {
     } catch {
       // ignore
     }
-    throw new Error(errorMessage);
+    const errObj = new Error(errorMessage);
+    errObj.data = data;
+    errObj.status = response.status;
+    throw errObj;
   }
 
   return data;
@@ -287,5 +290,40 @@ export function downgradeDistrict(username, districtId) {
   return request("/api/city/downgrade-district", {
     method: "POST",
     body: JSON.stringify({ username, districtId })
+  });
+}
+
+export function devGrantStats(username) {
+  return request("/api/city/dev-grant-stats", {
+    method: "POST",
+    body: JSON.stringify({ username })
+  });
+}
+
+export function claimBusinessTokens(username) {
+  return request("/api/city/business/claim", {
+    method: "POST",
+    body: JSON.stringify({ username })
+  });
+}
+
+export function claimMonthlyFreeze(username) {
+  return request("/api/city/residential/claim-freeze", {
+    method: "POST",
+    body: JSON.stringify({ username })
+  });
+}
+
+export function useFreeze(username, days = 1) {
+  return request("/api/streak/use-freeze", {
+    method: "POST",
+    body: JSON.stringify({ username, days })
+  });
+}
+
+export function startVacation(username) {
+  return request("/api/city/residential/start-vacation", {
+    method: "POST",
+    body: JSON.stringify({ username })
   });
 }
