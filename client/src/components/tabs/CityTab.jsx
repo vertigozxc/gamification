@@ -1240,7 +1240,7 @@ export default function CityTab({
                   <DistrictView
                     districtId={district.id}
                     level={level}
-                    preserveAspectRatio="xMidYMid slice"
+                    preserveAspectRatio="xMidYMax slice"
                   />
                 ) : null}
               </InteractiveMapWrapper>
@@ -1301,24 +1301,27 @@ export default function CityTab({
                 </span>
               </div>
             )}
-            {/* Close button — fixed to real viewport (not inside rotated element), always visible */}
+            {/* Close button — fixed to real viewport top-right (away from any
+                native mobile tab bar that might overlay the bottom). Rotated
+                90deg so its shrink-in arrows read correctly in landscape. */}
             <button
               onClick={() => setExpandedView("none")}
               aria-label="Close fullscreen"
               style={{
                 position: "fixed",
-                bottom: "max(18px, env(safe-area-inset-bottom, 0px))",
+                top: "max(18px, calc(env(safe-area-inset-top, 0px) + 8px))",
                 right: "max(18px, env(safe-area-inset-right, 0px))",
                 zIndex: 9999999,
-                width: 60, height: 60,
-                borderRadius: 30,
+                width: 56, height: 56,
+                borderRadius: 28,
                 border: "2px solid var(--color-primary)",
                 background: "rgba(10, 10, 18, 0.88)",
                 backdropFilter: "blur(12px)",
                 color: "var(--color-primary)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 cursor: "pointer",
-                boxShadow: "0 8px 24px rgba(0,0,0,0.5)"
+                boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+                transform: "rotate(90deg)"
               }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

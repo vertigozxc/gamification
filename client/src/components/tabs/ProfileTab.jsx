@@ -293,14 +293,22 @@ export default function ProfileTab({
 function StreakFreezeCard({ username, t, charges, expiresAt, streak, onFreezeUsed }) {
   const [pending, setPending] = useState(false);
   const [msg, setMsg] = useState("");
+  const [confirmDays, setConfirmDays] = useState(null);
 
   const now = Date.now();
   const expiryMs = expiresAt ? new Date(expiresAt).getTime() : 0;
   const active = expiryMs > now;
   const daysLeft = active ? Math.ceil((expiryMs - now) / (24 * 3600_000)) : 0;
 
-  async function activate(days) {
+  function requestActivate(days) {
     if (pending || !username || charges < days) return;
+    setConfirmDays(days);
+  }
+
+  async function confirmActivate() {
+    const days = confirmDays;
+    setConfirmDays(null);
+    if (!days || pending || !username || charges < days) return;
     setPending(true);
     setMsg("");
     try {
@@ -381,16 +389,16 @@ function StreakFreezeCard({ username, t, charges, expiresAt, streak, onFreezeUse
       </div>
 
       <div className="mt-3" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button onClick={() => activate(1)} disabled={pending || charges < 1} style={btnStyle(pending || charges < 1)}>
+        <button onClick={() => requestActivate(1)} disabled={pending || charges < 1} style={btnStyle(pending || charges < 1)}>
           +1 {t.streakFreezeDaysSuffix || "d"}
         </button>
-        <button onClick={() => activate(3)} disabled={pending || charges < 3} style={btnStyle(pending || charges < 3)}>
+        <button onClick={() => requestActivate(3)} disabled={pending || charges < 3} style={btnStyle(pending || charges < 3)}>
           +3 {t.streakFreezeDaysSuffix || "d"}
         </button>
-        <button onClick={() => activate(7)} disabled={pending || charges < 7} style={btnStyle(pending || charges < 7)}>
+        <button onClick={() => requestActivate(7)} disabled={pending || charges < 7} style={btnStyle(pending || charges < 7)}>
           +7 {t.streakFreezeDaysSuffix || "d"}
         </button>
-        <button onClick={() => activate(Math.max(1, charges))} disabled={pending || charges < 1} style={btnStyle(pending || charges < 1)}>
+        <button onClick={() => requestActivate(Math.max(1, charges))} disabled={pending || charges < 1} style={btnStyle(pending || charges < 1)}>
           {t.streakFreezeUseAll || "Use all"} ({charges})
         </button>
       </div>
@@ -400,6 +408,53 @@ function StreakFreezeCard({ username, t, charges, expiresAt, streak, onFreezeUse
       <p className="text-[10px] mt-2 m-0 opacity-70" style={{ color: "var(--color-text)" }}>
         {t.streakFreezeHint || "Charges earned from shop, monthly Residential perk, or vacation (20×)."}
       </p>
+
+      {confirmDays !== null && createPortal(
+        <div
+          className="logout-confirm-overlay"
+          onClick={() => setConfirmDays(null)}
+        >
+          <div
+            className="logout-confirm-card"
+            role="dialog"
+            aria-modal="true"
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              border: "2px solid color-mix(in srgb, #5ba0e0 55%, transparent)",
+              boxShadow: "0 0 40px color-mix(in srgb, #5ba0e0 18%, transparent), 0 25px 50px rgba(0, 0, 0, 0.5)"
+            }}
+          >
+            <div className="logout-confirm-icon">❄️</div>
+            <h3 className="cinzel logout-confirm-title" style={{ color: "#5ba0e0" }}>
+              {t.streakFreezeConfirmTitle || "Activate Streak Freeze?"}
+            </h3>
+            <p className="logout-confirm-msg">
+              {(t.streakFreezeConfirmBody || "This will spend {n} charge(s) and protect your streak for {n} day(s).")
+                .replace(/\{n\}/g, confirmDays)}
+            </p>
+            <div className="logout-confirm-actions">
+              <button
+                className="logout-confirm-cancel cinzel"
+                onClick={() => setConfirmDays(null)}
+              >
+                {t.cancelLabel || "Cancel"}
+              </button>
+              <button
+                className="logout-confirm-proceed cinzel"
+                onClick={confirmActivate}
+                style={{
+                  borderColor: "color-mix(in srgb, #5ba0e0 60%, transparent)",
+                  background: "linear-gradient(120deg, #1e4e78, #2867a4)",
+                  color: "#e6f2ff"
+                }}
+              >
+                {t.streakFreezeConfirmProceed || "Activate"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
