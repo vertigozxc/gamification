@@ -1086,13 +1086,17 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       const stoppedQuest = quests.find((q) => Number(q.id) === Number(questId));
       await refreshFromServer();
       if (result?.completed && Number(result?.completionPercent) >= 100) {
+        const threshold = Number(result?.streakThreshold ?? 4);
+        const hundredCount = Number(result?.todayHundredCount ?? 0);
+        const streakRemaining = Math.max(0, threshold - hundredCount);
         setQuestCompletePopup({
           title: stoppedQuest?.title || "",
           questXp: Number(result?.awardedXp ?? 0),
           milestoneXp: Number(result?.milestoneBonusXp ?? 0),
           sportXp: Number(result?.sportBonusXp ?? 0),
           tokensAwarded: Number(result?.milestoneTokens ?? 0) + Number(result?.squareBonusTokens ?? 0),
-          streakCounted: true
+          streakCounted: true,
+          streakRemaining
         });
       }
       return result;
@@ -1180,6 +1184,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           sportXp={questCompletePopup?.sportXp || 0}
           tokensAwarded={questCompletePopup?.tokensAwarded || 0}
           streakCounted={Boolean(questCompletePopup?.streakCounted)}
+          streakRemaining={questCompletePopup?.streakRemaining}
         />
       </Suspense>
 

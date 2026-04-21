@@ -15,9 +15,10 @@ export default function QuestCompletePopup({
   milestoneXp = 0,
   sportXp = 0,
   tokensAwarded = 0,
-  streakCounted = false
+  streakCounted = false,
+  streakRemaining
 }) {
-  const { t } = useTheme();
+  const { t, tf } = useTheme();
 
   useEffect(() => {
     if (!show || typeof window === "undefined") return undefined;
@@ -33,8 +34,16 @@ export default function QuestCompletePopup({
   const tokenIcon = t.tokenIcon || "🪙";
   const streakIcon = t.streakIcon || "🔥";
   const streakYesTitle = t.questCompletePopupStreakYesTitle || "Counts toward your streak";
-  const streakYesHint = t.questCompletePopupStreakYesHint
-    || "Finish 4 quests at 100% today to grow your streak — this one counts.";
+  const remaining = Number.isFinite(Number(streakRemaining)) ? Math.max(0, Number(streakRemaining)) : null;
+  let streakYesHint;
+  if (remaining === null) {
+    streakYesHint = t.questCompletePopupStreakYesHint || "Keep it up — you're on track.";
+  } else if (remaining === 0) {
+    streakYesHint = t.questCompletePopupStreakSecured || "Your streak grew today — great work, keep going.";
+  } else {
+    const dynamic = tf("questCompletePopupStreakYesHintDynamic", { n: remaining });
+    streakYesHint = dynamic || `${remaining} more to grow your streak — keep it up!`;
+  }
   const streakNoTitle = t.questCompletePopupStreakNoTitle || "Doesn't count toward streak";
   const streakNoHint = t.questCompletePopupStreakNoHint
     || "Only 100% finishes grow the streak. Partial finishes still fill the daily board.";
@@ -186,5 +195,6 @@ QuestCompletePopup.propTypes = {
   milestoneXp: PropTypes.number,
   sportXp: PropTypes.number,
   tokensAwarded: PropTypes.number,
-  streakCounted: PropTypes.bool
+  streakCounted: PropTypes.bool,
+  streakRemaining: PropTypes.number
 };

@@ -2534,6 +2534,7 @@ async function awardQuestCompletion({ user, quest, dayKey, availableQuests, cust
     habitMilestoneReached,
     habitMilestoneTokens,
     todayCompletionsCount,
+    todayHundredCount,
     newStreak
   } = await processQuestCompletion({
     user,
@@ -2635,6 +2636,10 @@ async function awardQuestCompletion({ user, quest, dayKey, availableQuests, cust
     questSlots: getQuestSlotsForLevel(finalUser.level || 1, finalUser.streak || 0),
     completionPercent,
     elapsedMs,
+    // Surface the current-day streak progress so the client can render
+    // "X more to grow your streak" dynamically.
+    todayHundredCount,
+    streakThreshold: Number(getStreakRuleConfig().successThresholdCompletedQuests) || 4,
     ...buildServerTimeMeta(now)
   };
 }
