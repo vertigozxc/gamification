@@ -21,27 +21,67 @@ function getDesignPrinciples() {
   return getQuestConfig()?.design_principles || {};
 }
 
-export function getDailyQuestCount() {
-  return Number(getDesignPrinciples()?.daily_quests_per_user) || 8;
+// Progressive unlock tiers by level.
+// Each tier defines: pinned habit slots, random daily quest slots, and
+// the highest effort_score (difficulty) a user can see at this level.
+// Effort 5 quests also require an active streak of 14+ regardless of level.
+const LEVEL_TIERS = [
+  { minLevel: 20, pinned: 4, random: 4, maxEffort: 4 },
+  { minLevel: 10, pinned: 3, random: 3, maxEffort: 4 },
+  { minLevel: 5,  pinned: 3, random: 3, maxEffort: 3 },
+  { minLevel: 1,  pinned: 2, random: 2, maxEffort: 3 }
+];
+
+const EFFORT_5_MIN_STREAK = 14;
+
+export function getQuestSlotsForLevel(level = 1, streak = 0) {
+  const safeLevel = Math.max(1, Number(level) || 1);
+  const safeStreak = Math.max(0, Number(streak) || 0);
+  const tier = LEVEL_TIERS.find((entry) => safeLevel >= entry.minLevel) || LEVEL_TIERS[LEVEL_TIERS.length - 1];
+  const maxEffort = safeStreak >= EFFORT_5_MIN_STREAK ? 5 : tier.maxEffort;
+
+  return {
+    pinned: tier.pinned,
+    random: tier.random,
+    dailyTotal: tier.pinned + tier.random,
+    maxEffort
+  };
 }
 
-export function getPreferredQuestCount() {
-  const preferred = Number(getDesignPrinciples()?.preferred_quests_per_user);
-  if (Number.isFinite(preferred) && preferred > 0) {
-    return Math.min(preferred, getDailyQuestCount());
+export function getDailyQuestCount(level, streak) {
+  if (level === undefined && streak === undefined) {
+    return Number(getDesignPrinciples()?.daily_quests_per_user) || 8;
   }
-  return Math.min(3, getDailyQuestCount());
+  return getQuestSlotsForLevel(level, streak).dailyTotal;
 }
 
-export function getRandomQuestCount() {
-  const configured = Number(getDesignPrinciples()?.random_quests_per_day);
-  const fallback = Math.max(0, getDailyQuestCount() - getPreferredQuestCount());
-
-  if (Number.isFinite(configured) && configured >= 0) {
-    return Math.min(configured, getDailyQuestCount());
+export function getPreferredQuestCount(level, streak) {
+  if (level === undefined && streak === undefined) {
+    const preferred = Number(getDesignPrinciples()?.preferred_quests_per_user);
+    if (Number.isFinite(preferred) && preferred > 0) {
+      return Math.min(preferred, getDailyQuestCount());
+    }
+    return Math.min(3, getDailyQuestCount());
   }
+  return getQuestSlotsForLevel(level, streak).pinned;
+}
 
-  return fallback;
+export function getRandomQuestCount(level, streak) {
+  if (level === undefined && streak === undefined) {
+    const configured = Number(getDesignPrinciples()?.random_quests_per_day);
+    const fallback = Math.max(0, getDailyQuestCount() - getPreferredQuestCount());
+
+    if (Number.isFinite(configured) && configured >= 0) {
+      return Math.min(configured, getDailyQuestCount());
+    }
+
+    return fallback;
+  }
+  return getQuestSlotsForLevel(level, streak).random;
+}
+
+export function getMaxEffortForLevel(level, streak) {
+  return getQuestSlotsForLevel(level, streak).maxEffort;
 }
 
 export function getStreakRuleConfig() {
@@ -150,12 +190,11 @@ function buildQuestPool(language) {
     xp: Number(quest.base_xp) || 10,
     baseXp: Number(quest.base_xp) || 10,
     effortScore: Number(quest.effort_score) || 1,
+    timeEstimateMin: Number(quest.time_estimate_min) || 0,
+    needsTimer: Boolean(quest.needs_timer),
     category: normalizeCategory(quest.category),
     stat: mapCategoryToStat(quest.category),
     minLevel: Number(quest.min_level) || 1,
-    minStr: Number(quest.min_str) || 0,
-    minInt: Number(quest.min_int) || 0,
-    minSta: Number(quest.min_sta) || 0,
     minStreak: Number(quest.min_streak) || 0,
     weight: Number(quest.weight) || 1,
     cooldownDays: Number(quest.cooldown_days) || 0,
@@ -357,11 +396,17 @@ export function getDailyQuests(options = {}) {
   const date = options.date ?? new Date();
   const username = options.username ?? "";
   const resetSeed = Number(options.resetSeed) || 0;
-  const pinnedQuestIds = normalizeQuestIds(options.pinnedQuestIds).slice(0, getPreferredQuestCount());
-  const excludeCategories = new Set(options.excludeCategories || []);
   const currentStreak = Number(options.streak) || 0;
+  const userLevel = Number(options.level) || 1;
+  const slots = getQuestSlotsForLevel(userLevel, currentStreak);
+  const pinnedQuestIds = normalizeQuestIds(options.pinnedQuestIds).slice(0, slots.pinned);
+  const excludeCategories = new Set(options.excludeCategories || []);
 
   let questPool = buildQuestPool(options.language);
+  const effortFiltered = questPool.filter((quest) => Number(quest.effortScore) <= slots.maxEffort);
+  if (effortFiltered.length > 0) {
+    questPool = effortFiltered;
+  }
   const streakEligibleQuests = questPool.filter((quest) => Number(quest.minStreak) <= currentStreak);
   if (streakEligibleQuests.length > 0) {
     questPool = streakEligibleQuests;
@@ -374,22 +419,24 @@ export function getDailyQuests(options = {}) {
   const baseSeed = dateSeed(date) ^ hashString(username) ^ (resetSeed >>> 0);
   const shuffled = seededShuffle(questPool, baseSeed >>> 0);
   const pinnedSet = new Set(pinnedQuestIds);
+  // Pinned quests always remain visible even if their effort exceeds the current cap;
+  // otherwise a user could lose a pinned habit after a streak drop below 14.
+  const unfilteredPool = buildQuestPool(options.language);
   const pinnedQuests = pinnedQuestIds
-    .map((id) => questPool.find((quest) => quest.id === id))
+    .map((id) => unfilteredPool.find((quest) => quest.id === id))
     .filter(Boolean);
   const randomQuests = shuffled.filter((quest) => !pinnedSet.has(quest.id));
-  const totalCount = Math.min(getDailyQuestCount(), questPool.length);
-  const configuredRandomCount = getRandomQuestCount();
-  const randomCount = Math.max(0, Math.min(totalCount - pinnedQuests.length, configuredRandomCount));
+  const totalCount = Math.min(slots.dailyTotal, unfilteredPool.length);
+  const randomCount = Math.max(0, Math.min(totalCount - pinnedQuests.length, slots.random));
 
   let finalOtherQuests = [];
-  if (randomCount === 3) {
-    // Generate a seed for combination selection
+  if (randomCount > 0) {
+    const targetEffort = randomCount * 3;
     const combinationSeed = hashString(`${baseSeed}_combo`);
     finalOtherQuests = buildEffortBalancedCategoryUniqueQuests(
       randomQuests,
-      3,
-      9,
+      randomCount,
+      targetEffort,
       excludeCategories,
       combinationSeed
     );

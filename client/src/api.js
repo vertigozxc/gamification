@@ -300,6 +300,20 @@ export function devGrantStats(username) {
   });
 }
 
+export function devGrantXp(username, amount = 500) {
+  return request("/api/dev/grant-xp", {
+    method: "POST",
+    body: JSON.stringify({ username, amount })
+  });
+}
+
+export function devGrantTokens(username, amount = 5) {
+  return request("/api/dev/grant-tokens", {
+    method: "POST",
+    body: JSON.stringify({ username, amount })
+  });
+}
+
 export function claimBusinessTokens(username) {
   return request("/api/city/business/claim", {
     method: "POST",

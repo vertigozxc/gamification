@@ -8,9 +8,11 @@ import { prisma } from "./db.js";
 import {
   getDailyQuests,
   getDailyQuestCount,
+  getMaxEffortForLevel,
   getMilestoneRewardForCount as getConfiguredMilestoneRewardForCount,
   getPreferredQuestCount,
   getQuestPool,
+  getQuestSlotsForLevel,
   getRandomQuestCount,
   getStreakRuleConfig,
   normalizeQuestLanguage
@@ -340,6 +342,71 @@ app.post("/api/admin/users/:userId/grant-xp", requireAdmin, async (req, res) => 
         totalXp: getTotalXp(updatedUser.level, updatedUser.xp)
       }
     });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// Dev-only test grants used by floating dashboard buttons. Gated to a single
+// developer UID so the endpoints are harmless if left exposed in prod.
+const DEV_TEST_USER_ID = "C0x6GY9LeyVhY12L1yF5QRHp3DP2";
+
+function isDevTestUser(username) {
+  return String(username || "").trim() === DEV_TEST_USER_ID;
+}
+
+app.post("/api/dev/grant-xp", async (req, res) => {
+  try {
+    const schema = z.object({
+      username: z.string().min(2).max(64),
+      amount: z.number().int().min(1).max(100000).default(500)
+    });
+    const parsed = schema.parse(req.body || {});
+    if (!isDevTestUser(parsed.username)) {
+      return res.status(403).json({ error: "Dev test grants are restricted" });
+    }
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const nextXpState = applyBonusXpProgress({
+      level: user.level,
+      xp: user.xp,
+      xpNext: user.xpNext
+    }, parsed.amount);
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        level: nextXpState.level,
+        xp: nextXpState.xp,
+        xpNext: nextXpState.xpNext
+      }
+    });
+    res.json({ ok: true, grantedXp: parsed.amount, user: updatedUser });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+app.post("/api/dev/grant-tokens", async (req, res) => {
+  try {
+    const schema = z.object({
+      username: z.string().min(2).max(64),
+      amount: z.number().int().min(1).max(1000).default(5)
+    });
+    const parsed = schema.parse(req.body || {});
+    if (!isDevTestUser(parsed.username)) {
+      return res.status(403).json({ error: "Dev test grants are restricted" });
+    }
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { tokens: { increment: parsed.amount } }
+    });
+    res.json({ ok: true, grantedTokens: parsed.amount, tokens: updatedUser.tokens });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
   }
@@ -1317,10 +1384,11 @@ function parsePreferredQuestIds(rawValue, allowedCustomIds = []) {
   }
   const validQuestIds = new Set(getQuestPool().map((quest) => quest.id));
   const customAllow = new Set(allowedCustomIds.filter((id) => Number.isInteger(id) && id >= CUSTOM_QUEST_ID_OFFSET));
+  // Keep all valid ids; callers slice to their per-level cap via getPreferredQuestCount(level, streak).
   return [...new Set(String(rawValue)
     .split(",")
     .map((item) => Number(item.trim()))
-    .filter((item) => Number.isInteger(item) && item > 0 && (validQuestIds.has(item) || customAllow.has(item))))].slice(0, getPreferredQuestCount());
+    .filter((item) => Number.isInteger(item) && item > 0 && (validQuestIds.has(item) || customAllow.has(item))))];
 }
 
 const CUSTOM_QUEST_ID_OFFSET = 1_000_000;
@@ -1368,10 +1436,15 @@ function serializePreferredQuestIds(questIds) {
 
 function onboardingStatus(user, customQuests = []) {
   const customIds = customQuests.map((cq) => toCustomVirtualId(cq.id));
-  const preferredQuestIds = parsePreferredQuestIds(user.preferredQuestIds, customIds).slice(0, getPreferredQuestCount());
+  const maxPinned = getPreferredQuestCount(user.level || 1, user.streak || 0);
+  const allPreferred = parsePreferredQuestIds(user.preferredQuestIds, customIds);
+  // Onboarding only requires the level-1 minimum (2 habits). Anything beyond
+  // the user's current per-level cap is hidden but retained in DB.
+  const preferredQuestIds = allPreferred.slice(0, maxPinned);
+  const onboardingMinimum = getPreferredQuestCount(1, 0);
   return {
     preferredQuestIds,
-    needsOnboarding: preferredQuestIds.length < getPreferredQuestCount()
+    needsOnboarding: allPreferred.length < onboardingMinimum
   };
 }
 
@@ -1498,6 +1571,7 @@ function dailyQuestsForUser(user, date = new Date(), language = "en") {
     username: user.username,
     resetSeed: user.lastDailyResetAt?.getTime?.() ?? 0,
     pinnedQuestIds: preferredQuestIds,
+    level: user.level || 1,
     streak: user.streak || 0,
     language
   });
@@ -1511,13 +1585,16 @@ function composeDailyQuests(user, completedQuestIds = [], date = new Date(), exc
   const regularPinnedIds = allPreferredIds.filter((id) => !isCustomQuestVirtualId(id));
   const customPinnedIds = allPreferredIds.filter(isCustomQuestVirtualId);
 
+  const userLevel = user.level || 1;
+  const userStreak = user.streak || 0;
   let baseQuests = getDailyQuests({
     date,
     username: user.username,
     resetSeed: user.lastDailyResetAt?.getTime?.() ?? 0,
     pinnedQuestIds: regularPinnedIds,
     excludeCategories,
-    streak: user.streak || 0,
+    level: userLevel,
+    streak: userStreak,
     language
   });
 
@@ -1526,7 +1603,7 @@ function composeDailyQuests(user, completedQuestIds = [], date = new Date(), exc
   // daily random quest count.
   const expectedRandomCount = Math.max(
     0,
-    Math.min(getRandomQuestCount(), baseQuests.length - regularPinnedIds.length)
+    Math.min(getRandomQuestCount(userLevel, userStreak), baseQuests.length - regularPinnedIds.length)
   );
   const questPoolById = new Map(getQuestPool({ language }).map((quest) => [quest.id, quest]));
   const pinnedSet = new Set(allPreferredIds);
@@ -1911,6 +1988,7 @@ app.get("/api/quests", (req, res) => {
   const username = typeof req.query.username === "string" ? req.query.username : "";
   const resetSeed = Number(req.query.resetSeed) || 0;
   const streak = Number(req.query.streak) || 0;
+  const level = Number(req.query.level) || 1;
   const dateParam = typeof req.query.date === "string" ? req.query.date : "";
   const parsedDate = dateParam ? new Date(dateParam) : new Date();
   const date = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
@@ -1924,6 +2002,7 @@ app.get("/api/quests", (req, res) => {
       username,
       resetSeed,
       pinnedQuestIds,
+      level,
       streak,
       language
     })
@@ -2168,12 +2247,14 @@ app.get("/api/game-state/:username", async (req, res) => {
 });
 
 app.post("/api/onboarding/complete", async (req, res) => {
+  // Onboarding happens at level 1: user picks exactly the level-1 pinned count.
+  const onboardingPinnedCount = getPreferredQuestCount(1, 0);
   const schema = z.object({
     username: z.string().min(2).max(64),
     displayName: z.string().min(1).max(64),
     // See /api/profiles/upsert for rationale on the 150 KB cap.
     photoUrl: z.string().max(150_000).optional(),
-    preferredQuestIds: z.array(z.number().int().min(1)).length(getPreferredQuestCount())
+    preferredQuestIds: z.array(z.number().int().min(1)).length(onboardingPinnedCount)
   });
 
   try {
@@ -2189,19 +2270,28 @@ app.post("/api/onboarding/complete", async (req, res) => {
     const customVirtualIds = new Set(customQuests.map((cq) => toCustomVirtualId(cq.id)));
 
     const existingPreferred = parsePreferredQuestIds(user.preferredQuestIds, [...customVirtualIds]);
-    if (existingPreferred.length >= getPreferredQuestCount()) {
+    if (existingPreferred.length >= onboardingPinnedCount) {
       return res.status(409).json({ error: "Preferred quests are already locked" });
     }
 
-    const uniquePreferredQuestIds = [...new Set(parsed.preferredQuestIds)].slice(0, getPreferredQuestCount());
-    if (uniquePreferredQuestIds.length !== getPreferredQuestCount()) {
-      return res.status(400).json({ error: `Pick exactly ${getPreferredQuestCount()} unique preferred quests` });
+    const uniquePreferredQuestIds = [...new Set(parsed.preferredQuestIds)].slice(0, onboardingPinnedCount);
+    if (uniquePreferredQuestIds.length !== onboardingPinnedCount) {
+      return res.status(400).json({ error: `Pick exactly ${onboardingPinnedCount} unique preferred quests` });
     }
 
-    const allQuestIds = new Set(getQuestPool().map((quest) => quest.id));
-    const invalidQuestId = uniquePreferredQuestIds.find((id) => !allQuestIds.has(id) && !customVirtualIds.has(id));
+    const questPool = getQuestPool();
+    const questById = new Map(questPool.map((quest) => [quest.id, quest]));
+    const invalidQuestId = uniquePreferredQuestIds.find((id) => !questById.has(id) && !customVirtualIds.has(id));
     if (invalidQuestId) {
       return res.status(400).json({ error: `Invalid quest id: ${invalidQuestId}` });
+    }
+    const onboardingMaxEffort = getMaxEffortForLevel(1, 0);
+    const overDifficultQuest = uniquePreferredQuestIds.find((id) => {
+      const quest = questById.get(id);
+      return quest && Number(quest.effortScore) > onboardingMaxEffort;
+    });
+    if (overDifficultQuest) {
+      return res.status(400).json({ error: `Quest ${overDifficultQuest} exceeds the difficulty available at your level` });
     }
 
     const displayName = parsed.displayName.trim().slice(0, 64);
@@ -3226,7 +3316,10 @@ app.post("/api/reset-daily", async (req, res) => {
 
     if (parsed.isReroll && requestedTargetQuestIds.length > 0) {
       const { preferredQuestIds: pinned } = onboardingStatus(user, userCustomQuests);
-      const randomQuestCount = Math.max(0, Math.min(getRandomQuestCount(), getDailyQuestCount() - pinned.length));
+      const randomQuestCount = Math.max(0, Math.min(
+        getRandomQuestCount(user.level || 1, user.streak || 0),
+        getDailyQuestCount(user.level || 1, user.streak || 0) - pinned.length
+      ));
       const questPool = getQuestPool({ language });
       const questById = new Map(questPool.map((quest) => [quest.id, quest]));
       const pinnedSet = new Set(pinned);
@@ -3543,9 +3636,11 @@ app.post("/api/quests/reroll-pinned", async (req, res) => {
 app.post("/api/shop/replace-pinned-quests", async (req, res) => {
   try {
     const language = getRequestLanguage(req);
+    // Upper bound 4 = the max pinned slots possible at any level; actual per-user cap
+    // is checked below against the requesting user's current level tier.
     const schema = z.object({
       username: z.string().min(2).max(64),
-      preferredQuestIds: z.array(z.number().int().min(1)).min(1).max(getPreferredQuestCount()),
+      preferredQuestIds: z.array(z.number().int().min(1)).min(1).max(4),
       useTokens: z.boolean().default(true)
     });
     const parsed = schema.parse(req.body);
@@ -3553,6 +3648,10 @@ app.post("/api/shop/replace-pinned-quests", async (req, res) => {
     const user = await prisma.user.findUnique({ where: { username } });
     if (!user) {
       return res.status(404).json({ error: "User not found" });
+    }
+    const maxPinned = getPreferredQuestCount(user.level || 1, user.streak || 0);
+    if (parsed.preferredQuestIds.length > maxPinned) {
+      return res.status(400).json({ error: `At level ${user.level} you can pin at most ${maxPinned} habits` });
     }
 
     const now = new Date();
@@ -3573,10 +3672,19 @@ app.post("/api/shop/replace-pinned-quests", async (req, res) => {
 
     const customQuests = await fetchUserCustomQuests(user.id);
     const customVirtualIds = new Set(customQuests.map((cq) => toCustomVirtualId(cq.id)));
-    const allQuestIds = new Set(getQuestPool().map((quest) => quest.id));
-    const invalidQuestId = uniquePreferredQuestIds.find((id) => !allQuestIds.has(id) && !customVirtualIds.has(id));
+    const questPool = getQuestPool();
+    const questById = new Map(questPool.map((quest) => [quest.id, quest]));
+    const invalidQuestId = uniquePreferredQuestIds.find((id) => !questById.has(id) && !customVirtualIds.has(id));
     if (invalidQuestId) {
       return res.status(400).json({ error: `Invalid quest id: ${invalidQuestId}` });
+    }
+    const userMaxEffort = getMaxEffortForLevel(user.level || 1, user.streak || 0);
+    const overDifficultQuest = uniquePreferredQuestIds.find((id) => {
+      const quest = questById.get(id);
+      return quest && Number(quest.effortScore) > userMaxEffort;
+    });
+    if (overDifficultQuest) {
+      return res.status(400).json({ error: `Quest ${overDifficultQuest} exceeds the difficulty available at your level` });
     }
 
     const updateData = {

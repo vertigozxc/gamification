@@ -118,7 +118,8 @@
         "walking",
         "movement"
       ],
-      "id": "quest_1"
+      "id": "quest_1",
+      "needs_timer": false
     },
     {
       "title": "Step Goal",
@@ -147,7 +148,8 @@
         "walking",
         "movement"
       ],
-      "id": "quest_2"
+      "id": "quest_2",
+      "needs_timer": false
     },
     {
       "title": "Step Goal",
@@ -176,7 +178,8 @@
         "walking",
         "movement"
       ],
-      "id": "quest_3"
+      "id": "quest_3",
+      "needs_timer": false
     },
     {
       "title": "Step Goal",
@@ -205,7 +208,8 @@
         "walking",
         "movement"
       ],
-      "id": "quest_4"
+      "id": "quest_4",
+      "needs_timer": false
     },
     {
       "title": "Step Goal",
@@ -234,7 +238,8 @@
         "walking",
         "movement"
       ],
-      "id": "quest_5"
+      "id": "quest_5",
+      "needs_timer": false
     },
     {
       "title": "Push-ups or Squats",
@@ -263,7 +268,8 @@
         "strength",
         "bodyweight"
       ],
-      "id": "quest_6"
+      "id": "quest_6",
+      "needs_timer": false
     },
     {
       "title": "Push-ups or Squats",
@@ -292,7 +298,8 @@
         "strength",
         "bodyweight"
       ],
-      "id": "quest_7"
+      "id": "quest_7",
+      "needs_timer": false
     },
     {
       "title": "Push-ups or Squats",
@@ -321,7 +328,8 @@
         "strength",
         "bodyweight"
       ],
-      "id": "quest_8"
+      "id": "quest_8",
+      "needs_timer": false
     },
     {
       "title": "Push-ups or Squats",
@@ -350,7 +358,8 @@
         "strength",
         "bodyweight"
       ],
-      "id": "quest_9"
+      "id": "quest_9",
+      "needs_timer": false
     },
     {
       "title": "Push-ups or Squats",
@@ -379,7 +388,8 @@
         "strength",
         "bodyweight"
       ],
-      "id": "quest_10"
+      "id": "quest_10",
+      "needs_timer": false
     },
     {
       "title": "Easy Stretching",
@@ -408,7 +418,8 @@
         "stretching",
         "recovery"
       ],
-      "id": "quest_11"
+      "id": "quest_11",
+      "needs_timer": true
     },
     {
       "title": "Easy Stretching",
@@ -437,7 +448,8 @@
         "stretching",
         "recovery"
       ],
-      "id": "quest_12"
+      "id": "quest_12",
+      "needs_timer": true
     },
     {
       "title": "Easy Stretching",
@@ -466,7 +478,8 @@
         "stretching",
         "recovery"
       ],
-      "id": "quest_13"
+      "id": "quest_13",
+      "needs_timer": true
     },
     {
       "title": "Easy Stretching",
@@ -495,7 +508,8 @@
         "stretching",
         "recovery"
       ],
-      "id": "quest_14"
+      "id": "quest_14",
+      "needs_timer": true
     },
     {
       "title": "Easy Stretching",
@@ -524,7 +538,8 @@
         "stretching",
         "recovery"
       ],
-      "id": "quest_15"
+      "id": "quest_15",
+      "needs_timer": true
     },
     {
       "title": "Light Workout",
@@ -553,7 +568,8 @@
         "cardio",
         "endurance"
       ],
-      "id": "quest_16"
+      "id": "quest_16",
+      "needs_timer": true
     },
     {
       "title": "Light Workout",
@@ -582,7 +598,8 @@
         "cardio",
         "endurance"
       ],
-      "id": "quest_17"
+      "id": "quest_17",
+      "needs_timer": true
     },
     {
       "title": "Light Workout",
@@ -611,7 +628,8 @@
         "cardio",
         "endurance"
       ],
-      "id": "quest_18"
+      "id": "quest_18",
+      "needs_timer": true
     },
     {
       "title": "Light Workout",
@@ -640,7 +658,8 @@
         "cardio",
         "endurance"
       ],
-      "id": "quest_19"
+      "id": "quest_19",
+      "needs_timer": true
     },
     {
       "title": "Light Workout",
@@ -669,7 +688,8 @@
         "cardio",
         "endurance"
       ],
-      "id": "quest_20"
+      "id": "quest_20",
+      "needs_timer": true
     },
     {
       "title": "Plank or Bridge Hold",
@@ -698,7 +718,8 @@
         "core",
         "stability"
       ],
-      "id": "quest_21"
+      "id": "quest_21",
+      "needs_timer": true
     },
     {
       "title": "Plank or Bridge Hold",
@@ -727,7 +748,8 @@
         "core",
         "stability"
       ],
-      "id": "quest_22"
+      "id": "quest_22",
+      "needs_timer": true
     },
     {
       "title": "Plank or Bridge Hold",
@@ -756,7 +778,8 @@
         "core",
         "stability"
       ],
-      "id": "quest_23"
+      "id": "quest_23",
+      "needs_timer": true
     },
     {
       "title": "Plank or Bridge Hold",
@@ -785,7 +808,8 @@
         "core",
         "stability"
       ],
-      "id": "quest_24"
+      "id": "quest_24",
+      "needs_timer": true
     },
     {
       "title": "Plank or Bridge Hold",
@@ -814,7 +838,8 @@
         "core",
         "stability"
       ],
-      "id": "quest_25"
+      "id": "quest_25",
+      "needs_timer": true
     },
     {
       "title": "Single Topic Study",
@@ -843,7 +868,8 @@
         "learning",
         "focus"
       ],
-      "id": "quest_26"
+      "id": "quest_26",
+      "needs_timer": true
     },
     {
       "title": "Single Topic Study",
@@ -872,7 +898,8 @@
         "learning",
         "focus"
       ],
-      "id": "quest_27"
+      "id": "quest_27",
+      "needs_timer": true
     },
     {
       "title": "Single Topic Study",
@@ -901,7 +928,8 @@
         "learning",
         "focus"
       ],
-      "id": "quest_28"
+      "id": "quest_28",
+      "needs_timer": true
     },
     {
       "title": "Single Topic Study",
@@ -930,7 +958,8 @@
         "learning",
         "focus"
       ],
-      "id": "quest_29"
+      "id": "quest_29",
+      "needs_timer": true
     },
     {
       "title": "Single Topic Study",
@@ -959,7 +988,8 @@
         "learning",
         "focus"
       ],
-      "id": "quest_30"
+      "id": "quest_30",
+      "needs_timer": true
     },
     {
       "title": "Reading Time",
@@ -988,7 +1018,8 @@
         "reading",
         "knowledge"
       ],
-      "id": "quest_31"
+      "id": "quest_31",
+      "needs_timer": true
     },
     {
       "title": "Reading Time",
@@ -1017,7 +1048,8 @@
         "reading",
         "knowledge"
       ],
-      "id": "quest_32"
+      "id": "quest_32",
+      "needs_timer": true
     },
     {
       "title": "Reading Time",
@@ -1046,7 +1078,8 @@
         "reading",
         "knowledge"
       ],
-      "id": "quest_33"
+      "id": "quest_33",
+      "needs_timer": true
     },
     {
       "title": "Reading Time",
@@ -1075,7 +1108,8 @@
         "reading",
         "knowledge"
       ],
-      "id": "quest_34"
+      "id": "quest_34",
+      "needs_timer": true
     },
     {
       "title": "Reading Time",
@@ -1104,7 +1138,8 @@
         "reading",
         "knowledge"
       ],
-      "id": "quest_35"
+      "id": "quest_35",
+      "needs_timer": true
     },
     {
       "title": "Language Practice",
@@ -1133,7 +1168,8 @@
         "language",
         "vocabulary"
       ],
-      "id": "quest_36"
+      "id": "quest_36",
+      "needs_timer": false
     },
     {
       "title": "Language Practice",
@@ -1162,7 +1198,8 @@
         "language",
         "vocabulary"
       ],
-      "id": "quest_37"
+      "id": "quest_37",
+      "needs_timer": false
     },
     {
       "title": "Language Practice",
@@ -1191,7 +1228,8 @@
         "language",
         "vocabulary"
       ],
-      "id": "quest_38"
+      "id": "quest_38",
+      "needs_timer": false
     },
     {
       "title": "Language Practice",
@@ -1220,7 +1258,8 @@
         "language",
         "vocabulary"
       ],
-      "id": "quest_39"
+      "id": "quest_39",
+      "needs_timer": false
     },
     {
       "title": "Language Practice",
@@ -1249,7 +1288,8 @@
         "language",
         "vocabulary"
       ],
-      "id": "quest_40"
+      "id": "quest_40",
+      "needs_timer": false
     },
     {
       "title": "Language Session",
@@ -1279,7 +1319,8 @@
         "practice",
         "study"
       ],
-      "id": "quest_96"
+      "id": "quest_96",
+      "needs_timer": true
     },
     {
       "title": "Language Session",
@@ -1309,7 +1350,8 @@
         "practice",
         "study"
       ],
-      "id": "quest_97"
+      "id": "quest_97",
+      "needs_timer": true
     },
     {
       "title": "Language Session",
@@ -1339,7 +1381,8 @@
         "practice",
         "study"
       ],
-      "id": "quest_98"
+      "id": "quest_98",
+      "needs_timer": true
     },
     {
       "title": "Language Session",
@@ -1369,7 +1412,8 @@
         "practice",
         "study"
       ],
-      "id": "quest_99"
+      "id": "quest_99",
+      "needs_timer": true
     },
     {
       "title": "Language Session",
@@ -1399,7 +1443,8 @@
         "practice",
         "study"
       ],
-      "id": "quest_100"
+      "id": "quest_100",
+      "needs_timer": true
     },
     {
       "title": "Small Brain Tasks",
@@ -1428,7 +1473,8 @@
         "problem_solving",
         "logic"
       ],
-      "id": "quest_41"
+      "id": "quest_41",
+      "needs_timer": true
     },
     {
       "title": "Small Brain Tasks",
@@ -1457,7 +1503,8 @@
         "problem_solving",
         "logic"
       ],
-      "id": "quest_42"
+      "id": "quest_42",
+      "needs_timer": true
     },
     {
       "title": "Small Brain Tasks",
@@ -1486,7 +1533,8 @@
         "problem_solving",
         "logic"
       ],
-      "id": "quest_43"
+      "id": "quest_43",
+      "needs_timer": true
     },
     {
       "title": "Small Brain Tasks",
@@ -1515,7 +1563,8 @@
         "problem_solving",
         "logic"
       ],
-      "id": "quest_44"
+      "id": "quest_44",
+      "needs_timer": true
     },
     {
       "title": "Small Brain Tasks",
@@ -1544,7 +1593,8 @@
         "problem_solving",
         "logic"
       ],
-      "id": "quest_45"
+      "id": "quest_45",
+      "needs_timer": true
     },
     {
       "title": "Learning Notes",
@@ -1573,7 +1623,8 @@
         "notes",
         "reflection"
       ],
-      "id": "quest_46"
+      "id": "quest_46",
+      "needs_timer": false
     },
     {
       "title": "Learning Notes",
@@ -1602,7 +1653,8 @@
         "notes",
         "reflection"
       ],
-      "id": "quest_47"
+      "id": "quest_47",
+      "needs_timer": false
     },
     {
       "title": "Learning Notes",
@@ -1631,7 +1683,8 @@
         "notes",
         "reflection"
       ],
-      "id": "quest_48"
+      "id": "quest_48",
+      "needs_timer": false
     },
     {
       "title": "Learning Notes",
@@ -1660,7 +1713,8 @@
         "notes",
         "reflection"
       ],
-      "id": "quest_49"
+      "id": "quest_49",
+      "needs_timer": false
     },
     {
       "title": "Learning Notes",
@@ -1689,7 +1743,8 @@
         "notes",
         "reflection"
       ],
-      "id": "quest_50"
+      "id": "quest_50",
+      "needs_timer": false
     },
     {
       "title": "Inbox Cleanup",
@@ -1718,7 +1773,8 @@
         "planning",
         "productivity"
       ],
-      "id": "quest_51"
+      "id": "quest_51",
+      "needs_timer": true
     },
     {
       "title": "Inbox Cleanup",
@@ -1747,7 +1803,8 @@
         "planning",
         "productivity"
       ],
-      "id": "quest_52"
+      "id": "quest_52",
+      "needs_timer": true
     },
     {
       "title": "Inbox Cleanup",
@@ -1776,7 +1833,8 @@
         "planning",
         "productivity"
       ],
-      "id": "quest_53"
+      "id": "quest_53",
+      "needs_timer": true
     },
     {
       "title": "Inbox Cleanup",
@@ -1805,7 +1863,8 @@
         "planning",
         "productivity"
       ],
-      "id": "quest_54"
+      "id": "quest_54",
+      "needs_timer": true
     },
     {
       "title": "Inbox Cleanup",
@@ -1834,7 +1893,8 @@
         "planning",
         "productivity"
       ],
-      "id": "quest_55"
+      "id": "quest_55",
+      "needs_timer": true
     },
     {
       "title": "Focused Work Sprint",
@@ -1863,7 +1923,8 @@
         "focus",
         "discipline"
       ],
-      "id": "quest_56"
+      "id": "quest_56",
+      "needs_timer": true
     },
     {
       "title": "Focused Work Sprint",
@@ -1892,7 +1953,8 @@
         "focus",
         "discipline"
       ],
-      "id": "quest_57"
+      "id": "quest_57",
+      "needs_timer": true
     },
     {
       "title": "Focused Work Sprint",
@@ -1921,7 +1983,8 @@
         "focus",
         "discipline"
       ],
-      "id": "quest_58"
+      "id": "quest_58",
+      "needs_timer": true
     },
     {
       "title": "Focused Work Sprint",
@@ -1950,7 +2013,8 @@
         "focus",
         "discipline"
       ],
-      "id": "quest_59"
+      "id": "quest_59",
+      "needs_timer": true
     },
     {
       "title": "Focused Work Sprint",
@@ -1979,7 +2043,8 @@
         "focus",
         "discipline"
       ],
-      "id": "quest_60"
+      "id": "quest_60",
+      "needs_timer": true
     },
     {
       "title": "Clean Meal Goal",
@@ -2008,7 +2073,8 @@
         "nutrition",
         "self_control"
       ],
-      "id": "quest_61"
+      "id": "quest_61",
+      "needs_timer": false
     },
     {
       "title": "Clean Meal Goal",
@@ -2037,7 +2103,8 @@
         "nutrition",
         "self_control"
       ],
-      "id": "quest_62"
+      "id": "quest_62",
+      "needs_timer": false
     },
     {
       "title": "Clean Meal Goal",
@@ -2066,7 +2133,8 @@
         "nutrition",
         "self_control"
       ],
-      "id": "quest_63"
+      "id": "quest_63",
+      "needs_timer": false
     },
     {
       "title": "Clean Meal Goal",
@@ -2095,7 +2163,8 @@
         "nutrition",
         "self_control"
       ],
-      "id": "quest_64"
+      "id": "quest_64",
+      "needs_timer": false
     },
     {
       "title": "No Social Feed",
@@ -2124,7 +2193,8 @@
         "digital_detox",
         "self_control"
       ],
-      "id": "quest_66"
+      "id": "quest_66",
+      "needs_timer": false
     },
     {
       "title": "No Social Feed",
@@ -2153,7 +2223,8 @@
         "digital_detox",
         "self_control"
       ],
-      "id": "quest_67"
+      "id": "quest_67",
+      "needs_timer": false
     },
     {
       "title": "No Social Feed",
@@ -2182,7 +2253,8 @@
         "digital_detox",
         "self_control"
       ],
-      "id": "quest_68"
+      "id": "quest_68",
+      "needs_timer": false
     },
     {
       "title": "No Social Feed",
@@ -2211,7 +2283,8 @@
         "digital_detox",
         "self_control"
       ],
-      "id": "quest_69"
+      "id": "quest_69",
+      "needs_timer": false
     },
     {
       "title": "No Social Feed",
@@ -2240,7 +2313,8 @@
         "digital_detox",
         "self_control"
       ],
-      "id": "quest_70"
+      "id": "quest_70",
+      "needs_timer": false
     },
     {
       "title": "Clean Up Space",
@@ -2269,7 +2343,8 @@
         "cleanup",
         "order"
       ],
-      "id": "quest_71"
+      "id": "quest_71",
+      "needs_timer": true
     },
     {
       "title": "Clean Up Space",
@@ -2298,7 +2373,8 @@
         "cleanup",
         "order"
       ],
-      "id": "quest_72"
+      "id": "quest_72",
+      "needs_timer": true
     },
     {
       "title": "Clean Up Space",
@@ -2327,7 +2403,8 @@
         "cleanup",
         "order"
       ],
-      "id": "quest_73"
+      "id": "quest_73",
+      "needs_timer": true
     },
     {
       "title": "Clean Up Space",
@@ -2356,7 +2433,8 @@
         "cleanup",
         "order"
       ],
-      "id": "quest_74"
+      "id": "quest_74",
+      "needs_timer": true
     },
     {
       "title": "Clean Up Space",
@@ -2385,7 +2463,8 @@
         "cleanup",
         "order"
       ],
-      "id": "quest_75"
+      "id": "quest_75",
+      "needs_timer": true
     },
     {
       "title": "Breathing Calm",
@@ -2414,7 +2493,8 @@
         "breathing",
         "calm"
       ],
-      "id": "quest_76"
+      "id": "quest_76",
+      "needs_timer": true
     },
     {
       "title": "Breathing Calm",
@@ -2443,7 +2523,8 @@
         "breathing",
         "calm"
       ],
-      "id": "quest_77"
+      "id": "quest_77",
+      "needs_timer": true
     },
     {
       "title": "Breathing Calm",
@@ -2472,7 +2553,8 @@
         "breathing",
         "calm"
       ],
-      "id": "quest_78"
+      "id": "quest_78",
+      "needs_timer": true
     },
     {
       "title": "Breathing Calm",
@@ -2501,7 +2583,8 @@
         "breathing",
         "calm"
       ],
-      "id": "quest_79"
+      "id": "quest_79",
+      "needs_timer": true
     },
     {
       "title": "Breathing Calm",
@@ -2530,7 +2613,8 @@
         "breathing",
         "calm"
       ],
-      "id": "quest_80"
+      "id": "quest_80",
+      "needs_timer": true
     },
     {
       "title": "Hydration Goal",
@@ -2559,7 +2643,8 @@
         "hydration",
         "health"
       ],
-      "id": "quest_81"
+      "id": "quest_81",
+      "needs_timer": false
     },
     {
       "title": "Hydration Goal",
@@ -2588,7 +2673,8 @@
         "hydration",
         "health"
       ],
-      "id": "quest_82"
+      "id": "quest_82",
+      "needs_timer": false
     },
     {
       "title": "Hydration Goal",
@@ -2617,7 +2703,8 @@
         "hydration",
         "health"
       ],
-      "id": "quest_83"
+      "id": "quest_83",
+      "needs_timer": false
     },
     {
       "title": "Hydration Goal",
@@ -2646,7 +2733,8 @@
         "hydration",
         "health"
       ],
-      "id": "quest_84"
+      "id": "quest_84",
+      "needs_timer": false
     },
     {
       "title": "Hydration Goal",
@@ -2675,7 +2763,8 @@
         "hydration",
         "health"
       ],
-      "id": "quest_85"
+      "id": "quest_85",
+      "needs_timer": false
     },
     {
       "title": "Screen-Free Before Sleep",
@@ -2704,7 +2793,8 @@
         "sleep",
         "winddown"
       ],
-      "id": "quest_86"
+      "id": "quest_86",
+      "needs_timer": false
     },
     {
       "title": "Screen-Free Before Sleep",
@@ -2733,7 +2823,8 @@
         "sleep",
         "winddown"
       ],
-      "id": "quest_87"
+      "id": "quest_87",
+      "needs_timer": false
     },
     {
       "title": "Screen-Free Before Sleep",
@@ -2762,7 +2853,8 @@
         "sleep",
         "winddown"
       ],
-      "id": "quest_88"
+      "id": "quest_88",
+      "needs_timer": false
     },
     {
       "title": "Screen-Free Before Sleep",
@@ -2791,7 +2883,8 @@
         "sleep",
         "winddown"
       ],
-      "id": "quest_89"
+      "id": "quest_89",
+      "needs_timer": false
     },
     {
       "title": "Screen-Free Before Sleep",
@@ -2820,7 +2913,8 @@
         "sleep",
         "winddown"
       ],
-      "id": "quest_90"
+      "id": "quest_90",
+      "needs_timer": false
     },
     {
       "title": "Light Recovery Walk",
@@ -2849,7 +2943,8 @@
         "walk",
         "recovery"
       ],
-      "id": "quest_91"
+      "id": "quest_91",
+      "needs_timer": true
     },
     {
       "title": "Light Recovery Walk",
@@ -2878,7 +2973,8 @@
         "walk",
         "recovery"
       ],
-      "id": "quest_92"
+      "id": "quest_92",
+      "needs_timer": true
     },
     {
       "title": "Light Recovery Walk",
@@ -2907,7 +3003,8 @@
         "walk",
         "recovery"
       ],
-      "id": "quest_93"
+      "id": "quest_93",
+      "needs_timer": true
     },
     {
       "title": "Light Recovery Walk",
@@ -2936,7 +3033,8 @@
         "walk",
         "recovery"
       ],
-      "id": "quest_94"
+      "id": "quest_94",
+      "needs_timer": true
     },
     {
       "title": "Light Recovery Walk",
@@ -2965,7 +3063,8 @@
         "walk",
         "recovery"
       ],
-      "id": "quest_95"
+      "id": "quest_95",
+      "needs_timer": true
     },
     {
       "title": "Focused Talk with Loved One",
@@ -2994,7 +3093,8 @@
         "communication",
         "relationships"
       ],
-      "id": "quest_101"
+      "id": "quest_101",
+      "needs_timer": true
     },
     {
       "title": "Focused Talk with Loved One",
@@ -3023,7 +3123,8 @@
         "communication",
         "relationships"
       ],
-      "id": "quest_102"
+      "id": "quest_102",
+      "needs_timer": true
     },
     {
       "title": "Focused Talk with Loved One",
@@ -3052,7 +3153,8 @@
         "communication",
         "relationships"
       ],
-      "id": "quest_103"
+      "id": "quest_103",
+      "needs_timer": true
     },
     {
       "title": "Focused Talk with Loved One",
@@ -3081,7 +3183,8 @@
         "communication",
         "relationships"
       ],
-      "id": "quest_104"
+      "id": "quest_104",
+      "needs_timer": true
     },
     {
       "title": "Focused Talk with Loved One",
@@ -3110,7 +3213,8 @@
         "communication",
         "relationships"
       ],
-      "id": "quest_105"
+      "id": "quest_105",
+      "needs_timer": true
     },
     {
       "title": "No Smoking Day",
@@ -3140,7 +3244,8 @@
         "health",
         "discipline"
       ],
-      "id": "quest_106"
+      "id": "quest_106",
+      "needs_timer": false
     },
     {
       "title": "No Alcohol Day",
@@ -3170,7 +3275,8 @@
         "health",
         "discipline"
       ],
-      "id": "quest_107"
+      "id": "quest_107",
+      "needs_timer": false
     },
     {
       "title": "Digital Cleanliness",
@@ -3200,7 +3306,8 @@
         "focus",
         "discipline"
       ],
-      "id": "quest_108"
+      "id": "quest_108",
+      "needs_timer": false
     },
     {
       "title": "Full Meal Logging",
@@ -3230,7 +3337,8 @@
         "tracking",
         "discipline"
       ],
-      "id": "quest_109"
+      "id": "quest_109",
+      "needs_timer": false
     }
   ]
 }

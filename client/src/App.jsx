@@ -55,6 +55,7 @@ const LanguagePickerModal = lazy(() => import("./components/LanguagePickerModal"
 const FloatingTexts = lazy(() => import("./components/FloatingTexts"));
 const AppHeader = lazy(() => import("./components/AppHeader"));
 const DesktopLayout = lazy(() => import("./components/DesktopLayout"));
+const DevTestPanel = lazy(() => import("./components/DevTestPanel"));
 const CityTab = lazy(() => import("./components/tabs/CityTab"));
 const DashboardTab = lazy(() => import("./components/tabs/DashboardTab"));
 const LeaderboardTab = lazy(() => import("./components/tabs/LeaderboardTab"));
@@ -942,9 +943,37 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     );
   }
 
+  async function refreshFromServer() {
+    if (!authUser?.uid) return;
+    try {
+      const gameStateResponse = await fetchGameState(authUser.uid);
+      if (gameStateResponse?.forceLogout) return;
+      applyServerTimeSync(gameStateResponse);
+      const nextQuests = Array.isArray(gameStateResponse?.quests) ? gameStateResponse.quests.map(normalizeLocalizedQuest) : [];
+      setQuests(nextQuests);
+      const userData = gameStateResponse.user || {};
+      setState((prev) => ({
+        ...prev,
+        lvl: userData.level ?? prev.lvl,
+        xp: userData.xp ?? prev.xp,
+        xpNext: userData.xpNext ?? prev.xpNext,
+        tokens: userData.tokens ?? prev.tokens,
+        streak: Number(gameStateResponse?.streak ?? prev.streak),
+        completed: Array.isArray(gameStateResponse?.completedQuestIds) ? gameStateResponse.completedQuestIds : prev.completed,
+        productivity: gameStateResponse?.productivity ?? prev.productivity
+      }));
+    } catch {
+      // Ignore — dev panel only; failures surface via network logs.
+    }
+  }
+
   return (
     <>
       {dataLoading && !isEmbeddedApp ? <PortalPreloader title={t.loadingText} fullscreen /> : null}
+
+      <Suspense fallback={null}>
+        <DevTestPanel username={authUser?.uid} onRefresh={refreshFromServer} />
+      </Suspense>
 
       <FreezeSuccessModal open={showFreezeSuccess} onClose={() => setShowFreezeSuccess(false)} />
 
