@@ -160,6 +160,14 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const [showAbout, setShowAbout] = useState(false);
   const [questCompletePopup, setQuestCompletePopup] = useState(null);
   const [deleteProfileOpen, setDeleteProfileOpen] = useState(false);
+  // These are also referenced in the mobile-shell-state useEffect dependency
+  // array above, so they must be declared before that effect runs — hence
+  // grouped with the other overlay-state flags instead of next to the
+  // handler functions where they're used.
+  const [timerLimitPopup, setTimerLimitPopup] = useState(false);
+  const [singleHabitPickerOpen, setSingleHabitPickerOpen] = useState(false);
+  const [singleHabitPickerSaving, setSingleHabitPickerSaving] = useState(false);
+  const [singleHabitPickerError, setSingleHabitPickerError] = useState("");
   const [profileStats, setProfileStats] = useState(null);
   const [avatarError, setAvatarError] = useState("");
   const isEmbeddedApp = typeof window !== "undefined" && (() => {
@@ -1053,11 +1061,6 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       // Ignore — failures surface via network logs.
     }
   }
-
-  const [timerLimitPopup, setTimerLimitPopup] = useState(false);
-  const [singleHabitPickerOpen, setSingleHabitPickerOpen] = useState(false);
-  const [singleHabitPickerSaving, setSingleHabitPickerSaving] = useState(false);
-  const [singleHabitPickerError, setSingleHabitPickerError] = useState("");
 
   async function handleTimerStart(questId) {
     try {
