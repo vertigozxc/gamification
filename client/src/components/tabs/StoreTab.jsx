@@ -1,7 +1,7 @@
 import TokenVault from "../TokenVault";
 
 export default function StoreTab({
-  tokens, streakFreezeCharges = 0, extraRerollsToday, hasRerolledToday,
+  tokens, streakFreezeCharges = 0, freezeCost = 3, extraRerollsToday, hasRerolledToday,
   freezeStreakPending,
   canRerollPinned, isFreePinnedReroll, daysUntilFreePinnedReroll,
   onOpenPinnedReplacement, onFreezeStreak, onBuyExtraReroll, t
@@ -35,6 +35,7 @@ export default function StoreTab({
       <TokenVault
         tokens={tokens}
         streakFreezeCharges={streakFreezeCharges}
+        freezeCost={freezeCost}
         freezeStreakPending={freezeStreakPending}
         extraRerollsToday={extraRerollsToday}
         hasRerolledToday={hasRerolledToday}

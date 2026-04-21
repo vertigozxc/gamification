@@ -572,11 +572,18 @@ function useGameplayActions({
     const prevTokens = state.tokens;
     const prevCharges = Number(state.user?.streakFreezeCharges) || 0;
 
+    // Mirror the server's residential shop-discount so the optimistic
+    // deduction matches what the DB will return (lvl >=5: -2, lvl >=1: -1).
+    // Residential district is index 4 in districtLevels.
+    const resLvl = Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[4]) || 0)));
+    const discount = resLvl >= 5 ? 2 : resLvl >= 1 ? 1 : 0;
+    const freezeCost = Math.max(0, 3 - discount);
+
     setFreezeStreakPending(true);
     // Optimistic: deduct tokens and bump charge count (shop adds a charge to Profile)
     setState(prev => ({
       ...prev,
-      tokens: Math.max(0, prev.tokens - 3),
+      tokens: Math.max(0, prev.tokens - freezeCost),
       user: {
         ...(prev.user || {}),
         streakFreezeCharges: (Number(prev.user?.streakFreezeCharges) || 0) + 1

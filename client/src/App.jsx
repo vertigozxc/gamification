@@ -1162,6 +1162,11 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
               <StoreTab
                 tokens={state.tokens}
                 streakFreezeCharges={Number(state.user?.streakFreezeCharges) || 0}
+                freezeCost={(() => {
+                  const resLvl = Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[4]) || 0)));
+                  const discount = resLvl >= 5 ? 2 : resLvl >= 1 ? 1 : 0;
+                  return Math.max(0, 3 - discount);
+                })()}
                 extraRerollsToday={state.extraRerollsToday}
                 hasRerolledToday={state.hasRerolledToday}
                 canRerollPinned={canRerollPinned}

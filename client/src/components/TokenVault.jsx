@@ -5,6 +5,7 @@ import { pluralizeCharges } from "../i18nConfig";
 function TokenVault({
   tokens,
   streakFreezeCharges = 0,
+  freezeCost = 3,
   freezeStreakPending = false,
   extraRerollsToday,
   hasRerolledToday,
@@ -35,7 +36,7 @@ function TokenVault({
               </div>
               <div className="flex items-center gap-1 rounded-full px-3 py-1" style={{ background: "var(--xp-badge-bg)", border: "1px solid var(--color-primary-dim)" }}>
                 <span className="text-base">{t.tokenIcon}</span>
-                <span className="cinzel font-bold text-sm" style={{ color: "var(--color-text)" }}>3</span>
+                <span className="cinzel font-bold text-sm" style={{ color: "var(--color-text)" }}>{freezeCost}</span>
               </div>
             </div>
             <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
@@ -53,15 +54,15 @@ function TokenVault({
             )}
             <button
               onClick={onFreezeStreak}
-              disabled={tokens < 3 || freezeStreakPending}
+              disabled={tokens < freezeCost || freezeStreakPending}
               className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 ${
-                tokens >= 3 && !freezeStreakPending
+                tokens >= freezeCost && !freezeStreakPending
                   ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:from-cyan-600 hover:to-blue-600 shadow-md"
                   : "bg-slate-800/80 text-slate-500 cursor-not-allowed"
               }`}
             >
               <span>{t.tokenIcon}</span>
-              {freezeStreakPending ? t.processingLabel : tokens < 3 ? t.notEnough : `${t.buyPrefix} 3 ${getPluralizedToken(3)}`}
+              {freezeStreakPending ? t.processingLabel : tokens < freezeCost ? t.notEnough : `${t.buyPrefix} ${freezeCost} ${getPluralizedToken(freezeCost)}`}
             </button>
           </div>
 
