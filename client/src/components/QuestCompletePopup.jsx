@@ -4,7 +4,19 @@ import { useTheme } from "../ThemeContext";
 
 // Shown when a timer quest auto-finishes at 100% (or the user Stops it at 100%).
 // Confirms XP award + streak credit so the user knows the session counted.
-export default function QuestCompletePopup({ show, onClose, title, awardedXp, streakCounted, tokensAwarded = 0 }) {
+// XP is shown as separate chips — the quest's own XP matches what the card
+// displayed, with milestone / sport bonuses called out individually so the
+// user can see where each number came from.
+export default function QuestCompletePopup({
+  show,
+  onClose,
+  title,
+  questXp = 0,
+  milestoneXp = 0,
+  sportXp = 0,
+  tokensAwarded = 0,
+  streakCounted = false
+}) {
   const { t } = useTheme();
 
   useEffect(() => {
@@ -21,9 +33,14 @@ export default function QuestCompletePopup({ show, onClose, title, awardedXp, st
   const xpLabel = t.xpLabel || "XP";
   const tokenIcon = t.tokenIcon || "🪙";
   const streakIcon = t.streakIcon || "🔥";
-  const streakNote = streakCounted
-    ? (t.questCompletePopupStreakYes || "Counts toward your streak")
-    : (t.questCompletePopupStreakNo || "Finished without a streak credit");
+  const milestoneLabel = t.questCompletePopupMilestoneLabel || "Milestone";
+  const sportLabel = t.questCompletePopupSportLabel || "Sport bonus";
+  const streakYesTitle = t.questCompletePopupStreakYesTitle || "Counts toward your streak";
+  const streakYesHint = t.questCompletePopupStreakYesHint
+    || "Finish 4 quests at 100% today to grow your streak — this one counts.";
+  const streakNoTitle = t.questCompletePopupStreakNoTitle || "Doesn't count toward streak";
+  const streakNoHint = t.questCompletePopupStreakNoHint
+    || "Only 100% finishes grow the streak. Partial finishes still fill the daily board.";
   const proceed = t.proceedLabel || "PROCEED";
 
   return (
@@ -91,31 +108,87 @@ export default function QuestCompletePopup({ show, onClose, title, awardedXp, st
           </p>
 
           <div
-            className="inline-flex flex-wrap justify-center items-center gap-3 bg-black/40 border border-emerald-500/50 rounded-xl px-6 py-4 mb-2 shadow-[inset_0_0_15px_rgba(74,222,128,0.12)]"
+            className="flex flex-col items-center gap-2 mb-3"
             style={{ animation: "fadeInUp 1.2s ease-out" }}
           >
-            {awardedXp > 0 ? (
-              <span className="text-2xl font-black text-emerald-300 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">
-                +{awardedXp} {xpLabel}
-              </span>
+            {questXp > 0 ? (
+              <div
+                className="inline-flex justify-center items-center gap-2 bg-black/40 border border-emerald-500/60 rounded-xl px-5 py-2 shadow-[inset_0_0_12px_rgba(74,222,128,0.15)]"
+              >
+                <span className="text-2xl font-black text-emerald-300 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">
+                  +{questXp} {xpLabel}
+                </span>
+              </div>
             ) : null}
-            {tokensAwarded > 0 ? (
-              <span className="text-2xl font-black text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.7)]">
-                +{tokensAwarded} {tokenIcon}
-              </span>
+            {(milestoneXp > 0 || sportXp > 0 || tokensAwarded > 0) ? (
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {milestoneXp > 0 ? (
+                  <span
+                    className="inline-flex items-center gap-1 bg-cyan-900/40 border border-cyan-500/50 rounded-lg px-3 py-1 text-sm font-bold text-cyan-200"
+                    title={milestoneLabel}
+                  >
+                    🏅 +{milestoneXp} {xpLabel}
+                  </span>
+                ) : null}
+                {sportXp > 0 ? (
+                  <span
+                    className="inline-flex items-center gap-1 bg-sky-900/40 border border-sky-500/50 rounded-lg px-3 py-1 text-sm font-bold text-sky-200"
+                    title={sportLabel}
+                  >
+                    🏃 +{sportXp} {xpLabel}
+                  </span>
+                ) : null}
+                {tokensAwarded > 0 ? (
+                  <span
+                    className="inline-flex items-center gap-1 bg-amber-900/40 border border-amber-500/50 rounded-lg px-3 py-1 text-sm font-bold text-amber-200"
+                  >
+                    +{tokensAwarded} {tokenIcon}
+                  </span>
+                ) : null}
+              </div>
             ) : null}
           </div>
 
-          <p
+          <div
             style={{
-              fontSize: "0.82rem",
-              color: streakCounted ? "#fbbf24" : "#94a3b8",
-              margin: "0.5rem 0 1.5rem",
-              letterSpacing: "0.04em"
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 10,
+              padding: "10px 12px",
+              borderRadius: 12,
+              border: `1px solid ${streakCounted ? "rgba(251,191,36,0.45)" : "rgba(148,163,184,0.3)"}`,
+              background: streakCounted ? "rgba(251,191,36,0.08)" : "rgba(148,163,184,0.06)",
+              margin: "0 0 1.25rem",
+              textAlign: "left"
             }}
           >
-            {streakCounted ? `${streakIcon} ${streakNote}` : streakNote}
-          </p>
+            <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>
+              {streakCounted ? streakIcon : "•"}
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p
+                style={{
+                  fontSize: "0.92rem",
+                  fontWeight: 700,
+                  color: streakCounted ? "#fbbf24" : "#cbd5e1",
+                  margin: 0,
+                  lineHeight: 1.3
+                }}
+              >
+                {streakCounted ? streakYesTitle : streakNoTitle}
+              </p>
+              <p
+                style={{
+                  fontSize: "0.78rem",
+                  color: "#94a3b8",
+                  margin: "3px 0 0",
+                  lineHeight: 1.45
+                }}
+              >
+                {streakCounted ? streakYesHint : streakNoHint}
+              </p>
+            </div>
+          </div>
 
           <div style={{ animation: "fadeInUp 1.4s ease-out" }}>
             <button
@@ -143,7 +216,9 @@ QuestCompletePopup.propTypes = {
   show: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   title: PropTypes.string,
-  awardedXp: PropTypes.number,
-  streakCounted: PropTypes.bool,
-  tokensAwarded: PropTypes.number
+  questXp: PropTypes.number,
+  milestoneXp: PropTypes.number,
+  sportXp: PropTypes.number,
+  tokensAwarded: PropTypes.number,
+  streakCounted: PropTypes.bool
 };

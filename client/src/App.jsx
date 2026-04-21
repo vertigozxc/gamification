@@ -1021,7 +1021,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       if (result?.completed && Number(result?.completionPercent) >= 100) {
         setQuestCompletePopup({
           title: stoppedQuest?.title || "",
-          awardedXp: Number(result?.totalAwardedXp ?? result?.awardedXp ?? 0),
+          questXp: Number(result?.awardedXp ?? 0),
+          milestoneXp: Number(result?.milestoneBonusXp ?? 0),
+          sportXp: Number(result?.sportBonusXp ?? 0),
           tokensAwarded: Number(result?.milestoneTokens ?? 0) + Number(result?.squareBonusTokens ?? 0),
           streakCounted: true
         });
@@ -1084,7 +1086,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           show={Boolean(questCompletePopup)}
           onClose={() => setQuestCompletePopup(null)}
           title={questCompletePopup?.title}
-          awardedXp={questCompletePopup?.awardedXp || 0}
+          questXp={questCompletePopup?.questXp || 0}
+          milestoneXp={questCompletePopup?.milestoneXp || 0}
+          sportXp={questCompletePopup?.sportXp || 0}
           tokensAwarded={questCompletePopup?.tokensAwarded || 0}
           streakCounted={Boolean(questCompletePopup?.streakCounted)}
         />
