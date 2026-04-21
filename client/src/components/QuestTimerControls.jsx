@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function formatMs(ms) {
   const totalSecs = Math.max(0, Math.floor(ms / 1000));
@@ -19,12 +19,30 @@ export default function QuestTimerControls({ quest, session, elapsedMs, onStart,
   const running = session && session.status === "running";
   const paused = session && session.status === "paused";
   const percent = pct(elapsedMs, targetMin);
+  // Guard against the auto-stop effect firing repeatedly while the server
+  // round-trip is in flight.
+  const autoStopFiredRef = useRef(false);
 
   const run = async (fn) => {
     if (busy) return;
     setBusy(true);
     try { await fn(); } finally { setBusy(false); }
   };
+
+  // Auto-finalize when a running timer crosses 100%. We only fire for
+  // status=running so a paused timer that ticked past target still waits
+  // for the user to resume or stop. Resets the guard whenever the session
+  // goes away so a re-started session can auto-stop again later.
+  useEffect(() => {
+    if (!session) {
+      autoStopFiredRef.current = false;
+      return;
+    }
+    if (running && targetMin > 0 && percent >= 100 && !autoStopFiredRef.current && !busy) {
+      autoStopFiredRef.current = true;
+      run(() => onStop(quest.id));
+    }
+  }, [session, running, targetMin, percent, busy, onStop, quest?.id]);
 
   // Before any session exists: single prominent Start button.
   if (!session) {

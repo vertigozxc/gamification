@@ -59,6 +59,7 @@ const DesktopLayout = lazy(() => import("./components/DesktopLayout"));
 const DevTestPanel = lazy(() => import("./components/DevTestPanel"));
 const AboutAppModal = lazy(() => import("./components/modals/AboutAppModal"));
 const QuestTimerControls = lazy(() => import("./components/QuestTimerControls"));
+const QuestCompletePopup = lazy(() => import("./components/QuestCompletePopup"));
 const CityTab = lazy(() => import("./components/tabs/CityTab"));
 const DashboardTab = lazy(() => import("./components/tabs/DashboardTab"));
 const LeaderboardTab = lazy(() => import("./components/tabs/LeaderboardTab"));
@@ -155,6 +156,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [questCompletePopup, setQuestCompletePopup] = useState(null);
   const [profileStats, setProfileStats] = useState(null);
   const [avatarError, setAvatarError] = useState("");
   const isEmbeddedApp = typeof window !== "undefined" && (() => {
@@ -1012,7 +1014,18 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   async function handleTimerStop(questId) {
     try {
       const result = await stopQuestTimerAction(questId);
+      // Snapshot the quest title before refresh — the quest object may
+      // disappear from `quests` after completion updates state.
+      const stoppedQuest = quests.find((q) => Number(q.id) === Number(questId));
       await refreshFromServer();
+      if (result?.completed && Number(result?.completionPercent) >= 100) {
+        setQuestCompletePopup({
+          title: stoppedQuest?.title || "",
+          awardedXp: Number(result?.totalAwardedXp ?? result?.awardedXp ?? 0),
+          tokensAwarded: Number(result?.milestoneTokens ?? 0) + Number(result?.squareBonusTokens ?? 0),
+          streakCounted: true
+        });
+      }
       return result;
     } catch {
       return null;
@@ -1064,6 +1077,17 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
 
       <Suspense fallback={null}>
         <AboutAppModal open={showAbout} onClose={() => setShowAbout(false)} />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <QuestCompletePopup
+          show={Boolean(questCompletePopup)}
+          onClose={() => setQuestCompletePopup(null)}
+          title={questCompletePopup?.title}
+          awardedXp={questCompletePopup?.awardedXp || 0}
+          tokensAwarded={questCompletePopup?.tokensAwarded || 0}
+          streakCounted={Boolean(questCompletePopup?.streakCounted)}
+        />
       </Suspense>
 
       <OnboardingModal
