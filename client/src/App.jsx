@@ -57,6 +57,7 @@ const FloatingTexts = lazy(() => import("./components/FloatingTexts"));
 const AppHeader = lazy(() => import("./components/AppHeader"));
 const DesktopLayout = lazy(() => import("./components/DesktopLayout"));
 const DevTestPanel = lazy(() => import("./components/DevTestPanel"));
+const AboutAppModal = lazy(() => import("./components/modals/AboutAppModal"));
 const QuestTimerControls = lazy(() => import("./components/QuestTimerControls"));
 const CityTab = lazy(() => import("./components/tabs/CityTab"));
 const DashboardTab = lazy(() => import("./components/tabs/DashboardTab"));
@@ -153,6 +154,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const [profileStats, setProfileStats] = useState(null);
   const [avatarError, setAvatarError] = useState("");
   const isEmbeddedApp = typeof window !== "undefined" && (() => {
@@ -1060,6 +1062,10 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         t={t}
       />
 
+      <Suspense fallback={null}>
+        <AboutAppModal open={showAbout} onClose={() => setShowAbout(false)} />
+      </Suspense>
+
       <OnboardingModal
         open={showOnboarding}
         onClose={handleLogoutConfirm}
@@ -1317,6 +1323,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 onCancelEditingName={() => { setNameDraft(characterName); setEditingName(false); }}
                 onOpenThemePicker={() => setShowThemePicker(true)}
                 onOpenLanguagePicker={() => setShowLanguagePicker(true)}
+                onOpenAbout={() => setShowAbout(true)}
                 onLogout={() => setShowLogoutConfirm(true)}
                 onDeleteProfile={handleDeleteProfile}
                 onFreezeUsed={(result) => {

@@ -767,8 +767,12 @@ export default function CityTab({
                     fontSize: 13,
                     fontWeight: 600,
                     color: unlocked ? "var(--color-text)" : "var(--color-muted)",
-                    lineHeight: 1.25
+                    lineHeight: 1.25,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6
                   }}>
+                    {!unlocked ? <span aria-hidden="true" style={{ fontSize: 12, opacity: 0.75 }}>🔒</span> : null}
                     {text}
                   </span>
                   {timers.map((line, i) => (
