@@ -129,6 +129,7 @@ export default function DashboardTab({
           emptyPinnedSlotCount={emptyPinnedSlotCount}
           emptyOtherSlotCount={emptyOtherSlotCount}
           onOpenHabitPicker={onOpenHabitPicker}
+          maxDailyQuests={totalSegments}
           compact
         />
       </div>

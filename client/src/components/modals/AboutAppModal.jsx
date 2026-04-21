@@ -3,8 +3,9 @@ import { createPortal } from "react-dom";
 import { useTheme } from "../../ThemeContext";
 
 export default function AboutAppModal({ open, onClose }) {
-  const { languageId } = useTheme();
+  const { languageId, themeId } = useTheme();
   const isRu = languageId === "ru";
+  const isLight = themeId === "light";
   const [sheetAnim, setSheetAnim] = useState(false);
   const [openSection, setOpenSection] = useState(null);
 
@@ -105,11 +106,14 @@ export default function AboutAppModal({ open, onClose }) {
               aria-label={copy.close}
               style={{
                 width: 40, height: 40, borderRadius: 999,
-                background: "rgba(255,255,255,0.08)",
-                border: "1px solid var(--card-border-idle, var(--panel-border))",
-                color: "#e2e8f0", cursor: "pointer", fontSize: 20,
+                background: isLight ? "rgba(15,23,42,0.85)" : "rgba(255,255,255,0.08)",
+                border: `1px solid ${isLight ? "rgba(15,23,42,0.75)" : "var(--card-border-idle, var(--panel-border))"}`,
+                color: isLight ? "#f8fafc" : "#e2e8f0",
+                cursor: "pointer",
+                fontSize: 20,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                flexShrink: 0
+                flexShrink: 0,
+                boxShadow: isLight ? "0 2px 8px rgba(15,23,42,0.25)" : "none"
               }}
             >
               ✕

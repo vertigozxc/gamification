@@ -12,9 +12,16 @@ export default function ProfileTab({
   onStartEditingName, onNameDraftChange, onSubmitNameEdit, onCancelEditingName,
   onOpenThemePicker, onOpenLanguagePicker, onLogout, onDeleteProfile,
   username, onFreezeUsed,
-  onOpenAbout
+  onOpenAbout,
+  onDeleteConfirmStateChange
 }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  useEffect(() => {
+    if (typeof onDeleteConfirmStateChange === "function") {
+      onDeleteConfirmStateChange(showDeleteConfirm);
+    }
+  }, [showDeleteConfirm, onDeleteConfirmStateChange]);
 
   useEffect(() => {
     if (!showDeleteConfirm || typeof document === "undefined") return undefined;

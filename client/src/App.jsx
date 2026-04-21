@@ -157,6 +157,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [questCompletePopup, setQuestCompletePopup] = useState(null);
+  const [deleteProfileOpen, setDeleteProfileOpen] = useState(false);
   const [profileStats, setProfileStats] = useState(null);
   const [avatarError, setAvatarError] = useState("");
   const isEmbeddedApp = typeof window !== "undefined" && (() => {
@@ -354,14 +355,36 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       return;
     }
 
+    const anyOverlayOpen = Boolean(
+      showOnboarding
+      || cityFullscreen
+      || showPinnedReplaceModal
+      || showAbout
+      || showLogoutConfirm
+      || showLevelUp
+      || showHabitMilestone
+      || showFreezeSuccess
+      || showRerollConfirm
+      || showNotesModal
+      || showThemePicker
+      || showLanguagePicker
+      || deleteProfileOpen
+      || questCompletePopup
+    );
     bridge.postMessage(JSON.stringify({
       type: "mobile-shell-state",
-      showTabBar: Boolean(authUser) && !authLoading && !dataLoading && initialDataResolved && !showOnboarding && !cityFullscreen && !showPinnedReplaceModal,
+      showTabBar: Boolean(authUser) && !authLoading && !dataLoading && initialDataResolved && !anyOverlayOpen,
       loading: Boolean(authLoading || dataLoading || (authUser && !initialDataResolved)),
       activeTab: mobileTab,
       languageId
     }));
-  }, [isEmbeddedApp, authUser, authLoading, dataLoading, initialDataResolved, showOnboarding, mobileTab, cityFullscreen, showPinnedReplaceModal, languageId]);
+  }, [
+    isEmbeddedApp, authUser, authLoading, dataLoading, initialDataResolved,
+    showOnboarding, mobileTab, cityFullscreen, showPinnedReplaceModal,
+    showAbout, showLogoutConfirm, showLevelUp, showHabitMilestone,
+    showFreezeSuccess, showRerollConfirm, showNotesModal, showThemePicker,
+    showLanguagePicker, deleteProfileOpen, questCompletePopup, languageId
+  ]);
 
   useEffect(() => {
     if (!authUser) {
@@ -1354,6 +1377,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 onOpenAbout={() => setShowAbout(true)}
                 onLogout={() => setShowLogoutConfirm(true)}
                 onDeleteProfile={handleDeleteProfile}
+                onDeleteConfirmStateChange={setDeleteProfileOpen}
                 onFreezeUsed={(result) => {
                   setState((prev) => ({
                     ...prev,

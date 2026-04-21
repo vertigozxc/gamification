@@ -1,4 +1,8 @@
+// Levels that unlock a new habit slot + a new daily-quest slot.
+const SLOT_UNLOCK_LEVELS = new Set([5, 20]);
+
 export default function LevelUpPopup({ show, onClose, level, t }) {
+  const unlocksSlot = SLOT_UNLOCK_LEVELS.has(Number(level));
   return (
     <div className={`levelup-popup ${show ? "show" : "hidden"}`} aria-live="assertive" style={{ backdropFilter: "blur(8px)", background: "rgba(5, 10, 20, 0.85)" }}>
       <div className="levelup-popup-card relative flex flex-col items-center justify-center p-5 md:p-8 w-[90vw] md:w-[600px] max-h-[85vh] overflow-hidden" style={{ borderRadius: "2rem", border: "2px solid rgba(251, 191, 36, 0.6)", background: "linear-gradient(160deg, rgba(30,41,59,0.98), rgba(5,10,20,0.99))", boxShadow: "0 0 50px rgba(251, 191, 36, 0.2), inset 0 0 30px rgba(251,191,36,0.1)" }}>
@@ -30,6 +34,49 @@ export default function LevelUpPopup({ show, onClose, level, t }) {
               +{level > 10 ? 2 : 1} <span className="text-4xl px-1">{t.tokenIcon}</span>
             </span>
           </div>
+
+          {unlocksSlot ? (
+            <div
+              className="mx-auto mb-5 px-4 py-3 rounded-xl text-left"
+              style={{
+                maxWidth: 420,
+                background: "rgba(74, 222, 128, 0.08)",
+                border: "1px solid rgba(74, 222, 128, 0.5)",
+                boxShadow: "inset 0 0 14px rgba(74, 222, 128, 0.12)",
+                animation: "fadeInUp 1.3s ease-out"
+              }}
+            >
+              <div className="flex items-start gap-3">
+                <span style={{ fontSize: 26, lineHeight: 1, flexShrink: 0 }}>✨</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p
+                    className="cinzel"
+                    style={{
+                      fontSize: "0.85rem",
+                      letterSpacing: "0.14em",
+                      textTransform: "uppercase",
+                      color: "#bbf7d0",
+                      fontWeight: 700,
+                      margin: 0,
+                      lineHeight: 1.2
+                    }}
+                  >
+                    {t.levelUpSlotUnlockTitle || "New slot unlocked!"}
+                  </p>
+                  <p
+                    style={{
+                      fontSize: "0.88rem",
+                      color: "#dcfce7",
+                      margin: "4px 0 0",
+                      lineHeight: 1.4
+                    }}
+                  >
+                    {t.levelUpSlotUnlockMessage || "You can now add +1 habit and +1 daily quest — speed up your growth."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           <div style={{ animation: "fadeInUp 1.4s ease-out" }}>
             <button 

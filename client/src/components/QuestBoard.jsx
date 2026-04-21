@@ -58,7 +58,8 @@ function QuestBoard({
   emptyPinnedSlotCount = 0,
   emptyOtherSlotCount = 0,
   onOpenHabitPicker = null,
-  onRequestRandomReroll = null
+  onRequestRandomReroll = null,
+  maxDailyQuests = 6
 }) {
   const { t } = useTheme();
   const hasPinned = pinnedQuests.length > 0;
@@ -134,7 +135,8 @@ function QuestBoard({
   }, [activeQTab, tabs.length]);
 
   const totalQuestCount = pinnedQuests.length + otherQuests.length;
-  const completedTodayCount = Math.min(6, completedIds.length);
+  const totalQuestCap = Math.max(1, Number(maxDailyQuests) || 6);
+  const completedTodayCount = Math.min(totalQuestCap, completedIds.length);
   const pinnedDone = pinnedQuests.filter((q) => completedIds.includes(q.id)).length;
   const otherDone = otherQuests.filter((q) => completedIds.includes(q.id)).length;
 
@@ -148,7 +150,7 @@ function QuestBoard({
           <span className="font-mono font-bold" style={{ color: "var(--color-primary)" }}>{resetTimer}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="cinzel text-[11px]" style={{ color: "var(--color-muted)" }}>{completedTodayCount}/6</span>
+          <span className="cinzel text-[11px]" style={{ color: "var(--color-muted)" }}>{completedTodayCount}/{totalQuestCap}</span>
         </div>
       </div>
 

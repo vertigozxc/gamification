@@ -83,6 +83,7 @@ export default function DesktopLayout({
           emptyPinnedSlotCount={emptyPinnedSlotCount}
           emptyOtherSlotCount={emptyOtherSlotCount}
           onOpenHabitPicker={onOpenHabitPicker}
+          maxDailyQuests={maxDailyQuests}
         />
         <SidePanels leaderboard={leaderboard} authUser={authUser} logs={logs} />
       </div>
