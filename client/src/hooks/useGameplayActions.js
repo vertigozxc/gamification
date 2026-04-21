@@ -530,10 +530,14 @@ function useGameplayActions({
 
 
   async function handleBuyExtraReroll() {
-    // Optimistic: deduct token and increment reroll count immediately
+    // Mirror server cost: base 3 minus Residential shop discount (idx 4).
+    const resLvl = Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[4]) || 0)));
+    const discount = resLvl >= 5 ? 2 : resLvl >= 1 ? 1 : 0;
+    const cost = Math.max(0, 3 - discount);
+    // Optimistic: deduct tokens and increment reroll count immediately
     setState(prev => ({
       ...prev,
-      tokens: prev.tokens - 1,
+      tokens: Math.max(0, prev.tokens - cost),
       extraRerollsToday: prev.extraRerollsToday + 1
     }));
     try {
@@ -557,7 +561,7 @@ function useGameplayActions({
       // Rollback
       setState(prev => ({
         ...prev,
-        tokens: prev.tokens + 1,
+        tokens: prev.tokens + cost,
         extraRerollsToday: Math.max(0, prev.extraRerollsToday - 1)
       }));
       addLog(err?.message || vocab?.purchaseFailed || "Purchase failed. Please try again.", "text-red-400 font-bold");
@@ -574,10 +578,10 @@ function useGameplayActions({
 
     // Mirror the server's residential shop-discount so the optimistic
     // deduction matches what the DB will return (lvl >=5: -2, lvl >=1: -1).
-    // Residential district is index 4 in districtLevels.
+    // Residential district is index 4 in districtLevels. Base price is 7.
     const resLvl = Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[4]) || 0)));
     const discount = resLvl >= 5 ? 2 : resLvl >= 1 ? 1 : 0;
-    const freezeCost = Math.max(0, 3 - discount);
+    const freezeCost = Math.max(0, 7 - discount);
 
     setFreezeStreakPending(true);
     // Optimistic: deduct tokens and bump charge count (shop adds a charge to Profile)
@@ -598,7 +602,8 @@ function useGameplayActions({
         tokens: result.tokens,
         user: {
           ...(prev.user || {}),
-          streakFreezeCharges: Number(result.streakFreezeCharges) || 0
+          streakFreezeCharges: Number(result.streakFreezeCharges) || 0,
+          lastFreezePurchaseWeekKey: result.lastFreezePurchaseWeekKey || prev.user?.lastFreezePurchaseWeekKey || ""
         },
         logs: [
           ...prev.logs,

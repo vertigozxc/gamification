@@ -463,7 +463,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
               lastVacationAt: userData.lastVacationAt ?? null,
               monthlyFreezeClaims: userData.monthlyFreezeClaims ?? "",
               streakFreezeCharges: Number(userData.streakFreezeCharges) || 0,
-              streakFreezeExpiresAt: userData.streakFreezeExpiresAt ?? null
+              streakFreezeExpiresAt: userData.streakFreezeExpiresAt ?? null,
+              lastFreezePurchaseWeekKey: userData.lastFreezePurchaseWeekKey ?? ""
             },
             productivity: gameStateResponse?.productivity ?? prev.productivity,
             pinnedQuestProgress21d: normalizePinnedQuestProgress(gameStateResponse?.pinnedQuestProgress21d),
@@ -1165,8 +1166,26 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 freezeCost={(() => {
                   const resLvl = Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[4]) || 0)));
                   const discount = resLvl >= 5 ? 2 : resLvl >= 1 ? 1 : 0;
+                  return Math.max(0, 7 - discount);
+                })()}
+                rerollCost={(() => {
+                  const resLvl = Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[4]) || 0)));
+                  const discount = resLvl >= 5 ? 2 : resLvl >= 1 ? 1 : 0;
                   return Math.max(0, 3 - discount);
                 })()}
+                freezeWeeklyLocked={(() => {
+                  const lastKey = state.user?.lastFreezePurchaseWeekKey || "";
+                  if (!lastKey) return false;
+                  const d = new Date();
+                  const dayNum = d.getUTCDay() || 7;
+                  const monday = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+                  monday.setUTCDate(monday.getUTCDate() + 4 - dayNum);
+                  const yearStart = new Date(Date.UTC(monday.getUTCFullYear(), 0, 1));
+                  const weekNo = Math.ceil((((monday - yearStart) / 86400000) + 1) / 7);
+                  const currentWeekKey = `${monday.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+                  return lastKey === currentWeekKey;
+                })()}
+                residentialLevel={Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[4]) || 0)))}
                 extraRerollsToday={state.extraRerollsToday}
                 hasRerolledToday={state.hasRerolledToday}
                 canRerollPinned={canRerollPinned}

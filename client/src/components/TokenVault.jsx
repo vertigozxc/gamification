@@ -5,7 +5,9 @@ import { pluralizeCharges } from "../i18nConfig";
 function TokenVault({
   tokens,
   streakFreezeCharges = 0,
-  freezeCost = 3,
+  freezeCost = 7,
+  rerollCost = 3,
+  freezeWeeklyLocked = false,
   freezeStreakPending = false,
   extraRerollsToday,
   hasRerolledToday,
@@ -54,16 +56,25 @@ function TokenVault({
             )}
             <button
               onClick={onFreezeStreak}
-              disabled={tokens < freezeCost || freezeStreakPending}
+              disabled={tokens < freezeCost || freezeStreakPending || freezeWeeklyLocked}
               className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 ${
-                tokens >= freezeCost && !freezeStreakPending
+                tokens >= freezeCost && !freezeStreakPending && !freezeWeeklyLocked
                   ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:from-cyan-600 hover:to-blue-600 shadow-md"
                   : "bg-slate-800/80 text-slate-500 cursor-not-allowed"
               }`}
             >
               <span>{t.tokenIcon}</span>
-              {freezeStreakPending ? t.processingLabel : tokens < freezeCost ? t.notEnough : `${t.buyPrefix} ${freezeCost} ${getPluralizedToken(freezeCost)}`}
+              {freezeWeeklyLocked
+                ? (t.freezeWeeklyLocked || "Already bought this week")
+                : freezeStreakPending
+                  ? t.processingLabel
+                  : tokens < freezeCost
+                    ? t.notEnough
+                    : `${t.buyPrefix} ${freezeCost} ${getPluralizedToken(freezeCost)}`}
             </button>
+            <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
+              {t.freezeWeeklyHint || "Limit: 1 purchase per week · resets Monday"}
+            </p>
           </div>
 
           <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
@@ -75,7 +86,7 @@ function TokenVault({
               </div>
               <div className="flex items-center gap-1 rounded-full px-3 py-1" style={{ background: "var(--xp-badge-bg)", border: "1px solid var(--color-primary-dim)" }}>
                 <span className="text-base">{t.tokenIcon}</span>
-                <span className="cinzel font-bold text-sm" style={{ color: "var(--color-text)" }}>1</span>
+                <span className="cinzel font-bold text-sm" style={{ color: "var(--color-text)" }}>{rerollCost}</span>
               </div>
             </div>
             <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
@@ -89,15 +100,15 @@ function TokenVault({
             )}
             <button
               onClick={onBuyExtraReroll}
-              disabled={tokens < 1 || !hasRerolledToday}
+              disabled={tokens < rerollCost || !hasRerolledToday}
               className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 ${
-                tokens >= 1 && hasRerolledToday
+                tokens >= rerollCost && hasRerolledToday
                   ? "bg-gradient-to-r from-violet-500 to-purple-500 text-white hover:from-violet-600 hover:to-purple-600 shadow-md"
                   : "bg-slate-800/80 text-slate-500 cursor-not-allowed"
               }`}
             >
               <span>{t.tokenIcon}</span>
-              {!hasRerolledToday ? t.rerollFreeFirst : tokens < 1 ? t.notEnough : `${t.buyPrefix} 1 ${getPluralizedToken(1)}`}
+              {!hasRerolledToday ? t.rerollFreeFirst : tokens < rerollCost ? t.notEnough : `${t.buyPrefix} ${rerollCost} ${getPluralizedToken(rerollCost)}`}
             </button>
           </div>
 

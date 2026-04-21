@@ -3448,6 +3448,8 @@ app.post("/api/reset-daily", async (req, res) => {
   }
 });
 
+// Streak Freeze shop — 7 tokens base (minus Residential discount), limited to
+// one purchase per calendar week (resets Monday UTC 00:00 alongside daily reset).
 app.post("/api/shop/freeze-streak", async (req, res) => {
   try {
     const parsed = usernameBody.parse(req.body);
@@ -3457,21 +3459,35 @@ app.post("/api/shop/freeze-streak", async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
+    const now = new Date();
+    const weekKey = getWeekKey(now);
+
+    // Weekly limit: one Streak Freeze charge per user per week.
+    if (user.lastFreezePurchaseWeekKey === weekKey) {
+      return res.status(400).json({
+        error: "Weekly limit reached",
+        code: "weekly_limit",
+        weekKey,
+        nextAvailableAt: nextMondayUtc(now).toISOString()
+      });
+    }
+
     // Residential district shop discount
     const resLvl = districtLevelOf(user.districtLevels, "residential");
     const discount = residentialShopDiscount(resLvl);
-    const freezeCost = Math.max(0, 3 - discount);
+    const freezeCost = Math.max(0, 7 - discount);
 
     if (user.tokens < freezeCost) {
       return res.status(400).json({ error: "Not enough tokens" });
     }
 
-    // Streak Freeze now adds a charge to the pool (redeem via profile).
+    // Streak Freeze adds a charge to the pool (redeem via profile).
     const updated = await prisma.user.update({
       where: { id: user.id },
       data: {
         tokens: { decrement: freezeCost },
-        streakFreezeCharges: { increment: 1 }
+        streakFreezeCharges: { increment: 1 },
+        lastFreezePurchaseWeekKey: weekKey
       }
     });
     res.json({
@@ -3479,12 +3495,22 @@ app.post("/api/shop/freeze-streak", async (req, res) => {
       tokens: updated.tokens,
       cost: freezeCost,
       discount,
-      streakFreezeCharges: updated.streakFreezeCharges
+      streakFreezeCharges: updated.streakFreezeCharges,
+      lastFreezePurchaseWeekKey: updated.lastFreezePurchaseWeekKey,
+      nextAvailableAt: nextMondayUtc(now).toISOString()
     });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
   }
 });
+
+function nextMondayUtc(from = new Date()) {
+  const d = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()));
+  const dayOffsetFromMonday = (d.getUTCDay() + 6) % 7;
+  // Move to current Monday, then +7 days.
+  d.setUTCDate(d.getUTCDate() - dayOffsetFromMonday + 7);
+  return d;
+}
 
 app.post("/api/shop/extra-reroll", async (req, res) => {
   try {
@@ -3496,7 +3522,7 @@ app.post("/api/shop/extra-reroll", async (req, res) => {
     }
     const resLvl = districtLevelOf(user.districtLevels, "residential");
     const discount = residentialShopDiscount(resLvl);
-    const rerollCost = Math.max(0, 1 - discount);
+    const rerollCost = Math.max(0, 3 - discount);
     if (user.tokens < rerollCost) {
       return res.status(400).json({ error: "Not enough tokens" });
     }
