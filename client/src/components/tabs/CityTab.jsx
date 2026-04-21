@@ -31,8 +31,10 @@ function perkText(t, districtId, lvl) {
 
 // Short blurb used ONLY on the overview's active-benefits list.
 // Inside the district detail the user sees the full per-level perks.
+// Residential always reads 'Custom benefits' regardless of level — the
+// specific perk list lives inside the district detail screen.
 function overviewPerkText(t, districtId, lvl) {
-  if (districtId === "residential" && lvl > 0) {
+  if (districtId === "residential") {
     return t?.residentialActiveBenefitsBlurb || "Custom benefits";
   }
   return perkText(t, districtId, lvl);
@@ -322,6 +324,7 @@ export default function CityTab({
   const grassBg = themeId === "light" ? "#7ec382" : "#1d3a28";
 
   const [lockedInfoOpen, setLockedInfoOpen] = useState(false);
+  const [claimSuccessPopup, setClaimSuccessPopup] = useState(null); // "freeze" | "vacation" | null
   const handleDistrictClick = useCallback((_districtId, idx, meta) => {
     if (meta?.locked) {
       setLockedInfoOpen(true);
@@ -410,13 +413,12 @@ export default function CityTab({
         streakFreezeCharges: result.streakFreezeCharges,
         ...(nextMonthlyClaims ? { monthlyFreezeClaims: nextMonthlyClaims } : {})
       });
-      setActionMsg(`❄️ +1 · ${t.residentialGrantedToProfile || "Granted to Profile"}`);
-      setTimeout(() => setActionMsg(""), 3500);
+      setClaimSuccessPopup("freeze");
     } catch (err) {
       setActionMsg(err?.data?.error || err?.message || "Failed");
       setTimeout(() => setActionMsg(""), 3000);
     }
-  }, [username, onStatsGranted, t]);
+  }, [username, onStatsGranted]);
 
   const handleStartVacation = useCallback(async () => {
     if (!username) return;
@@ -428,13 +430,12 @@ export default function CityTab({
         vacationEndsAt: result.vacationEndsAt ?? null,
         lastVacationAt: result.lastVacationAt ?? null
       });
-      setActionMsg(`🏖️ +${result.grantedCharges ?? 20} · ${t.residentialGrantedToProfile || "Granted to Profile"}`);
-      setTimeout(() => setActionMsg(""), 3500);
+      setClaimSuccessPopup("vacation");
     } catch (err) {
       setActionMsg(err?.data?.error || err?.message || "Failed");
       setTimeout(() => setActionMsg(""), 3000);
     }
-  }, [username, onStatsGranted, t]);
+  }, [username, onStatsGranted]);
 
   // Check localStorage cache on mount
   useEffect(() => {
@@ -699,7 +700,11 @@ export default function CityTab({
           {DISTRICTS.filter((d) => !d.locked).map((d) => {
             const actualIdx = DISTRICTS.findIndex((x) => x.id === d.id);
             const lvl = Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(Number(districtLevels[actualIdx]) || 0)));
-            const text = lvl > 0 ? overviewPerkText(t, d.id, lvl) : (t.districtNotUpgradedYet || "Not upgraded yet");
+            // Residential blurb is constant regardless of level ("Custom
+            // benefits"); other districts show their upgrade state.
+            const text = d.id === "residential"
+              ? overviewPerkText(t, d.id, lvl)
+              : (lvl > 0 ? overviewPerkText(t, d.id, lvl) : (t.districtNotUpgradedYet || "Not upgraded yet"));
             const districtName = t?.[`district${d.id.charAt(0).toUpperCase() + d.id.slice(1)}`] || d.id;
             const unlocked = lvl > 0;
 
@@ -994,6 +999,7 @@ export default function CityTab({
                 <button
                   onClick={freezeDisabled ? undefined : handleResidentialFreeze}
                   disabled={freezeDisabled}
+                  className="qt-btn"
                   style={{
                     width: "100%",
                     minHeight: 48,
@@ -1026,6 +1032,7 @@ export default function CityTab({
                 <button
                   onClick={vacationDisabled ? undefined : handleStartVacation}
                   disabled={vacationDisabled}
+                  className="qt-btn"
                   style={{
                     width: "100%",
                     minHeight: 48,
@@ -1204,6 +1211,52 @@ export default function CityTab({
         onClose={handleSpinModalClose}
         onRewardClaimed={handleRewardClaimed}
       />
+
+      {claimSuccessPopup && createPortal(
+        <div
+          className="logout-confirm-overlay"
+          onClick={() => setClaimSuccessPopup(null)}
+        >
+          <div
+            className="logout-confirm-card"
+            role="dialog"
+            aria-modal="true"
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              border: "2px solid rgba(74, 222, 128, 0.6)",
+              boxShadow: "0 0 40px rgba(74, 222, 128, 0.22), 0 25px 50px rgba(0, 0, 0, 0.5)"
+            }}
+          >
+            <div className="logout-confirm-icon">
+              {claimSuccessPopup === "freeze" ? "❄️" : "🏖️"}
+            </div>
+            <h3 className="cinzel logout-confirm-title" style={{ color: "#4ade80" }}>
+              {claimSuccessPopup === "freeze"
+                ? (t.residentialClaimFreezeTitle || "Streak Freeze claimed")
+                : (t.residentialClaimVacationTitle || "Vacation charges claimed")}
+            </h3>
+            <p className="logout-confirm-msg">
+              {claimSuccessPopup === "freeze"
+                ? (t.residentialClaimFreezeBody || "Your Streak Freeze is waiting in your Profile — don't forget to activate it when you need it.")
+                : (t.residentialClaimVacationBody || "Your Vacation charges are waiting in your Profile — don't forget to activate the Vacation mode there.")}
+            </p>
+            <div className="logout-confirm-actions" style={{ justifyContent: "center" }}>
+              <button
+                className="logout-confirm-proceed cinzel"
+                onClick={() => setClaimSuccessPopup(null)}
+                style={{
+                  borderColor: "rgba(74, 222, 128, 0.7)",
+                  background: "linear-gradient(135deg, rgba(74,222,128,0.3), rgba(16,185,129,0.25))",
+                  color: "#dcfce7"
+                }}
+              >
+                {t.proceedLabel || "OK"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {lockedInfoOpen && createPortal(
         <div
