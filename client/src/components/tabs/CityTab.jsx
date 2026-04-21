@@ -1,4 +1,5 @@
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import CityFireworks from "../CityFireworks";
 import CityIsometricOverview, { DISTRICTS } from "../CityIsometricOverview";
 import DistrictView from "../DistrictView";
@@ -141,6 +142,60 @@ function clearSpinCache() {
   } catch {}
 }
 
+function DistrictNameBadge({ name, level, max, levelLabel }) {
+  return (
+    <div
+      className="cinzel"
+      style={{
+        position: "absolute",
+        top: 12,
+        left: "50%",
+        transform: "translateX(-50%)",
+        zIndex: 35,
+        padding: "8px 18px",
+        borderRadius: 14,
+        background: "color-mix(in srgb, #000 55%, transparent)",
+        border: "1.5px solid color-mix(in srgb, var(--color-primary) 75%, transparent)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        boxShadow: "0 4px 18px color-mix(in srgb, #000 45%, transparent)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 2,
+        pointerEvents: "none",
+        maxWidth: "70%",
+        textAlign: "center"
+      }}
+    >
+      <span
+        style={{
+          fontSize: 14,
+          fontWeight: 800,
+          color: "var(--color-primary)",
+          letterSpacing: "0.08em",
+          lineHeight: 1.1,
+          textShadow: "0 0 8px color-mix(in srgb, var(--color-primary) 35%, transparent)"
+        }}
+      >
+        {name}
+      </span>
+      <span
+        style={{
+          fontSize: 10,
+          fontWeight: 700,
+          color: "color-mix(in srgb, #fff 85%, transparent)",
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          lineHeight: 1
+        }}
+      >
+        {levelLabel} {level}/{max}
+      </span>
+    </div>
+  );
+}
+
 function ReqChip({ icon, label, met, current }) {
   return (
     <span
@@ -168,7 +223,7 @@ function ReqChip({ icon, label, met, current }) {
 }
 
 function PerkRow({ lvl, levelShort = "LVL", text, unlocked, isNext }) {
-  const marker = unlocked ? "✓" : isNext ? "►" : "🔒";
+  const marker = unlocked ? "✓" : isNext ? "✦" : "🔒";
   const markerColor = unlocked ? "#4fa85e" : isNext ? "var(--color-primary)" : "var(--color-muted)";
   const textColor = unlocked ? "var(--color-text)" : isNext ? "var(--color-text)" : "var(--color-muted)";
   const bg = isNext
@@ -243,6 +298,14 @@ export default function CityTab({
   const [cdRemaining, setCdRemaining] = useState(0);
   const [selectedDistrictIdx, setSelectedDistrictIdx] = useState(-1);
   const [expandedView, setExpandedView] = useState("none"); // 'none' | 'iso' | 'district'
+
+  // Mirror expanded state to the app-level cityFullscreen flag so the mobile
+  // tab bar auto-hides during the rotated fullscreen view.
+  useEffect(() => {
+    if (typeof setCityFullscreen === "function") {
+      setCityFullscreen(expandedView !== "none");
+    }
+  }, [expandedView, setCityFullscreen]);
   const [upgradePopup, setUpgradePopup] = useState(null); // { districtId, level, name, perk } | null
   const cdIntervalRef = useRef(null);
   const { themeId, languageId } = useTheme();
@@ -521,7 +584,7 @@ export default function CityTab({
         {selectedDistrictIdx < 0 && (
           <>
             <div className="city-canvas-inner" style={{ position: "relative" }}>
-              <InteractiveMapWrapper background={grassBg}>
+              <InteractiveMapWrapper background={grassBg} initialScale={1.35}>
                 <CityIsometricOverview
                   levels={districtLevels}
                   selectedIdx={selectedDistrictIdx}
@@ -558,6 +621,7 @@ export default function CityTab({
         {selectedDistrictIdx >= 0 && (() => {
           const district = DISTRICTS[selectedDistrictIdx];
           const level = Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(Number(districtLevels[selectedDistrictIdx]) || 0)));
+          const districtName = t?.[`district${district.id.charAt(0).toUpperCase() + district.id.slice(1)}`] || district.id;
           return (
             <div
               className="absolute inset-0 z-10"
@@ -566,6 +630,14 @@ export default function CityTab({
               {/* District scene fills the whole shell */}
               <DistrictView districtId={district.id} level={level} />
               <CityFireworks active={fireworksActive} onDone={handleFireworksDone} />
+
+              {/* District name badge — framed, top-center, over the map */}
+              <DistrictNameBadge
+                name={districtName}
+                level={level}
+                max={DISTRICT_MAX_LEVEL}
+                levelLabel={t.districtLevelLabel || "Level"}
+              />
 
               {/* Back — arrow only, top-left */}
               <button
@@ -622,12 +694,26 @@ export default function CityTab({
             borderRadius: 16,
             display: "flex",
             flexDirection: "column",
-            gap: 8
+            gap: 10
           }}
         >
-          <span style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-muted)", fontWeight: 700 }}>
-            {t.activeBenefitsLabel || "Active benefits"}
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", paddingBottom: 6, borderBottom: "1px solid var(--panel-border)" }}>
+            <span style={{ fontSize: 14 }}>✨</span>
+            <span
+              className="cinzel"
+              style={{
+                fontSize: 11,
+                letterSpacing: "0.22em",
+                textTransform: "uppercase",
+                color: "var(--color-primary)",
+                fontWeight: 800,
+                textShadow: "0 0 8px color-mix(in srgb, var(--color-primary) 35%, transparent)"
+              }}
+            >
+              {t.activeBenefitsLabel || "Active benefits"}
+            </span>
+            <span style={{ fontSize: 14 }}>✨</span>
+          </div>
           {DISTRICTS.filter((d) => !d.locked).map((d) => {
             const actualIdx = DISTRICTS.findIndex((x) => x.id === d.id);
             const lvl = Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(Number(districtLevels[actualIdx]) || 0)));
@@ -663,9 +749,9 @@ export default function CityTab({
                 key={`act-${d.id}`}
                 style={{
                   display: "flex",
-                  alignItems: "flex-start",
+                  alignItems: "center",
                   gap: 10,
-                  padding: "8px 10px",
+                  padding: "10px 12px",
                   borderRadius: 10,
                   background: unlocked
                     ? "color-mix(in srgb, #4fa85e 8%, transparent)"
@@ -678,7 +764,7 @@ export default function CityTab({
               >
                 <span
                   style={{
-                    width: 24, height: 24, borderRadius: 12,
+                    width: 26, height: 26, borderRadius: 13,
                     display: "inline-flex", alignItems: "center", justifyContent: "center",
                     fontSize: 11, fontWeight: 800,
                     color: unlocked ? "#4fa85e" : "var(--color-muted)",
@@ -686,8 +772,7 @@ export default function CityTab({
                       ? "color-mix(in srgb, #4fa85e 20%, transparent)"
                       : "color-mix(in srgb, var(--panel-bg) 80%, transparent)",
                     border: `1px solid ${unlocked ? "color-mix(in srgb, #4fa85e 55%, transparent)" : "var(--panel-border)"}`,
-                    flexShrink: 0,
-                    marginTop: 1
+                    flexShrink: 0
                   }}
                   title={`Level ${lvl}`}
                 >
@@ -704,12 +789,11 @@ export default function CityTab({
                   display: "-webkit-box",
                   WebkitLineClamp: 2,
                   WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                  marginTop: 3
+                  overflow: "hidden"
                 }}>
                   {districtName}
                 </span>
-                <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4, justifyContent: "center" }}>
                   <span style={{
                     fontSize: 13,
                     fontWeight: 600,
@@ -747,20 +831,7 @@ export default function CityTab({
         const district = DISTRICTS[selectedDistrictIdx];
         const level = Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(Number(districtLevels[selectedDistrictIdx]) || 0)));
         const atMax = level >= DISTRICT_MAX_LEVEL;
-        const atMin = level <= 0;
         const districtName = t?.[`district${district.id.charAt(0).toUpperCase() + district.id.slice(1)}`] || district.id;
-        const stepBtnStyle = (disabled, accent) => ({
-          width: 48, height: 48, borderRadius: 24,
-          border: `1.5px solid ${disabled ? "var(--panel-border)" : accent}`,
-          background: disabled
-            ? "color-mix(in srgb, var(--panel-bg) 70%, transparent)"
-            : `color-mix(in srgb, ${accent} 15%, var(--panel-bg))`,
-          color: disabled ? "var(--color-muted)" : accent,
-          fontSize: 18, fontWeight: 800, lineHeight: 1,
-          cursor: disabled ? "not-allowed" : "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          transition: "all 0.2s ease", padding: 0
-        });
         const nextReq = !atMax ? DISTRICT_UPGRADE_REQS[level] : null;
         const canUpgrade = !atMax && !!nextReq
           && userLevel >= nextReq.level
@@ -768,60 +839,6 @@ export default function CityTab({
           && userStreak >= nextReq.streak;
         return (
           <div className="mt-3 flex flex-col gap-3">
-            {/* Top: −1 / name / +1 */}
-            <div
-              className="flex items-center justify-center gap-4"
-              style={{
-                padding: "10px 14px",
-                background: "color-mix(in srgb, var(--panel-bg) 60%, transparent)",
-                border: "1px solid var(--panel-border)",
-                borderRadius: 16
-              }}
-            >
-              <button
-                onClick={() => handleQuickDowngrade(district.id)}
-                disabled={atMin}
-                aria-label={`Downgrade ${districtName}`}
-                style={stepBtnStyle(atMin, "#e14b5a")}
-              >−1</button>
-              <div className="text-center" style={{ minWidth: 160 }}>
-                <p className="cinzel m-0 font-bold" style={{ color: "var(--color-primary)", fontSize: 15, lineHeight: 1.15 }}>{districtName}</p>
-                <p className="m-0" style={{ color: "var(--color-muted)", fontSize: 12, marginTop: 2 }}>
-                  {(t.districtLevelLabel || "Level")}: {level}/{DISTRICT_MAX_LEVEL}
-                </p>
-              </div>
-              <button
-                onClick={() => handleQuickUpgrade(district.id)}
-                disabled={atMax}
-                aria-label={`Upgrade ${districtName}`}
-                style={stepBtnStyle(atMax, "#4fa85e")}
-              >+1</button>
-              <button
-                onClick={handleGrantStats}
-                aria-label={t.devGrantStatsTooltip || "+1 level, +1 token, +1 streak"}
-                title={t.devGrantStatsTooltip || "+1 level, +1 token, +1 streak"}
-                style={{
-                  height: 48,
-                  padding: "0 12px",
-                  borderRadius: 24,
-                  border: "1.5px solid #d9a441",
-                  background: "color-mix(in srgb, #d9a441 15%, var(--panel-bg))",
-                  color: "#d9a441",
-                  fontSize: 14,
-                  fontWeight: 800,
-                  lineHeight: 1,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 4,
-                  transition: "all 0.2s ease"
-                }}
-              >
-                +1 ⭐🪙🔥
-              </button>
-            </div>
-
             {/* Benefits + next-upgrade requirements card */}
             <div
               style={{
@@ -1119,45 +1136,30 @@ export default function CityTab({
         );
       })()}
 
-      {upgradePopup && (
+      {upgradePopup && createPortal(
         <div
+          className="logout-confirm-overlay"
           onClick={() => setUpgradePopup(null)}
-          style={{
-            position: "fixed", inset: 0, zIndex: 99999,
-            background: "rgba(0, 0, 0, 0.55)",
-            backdropFilter: "blur(6px)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: 20
-          }}
         >
           <div
+            className="logout-confirm-card"
+            role="dialog"
+            aria-modal="true"
             onClick={(e) => e.stopPropagation()}
             style={{
-              width: "100%",
-              maxWidth: 380,
-              background: "var(--card-bg)",
-              border: "1.5px solid var(--color-primary)",
-              borderRadius: 20,
-              padding: "24px 22px",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px color-mix(in srgb, var(--color-primary) 30%, transparent) inset",
-              display: "flex", flexDirection: "column", gap: 14, alignItems: "center"
+              border: "2px solid color-mix(in srgb, var(--color-primary) 50%, transparent)",
+              boxShadow: "0 0 40px color-mix(in srgb, var(--color-primary) 15%, transparent), 0 25px 50px rgba(0, 0, 0, 0.5)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 14
             }}
           >
-            <div
-              style={{
-                width: 72, height: 72, borderRadius: 36,
-                background: "color-mix(in srgb, var(--color-primary) 20%, var(--panel-bg))",
-                border: "2px solid var(--color-primary)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 36
-              }}
-            >
-              🎉
-            </div>
-            <h3 className="cinzel m-0" style={{ color: "var(--color-primary)", fontSize: 20, fontWeight: 800, textAlign: "center" }}>
+            <div className="logout-confirm-icon" style={{ fontSize: "2.8rem" }}>🎉</div>
+            <h3 className="cinzel logout-confirm-title" style={{ color: "var(--color-primary)", marginBottom: 0 }}>
               {t.districtUpgradePopupTitle || "District Upgraded!"}
             </h3>
-            <p className="m-0" style={{ color: "var(--color-text)", fontSize: 14, textAlign: "center", lineHeight: 1.4 }}>
+            <p className="logout-confirm-msg" style={{ marginBottom: 0 }}>
               {tpl(t.districtUpgradePopupBody, { name: upgradePopup.name, level: upgradePopup.level })}
             </p>
             {upgradePopup.perk && (
@@ -1181,6 +1183,7 @@ export default function CityTab({
             )}
             <button
               onClick={() => setUpgradePopup(null)}
+              className="cinzel"
               style={{
                 width: "100%",
                 minHeight: 46,
@@ -1198,7 +1201,8 @@ export default function CityTab({
               {t.districtUpgradePopupClose || "Close"}
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <SpinWheelModal
@@ -1214,10 +1218,13 @@ export default function CityTab({
         const level = selectedDistrictIdx >= 0
           ? Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(Number(districtLevels[selectedDistrictIdx]) || 0)))
           : 0;
+        const fsDistrictName = district
+          ? (t?.[`district${district.id.charAt(0).toUpperCase() + district.id.slice(1)}`] || district.id)
+          : "";
         return (
           <>
             <div className="city-fullscreen-mode" style={{ backgroundColor: grassBg }}>
-              <InteractiveMapWrapper rotated background={grassBg}>
+              <InteractiveMapWrapper rotated background={grassBg} initialScale={1.25}>
                 {expandedView === "iso" ? (
                   <CityIsometricOverview
                     levels={districtLevels}
@@ -1233,6 +1240,58 @@ export default function CityTab({
                 ) : null}
               </InteractiveMapWrapper>
             </div>
+            {/* District name badge — fixed to viewport (not rotated) so it stays upright */}
+            {expandedView === "district" && district && (
+              <div
+                className="cinzel"
+                style={{
+                  position: "fixed",
+                  top: "max(18px, env(safe-area-inset-top, 0px))",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  zIndex: 9999998,
+                  pointerEvents: "none",
+                  padding: "8px 18px",
+                  borderRadius: 14,
+                  background: "color-mix(in srgb, #000 55%, transparent)",
+                  border: "1.5px solid color-mix(in srgb, var(--color-primary) 75%, transparent)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                  boxShadow: "0 4px 18px color-mix(in srgb, #000 45%, transparent)",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 2,
+                  maxWidth: "70vw",
+                  textAlign: "center"
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 800,
+                    color: "var(--color-primary)",
+                    letterSpacing: "0.08em",
+                    lineHeight: 1.1,
+                    textShadow: "0 0 8px color-mix(in srgb, var(--color-primary) 35%, transparent)"
+                  }}
+                >
+                  {fsDistrictName}
+                </span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: "color-mix(in srgb, #fff 85%, transparent)",
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    lineHeight: 1
+                  }}
+                >
+                  {t.districtLevelLabel || "Level"} {level}/{DISTRICT_MAX_LEVEL}
+                </span>
+              </div>
+            )}
             {/* Close button — fixed to real viewport (not inside rotated element), always visible */}
             <button
               onClick={() => setExpandedView("none")}

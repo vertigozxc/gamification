@@ -1,10 +1,10 @@
 import React, { useRef, useEffect } from 'react';
 
-export default function InteractiveMapWrapper({ children, rotated = false, background = "transparent" }) {
+export default function InteractiveMapWrapper({ children, rotated = false, background = "transparent", initialScale = 1 }) {
   const containerRef = useRef(null);
   const contentRef = useRef(null);
 
-  const scale = useRef(1);
+  const scale = useRef(initialScale);
   const pos = useRef({ x: 0, y: 0 });
 
   const isDragging = useRef(false);
@@ -222,7 +222,8 @@ export default function InteractiveMapWrapper({ children, rotated = false, backg
         style={{
           width: '100%',
           height: '100%',
-          transformOrigin: 'center center'
+          transformOrigin: 'center center',
+          transform: `scale(${initialScale})`
         }}
       >
         {children}

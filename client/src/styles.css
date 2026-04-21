@@ -1680,6 +1680,9 @@ to{opacity:1;transform:translateY(0)}
   max-width: none !important;
   max-height: none !important;
   transform: rotate(90deg) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  z-index: 9999990 !important;
   transform-origin: top left !important;
   z-index: 99999 !important;
   border-radius: 0 !important;

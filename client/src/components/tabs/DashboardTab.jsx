@@ -33,6 +33,16 @@ export default function DashboardTab({
               <p className="text-xs cinzel font-bold" style={{ color: "var(--streak-text)" }}>{state.streak}</p>
             </div>
             <p className="text-[10px] opacity-70 cinzel tracking-wider" style={{ color: "var(--color-muted)" }}>+{streakBonusPercent}% {t.xpMultiplier}</p>
+            {(() => {
+              const sportLvl = Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[0]) || 0)));
+              const sportBonusPct = sportLvl * 5;
+              if (sportBonusPct <= 0) return null;
+              return (
+                <p className="text-[10px] opacity-70 cinzel tracking-wider" style={{ color: "var(--color-muted)" }}>
+                  +{sportBonusPct}% {t.districtSport || "Sports"}
+                </p>
+              );
+            })()}
           </div>
         </div>
         <div className="dash-xp-bar">
