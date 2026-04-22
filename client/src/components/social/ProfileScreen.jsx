@@ -94,11 +94,7 @@ export default function ProfileScreen({ targetUsername, meUsername, t, languageI
     <>
       <Screen
         title={profile?.displayName || (t.arenaProfileTitle || "Profile")}
-        subtitle={
-          profile
-            ? `${t.arenaLvlFull || "Level"} ${profile.level} · 🔥 ${profile.streak}`
-            : (t.arenaLoadingShort || "Loading")
-        }
+        subtitle={profile ? "" : (t.arenaLoadingShort || "Loading")}
         onClose={onClose}
         footer={footer}
       >

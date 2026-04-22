@@ -47,7 +47,7 @@ export function getStreakTier(streak) {
   return TIERS.find((t) => n >= t.min) || TIERS[TIERS.length - 1];
 }
 
-export default function StreakFrame({ children, streak, size = 44, ringWidth = 3, title, showBadge = true }) {
+export default function StreakFrame({ children, streak, size = 44, ringWidth = 3, title }) {
   const tier = getStreakTier(streak);
   const total = size + ringWidth * 2;
 
@@ -80,7 +80,6 @@ export default function StreakFrame({ children, streak, size = 44, ringWidth = 3
   }
 
   const ringBg = `conic-gradient(from 180deg, ${tier.ringColors.join(", ")})`;
-  const badgeSize = Math.max(14, Math.round(size * 0.36));
 
   return (
     <div
@@ -108,29 +107,6 @@ export default function StreakFrame({ children, streak, size = 44, ringWidth = 3
       >
         {children}
       </div>
-      {showBadge && (
-        <span
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            right: -2,
-            bottom: -2,
-            width: badgeSize,
-            height: badgeSize,
-            borderRadius: "50%",
-            background: tier.badgeBg,
-            border: "2px solid var(--panel-bg)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: Math.round(badgeSize * 0.55),
-            lineHeight: 1,
-            boxShadow: "0 2px 4px rgba(0,0,0,0.3)"
-          }}
-        >
-          {tier.icon}
-        </span>
-      )}
     </div>
   );
 }

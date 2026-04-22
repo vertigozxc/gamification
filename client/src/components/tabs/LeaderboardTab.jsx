@@ -142,31 +142,26 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
   ];
   const selectedIdx = tabs.findIndex((tb) => tb.id === tab);
 
-  /* Swipe-to-switch between tabs (iOS-native feel) */
+  /* Swipe-to-switch between tabs. Thresholds: 40px horizontal, <60px vertical
+   * drift, within 700ms. Works with vertical list scrolling because we check
+   * only at touchend. */
   const onSwipeStart = (e) => {
-    const tch = e.touches ? e.touches[0] : e;
-    swipeRef.current = { x: tch.clientX, y: tch.clientY, t: Date.now(), moved: false, locked: null };
-  };
-  const onSwipeMove = (e) => {
-    const s = swipeRef.current;
-    if (!s) return;
-    const tch = e.touches ? e.touches[0] : e;
-    const dx = tch.clientX - s.x;
-    const dy = tch.clientY - s.y;
-    if (s.locked == null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
-      s.locked = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
-    }
+    if (!e.touches || e.touches.length !== 1) { swipeRef.current = null; return; }
+    const tch = e.touches[0];
+    swipeRef.current = { x: tch.clientX, y: tch.clientY, t: Date.now() };
   };
   const onSwipeEnd = (e) => {
     const s = swipeRef.current;
-    if (!s) return;
     swipeRef.current = null;
-    const tch = e.changedTouches ? e.changedTouches[0] : e;
+    if (!s) return;
+    const tch = (e.changedTouches && e.changedTouches[0]) || null;
+    if (!tch) return;
     const dx = tch.clientX - s.x;
     const dy = tch.clientY - s.y;
     const dt = Date.now() - s.t;
-    if (s.locked !== "x") return;
-    if (Math.abs(dx) < 50 || Math.abs(dy) > 70 || dt > 600) return;
+    if (dt > 700) return;
+    if (Math.abs(dx) < 40) return;
+    if (Math.abs(dy) > Math.abs(dx) * 0.75) return;
     const dir = dx < 0 ? 1 : -1;
     const next = selectedIdx + dir;
     if (next < 0 || next >= tabs.length) return;
@@ -193,15 +188,12 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
           </h1>
         </header>
 
-        {/* Big tab switcher */}
-        <div role="tablist" className="cm-tabs">
+        {/* iOS segmented control */}
+        <div role="tablist" className="cm-tabs" style={{ "--count": tabs.length }}>
           <div
             className="cm-tabs-slider"
             aria-hidden="true"
-            style={{
-              width: `calc((100% - 8px) / ${tabs.length})`,
-              transform: `translateX(calc(100% * ${selectedIdx}))`,
-            }}
+            style={{ transform: `translateX(${selectedIdx * 100}%)` }}
           />
           {tabs.map((tb) => (
             <button
@@ -210,7 +202,7 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
               role="tab"
               aria-selected={tab === tb.id}
               onClick={() => setTab(tb.id)}
-              className="cm-tab press"
+              className="cm-tab"
             >
               <span className="cm-tab-ico">{tb.icon}</span>
               <span className="cm-tab-label">{tb.label}</span>
@@ -226,9 +218,9 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
         ) : (
           <div
             onTouchStart={onSwipeStart}
-            onTouchMove={onSwipeMove}
             onTouchEnd={onSwipeEnd}
-            style={{ display: "flex", flexDirection: "column", gap: 12, touchAction: "pan-y" }}
+            onTouchCancel={onSwipeEnd}
+            style={{ display: "flex", flexDirection: "column", gap: 12, touchAction: "pan-y", minHeight: 200 }}
           >
             {tab === "activity" && (
               <ActivityTab leaderboard={leaderboard} meUid={meUid} t={t} onOpenProfile={pushProfile} />
@@ -494,9 +486,24 @@ function FriendsInlineTab({ friends, requests, busy, t, onOpenProfile, onOpenSea
         </>
       )}
 
-      <h3 className="cm-section-label">
-        🤝 {t.communityFriends || "Friends"} ({friends.length})
-      </h3>
+      <div className="cm-section-head">
+        <h3 className="cm-section-label" style={{ margin: 0 }}>
+          🤝 {t.communityFriends || "Friends"} ({friends.length})
+        </h3>
+        <button
+          type="button"
+          onClick={onOpenSearch}
+          className="cm-head-action press"
+          aria-label={t.communityAddFriend || "Add a friend"}
+          title={t.communityAddFriend || "Add a friend"}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="2" />
+            <path d="m20 20-3.2-3.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <path d="M11 8.5v5M8.5 11h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
 
       {friends.length === 0 ? (
         <div className="cm-empty">
@@ -517,10 +524,6 @@ function FriendsInlineTab({ friends, requests, busy, t, onOpenProfile, onOpenSea
           ))}
         </div>
       )}
-
-      <button type="button" onClick={onOpenSearch} className="cm-primary-btn press" style={{ marginTop: 4 }}>
-        ＋ {t.communityAddFriend || "Add a friend"}
-      </button>
     </div>
   );
 }
