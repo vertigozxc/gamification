@@ -5554,6 +5554,7 @@ app.get("/api/challenges/user/:username", async (req, res) => {
       include: {
         challenge: {
           include: {
+            creator: { select: { username: true, displayName: true } },
             participants: {
               include: {
                 user: { select: { username: true, displayName: true, photoUrl: true } }

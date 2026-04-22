@@ -289,10 +289,13 @@ body[data-theme="light"] .social-block .cm-tabs-slider {
  *   - Child cards get an iOS-style press feedback (scale + tint).
  * ========================================================================== */
 .social-block .dash-chal-strip {
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--panel-bg));
+  border: 1.5px solid color-mix(in srgb, var(--color-primary) 42%, var(--panel-border));
   border-radius: 14px;
   overflow: hidden;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-primary) 28%, transparent) inset,
+    0 4px 14px rgba(0, 0, 0, 0.18);
 }
 .social-block .dash-chal-header {
   width: 100%;

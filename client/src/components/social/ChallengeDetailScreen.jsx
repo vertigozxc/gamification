@@ -69,7 +69,12 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
   const active = participants.filter((p) => !p.leftAt);
   const me = participants.find((p) => p.user.username === meUid);
   const isParticipant = !!(me && !me.leftAt);
-  const myAccepted = !!me?.acceptedAt;
+  // Creator of the challenge is treated as accepted even if their
+  // acceptedAt stamp somehow goes missing (legacy row, race with an
+  // incoming refresh, etc.) — they should never see the Accept/Decline
+  // buttons on their own challenge.
+  const isCreator = !!(challenge?.creator?.username && challenge.creator.username === meUid);
+  const myAccepted = isCreator || !!me?.acceptedAt;
   // `isActive` = "this user is an accepted, still-active participant"
   // (matches the old semantic callers relied on; pending invites aren't
   // active for action-button purposes).

@@ -111,6 +111,7 @@ export default function DashboardChallengeStrip({ authUser, t, onOpenSocial }) {
             <ChallengeCard
               key={c.id}
               challenge={c}
+              meUid={meUid}
               t={t}
               busy={busyId === c.id}
               optimisticDone={optimisticDone.has(c.id)}
@@ -126,7 +127,7 @@ export default function DashboardChallengeStrip({ authUser, t, onOpenSocial }) {
   );
 }
 
-function ChallengeCard({ challenge, t, busy, optimisticDone, onComplete, onAccept, onDecline, onOpen }) {
+function ChallengeCard({ challenge, meUid, t, busy, optimisticDone, onComplete, onAccept, onDecline, onOpen }) {
   const tKey = todayKey();
   const completedToday = optimisticDone || challenge.myLastCompletionDayKey === tKey;
   const ended = new Date(challenge.endsAt).getTime() <= Date.now();
@@ -134,7 +135,10 @@ function ChallengeCard({ challenge, t, busy, optimisticDone, onComplete, onAccep
   const daysLeft = ended ? 0 : Math.max(0, Math.ceil((new Date(challenge.endsAt).getTime() - Date.now()) / 86400000));
   const elapsedDays = Math.min(total, Math.max(0, total - daysLeft));
   const pct = Math.round((elapsedDays / total) * 100);
-  const myAccepted = !!challenge.myAcceptedAt;
+  // Creator is implicitly accepted — never show Accept/Decline on their
+  // own challenge, even if the response momentarily misses myAcceptedAt.
+  const isCreator = !!(challenge.creator?.username && challenge.creator.username === meUid);
+  const myAccepted = isCreator || !!challenge.myAcceptedAt;
   const isActivated = typeof challenge.isActivated === "boolean"
     ? challenge.isActivated
     : (challenge.participants || []).filter((p) => p.acceptedAt && !p.leftAt).length >= 2;
@@ -151,28 +155,33 @@ function ChallengeCard({ challenge, t, busy, optimisticDone, onComplete, onAccep
         onClick={onOpen}
         className="dash-chal-card-head press"
       >
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-          <span className="sb-body" style={{ fontWeight: 700, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", letterSpacing: "-0.01em" }}>
-            {challenge.title}
-          </span>
-          {pending ? (
-            <span className="sb-pill" style={{ flexShrink: 0, background: "rgba(var(--color-primary-rgb,251,191,36),0.18)", color: "var(--color-primary)" }}>
-              ✉ {t.arenaPendingBadge || "Pending"}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+              <span className="sb-body" style={{ fontWeight: 700, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", letterSpacing: "-0.01em" }}>
+                {challenge.title}
+              </span>
+              {pending ? (
+                <span className="sb-pill" style={{ flexShrink: 0, background: "rgba(var(--color-primary-rgb,251,191,36),0.18)", color: "var(--color-primary)" }}>
+                  ✉ {t.arenaPendingBadge || "Pending"}
+                </span>
+              ) : waiting ? (
+                <span className="sb-pill" style={{ flexShrink: 0 }}>
+                  ⏳ {t.arenaWaitingBadge || "Waiting"}
+                </span>
+              ) : (
+                <span className="sb-pill sb-pill-accent" style={{ flexShrink: 0 }}>
+                  {(t.communityDaysLeft || "{n}d left").replace("{n}", String(daysLeft))}
+                </span>
+              )}
+            </div>
+            <span className="sb-caption" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              🎯 {challenge.questTitle}
+              {challenge.needsTimer && challenge.timeEstimateMin ? ` · ⏱ ${challenge.timeEstimateMin} ${t.arenaMinAbbrev || "min"}` : ""}
             </span>
-          ) : waiting ? (
-            <span className="sb-pill" style={{ flexShrink: 0 }}>
-              ⏳ {t.arenaWaitingBadge || "Waiting"}
-            </span>
-          ) : (
-            <span className="sb-pill sb-pill-accent" style={{ flexShrink: 0 }}>
-              {(t.communityDaysLeft || "{n}d left").replace("{n}", String(daysLeft))}
-            </span>
-          )}
+          </div>
+          <span aria-hidden="true" style={{ color: "var(--color-muted)", fontSize: 18, flexShrink: 0, lineHeight: 1 }}>›</span>
         </div>
-        <span className="sb-caption" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          🎯 {challenge.questTitle}
-          {challenge.needsTimer && challenge.timeEstimateMin ? ` · ⏱ ${challenge.timeEstimateMin} ${t.arenaMinAbbrev || "min"}` : ""}
-        </span>
       </button>
 
       {!pending && !waiting && (
