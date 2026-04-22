@@ -8,47 +8,53 @@ datasource db {
 }
 
 model User {
-  id                    String            @id @default(cuid())
-  username              String            @unique
-  displayName           String
-  photoUrl              String            @default("")
-  preferredQuestIds     String            @default("")
-  randomQuestIds        String            @default("")
-  previousRandomQuestIds String           @default("")
-  level                 Int               @default(1)
-  xp                    Int               @default(0)
-  xpNext                Int               @default(250)
-  streak                Int               @default(0)
-  tokens                Int               @default(0)
-  theme                 String            @default("adventure")
-  lastStreakIncreaseAt  DateTime?
-  streakFreezeExpiresAt DateTime?
-  lastFreeTaskRerollAt  DateTime?
-  lastDailyRerollAt     DateTime?
-  extraRerollsToday     Int               @default(0)
-  lastDailyResetAt      DateTime          @default(now())
-  lastCitySpinDayKey    String            @default("")
-  districtLevels        String            @default("0,0,0,0,0")
-  lastCitySpinAt        DateTime?
-  lastBusinessClaimDayKey String          @default("")
-  lastSquareBonusDayKey String            @default("")
-  monthlyFreezeClaims   String            @default("")
-  vacationStartedAt     DateTime?
-  vacationEndsAt        DateTime?
-  lastVacationAt        DateTime?
-  streakFreezeCharges   Int               @default(0)
-  lastFreezePurchaseWeekKey String        @default("")
-  isDevTester           Boolean           @default(false)
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
-  customQuests          CustomQuest[]
-  dailyScores           DailyScore[]
-  friendshipsB          Friendship[]      @relation("friendB")
-  friendshipsA          Friendship[]      @relation("friendA")
-  invitesReceived       Invite[]          @relation("invitesReceived")
-  invitesSent           Invite[]          @relation("invitesSent")
-  completions           QuestCompletion[]
-  timerSessions         QuestTimerSession[]
+  id                        String                 @id @default(cuid())
+  username                  String                 @unique
+  displayName               String
+  photoUrl                  String                 @default("")
+  preferredQuestIds         String                 @default("")
+  randomQuestIds            String                 @default("")
+  previousRandomQuestIds    String                 @default("")
+  level                     Int                    @default(1)
+  xp                        Int                    @default(0)
+  xpNext                    Int                    @default(250)
+  streak                    Int                    @default(0)
+  tokens                    Int                    @default(0)
+  theme                     String                 @default("adventure")
+  lastStreakIncreaseAt      DateTime?
+  streakFreezeExpiresAt     DateTime?
+  lastFreeTaskRerollAt      DateTime?
+  lastDailyRerollAt         DateTime?
+  extraRerollsToday         Int                    @default(0)
+  lastDailyResetAt          DateTime               @default(now())
+  lastCitySpinDayKey        String                 @default("")
+  districtLevels            String                 @default("0,0,0,0,0")
+  lastCitySpinAt            DateTime?
+  lastBusinessClaimDayKey   String                 @default("")
+  lastSquareBonusDayKey     String                 @default("")
+  monthlyFreezeClaims       String                 @default("")
+  vacationStartedAt         DateTime?
+  vacationEndsAt            DateTime?
+  lastVacationAt            DateTime?
+  streakFreezeCharges       Int                    @default(0)
+  lastFreezePurchaseWeekKey String                 @default("")
+  isDevTester               Boolean                @default(false)
+  maxStreak                 Int                    @default(0)
+  createdAt                 DateTime               @default(now())
+  updatedAt                 DateTime               @updatedAt
+  customQuests              CustomQuest[]
+  dailyScores               DailyScore[]
+  friendshipsB              Friendship[]           @relation("friendB")
+  friendshipsA              Friendship[]           @relation("friendA")
+  invitesReceived           Invite[]               @relation("invitesReceived")
+  invitesSent               Invite[]               @relation("invitesSent")
+  friendRequestsSent        FriendRequest[]        @relation("friendRequestsSent")
+  friendRequestsReceived    FriendRequest[]        @relation("friendRequestsReceived")
+  challengesCreated         GroupChallenge[]       @relation("challengeCreator")
+  challengeParticipations   ChallengeParticipant[]
+  challengeLogs             ChallengeLogEntry[]
+  completions               QuestCompletion[]
+  timerSessions             QuestTimerSession[]
 }
 
 model CustomQuest {
@@ -140,6 +146,72 @@ model Friendship {
   @@unique([userAId, userBId])
   @@index([userAId])
   @@index([userBId])
+}
+
+model FriendRequest {
+  id          String    @id @default(cuid())
+  fromUserId  String
+  toUserId    String
+  status      String    @default("PENDING")
+  createdAt   DateTime  @default(now())
+  respondedAt DateTime?
+  fromUser    User      @relation("friendRequestsSent", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser      User      @relation("friendRequestsReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId])
+  @@index([toUserId, status])
+  @@index([fromUserId, status])
+}
+
+model GroupChallenge {
+  id                String                 @id @default(cuid())
+  creatorId         String
+  title             String
+  description       String                 @default("")
+  questTitle        String
+  questDescription  String                 @default("")
+  needsTimer        Boolean                @default(false)
+  timeEstimateMin   Int                    @default(0)
+  durationDays      Int                    @default(7)
+  startedAt         DateTime               @default(now())
+  endsAt            DateTime
+  lastAwardedDayKey String                 @default("")
+  createdAt         DateTime               @default(now())
+  creator           User                   @relation("challengeCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  participants      ChallengeParticipant[]
+  logs              ChallengeLogEntry[]
+
+  @@index([creatorId])
+  @@index([endsAt])
+}
+
+model ChallengeParticipant {
+  id                   String         @id @default(cuid())
+  challengeId          String
+  userId               String
+  joinedAt             DateTime       @default(now())
+  leftAt               DateTime?
+  completions          Int            @default(0)
+  consecutiveDays      Int            @default(0)
+  lastCompletionDayKey String         @default("")
+  tokensEarned         Int            @default(0)
+  challenge            GroupChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user                 User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, userId])
+  @@index([userId])
+}
+
+model ChallengeLogEntry {
+  id          String         @id @default(cuid())
+  challengeId String
+  userId      String
+  type        String
+  createdAt   DateTime       @default(now())
+  challenge   GroupChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([challengeId, createdAt])
 }
 
 model QuestFeedback {

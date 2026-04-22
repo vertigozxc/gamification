@@ -187,7 +187,93 @@ export function acceptInvite(code, invitedUsername) {
 }
 
 export function fetchFriends(username) {
-  return request(`/api/friends/${encodeURIComponent(username)}`);
+  return request(`/api/friends/list/${encodeURIComponent(username)}`);
+}
+
+export function fetchFriendRelation(me, them) {
+  const qs = new URLSearchParams({ me, them }).toString();
+  return request(`/api/friends/relation?${qs}`);
+}
+
+export function sendFriendRequest(fromUsername, toUsername) {
+  return request("/api/friends/request", {
+    method: "POST",
+    body: JSON.stringify({ fromUsername, toUsername })
+  });
+}
+
+export function respondToFriendRequest(username, requestId, response) {
+  return request("/api/friends/respond", {
+    method: "POST",
+    body: JSON.stringify({ username, requestId, response })
+  });
+}
+
+export function cancelFriendRequest(fromUsername, toUsername) {
+  return request("/api/friends/cancel", {
+    method: "POST",
+    body: JSON.stringify({ fromUsername, toUsername })
+  });
+}
+
+export function removeFriend(myUsername, theirUsername) {
+  return request("/api/friends/remove", {
+    method: "DELETE",
+    body: JSON.stringify({ myUsername, theirUsername })
+  });
+}
+
+export function fetchIncomingFriendRequests(username) {
+  return request(`/api/friends/requests/${encodeURIComponent(username)}`);
+}
+
+export function searchUsers(query, limit = 20) {
+  const qs = new URLSearchParams({ q: query, limit: String(limit) }).toString();
+  return request(`/api/users/search?${qs}`);
+}
+
+export function fetchPublicProfile(username) {
+  return request(`/api/users/${encodeURIComponent(username)}/public`);
+}
+
+export function fetchWeeklyLeaderboard() {
+  return request("/api/leaderboard/weekly");
+}
+
+export function fetchUserChallenges(username) {
+  return request(`/api/challenges/user/${encodeURIComponent(username)}`);
+}
+
+export function fetchChallenge(challengeId) {
+  return request(`/api/challenges/${encodeURIComponent(challengeId)}`);
+}
+
+export function createChallenge(payload) {
+  return request("/api/challenges", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function joinChallenge(challengeId, username) {
+  return request(`/api/challenges/${encodeURIComponent(challengeId)}/join`, {
+    method: "POST",
+    body: JSON.stringify({ username })
+  });
+}
+
+export function leaveChallenge(challengeId, username) {
+  return request(`/api/challenges/${encodeURIComponent(challengeId)}/leave`, {
+    method: "POST",
+    body: JSON.stringify({ username })
+  });
+}
+
+export function completeChallenge(challengeId, username) {
+  return request(`/api/challenges/${encodeURIComponent(challengeId)}/complete`, {
+    method: "POST",
+    body: JSON.stringify({ username })
+  });
 }
 
 export function syncState(username, { level, xp, xpNext, tokens }) {

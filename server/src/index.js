@@ -499,9 +499,10 @@ app.post("/api/dev/grant-streak", async (req, res) => {
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const nextStreak = Math.max(0, Number(user.streak || 0) + parsed.amount);
+    const nextMaxStreak = Math.max(Number(user.maxStreak || 0), nextStreak);
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
-      data: { streak: nextStreak, lastStreakIncreaseAt: new Date() }
+      data: { streak: nextStreak, maxStreak: nextMaxStreak, lastStreakIncreaseAt: new Date() }
     });
     res.json({ ok: true, streak: updatedUser.streak });
   } catch (error) {
@@ -2710,6 +2711,9 @@ async function awardQuestCompletion({ user, quest, dayKey, availableQuests, cust
     if (streakIncreased && canIncreaseStreakToday) {
       txUpdateData.streak = newStreak;
       txUpdateData.lastStreakIncreaseAt = now;
+      if (newStreak > (freshUser.maxStreak || 0)) {
+        txUpdateData.maxStreak = newStreak;
+      }
     }
     if (squareBonusTokensInner > 0) {
       txUpdateData.lastSquareBonusDayKey = dayKey;
@@ -3698,13 +3702,16 @@ app.post("/api/city/dev-grant-stats", async (req, res) => {
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const nextLevel = (user.level || 1) + 1;
+    const bumpedStreak = (user.streak || 0) + 1;
+    const bumpedMaxStreak = Math.max(user.maxStreak || 0, bumpedStreak);
     const updated = await prisma.user.update({
       where: { id: user.id },
       data: {
         level: nextLevel,
         xpNext: getXpNextForLevel(nextLevel),
         tokens: { increment: 1 },
-        streak: { increment: 1 }
+        streak: { increment: 1 },
+        maxStreak: bumpedMaxStreak
       },
       select: { level: true, xp: true, xpNext: true, tokens: true, streak: true }
     });
@@ -4477,37 +4484,8 @@ app.post("/api/invites/accept", async (req, res) => {
   }
 });
 
-app.get("/api/friends/:username", async (req, res) => {
-  const username = slugifyUsername(req.params.username);
-  const user = await prisma.user.findUnique({ where: { username } });
-
-  if (!user) {
-    return res.status(404).json({ error: "User not found" });
-  }
-
-  const links = await prisma.friendship.findMany({
-    where: {
-      OR: [{ userAId: user.id }, { userBId: user.id }]
-    },
-    include: {
-      userA: true,
-      userB: true
-    }
-  });
-
-  const friends = links.map((link) => {
-    const friend = link.userAId === user.id ? link.userB : link.userA;
-    return {
-      username: friend.username,
-      displayName: friend.displayName,
-      level: friend.level,
-      xp: friend.xp,
-      xpNext: friend.xpNext
-    };
-  });
-
-  res.json({ friends });
-});
+// Legacy /api/friends/:username endpoint removed — superseded by /api/friends/list/:username
+// (keeping a ":username" route at /api/friends/ would shadow /api/friends/relation, /request, etc.)
 
 app.post("/api/sync-state", async (req, res) => {
   const schema = z.object({
@@ -4622,6 +4600,7 @@ app.post("/api/admin/reset-all-users", async (req, res) => {
           xp: 0,
           xpNext: 250,
           streak: 0,
+          maxStreak: 0,
           tokens: 0,
           lastStreakIncreaseAt: null,
           streakFreezeExpiresAt: null,
@@ -4751,5 +4730,730 @@ app.post("/api/profiles/theme", async (req, res) => {
     res.json({ ok: true, theme: user.theme });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// =============================================================================
+// SOCIAL BLOCK: weekly leaderboard, search, public profile, friends, challenges
+// =============================================================================
+
+const LEADERBOARD_TEST_USERNAME_PREFIX = "leader_test_";
+const LEADERBOARD_TEST_DISPLAY_PREFIX = "Leaderboard Test";
+
+function currentWeekDayKeys(now = new Date()) {
+  // Monday 00:00 UTC → today inclusive. Server runs UTC; dayKey is UTC-based.
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const dow = today.getUTCDay(); // 0=Sun..6=Sat
+  const daysSinceMonday = dow === 0 ? 6 : dow - 1;
+  const keys = [];
+  for (let i = daysSinceMonday; i >= 0; i -= 1) {
+    const d = new Date(today);
+    d.setUTCDate(today.getUTCDate() - i);
+    keys.push(getDateKey(d));
+  }
+  return keys;
+}
+
+// GET /api/leaderboard/weekly — top 100 by weekly XP (this week Mon→today UTC)
+app.get("/api/leaderboard/weekly", async (_req, res) => {
+  try {
+    const dayKeys = currentWeekDayKeys();
+    const grouped = await prisma.dailyScore.groupBy({
+      by: ["userId"],
+      where: { dayKey: { in: dayKeys } },
+      _sum: { xpToday: true, tasksCompleted: true }
+    });
+    grouped.sort((a, b) => (b._sum.xpToday || 0) - (a._sum.xpToday || 0));
+    const topIds = grouped.slice(0, 100).map((g) => g.userId);
+    if (topIds.length === 0) {
+      return res.json({ users: [], weekStartDayKey: dayKeys[0], serverNowMs: Date.now() });
+    }
+    const users = await prisma.user.findMany({
+      where: {
+        id: { in: topIds },
+        username: { not: { startsWith: LEADERBOARD_TEST_USERNAME_PREFIX } },
+        displayName: { not: { startsWith: LEADERBOARD_TEST_DISPLAY_PREFIX } }
+      },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        photoUrl: true,
+        level: true,
+        streak: true,
+        maxStreak: true
+      }
+    });
+    const userMap = new Map(users.map((u) => [u.id, u]));
+    const enriched = grouped
+      .map((g) => {
+        const u = userMap.get(g.userId);
+        if (!u) return null;
+        return {
+          username: u.username,
+          displayName: u.displayName,
+          photoUrl: u.photoUrl,
+          level: u.level,
+          streak: u.streak,
+          maxStreak: u.maxStreak,
+          weeklyXp: g._sum.xpToday || 0,
+          weeklyTasks: g._sum.tasksCompleted || 0
+        };
+      })
+      .filter(Boolean);
+
+    res.json({
+      users: enriched,
+      weekStartDayKey: dayKeys[0],
+      dayKeys,
+      serverNowMs: Date.now()
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch weekly leaderboard", detail: error.message });
+  }
+});
+
+// GET /api/users/search?q=nick&limit=20 — username / displayName fuzzy search
+app.get("/api/users/search", async (req, res) => {
+  try {
+    const q = String(req.query.q || "").trim().slice(0, 64);
+    if (q.length < 2) return res.json({ users: [] });
+    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 50);
+    // Prisma `mode: "insensitive"` is postgres-only. To keep SQLite-dev compatibility,
+    // we match case-sensitively here and rely on the client to lowercase display text if needed.
+    const users = await prisma.user.findMany({
+      where: {
+        AND: [
+          {
+            OR: [
+              { username: { contains: q } },
+              { displayName: { contains: q } }
+            ]
+          },
+          { username: { not: { startsWith: LEADERBOARD_TEST_USERNAME_PREFIX } } },
+          { displayName: { not: { startsWith: LEADERBOARD_TEST_DISPLAY_PREFIX } } }
+        ]
+      },
+      select: {
+        username: true,
+        displayName: true,
+        photoUrl: true,
+        level: true,
+        streak: true,
+        maxStreak: true
+      },
+      orderBy: [{ level: "desc" }, { xp: "desc" }],
+      take: limit
+    });
+    res.json({ users });
+  } catch (error) {
+    res.status(400).json({ error: "Search failed", detail: error.message });
+  }
+});
+
+// GET /api/users/:username/public — read-only profile card for the leaderboard/search
+app.get("/api/users/:username/public", async (req, res) => {
+  try {
+    const username = slugifyUsername(req.params.username);
+    if (!username) return res.status(400).json({ error: "Invalid username" });
+    const user = await prisma.user.findUnique({
+      where: { username },
+      select: {
+        username: true,
+        displayName: true,
+        photoUrl: true,
+        level: true,
+        xp: true,
+        xpNext: true,
+        streak: true,
+        maxStreak: true,
+        districtLevels: true,
+        createdAt: true
+      }
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json({ user });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch public profile", detail: error.message });
+  }
+});
+
+// ---- Friend requests ----
+
+function sortedFriendshipTuple(aId, bId) {
+  return aId < bId ? [aId, bId] : [bId, aId];
+}
+
+async function loadUserByUsername(raw) {
+  const username = slugifyUsername(raw);
+  if (!username) return null;
+  return prisma.user.findUnique({ where: { username } });
+}
+
+// GET /api/friends/relation?me=<username>&them=<username> — UI-button state
+app.get("/api/friends/relation", async (req, res) => {
+  try {
+    const me = await loadUserByUsername(req.query.me);
+    const them = await loadUserByUsername(req.query.them);
+    if (!me || !them) return res.status(404).json({ error: "User not found" });
+    if (me.id === them.id) return res.json({ state: "self" });
+
+    const [aId, bId] = sortedFriendshipTuple(me.id, them.id);
+    const friendship = await prisma.friendship.findUnique({
+      where: { userAId_userBId: { userAId: aId, userBId: bId } }
+    });
+    if (friendship) return res.json({ state: "friends" });
+
+    const outgoing = await prisma.friendRequest.findUnique({
+      where: { fromUserId_toUserId: { fromUserId: me.id, toUserId: them.id } }
+    });
+    const incoming = await prisma.friendRequest.findUnique({
+      where: { fromUserId_toUserId: { fromUserId: them.id, toUserId: me.id } }
+    });
+
+    if (incoming && incoming.status === "PENDING") {
+      return res.json({ state: "incoming_pending", requestId: incoming.id });
+    }
+    if (outgoing && outgoing.status === "PENDING") {
+      return res.json({ state: "outgoing_pending", requestId: outgoing.id });
+    }
+    if (outgoing && outgoing.status === "DECLINED") {
+      return res.json({ state: "declined_by_them" });
+    }
+    if (incoming && incoming.status === "DECLINED") {
+      return res.json({ state: "can_add" });
+    }
+    return res.json({ state: "can_add" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to load relation", detail: error.message });
+  }
+});
+
+// POST /api/friends/request { fromUsername, toUsername }
+app.post("/api/friends/request", async (req, res) => {
+  const schema = z.object({
+    fromUsername: z.string().min(2).max(128),
+    toUsername: z.string().min(2).max(128)
+  });
+  try {
+    const parsed = schema.parse(req.body);
+    const from = await loadUserByUsername(parsed.fromUsername);
+    const to = await loadUserByUsername(parsed.toUsername);
+    if (!from || !to) return res.status(404).json({ error: "User not found" });
+    if (from.id === to.id) return res.status(400).json({ error: "Cannot friend yourself" });
+
+    const [aId, bId] = sortedFriendshipTuple(from.id, to.id);
+    const existingFriendship = await prisma.friendship.findUnique({
+      where: { userAId_userBId: { userAId: aId, userBId: bId } }
+    });
+    if (existingFriendship) return res.status(409).json({ error: "Already friends" });
+
+    const incoming = await prisma.friendRequest.findUnique({
+      where: { fromUserId_toUserId: { fromUserId: to.id, toUserId: from.id } }
+    });
+    if (incoming && incoming.status === "PENDING") {
+      return res.status(409).json({ error: "You have an incoming request from this user" });
+    }
+
+    const outgoing = await prisma.friendRequest.findUnique({
+      where: { fromUserId_toUserId: { fromUserId: from.id, toUserId: to.id } }
+    });
+    if (outgoing) {
+      if (outgoing.status === "PENDING") {
+        return res.status(409).json({ error: "Request already pending" });
+      }
+      if (outgoing.status === "DECLINED") {
+        return res.status(403).json({ error: "Previous request was declined; only the other user can initiate" });
+      }
+    }
+
+    const reqRow = await prisma.friendRequest.create({
+      data: { fromUserId: from.id, toUserId: to.id, status: "PENDING" }
+    });
+    res.json({ ok: true, requestId: reqRow.id });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// POST /api/friends/respond { username, requestId, response: "accept"|"decline" }
+app.post("/api/friends/respond", async (req, res) => {
+  const schema = z.object({
+    username: z.string().min(2).max(128),
+    requestId: z.string().min(1),
+    response: z.enum(["accept", "decline"])
+  });
+  try {
+    const parsed = schema.parse(req.body);
+    const me = await loadUserByUsername(parsed.username);
+    if (!me) return res.status(404).json({ error: "User not found" });
+    const request = await prisma.friendRequest.findUnique({ where: { id: parsed.requestId } });
+    if (!request) return res.status(404).json({ error: "Request not found" });
+    if (request.toUserId !== me.id) return res.status(403).json({ error: "Not your request to answer" });
+    if (request.status !== "PENDING") return res.status(409).json({ error: "Already answered" });
+
+    if (parsed.response === "decline") {
+      await prisma.friendRequest.update({
+        where: { id: request.id },
+        data: { status: "DECLINED", respondedAt: new Date() }
+      });
+      return res.json({ ok: true, state: "declined" });
+    }
+
+    const [aId, bId] = sortedFriendshipTuple(request.fromUserId, request.toUserId);
+    await prisma.$transaction([
+      prisma.friendRequest.update({
+        where: { id: request.id },
+        data: { status: "ACCEPTED", respondedAt: new Date() }
+      }),
+      prisma.friendship.upsert({
+        where: { userAId_userBId: { userAId: aId, userBId: bId } },
+        create: { userAId: aId, userBId: bId },
+        update: {}
+      })
+    ]);
+    res.json({ ok: true, state: "accepted" });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// DELETE /api/friends/remove — { myUsername, theirUsername } — remove accepted friendship
+app.delete("/api/friends/remove", async (req, res) => {
+  const schema = z.object({
+    myUsername: z.string().min(2).max(128),
+    theirUsername: z.string().min(2).max(128)
+  });
+  try {
+    const parsed = schema.parse(req.body);
+    const me = await loadUserByUsername(parsed.myUsername);
+    const them = await loadUserByUsername(parsed.theirUsername);
+    if (!me || !them) return res.status(404).json({ error: "User not found" });
+
+    const [aId, bId] = sortedFriendshipTuple(me.id, them.id);
+    await prisma.$transaction([
+      prisma.friendship.deleteMany({ where: { userAId: aId, userBId: bId } }),
+      prisma.friendRequest.deleteMany({
+        where: {
+          OR: [
+            { fromUserId: me.id, toUserId: them.id },
+            { fromUserId: them.id, toUserId: me.id }
+          ]
+        }
+      })
+    ]);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// POST /api/friends/cancel — { fromUsername, toUsername } — cancel my outgoing pending
+app.post("/api/friends/cancel", async (req, res) => {
+  const schema = z.object({
+    fromUsername: z.string().min(2).max(128),
+    toUsername: z.string().min(2).max(128)
+  });
+  try {
+    const parsed = schema.parse(req.body);
+    const from = await loadUserByUsername(parsed.fromUsername);
+    const to = await loadUserByUsername(parsed.toUsername);
+    if (!from || !to) return res.status(404).json({ error: "User not found" });
+    await prisma.friendRequest.deleteMany({
+      where: { fromUserId: from.id, toUserId: to.id, status: "PENDING" }
+    });
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// GET /api/friends/requests/:username — incoming pending list for the bell
+app.get("/api/friends/requests/:username", async (req, res) => {
+  try {
+    const me = await loadUserByUsername(req.params.username);
+    if (!me) return res.status(404).json({ error: "User not found" });
+    const rows = await prisma.friendRequest.findMany({
+      where: { toUserId: me.id, status: "PENDING" },
+      orderBy: { createdAt: "desc" },
+      include: {
+        fromUser: {
+          select: { username: true, displayName: true, photoUrl: true, level: true, streak: true, maxStreak: true }
+        }
+      }
+    });
+    const requests = rows.map((r) => ({
+      requestId: r.id,
+      createdAt: r.createdAt,
+      from: r.fromUser
+    }));
+    res.json({ requests });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch requests", detail: error.message });
+  }
+});
+
+// GET /api/friends/list/:username — full friends list with stats + weekly XP
+app.get("/api/friends/list/:username", async (req, res) => {
+  try {
+    const me = await loadUserByUsername(req.params.username);
+    if (!me) return res.status(404).json({ error: "User not found" });
+
+    const links = await prisma.friendship.findMany({
+      where: { OR: [{ userAId: me.id }, { userBId: me.id }] },
+      include: { userA: true, userB: true }
+    });
+
+    const friends = links.map((link) => {
+      const friend = link.userAId === me.id ? link.userB : link.userA;
+      return {
+        id: friend.id,
+        username: friend.username,
+        displayName: friend.displayName,
+        photoUrl: friend.photoUrl,
+        level: friend.level,
+        xp: friend.xp,
+        xpNext: friend.xpNext,
+        streak: friend.streak,
+        maxStreak: friend.maxStreak,
+        friendshipCreatedAt: link.createdAt
+      };
+    });
+
+    // Attach weekly XP
+    if (friends.length > 0) {
+      const dayKeys = currentWeekDayKeys();
+      const grouped = await prisma.dailyScore.groupBy({
+        by: ["userId"],
+        where: { userId: { in: friends.map((f) => f.id) }, dayKey: { in: dayKeys } },
+        _sum: { xpToday: true }
+      });
+      const weeklyMap = new Map(grouped.map((g) => [g.userId, g._sum.xpToday || 0]));
+      for (const f of friends) {
+        f.weeklyXp = weeklyMap.get(f.id) || 0;
+        delete f.id;
+      }
+    }
+
+    res.json({ friends });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch friends", detail: error.message });
+  }
+});
+
+// ---- Group challenges ----
+
+const MAX_ACTIVE_CHALLENGES_PER_USER = 3;
+const MAX_PARTICIPANTS_PER_CHALLENGE = 6; // creator + up to 5 friends
+
+async function activeParticipationCount(userId) {
+  const now = new Date();
+  return prisma.challengeParticipant.count({
+    where: {
+      userId,
+      leftAt: null,
+      challenge: { endsAt: { gt: now } }
+    }
+  });
+}
+
+// POST /api/challenges — create a new group challenge
+app.post("/api/challenges", async (req, res) => {
+  const schema = z.object({
+    creatorUsername: z.string().min(2).max(128),
+    title: z.string().min(1).max(80),
+    description: z.string().max(300).optional(),
+    questTitle: z.string().min(1).max(80),
+    questDescription: z.string().max(300).optional(),
+    needsTimer: z.boolean().optional(),
+    timeEstimateMin: z.number().int().min(0).max(600).optional(),
+    durationDays: z.number().int().min(1).max(365),
+    inviteeUsernames: z.array(z.string().min(2).max(128)).max(5)
+  });
+  try {
+    const parsed = schema.parse(req.body);
+    const creator = await loadUserByUsername(parsed.creatorUsername);
+    if (!creator) return res.status(404).json({ error: "Creator not found" });
+
+    const activeCount = await activeParticipationCount(creator.id);
+    if (activeCount >= MAX_ACTIVE_CHALLENGES_PER_USER) {
+      return res.status(409).json({ error: "Max active challenges reached", limit: MAX_ACTIVE_CHALLENGES_PER_USER });
+    }
+
+    // Resolve invitees (must be friends of creator)
+    const inviteeUsers = [];
+    if (parsed.inviteeUsernames && parsed.inviteeUsernames.length > 0) {
+      const uniq = Array.from(new Set(parsed.inviteeUsernames.map((u) => slugifyUsername(u)).filter(Boolean)));
+      const users = await prisma.user.findMany({ where: { username: { in: uniq } } });
+      if (users.length !== uniq.length) {
+        return res.status(400).json({ error: "One or more invitees not found" });
+      }
+      // Verify each is a friend
+      const friendLinks = await prisma.friendship.findMany({
+        where: {
+          OR: users.flatMap((u) => {
+            const [aId, bId] = sortedFriendshipTuple(creator.id, u.id);
+            return [{ userAId: aId, userBId: bId }];
+          })
+        }
+      });
+      if (friendLinks.length !== users.length) {
+        return res.status(403).json({ error: "All invitees must be friends of the creator" });
+      }
+      inviteeUsers.push(...users);
+    }
+
+    if (inviteeUsers.length + 1 > MAX_PARTICIPANTS_PER_CHALLENGE) {
+      return res.status(400).json({ error: "Too many participants" });
+    }
+
+    const now = new Date();
+    const endsAt = new Date(now.getTime() + parsed.durationDays * 24 * 60 * 60 * 1000);
+
+    const challenge = await prisma.$transaction(async (tx) => {
+      const created = await tx.groupChallenge.create({
+        data: {
+          creatorId: creator.id,
+          title: parsed.title,
+          description: parsed.description || "",
+          questTitle: parsed.questTitle,
+          questDescription: parsed.questDescription || "",
+          needsTimer: !!parsed.needsTimer,
+          timeEstimateMin: parsed.timeEstimateMin || 0,
+          durationDays: parsed.durationDays,
+          startedAt: now,
+          endsAt
+        }
+      });
+      await tx.challengeParticipant.create({
+        data: { challengeId: created.id, userId: creator.id }
+      });
+      await tx.challengeLogEntry.create({
+        data: { challengeId: created.id, userId: creator.id, type: "created" }
+      });
+      for (const invitee of inviteeUsers) {
+        await tx.challengeParticipant.create({
+          data: { challengeId: created.id, userId: invitee.id }
+        });
+        await tx.challengeLogEntry.create({
+          data: { challengeId: created.id, userId: invitee.id, type: "joined" }
+        });
+      }
+      return created;
+    });
+
+    res.json({ ok: true, challengeId: challenge.id });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// POST /api/challenges/:id/leave { username }
+app.post("/api/challenges/:id/leave", async (req, res) => {
+  const schema = z.object({ username: z.string().min(2).max(128) });
+  try {
+    const parsed = schema.parse(req.body);
+    const me = await loadUserByUsername(parsed.username);
+    if (!me) return res.status(404).json({ error: "User not found" });
+    const participant = await prisma.challengeParticipant.findUnique({
+      where: { challengeId_userId: { challengeId: req.params.id, userId: me.id } }
+    });
+    if (!participant || participant.leftAt) {
+      return res.status(404).json({ error: "Not an active participant" });
+    }
+    await prisma.$transaction([
+      prisma.challengeParticipant.update({
+        where: { id: participant.id },
+        data: { leftAt: new Date() }
+      }),
+      prisma.challengeLogEntry.create({
+        data: { challengeId: req.params.id, userId: me.id, type: "left" }
+      })
+    ]);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// POST /api/challenges/:id/join { username } — rejoin after leaving (or be invited later)
+app.post("/api/challenges/:id/join", async (req, res) => {
+  const schema = z.object({ username: z.string().min(2).max(128) });
+  try {
+    const parsed = schema.parse(req.body);
+    const me = await loadUserByUsername(parsed.username);
+    if (!me) return res.status(404).json({ error: "User not found" });
+    const challenge = await prisma.groupChallenge.findUnique({
+      where: { id: req.params.id },
+      include: { participants: true }
+    });
+    if (!challenge) return res.status(404).json({ error: "Challenge not found" });
+    if (new Date(challenge.endsAt) <= new Date()) {
+      return res.status(409).json({ error: "Challenge already ended" });
+    }
+    const activeParticipants = challenge.participants.filter((p) => !p.leftAt);
+    if (activeParticipants.length >= MAX_PARTICIPANTS_PER_CHALLENGE) {
+      return res.status(409).json({ error: "Challenge is full" });
+    }
+    const activeCount = await activeParticipationCount(me.id);
+    if (activeCount >= MAX_ACTIVE_CHALLENGES_PER_USER) {
+      return res.status(409).json({ error: "Max active challenges reached", limit: MAX_ACTIVE_CHALLENGES_PER_USER });
+    }
+
+    const existing = challenge.participants.find((p) => p.userId === me.id);
+    await prisma.$transaction([
+      existing
+        ? prisma.challengeParticipant.update({
+            where: { id: existing.id },
+            data: { leftAt: null }
+          })
+        : prisma.challengeParticipant.create({
+            data: { challengeId: challenge.id, userId: me.id }
+          }),
+      prisma.challengeLogEntry.create({
+        data: { challengeId: challenge.id, userId: me.id, type: "joined" }
+      })
+    ]);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// POST /api/challenges/:id/complete { username } — log a completion for today
+app.post("/api/challenges/:id/complete", async (req, res) => {
+  const schema = z.object({ username: z.string().min(2).max(128) });
+  try {
+    const parsed = schema.parse(req.body);
+    const me = await loadUserByUsername(parsed.username);
+    if (!me) return res.status(404).json({ error: "User not found" });
+    const challengeId = req.params.id;
+    const challenge = await prisma.groupChallenge.findUnique({
+      where: { id: challengeId },
+      include: { participants: true }
+    });
+    if (!challenge) return res.status(404).json({ error: "Challenge not found" });
+    if (new Date(challenge.endsAt) <= new Date()) {
+      return res.status(409).json({ error: "Challenge already ended" });
+    }
+
+    const meParticipant = challenge.participants.find((p) => p.userId === me.id && !p.leftAt);
+    if (!meParticipant) return res.status(403).json({ error: "Not an active participant" });
+
+    const now = new Date();
+    const dayKey = getDateKey(now);
+
+    if (meParticipant.lastCompletionDayKey === dayKey) {
+      return res.status(409).json({ error: "Already completed today" });
+    }
+
+    // Update this participant's streak within the challenge
+    const prevDay = new Date(now);
+    prevDay.setUTCDate(prevDay.getUTCDate() - 1);
+    const prevDayKey = getDateKey(prevDay);
+    const nextConsecutive = meParticipant.lastCompletionDayKey === prevDayKey
+      ? meParticipant.consecutiveDays + 1
+      : 1;
+
+    // Daily award: if this is first completion today across the whole challenge,
+    // credit every active participant with +1 token and +1 tokensEarned (in-challenge).
+    const shouldAward = challenge.lastAwardedDayKey !== dayKey;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.challengeParticipant.update({
+        where: { id: meParticipant.id },
+        data: {
+          completions: { increment: 1 },
+          consecutiveDays: nextConsecutive,
+          lastCompletionDayKey: dayKey
+        }
+      });
+      await tx.challengeLogEntry.create({
+        data: { challengeId, userId: me.id, type: "completed" }
+      });
+
+      if (shouldAward) {
+        const activeIds = challenge.participants.filter((p) => !p.leftAt).map((p) => p.userId);
+        await tx.user.updateMany({
+          where: { id: { in: activeIds } },
+          data: { tokens: { increment: 1 } }
+        });
+        await tx.challengeParticipant.updateMany({
+          where: { challengeId, userId: { in: activeIds }, leftAt: null },
+          data: { tokensEarned: { increment: 1 } }
+        });
+        await tx.groupChallenge.update({
+          where: { id: challengeId },
+          data: { lastAwardedDayKey: dayKey }
+        });
+      }
+    });
+
+    res.json({ ok: true, awardedTokensToday: shouldAward });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// GET /api/challenges/:id — full detail (participants, logs, progress)
+app.get("/api/challenges/:id", async (req, res) => {
+  try {
+    const challenge = await prisma.groupChallenge.findUnique({
+      where: { id: req.params.id },
+      include: {
+        creator: { select: { username: true, displayName: true, photoUrl: true } },
+        participants: {
+          include: {
+            user: { select: { username: true, displayName: true, photoUrl: true, level: true } }
+          }
+        },
+        logs: {
+          orderBy: { createdAt: "desc" },
+          take: 100,
+          include: {
+            user: { select: { username: true, displayName: true, photoUrl: true } }
+          }
+        }
+      }
+    });
+    if (!challenge) return res.status(404).json({ error: "Challenge not found" });
+    res.json({ challenge, serverNowMs: Date.now() });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch challenge", detail: error.message });
+  }
+});
+
+// GET /api/challenges/user/:username — active + recently-ended challenges for this user
+app.get("/api/challenges/user/:username", async (req, res) => {
+  try {
+    const me = await loadUserByUsername(req.params.username);
+    if (!me) return res.status(404).json({ error: "User not found" });
+    const rows = await prisma.challengeParticipant.findMany({
+      where: { userId: me.id, leftAt: null },
+      include: {
+        challenge: {
+          include: {
+            participants: {
+              include: {
+                user: { select: { username: true, displayName: true, photoUrl: true } }
+              }
+            }
+          }
+        }
+      },
+      orderBy: { joinedAt: "desc" }
+    });
+    const challenges = rows
+      .map((p) => ({
+        ...p.challenge,
+        myCompletions: p.completions,
+        myConsecutiveDays: p.consecutiveDays,
+        myTokensEarned: p.tokensEarned,
+        myLastCompletionDayKey: p.lastCompletionDayKey
+      }))
+      .filter((c) => new Date(c.endsAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)); // show ended-within-week too
+    res.json({ challenges, serverNowMs: Date.now() });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to list challenges", detail: error.message });
   }
 });
