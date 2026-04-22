@@ -89,6 +89,66 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
   const myStreak = leaderboard?.me?.streak ?? 0;
   const topFive = (leaderboard?.users || []).slice(0, 5);
 
+  // When a screen is pushed, render ONLY the top of the stack. The home
+  // is not mounted underneath, so nothing can "show through".
+  const topEntry = stack.length > 0 ? stack[stack.length - 1] : null;
+  if (topEntry) {
+    const close = pop;
+    return (
+      <div
+        className="social-block"
+        style={{
+          minHeight: "calc(100svh - var(--mobile-safe-top, 0px) - var(--mobile-footer-offset, 98px) - 40px)",
+          padding: "8px 14px",
+        }}
+      >
+        {topEntry.kind === "profile" && (
+          <ProfileScreen
+            key={topEntry.id}
+            targetUsername={topEntry.props.targetUsername}
+            meUsername={meUid}
+            t={t}
+            languageId={languageId}
+            onClose={close}
+            onChanged={refresh}
+          />
+        )}
+        {topEntry.kind === "challenge" && (
+          <ChallengeDetailScreen
+            key={topEntry.id}
+            challengeId={topEntry.props.challengeId}
+            authUser={authUser}
+            t={t}
+            onClose={close}
+            onOpenProfile={pushProfile}
+            onChanged={refresh}
+          />
+        )}
+        {topEntry.kind === "create" && (
+          <CreateChallengeScreen
+            key={topEntry.id}
+            authUser={authUser}
+            t={t}
+            onClose={close}
+            onCreated={() => { close(); refresh(); }}
+          />
+        )}
+        {topEntry.kind === "search" && (
+          <SearchScreen key={topEntry.id} meUid={meUid} t={t} onClose={close} onOpenProfile={pushProfile} />
+        )}
+        {topEntry.kind === "leaderboard" && (
+          <LeaderboardScreen key={topEntry.id} meUid={meUid} data={leaderboard} t={t} onClose={close} onOpenProfile={pushProfile} />
+        )}
+        {topEntry.kind === "friends" && (
+          <FriendsListScreen key={topEntry.id} authUser={authUser} t={t} onClose={close} onOpenProfile={pushProfile} onChanged={refresh} />
+        )}
+        {topEntry.kind === "pacts" && (
+          <ChallengesListScreen key={topEntry.id} authUser={authUser} t={t} challenges={challenges} onClose={close} onOpenChallenge={pushChallenge} onOpenCreate={pushCreate} />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="social-block" style={{ minHeight: "calc(100svh - var(--mobile-safe-top, 0px) - var(--mobile-footer-offset, 98px) - 90px)" }}>
       <div style={{ padding: "10px 14px 24px", display: "flex", flexDirection: "column", gap: 22 }}>
@@ -232,34 +292,6 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
           </>
         )}
       </div>
-
-      {/* Stack */}
-      {stack.map((entry, idx) => {
-        if (idx !== stack.length - 1) return null;
-        const close = pop;
-        if (entry.kind === "profile") {
-          return <ProfileScreen key={entry.id} targetUsername={entry.props.targetUsername} meUsername={meUid} t={t} languageId={languageId} onClose={close} onChanged={refresh} />;
-        }
-        if (entry.kind === "challenge") {
-          return <ChallengeDetailScreen key={entry.id} challengeId={entry.props.challengeId} authUser={authUser} t={t} onClose={close} onOpenProfile={pushProfile} onChanged={refresh} />;
-        }
-        if (entry.kind === "create") {
-          return <CreateChallengeScreen key={entry.id} authUser={authUser} t={t} onClose={close} onCreated={() => { close(); refresh(); }} />;
-        }
-        if (entry.kind === "search") {
-          return <SearchScreen key={entry.id} meUid={meUid} t={t} onClose={close} onOpenProfile={pushProfile} />;
-        }
-        if (entry.kind === "leaderboard") {
-          return <LeaderboardScreen key={entry.id} meUid={meUid} data={leaderboard} t={t} onClose={close} onOpenProfile={pushProfile} />;
-        }
-        if (entry.kind === "friends") {
-          return <FriendsListScreen key={entry.id} authUser={authUser} t={t} onClose={close} onOpenProfile={pushProfile} onChanged={refresh} />;
-        }
-        if (entry.kind === "pacts") {
-          return <ChallengesListScreen key={entry.id} authUser={authUser} t={t} challenges={challenges} onClose={close} onOpenChallenge={pushChallenge} onOpenCreate={pushCreate} />;
-        }
-        return null;
-      })}
     </div>
   );
 }
