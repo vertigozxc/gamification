@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { createChallenge, fetchFriends } from "../../api";
 import Avatar from "./Avatar";
 import Screen from "./Screen";
 
 const MAX_INVITEES = 5;
+const MAX_DURATION_DAYS = 90;
 
 export default function CreateChallengeScreen({ authUser, t, onClose, onCreated }) {
   const meUid = String(authUser?.uid || "").slice(0, 128);
@@ -11,25 +13,17 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
   const [selected, setSelected] = useState([]);
   const [duration, setDuration] = useState(7);
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
   const [questTitle, setQuestTitle] = useState("");
   const [needsTimer, setNeedsTimer] = useState(false);
   const [timeEstimateMin, setTimeEstimateMin] = useState(15);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   useEffect(() => {
     if (!meUid) return;
     fetchFriends(meUid).then((d) => setFriends(d?.friends || [])).catch(() => setFriends([]));
   }, [meUid]);
-
-  function toggleFriend(username) {
-    setSelected((prev) => {
-      if (prev.includes(username)) return prev.filter((u) => u !== username);
-      if (prev.length >= MAX_INVITEES) return prev;
-      return [...prev, username];
-    });
-  }
 
   const canSubmit = title.trim().length >= 1 && questTitle.trim().length >= 1 && !submitting;
 
@@ -42,11 +36,10 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
       await createChallenge({
         creatorUsername: meUid,
         title: title.trim(),
-        description: description.trim(),
         questTitle: questTitle.trim(),
         needsTimer,
         timeEstimateMin: needsTimer ? Math.max(1, Math.min(600, Number(timeEstimateMin) || 0)) : 0,
-        durationDays: Math.max(1, Math.min(365, Number(duration) || 7)),
+        durationDays: Math.max(1, Math.min(MAX_DURATION_DAYS, Number(duration) || 7)),
         inviteeUsernames: selected,
       });
       onCreated && onCreated();
@@ -69,30 +62,216 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
     </button>
   );
 
+  const invitedPreview = selected
+    .map((u) => friends.find((f) => f.username === u))
+    .filter(Boolean);
+
   return (
-    <Screen
-      title={t.arenaNewPactTitle || "New challenge"}
-      subtitle={t.arenaNewPactSubtitle || "Friends · duration · daily task"}
-      onClose={onClose}
-      footer={footer}
+    <>
+      <Screen
+        title={t.arenaNewPactTitle || "New challenge"}
+        subtitle={t.arenaNewPactSubtitle || "Friends · duration · daily task"}
+        onClose={onClose}
+        footer={footer}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <Field label={`${t.arenaInvitePals || "Invite friends"} (${selected.length}/${MAX_INVITEES})`}>
+            {friends.length === 0 ? (
+              <p className="sb-caption" style={{ padding: "8px 0" }}>
+                {t.arenaNoFriendsYet || "Add friends first — they will appear here."}
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setInviteOpen(true)}
+                className="press"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "12px 14px",
+                  background: "var(--panel-bg)",
+                  border: "1px solid var(--panel-border)",
+                  borderRadius: 12,
+                  color: "var(--color-text)",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  textAlign: "left",
+                }}
+              >
+                {invitedPreview.length === 0 ? (
+                  <>
+                    <span style={{ fontSize: 18 }}>＋</span>
+                    <span className="sb-body" style={{ flex: 1 }}>{t.arenaInviteOpen || "Choose friends"}</span>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", flexShrink: 0 }}>
+                      {invitedPreview.slice(0, 5).map((f, i) => (
+                        <div key={f.username} style={{ marginLeft: i === 0 ? 0 : -8, width: 28, height: 28, borderRadius: "50%", overflow: "hidden", border: "2px solid var(--panel-bg)", background: "var(--panel-bg)", flexShrink: 0 }}>
+                          <Avatar photoUrl={f.photoUrl} displayName={f.displayName} size={24} />
+                        </div>
+                      ))}
+                    </div>
+                    <span className="sb-body" style={{ flex: 1, fontWeight: 500 }}>
+                      {(t.arenaInvitedCount || "{n} selected").replace("{n}", String(invitedPreview.length))}
+                    </span>
+                  </>
+                )}
+                <span style={{ color: "var(--color-muted)" }}>›</span>
+              </button>
+            )}
+          </Field>
+
+          <Field label={`${t.arenaSpan || "Duration"} · ${duration} ${pluralDays(duration, t)}`}>
+            <div style={{ padding: "6px 0" }}>
+              <input
+                type="range"
+                min={1}
+                max={MAX_DURATION_DAYS}
+                value={duration}
+                onChange={(e) => setDuration(Number(e.target.value))}
+                className="sb-range"
+                aria-label={t.arenaSpan || "Duration"}
+              />
+            </div>
+            <div className="sb-caption" style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
+              <span>1</span><span>30</span><span>60</span><span>90</span>
+            </div>
+          </Field>
+
+          <Field label={t.arenaPactNameLabel || "Challenge name"}>
+            <input
+              type="text"
+              value={title}
+              maxLength={80}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t.arenaPactNamePlaceholder || "e.g. Morning routine"}
+              className="sb-input"
+            />
+          </Field>
+
+          <Field label={t.arenaRitualLabel || "Daily task"}>
+            <input
+              type="text"
+              value={questTitle}
+              maxLength={80}
+              onChange={(e) => setQuestTitle(e.target.value)}
+              placeholder={t.arenaRitualPlaceholder || "e.g. 30 push-ups before breakfast"}
+              className="sb-input"
+            />
+          </Field>
+
+          <div
+            className="sb-list-row press"
+            style={{ background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: 12 }}
+            onClick={() => setNeedsTimer((v) => !v)}
+          >
+            <span style={{ fontSize: 18 }}>⏱</span>
+            <span className="sb-body" style={{ flex: 1, fontWeight: 500 }}>
+              {t.arenaRitualIsTimed || "Timed task"}
+            </span>
+            <Switch checked={needsTimer} onChange={setNeedsTimer} />
+          </div>
+
+          {needsTimer && (
+            <Field label={t.arenaTimedMinutes || "Duration (minutes)"}>
+              <input
+                type="number"
+                min={1}
+                max={600}
+                value={timeEstimateMin}
+                onChange={(e) => setTimeEstimateMin(e.target.value)}
+                className="sb-input"
+              />
+            </Field>
+          )}
+
+          {error && <p style={{ color: "#ff6a63", fontSize: 14 }}>{error}</p>}
+        </div>
+      </Screen>
+
+      {inviteOpen && (
+        <InviteFriendsSheet
+          friends={friends}
+          selected={selected}
+          maxInvitees={MAX_INVITEES}
+          t={t}
+          onClose={() => setInviteOpen(false)}
+          onChange={setSelected}
+        />
+      )}
+    </>
+  );
+}
+
+function InviteFriendsSheet({ friends, selected, maxInvitees, t, onClose, onChange }) {
+  function toggle(username) {
+    if (selected.includes(username)) {
+      onChange(selected.filter((u) => u !== username));
+      return;
+    }
+    if (selected.length >= maxInvitees) return;
+    onChange([...selected, username]);
+  }
+
+  if (typeof document === "undefined") return null;
+
+  const content = (
+    <div
+      className="logout-confirm-overlay social-block"
+      style={{ zIndex: 92, alignItems: "stretch", justifyContent: "stretch", padding: 0, background: "rgba(0,0,0,0.72)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-        <Field label={`${t.arenaInvitePals || "Invite friends"} (${selected.length}/${MAX_INVITEES})`}>
+      <div
+        style={{
+          background: "var(--card-bg, var(--panel-bg))",
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
+          maxWidth: 520,
+          margin: "auto",
+          height: "100svh",
+          maxHeight: "100svh",
+        }}
+      >
+        <div
+          className="sb-page-header"
+          style={{ flexShrink: 0, padding: "16px 16px 12px", borderBottom: "1px solid var(--card-border-idle, var(--panel-border))" }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h2 className="cinzel sb-page-title">{t.arenaInviteSheetTitle || "Invite friends"}</h2>
+              <p className="sb-page-subtitle">
+                {(t.arenaInviteSheetHint || "Pick up to {max} friends to join this challenge.").replace("{max}", String(maxInvitees))}
+              </p>
+            </div>
+            <button type="button" aria-label="Close" onClick={onClose} className="ui-close-x">✕</button>
+          </div>
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
           {friends.length === 0 ? (
-            <p className="sb-caption" style={{ padding: "8px 0" }}>
+            <p className="sb-caption" style={{ textAlign: "center", padding: "24px 12px" }}>
               {t.arenaNoFriendsYet || "Add friends first — they will appear here."}
             </p>
           ) : (
             <div className="sb-list">
               {friends.map((f, i) => {
                 const picked = selected.includes(f.username);
+                const atLimit = !picked && selected.length >= maxInvitees;
                 return (
                   <button
                     key={f.username}
                     type="button"
-                    onClick={() => toggleFriend(f.username)}
+                    onClick={() => toggle(f.username)}
+                    disabled={atLimit}
                     className="sb-list-row press"
-                    style={{ borderBottom: i === friends.length - 1 ? "none" : undefined }}
+                    style={{
+                      borderBottom: i === friends.length - 1 ? "none" : undefined,
+                      background: picked ? "rgba(var(--color-primary-rgb,251,191,36),0.12)" : "transparent",
+                      opacity: atLimit ? 0.4 : 1,
+                    }}
                   >
                     <span
                       style={{
@@ -124,85 +303,18 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
               })}
             </div>
           )}
-        </Field>
-
-        <Field label={`${t.arenaSpan || "Duration"} · ${duration} ${pluralDays(duration, t)}`}>
-          <input
-            type="range"
-            min={1}
-            max={365}
-            value={duration}
-            onChange={(e) => setDuration(Number(e.target.value))}
-            style={{ width: "100%", accentColor: "var(--color-primary)" }}
-          />
-          <div className="sb-caption" style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
-            <span>1</span><span>30</span><span>90</span><span>365</span>
-          </div>
-        </Field>
-
-        <Field label={t.arenaPactNameLabel || "Challenge name"}>
-          <input
-            type="text"
-            value={title}
-            maxLength={80}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={t.arenaPactNamePlaceholder || "e.g. Morning routine"}
-            className="sb-input"
-          />
-        </Field>
-
-        <Field label={t.arenaPactHowLabel || "Description (optional)"}>
-          <textarea
-            value={description}
-            maxLength={300}
-            rows={2}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder={t.arenaPactHowPlaceholder || "What are we doing and why"}
-            className="sb-input"
-            style={{ resize: "vertical" }}
-          />
-        </Field>
-
-        <Field label={t.arenaRitualLabel || "Daily task"}>
-          <input
-            type="text"
-            value={questTitle}
-            maxLength={80}
-            onChange={(e) => setQuestTitle(e.target.value)}
-            placeholder={t.arenaRitualPlaceholder || "e.g. 30 push-ups before breakfast"}
-            className="sb-input"
-          />
-        </Field>
-
-        <div
-          className="sb-list-row press"
-          style={{ background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: 12 }}
-          onClick={() => setNeedsTimer((v) => !v)}
-        >
-          <span style={{ fontSize: 18 }}>⏱</span>
-          <span className="sb-body" style={{ flex: 1, fontWeight: 500 }}>
-            {t.arenaRitualIsTimed || "Timed task"}
-          </span>
-          <Switch checked={needsTimer} onChange={setNeedsTimer} />
         </div>
 
-        {needsTimer && (
-          <Field label={t.arenaTimedMinutes || "Duration (minutes)"}>
-            <input
-              type="number"
-              min={1}
-              max={600}
-              value={timeEstimateMin}
-              onChange={(e) => setTimeEstimateMin(e.target.value)}
-              className="sb-input"
-            />
-          </Field>
-        )}
-
-        {error && <p style={{ color: "#ff6a63", fontSize: 14 }}>{error}</p>}
+        <div style={{ flexShrink: 0, padding: `12px 16px calc(12px + env(safe-area-inset-bottom, 0px))`, borderTop: "1px solid var(--card-border-idle, var(--panel-border))" }}>
+          <button type="button" onClick={onClose} className="sb-primary-btn press" style={{ width: "100%", padding: 14 }}>
+            {t.arenaInviteSheetDone || "Done"} · {selected.length}/{maxInvitees}
+          </button>
+        </div>
       </div>
-    </Screen>
+    </div>
   );
+
+  return createPortal(content, document.body);
 }
 
 function Field({ label, children }) {
