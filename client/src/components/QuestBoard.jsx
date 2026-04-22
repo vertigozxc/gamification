@@ -54,6 +54,7 @@ function QuestBoard({
   questRenderCount,
   onCompleteQuest,
   resetTimer,
+  postTimerRow = null,
   rerollingQuestId = null,
   rerollingPinned = false,
   compact = false,
@@ -156,6 +157,10 @@ function QuestBoard({
           <span className="cinzel text-[11px]" style={{ color: "var(--color-muted)" }}>{completedTodayCount}/{totalQuestCap}</span>
         </div>
       </div>
+
+      {/* Slot for content that should sit directly under the daily-reset
+          row — on mobile dashboard this is the group-challenge strip. */}
+      {postTimerRow ? <div className="mb-3">{postTimerRow}</div> : null}
 
       {/* Animated tab switcher */}
       {tabs.length > 1 && (

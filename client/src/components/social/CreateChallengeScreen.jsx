@@ -44,7 +44,15 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
       });
       onCreated && onCreated();
     } catch (err) {
-      setError(err?.message || t.arenaCreateErrorGeneric || "Could not create the challenge");
+      const code = err?.data?.code;
+      const limit = err?.data?.limit;
+      if (code === "daily_create_limit") {
+        setError((t.arenaDailyCreateLimit || "You can create up to {n} challenges per day. Try again tomorrow.").replace("{n}", String(limit || 2)));
+      } else if (code === "invitee_limit") {
+        setError((t.arenaInviteeLimitReached || "Some friends already have their {n} active challenges — remove them from the list.").replace("{n}", String(limit || 2)));
+      } else {
+        setError(err?.message || t.arenaCreateErrorGeneric || "Could not create the challenge");
+      }
     } finally {
       setSubmitting(false);
     }

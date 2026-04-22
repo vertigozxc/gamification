@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { completeChallenge, fetchUserChallenges } from "../../api";
+import { completeChallenge, fetchUserChallenges, joinChallenge, leaveChallenge } from "../../api";
 import "./ios.css";
 
 function todayKey() {
@@ -13,6 +13,7 @@ export default function DashboardChallengeStrip({ authUser, t, onOpenSocial }) {
   const [loaded, setLoaded] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [busyId, setBusyId] = useState(null);
+  const [optimisticDone, setOptimisticDone] = useState(() => new Set());
 
   const refresh = useCallback(async () => {
     if (!meUid) return;
@@ -34,118 +35,139 @@ export default function DashboardChallengeStrip({ authUser, t, onOpenSocial }) {
     return () => window.removeEventListener("social:refresh-challenges", h);
   }, [refresh]);
 
-  async function handleComplete(id) {
+  const handleComplete = useCallback(async (id) => {
     setBusyId(id);
+    // Optimistic update — flip the card to its Done-pill state instantly
+    // so the button doesn't flash between "complete" and "done" while the
+    // server round-trip is in flight.
+    setOptimisticDone((prev) => new Set(prev).add(id));
     try {
       await completeChallenge(id, meUid);
       await refresh();
+    } catch {
+      // Rollback optimistic state if the server rejects.
+      setOptimisticDone((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    } finally {
+      setBusyId(null);
+    }
+  }, [meUid, refresh]);
+
+  const handleAccept = useCallback(async (id) => {
+    setBusyId(id);
+    try {
+      await joinChallenge(id, meUid);
+      await refresh();
     } catch { /* silent */ } finally { setBusyId(null); }
-  }
+  }, [meUid, refresh]);
+
+  const handleDecline = useCallback(async (id) => {
+    setBusyId(id);
+    try {
+      await leaveChallenge(id, meUid);
+      await refresh();
+    } catch { /* silent */ } finally { setBusyId(null); }
+  }, [meUid, refresh]);
 
   if (!loaded || active.length === 0) return null;
 
   const tKey = todayKey();
-  const doneToday = active.filter((c) => c.myLastCompletionDayKey === tKey).length;
+  // Count only challenges the user has accepted for the progress pill —
+  // pending invites don't contribute to the "done today" ratio.
+  const accepted = active.filter((c) => c.myAcceptedAt);
+  const doneToday = accepted.filter((c) => c.myLastCompletionDayKey === tKey || optimisticDone.has(c.id)).length;
+  const pendingCount = active.length - accepted.length;
 
   return (
     <div
-      className="social-block"
-      style={{ background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: 14, overflow: "hidden" }}
+      className="social-block dash-chal-strip"
+      data-expanded={expanded ? "true" : "false"}
     >
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="press"
+        className="dash-chal-header"
         aria-expanded={expanded}
-        style={{
-          width: "100%",
-          padding: "12px 14px",
-          background: "transparent",
-          border: "none",
-          color: "var(--color-text)",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          fontFamily: "inherit",
-          textAlign: "left",
-          cursor: "pointer",
-        }}
       >
-        <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>⚔️</span>
-        <span className="sb-body" style={{ fontWeight: 600, flex: 1, letterSpacing: "-0.01em" }}>
-          {t.arenaDashStripTitle || "Your pacts"}
-        </span>
+        <span className="dash-chal-header-ico">⚔️</span>
+        <span className="dash-chal-header-title">{t.arenaDashStripTitle || "Your pacts"}</span>
+        {pendingCount > 0 && (
+          <span className="dash-chal-pending-badge" aria-label={t.arenaPendingBadge || "Pending invite"}>
+            {pendingCount}
+          </span>
+        )}
         <span className="sb-pill sb-pill-accent" style={{ flexShrink: 0 }}>
-          {doneToday}/{active.length}
+          {doneToday}/{accepted.length || active.length}
         </span>
-        <span
-          aria-hidden="true"
-          style={{
-            color: "var(--color-muted)",
-            fontSize: 18,
-            display: "inline-block",
-            transition: "transform 220ms cubic-bezier(0.32,0.72,0,1)",
-            transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
-            flexShrink: 0,
-            marginLeft: 2,
-          }}
-        >
-          ›
-        </span>
+        <span className="dash-chal-chevron" aria-hidden="true">›</span>
       </button>
 
-      {expanded && (
-        <div style={{ borderTop: "1px solid var(--panel-border)", padding: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+      <div className="dash-chal-body" aria-hidden={!expanded}>
+        <div className="dash-chal-body-inner">
           {active.map((c) => (
             <ChallengeCard
               key={c.id}
               challenge={c}
               t={t}
               busy={busyId === c.id}
+              optimisticDone={optimisticDone.has(c.id)}
               onComplete={() => handleComplete(c.id)}
+              onAccept={() => handleAccept(c.id)}
+              onDecline={() => handleDecline(c.id)}
               onOpen={() => onOpenSocial && onOpenSocial(c.id)}
             />
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
-function ChallengeCard({ challenge, t, busy, onComplete, onOpen }) {
+function ChallengeCard({ challenge, t, busy, optimisticDone, onComplete, onAccept, onDecline, onOpen }) {
   const tKey = todayKey();
-  const completedToday = challenge.myLastCompletionDayKey === tKey;
+  const completedToday = optimisticDone || challenge.myLastCompletionDayKey === tKey;
   const ended = new Date(challenge.endsAt).getTime() <= Date.now();
   const total = Math.max(1, Number(challenge.durationDays) || 1);
   const daysLeft = ended ? 0 : Math.max(0, Math.ceil((new Date(challenge.endsAt).getTime() - Date.now()) / 86400000));
   const elapsedDays = Math.min(total, Math.max(0, total - daysLeft));
   const pct = Math.round((elapsedDays / total) * 100);
+  const myAccepted = !!challenge.myAcceptedAt;
+  const isActivated = typeof challenge.isActivated === "boolean"
+    ? challenge.isActivated
+    : (challenge.participants || []).filter((p) => p.acceptedAt && !p.leftAt).length >= 2;
+
+  const pending = !myAccepted;
+  const waiting = myAccepted && !isActivated;
 
   return (
     <div
-      style={{
-        background: "color-mix(in srgb, var(--panel-bg) 60%, transparent)",
-        border: "1px solid var(--panel-border)",
-        borderRadius: 12,
-        padding: 12,
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-      }}
+      className={`dash-chal-card${pending ? " pending" : ""}${waiting ? " waiting" : ""}`}
     >
       <button
         type="button"
         onClick={onOpen}
-        className="press"
-        style={{ background: "transparent", border: "none", padding: 0, textAlign: "left", color: "var(--color-text)", fontFamily: "inherit", cursor: "pointer", display: "flex", flexDirection: "column", gap: 4 }}
+        className="dash-chal-card-head press"
       >
         <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
           <span className="sb-body" style={{ fontWeight: 700, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", letterSpacing: "-0.01em" }}>
             {challenge.title}
           </span>
-          <span className="sb-pill sb-pill-accent" style={{ flexShrink: 0 }}>
-            {(t.communityDaysLeft || "{n}d left").replace("{n}", String(daysLeft))}
-          </span>
+          {pending ? (
+            <span className="sb-pill" style={{ flexShrink: 0, background: "rgba(var(--color-primary-rgb,251,191,36),0.18)", color: "var(--color-primary)" }}>
+              ✉ {t.arenaPendingBadge || "Pending"}
+            </span>
+          ) : waiting ? (
+            <span className="sb-pill" style={{ flexShrink: 0 }}>
+              ⏳ {t.arenaWaitingBadge || "Waiting"}
+            </span>
+          ) : (
+            <span className="sb-pill sb-pill-accent" style={{ flexShrink: 0 }}>
+              {(t.communityDaysLeft || "{n}d left").replace("{n}", String(daysLeft))}
+            </span>
+          )}
         </div>
         <span className="sb-caption" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           🎯 {challenge.questTitle}
@@ -153,16 +175,32 @@ function ChallengeCard({ challenge, t, busy, onComplete, onOpen }) {
         </span>
       </button>
 
-      <div className="sb-progress" style={{ height: 5 }}>
-        <div className="sb-progress-fill" style={{ width: `${pct}%` }} />
-      </div>
+      {!pending && !waiting && (
+        <div className="sb-progress" style={{ height: 5 }}>
+          <div className="sb-progress-fill" style={{ width: `${pct}%` }} />
+        </div>
+      )}
 
-      {completedToday ? (
+      {pending ? (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <button type="button" disabled={busy} onClick={onAccept} className="sb-primary-btn press" style={{ padding: 10, fontSize: 13 }}>
+            {t.arenaAcceptInvite || "Accept invite"}
+          </button>
+          <button type="button" disabled={busy} onClick={onDecline} className="press" style={{ padding: 10, border: "1px solid var(--card-border-idle)", borderRadius: 10, background: "rgba(120,120,128,0.22)", color: "var(--color-text)", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>
+            {t.arenaDeclineInvite || "Decline"}
+          </button>
+        </div>
+      ) : waiting ? (
+        <p className="sb-caption" style={{ fontSize: 12 }}>
+          ⏳ {t.arenaWaitingForPlayers || "Waiting for at least one more player to accept"}
+        </p>
+      ) : completedToday ? (
         <div className="sb-pill sb-pill-success" style={{ alignSelf: "flex-start", padding: "4px 12px" }}>
           ✓ {t.arenaDoneTodayFull || "Done for today"}
         </div>
       ) : challenge.needsTimer && challenge.timeEstimateMin ? (
         <ChallengeTimerInline
+          challengeId={challenge.id}
           targetMinutes={challenge.timeEstimateMin}
           busy={busy}
           t={t}
@@ -176,76 +214,93 @@ function ChallengeCard({ challenge, t, busy, onComplete, onOpen }) {
           className="sb-tinted-btn press"
           style={{ alignSelf: "flex-start", padding: "8px 16px", fontSize: 13 }}
         >
-          {busy ? "…" : (t.arenaDashTick || "Tick")}
+          {busy ? "…" : (t.arenaTickOff || "Mark as completed")}
         </button>
       )}
     </div>
   );
 }
 
-// Local-state timer for a challenge card. State resets if the user
-// navigates away from the dashboard — matches the lightweight quest-card
-// inline-timer UX. Completion fires ONLY when elapsed >= target.
-function ChallengeTimerInline({ targetMinutes, busy, t, onComplete }) {
+/**
+ * Inline challenge timer. State persists in localStorage so closing the
+ * app, backgrounding the tab, or collapsing the strip does NOT reset it —
+ * same contract as the quest-board timers. Elapsed counts real wall-clock
+ * minus time spent paused.
+ */
+function ChallengeTimerInline({ challengeId, targetMinutes, busy, t, onComplete }) {
   const targetMs = Math.max(0, Number(targetMinutes) || 0) * 60 * 1000;
-  const [status, setStatus] = useState("idle"); // idle | running | paused | finishing
-  const [startedAt, setStartedAt] = useState(0);
-  const [totalPausedMs, setTotalPausedMs] = useState(0);
-  const [pausedAt, setPausedAt] = useState(0);
+  const storageKey = `challenge-timer:${challengeId}`;
+
+  const [timerState, setTimerState] = useState(() => readTimer(storageKey));
   const [, setTick] = useState(0);
   const firedRef = useRef(false);
 
+  // Persist every state change.
   useEffect(() => {
-    if (status !== "running") return undefined;
+    writeTimer(storageKey, timerState);
+  }, [storageKey, timerState]);
+
+  // Re-read on mount in case another tab / component wrote changes.
+  useEffect(() => {
+    const fresh = readTimer(storageKey);
+    setTimerState(fresh);
+  }, [storageKey]);
+
+  // Tick while running.
+  useEffect(() => {
+    if (timerState.status !== "running") return undefined;
     const id = setInterval(() => setTick((n) => n + 1), 500);
     return () => clearInterval(id);
-  }, [status]);
+  }, [timerState.status]);
 
   const elapsedMs = (() => {
-    if (status === "idle" || !startedAt) return 0;
-    const now = status === "paused" && pausedAt ? pausedAt : Date.now();
-    return Math.max(0, now - startedAt - totalPausedMs);
+    const s = timerState;
+    if (s.status === "idle" || !s.startedAt) return 0;
+    const anchor = s.status === "paused" && s.pausedAt ? s.pausedAt : Date.now();
+    return Math.max(0, anchor - s.startedAt - (s.totalPausedMs || 0));
   })();
   const pct = targetMs > 0 ? Math.min(100, Math.round((elapsedMs / targetMs) * 100)) : 0;
 
+  // Auto-complete at 100%.
   useEffect(() => {
-    if (status !== "running") return;
+    if (timerState.status !== "running") return;
     if (targetMs <= 0 || elapsedMs < targetMs) return;
     if (firedRef.current || busy) return;
     firedRef.current = true;
-    setStatus("finishing");
+    setTimerState((s) => ({ ...s, status: "finishing" }));
     Promise.resolve(onComplete()).finally(() => {
       firedRef.current = false;
+      // On success the card swaps to Done-pill via optimistic flag, so we
+      // also clear the persisted timer so it doesn't linger.
+      clearTimer(storageKey);
+      setTimerState(defaultTimer());
     });
-  }, [status, elapsedMs, targetMs, busy, onComplete]);
+  }, [timerState.status, elapsedMs, targetMs, busy, onComplete, storageKey]);
 
   const start = () => {
     firedRef.current = false;
-    setStartedAt(Date.now());
-    setTotalPausedMs(0);
-    setPausedAt(0);
-    setStatus("running");
+    setTimerState({ status: "running", startedAt: Date.now(), totalPausedMs: 0, pausedAt: 0 });
   };
   const pause = () => {
-    if (status !== "running") return;
-    setPausedAt(Date.now());
-    setStatus("paused");
+    if (timerState.status !== "running") return;
+    setTimerState((s) => ({ ...s, status: "paused", pausedAt: Date.now() }));
   };
   const resume = () => {
-    if (status !== "paused") return;
-    setTotalPausedMs((m) => m + Math.max(0, Date.now() - pausedAt));
-    setPausedAt(0);
-    setStatus("running");
+    if (timerState.status !== "paused") return;
+    setTimerState((s) => ({
+      ...s,
+      status: "running",
+      totalPausedMs: (s.totalPausedMs || 0) + Math.max(0, Date.now() - (s.pausedAt || Date.now())),
+      pausedAt: 0,
+    }));
   };
   const stop = () => {
     firedRef.current = false;
-    setStatus("idle");
-    setStartedAt(0);
-    setTotalPausedMs(0);
-    setPausedAt(0);
+    clearTimer(storageKey);
+    setTimerState(defaultTimer());
   };
 
-  if (status === "idle") {
+  if (timerState.status === "idle") {
     return (
       <button
         type="button"
@@ -259,9 +314,9 @@ function ChallengeTimerInline({ targetMinutes, busy, t, onComplete }) {
     );
   }
 
-  const running = status === "running";
-  const paused = status === "paused";
-  const finishing = status === "finishing";
+  const running = timerState.status === "running";
+  const paused = timerState.status === "paused";
+  const finishing = timerState.status === "finishing";
   const fillColor = pct >= 100 ? "#30d158" : "var(--color-primary)";
 
   return (
@@ -307,6 +362,45 @@ function ChallengeTimerInline({ targetMinutes, busy, t, onComplete }) {
       </div>
     </div>
   );
+}
+
+function defaultTimer() {
+  return { status: "idle", startedAt: 0, totalPausedMs: 0, pausedAt: 0 };
+}
+
+function readTimer(key) {
+  if (typeof window === "undefined") return defaultTimer();
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return defaultTimer();
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return defaultTimer();
+    // Sanitize.
+    return {
+      status: ["running", "paused", "finishing", "idle"].includes(parsed.status) ? parsed.status : "idle",
+      startedAt: Number(parsed.startedAt) || 0,
+      totalPausedMs: Number(parsed.totalPausedMs) || 0,
+      pausedAt: Number(parsed.pausedAt) || 0,
+    };
+  } catch {
+    return defaultTimer();
+  }
+}
+
+function writeTimer(key, state) {
+  if (typeof window === "undefined") return;
+  try {
+    if (!state || state.status === "idle") {
+      window.localStorage.removeItem(key);
+      return;
+    }
+    window.localStorage.setItem(key, JSON.stringify(state));
+  } catch { /* quota / private mode — ignore */ }
+}
+
+function clearTimer(key) {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.removeItem(key); } catch { /* ignore */ }
 }
 
 const miniPrimary = {

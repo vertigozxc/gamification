@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { completeChallenge, fetchChallenge, leaveChallenge } from "../../api";
+import { completeChallenge, fetchChallenge, joinChallenge, leaveChallenge } from "../../api";
 import Avatar from "./Avatar";
 import Screen from "./Screen";
 import Alert from "./Alert";
@@ -68,7 +68,19 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
   const participants = challenge?.participants || [];
   const active = participants.filter((p) => !p.leftAt);
   const me = participants.find((p) => p.user.username === meUid);
-  const isActive = !!(me && !me.leftAt);
+  const isParticipant = !!(me && !me.leftAt);
+  const myAccepted = !!me?.acceptedAt;
+  // `isActive` = "this user is an accepted, still-active participant"
+  // (matches the old semantic callers relied on; pending invites aren't
+  // active for action-button purposes).
+  const isActive = isParticipant && myAccepted;
+  // A challenge is "activated" once ≥2 participants have accepted their
+  // invites. Server already computes and returns this; fall back to a
+  // client recount for safety.
+  const acceptedActive = participants.filter((p) => p.acceptedAt && !p.leftAt);
+  const isActivated = challenge
+    ? (typeof challenge.isActivated === "boolean" ? challenge.isActivated : acceptedActive.length >= 2)
+    : false;
   const ended = challenge ? new Date(challenge.endsAt).getTime() <= Date.now() : false;
   const completedToday = me?.lastCompletionDayKey === todayKey();
   const daysLeft = challenge && !ended ? Math.max(0, Math.ceil((new Date(challenge.endsAt).getTime() - Date.now()) / 86400000)) : 0;
@@ -122,23 +134,68 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
   // reading `Date.now()` inside elapsedMs (we intentionally re-render via tick).
   void tick;
 
-  // Footer: done pill for completed day, or the "Mark done" button for
-  // non-timed challenges. Timed challenges no longer surface a Start-timer
-  // button here — that UX lives on the dashboard challenge card (same place
-  // as timed quests).
-  const footer = !loading && challenge && isActive && !ended ? (
-    completedToday ? (
-      <div className="sb-pill sb-pill-success" style={{ justifyContent: "center", padding: 14, fontSize: 15, width: "100%", display: "flex" }}>
-        ✓ {t.arenaDoneTodayFull || "Done for today"}
-      </div>
-    ) : challenge.needsTimer && targetMs > 0 ? (
-      null
-    ) : (
-      <button type="button" disabled={busy} onClick={handleComplete} className="sb-primary-btn press" style={{ width: "100%", padding: 14 }}>
-        {t.arenaTickOff || "Mark done today · +1 🪙 each"}
-      </button>
-    )
-  ) : null;
+  async function handleAccept() {
+    setBusy(true);
+    try {
+      await joinChallenge(challengeId, meUid);
+      await refresh();
+      onChanged && onChanged();
+    } catch (e) {
+      setError(e?.message || t.arenaActionError || "Could not accept");
+    } finally { setBusy(false); }
+  }
+
+  // Footer states, in priority order:
+  //   ended                       → nothing (archived view)
+  //   not a participant           → nothing
+  //   left                        → nothing
+  //   pending invite              → Accept / Decline
+  //   accepted but not activated  → "Waiting for players" disabled state
+  //   activated, done today       → Done pill
+  //   activated, no timer         → Mark-as-completed button
+  //   activated, timed            → nothing here (timer lives on dashboard)
+  let footer = null;
+  if (!loading && challenge && isParticipant && !ended) {
+    if (!myAccepted) {
+      footer = (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <button type="button" disabled={busy} onClick={handleAccept} className="sb-primary-btn press" style={{ padding: 14 }}>
+            {t.arenaAcceptInvite || "Accept invite"}
+          </button>
+          <button type="button" disabled={busy} onClick={() => setConfirmLeave(true)} className="press" style={{ padding: 14, border: "1px solid var(--card-border-idle)", borderRadius: 12, background: "rgba(120,120,128,0.22)", color: "var(--color-text)", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
+            {t.arenaDeclineInvite || "Decline"}
+          </button>
+        </div>
+      );
+    } else if (!isActivated) {
+      footer = (
+        <div style={{
+          padding: "12px 14px",
+          borderRadius: 12,
+          border: "1px dashed var(--panel-border)",
+          background: "rgba(120,120,128,0.12)",
+          color: "var(--color-muted)",
+          fontSize: 13,
+          textAlign: "center",
+          width: "100%",
+        }}>
+          ⏳ {t.arenaWaitingForPlayers || "Waiting for at least one more player to accept"}
+        </div>
+      );
+    } else if (completedToday) {
+      footer = (
+        <div className="sb-pill sb-pill-success" style={{ justifyContent: "center", padding: 14, fontSize: 15, width: "100%", display: "flex" }}>
+          ✓ {t.arenaDoneTodayFull || "Done for today"}
+        </div>
+      );
+    } else if (!challenge.needsTimer || targetMs <= 0) {
+      footer = (
+        <button type="button" disabled={busy} onClick={handleComplete} className="sb-primary-btn press" style={{ width: "100%", padding: 14 }}>
+          {t.arenaTickOff || "Mark as completed"}
+        </button>
+      );
+    }
+  }
 
   return (
     <>
@@ -268,14 +325,14 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, t
       </div>
 
       {/* Activity */}
-      <div>
-        <button type="button" onClick={onToggleActivity} className="sb-list-row press" style={{ background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: 12 }}>
+      <div className={`chal-activity${showActivity ? " open" : ""}`}>
+        <button type="button" onClick={onToggleActivity} className="chal-activity-toggle" aria-expanded={showActivity}>
           <span style={{ fontSize: 16 }}>📋</span>
           <span className="sb-body" style={{ flex: 1, fontWeight: 600 }}>{t.arenaActivity || "Activity"}</span>
-          <span style={{ color: "var(--color-muted)", transition: "transform 200ms cubic-bezier(0.32,0.72,0,1)", transform: showActivity ? "rotate(90deg)" : "none", display: "inline-block" }}>›</span>
+          <span className="chal-activity-chev" aria-hidden="true">›</span>
         </button>
-        {showActivity && (
-          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+        <div className="chal-activity-body" aria-hidden={!showActivity}>
+          <div className="chal-activity-body-inner">
             {(challenge.logs || []).length === 0 && (
               <p className="sb-caption" style={{ textAlign: "center", padding: "8px 0" }}>{t.arenaActivityEmpty || "No activity yet."}</p>
             )}
@@ -288,7 +345,7 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, t
               </div>
             ))}
           </div>
-        )}
+        </div>
       </div>
 
       {error && <p style={{ color: "#ff6a63", fontSize: 14, textAlign: "center" }}>{error}</p>}

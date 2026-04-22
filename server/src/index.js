@@ -5212,15 +5212,30 @@ app.get("/api/friends/list/:username", async (req, res) => {
 
 const MAX_ACTIVE_CHALLENGES_PER_USER = 2;
 const MAX_PARTICIPANTS_PER_CHALLENGE = 6; // creator + up to 5 friends
+const MAX_CHALLENGES_CREATED_PER_DAY = 2;
 
+// Count of challenges the user is an accepted, still-active participant in.
+// Pending invites (acceptedAt=null) don't count — the user hasn't committed
+// yet and shouldn't be blocked from creating or accepting more.
 async function activeParticipationCount(userId) {
   const now = new Date();
   return prisma.challengeParticipant.count({
     where: {
       userId,
       leftAt: null,
+      acceptedAt: { not: null },
       challenge: { endsAt: { gt: now } }
     }
+  });
+}
+
+// Count of challenges this user has CREATED since UTC midnight today.
+// Used to rate-limit challenge creation per user per day.
+async function challengesCreatedTodayCount(userId) {
+  const now = new Date();
+  const startUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  return prisma.groupChallenge.count({
+    where: { creatorId: userId, createdAt: { gte: startUtc } }
   });
 }
 
@@ -5245,6 +5260,16 @@ app.post("/api/challenges", async (req, res) => {
     const activeCount = await activeParticipationCount(creator.id);
     if (activeCount >= MAX_ACTIVE_CHALLENGES_PER_USER) {
       return res.status(409).json({ error: "Max active challenges reached", limit: MAX_ACTIVE_CHALLENGES_PER_USER });
+    }
+
+    // Per-day creation cap — prevents spamming invites at reset time.
+    const createdToday = await challengesCreatedTodayCount(creator.id);
+    if (createdToday >= MAX_CHALLENGES_CREATED_PER_DAY) {
+      return res.status(429).json({
+        error: "Daily challenge creation limit reached",
+        code: "daily_create_limit",
+        limit: MAX_CHALLENGES_CREATED_PER_DAY
+      });
     }
 
     // Resolve invitees (must be friends of creator)
@@ -5307,18 +5332,21 @@ app.post("/api/challenges", async (req, res) => {
           endsAt
         }
       });
+      // Creator accepts implicitly. Invitees are pending (acceptedAt=null)
+      // until they tap Accept; the challenge is not activated until at
+      // least 2 participants have acceptedAt != null.
       await tx.challengeParticipant.create({
-        data: { challengeId: created.id, userId: creator.id }
+        data: { challengeId: created.id, userId: creator.id, acceptedAt: now }
       });
       await tx.challengeLogEntry.create({
         data: { challengeId: created.id, userId: creator.id, type: "created" }
       });
       for (const invitee of inviteeUsers) {
         await tx.challengeParticipant.create({
-          data: { challengeId: created.id, userId: invitee.id }
+          data: { challengeId: created.id, userId: invitee.id, acceptedAt: null }
         });
         await tx.challengeLogEntry.create({
-          data: { challengeId: created.id, userId: invitee.id, type: "joined" }
+          data: { challengeId: created.id, userId: invitee.id, type: "invited" }
         });
       }
       return created;
@@ -5383,14 +5411,16 @@ app.post("/api/challenges/:id/join", async (req, res) => {
     }
 
     const existing = challenge.participants.find((p) => p.userId === me.id);
+    const nowTs = new Date();
     await prisma.$transaction([
       existing
         ? prisma.challengeParticipant.update({
             where: { id: existing.id },
-            data: { leftAt: null }
+            // Clear leftAt (rejoin) AND stamp acceptedAt (accept pending invite).
+            data: { leftAt: null, acceptedAt: existing.acceptedAt || nowTs }
           })
         : prisma.challengeParticipant.create({
-            data: { challengeId: challenge.id, userId: me.id }
+            data: { challengeId: challenge.id, userId: me.id, acceptedAt: nowTs }
           }),
       prisma.challengeLogEntry.create({
         data: { challengeId: challenge.id, userId: me.id, type: "joined" }
@@ -5421,6 +5451,14 @@ app.post("/api/challenges/:id/complete", async (req, res) => {
 
     const meParticipant = challenge.participants.find((p) => p.userId === me.id && !p.leftAt);
     if (!meParticipant) return res.status(403).json({ error: "Not an active participant" });
+    if (!meParticipant.acceptedAt) {
+      return res.status(409).json({ error: "Invite not accepted yet", code: "invite_pending" });
+    }
+    // Challenge is activated only once at least 2 participants have accepted.
+    const acceptedCount = challenge.participants.filter((p) => p.acceptedAt && !p.leftAt).length;
+    if (acceptedCount < 2) {
+      return res.status(409).json({ error: "Challenge needs at least 2 players", code: "not_activated" });
+    }
 
     const now = new Date();
     const dayKey = getDateKey(now);
@@ -5496,7 +5534,11 @@ app.get("/api/challenges/:id", async (req, res) => {
       }
     });
     if (!challenge) return res.status(404).json({ error: "Challenge not found" });
-    res.json({ challenge, serverNowMs: Date.now() });
+    const acceptedCount = (challenge.participants || []).filter((p) => p.acceptedAt && !p.leftAt).length;
+    res.json({
+      challenge: { ...challenge, isActivated: acceptedCount >= 2, acceptedCount },
+      serverNowMs: Date.now()
+    });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch challenge", detail: error.message });
   }
@@ -5523,13 +5565,19 @@ app.get("/api/challenges/user/:username", async (req, res) => {
       orderBy: { joinedAt: "desc" }
     });
     const challenges = rows
-      .map((p) => ({
-        ...p.challenge,
-        myCompletions: p.completions,
-        myConsecutiveDays: p.consecutiveDays,
-        myTokensEarned: p.tokensEarned,
-        myLastCompletionDayKey: p.lastCompletionDayKey
-      }))
+      .map((p) => {
+        const acceptedCount = (p.challenge.participants || []).filter((pp) => pp.acceptedAt && !pp.leftAt).length;
+        return {
+          ...p.challenge,
+          myCompletions: p.completions,
+          myConsecutiveDays: p.consecutiveDays,
+          myTokensEarned: p.tokensEarned,
+          myLastCompletionDayKey: p.lastCompletionDayKey,
+          myAcceptedAt: p.acceptedAt,
+          isActivated: acceptedCount >= 2,
+          acceptedCount
+        };
+      })
       .filter((c) => new Date(c.endsAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)); // show ended-within-week too
     res.json({ challenges, serverNowMs: Date.now() });
   } catch (error) {

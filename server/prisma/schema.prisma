@@ -190,6 +190,9 @@ model ChallengeParticipant {
   challengeId          String
   userId               String
   joinedAt             DateTime       @default(now())
+  // acceptedAt is null for pending invites. A challenge only counts as
+  // "activated" when there are at least 2 accepted participants.
+  acceptedAt           DateTime?
   leftAt               DateTime?
   completions          Int            @default(0)
   consecutiveDays      Int            @default(0)

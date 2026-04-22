@@ -110,11 +110,8 @@ export default function DashboardTab({
         </div>
       </div>
 
-      {/* Active group challenges strip — sits right above the "Daily reset"
-          row inside the Quest board (hides itself when there are none) */}
-      <DashboardChallengeStrip authUser={authUser} t={t} onOpenSocial={onOpenSocial} />
-
-      {/* Quest board with tabs */}
+      {/* Quest board with tabs. The group-challenges strip is slotted
+          directly under the daily-reset timer row via `postTimerRow`. */}
       <div className="mobile-card">
         <QuestBoard
           pinnedQuests={pinnedQuests} otherQuests={otherQuests}
@@ -130,6 +127,7 @@ export default function DashboardTab({
           questRenderCount={questRenderCount}
           onCompleteQuest={onCompleteQuest}
           resetTimer={resetTimer}
+          postTimerRow={<DashboardChallengeStrip authUser={authUser} t={t} onOpenSocial={onOpenSocial} />}
           rerollingQuestId={rerollingQuestId}
           rerollingPinned={rerollingPinned}
           renderQuestTimer={renderQuestTimer}

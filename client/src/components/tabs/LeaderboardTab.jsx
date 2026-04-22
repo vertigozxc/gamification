@@ -490,10 +490,6 @@ function FriendsInlineTab({ friends, requests, busy, t, onOpenProfile, onOpenSea
         </>
       )}
 
-      <h3 className="cm-section-label">
-        🤝 {t.communityFriends || "Friends"} ({friends.length})
-      </h3>
-
       <button
         type="button"
         onClick={onOpenSearch}
@@ -507,6 +503,10 @@ function FriendsInlineTab({ friends, requests, busy, t, onOpenProfile, onOpenSea
         </svg>
         <span>{t.communityFindFriend || "Find a friend"}</span>
       </button>
+
+      <h3 className="cm-section-label">
+        🤝 {t.communityFriends || "Friends"} ({friends.length})
+      </h3>
 
       {friends.length === 0 ? (
         <div className="cm-empty">

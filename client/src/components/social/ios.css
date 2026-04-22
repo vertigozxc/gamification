@@ -216,6 +216,214 @@ body[data-theme="light"] .social-block .cm-tabs-slider {
   margin-left: 2px;
 }
 
+/* Activity drawer inside the challenge detail screen.
+ *   Press the toggle → smooth max-height expand, chevron rotates,
+ *   panel briefly brightens to acknowledge the tap. */
+.social-block .chal-activity {
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  background: var(--panel-bg);
+  overflow: hidden;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+.social-block .chal-activity.open {
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--panel-bg));
+  border-color: color-mix(in srgb, var(--color-primary) 35%, var(--panel-border));
+}
+.social-block .chal-activity-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: transparent;
+  border: none;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 120ms ease;
+}
+.social-block .chal-activity-toggle:active {
+  background: rgba(var(--color-primary-rgb, 251, 191, 36), 0.16);
+}
+.social-block .chal-activity-chev {
+  color: var(--color-muted);
+  font-size: 17px;
+  display: inline-block;
+  transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.social-block .chal-activity.open .chal-activity-chev { transform: rotate(90deg); }
+.social-block .chal-activity-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 260ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.social-block .chal-activity.open .chal-activity-body { grid-template-rows: 1fr; }
+.social-block .chal-activity-body-inner {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 14px;
+  opacity: 0;
+  transition: opacity 200ms ease 40ms, padding 220ms ease;
+}
+.social-block .chal-activity.open .chal-activity-body-inner {
+  opacity: 1;
+  padding: 4px 14px 14px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .social-block .chal-activity-body,
+  .social-block .chal-activity-body-inner,
+  .social-block .chal-activity-chev { transition: none !important; }
+}
+
+/* ============================================================================
+ * Dashboard group-challenge strip
+ *   - Sits directly under the daily-reset row on the dashboard.
+ *   - Collapsible with a smooth max-height transition (keeps reduced-motion
+ *     users happy via prefers-reduced-motion).
+ *   - Child cards get an iOS-style press feedback (scale + tint).
+ * ========================================================================== */
+.social-block .dash-chal-strip {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.social-block .dash-chal-header {
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 120ms ease;
+}
+.social-block .dash-chal-header:active {
+  background: rgba(120, 120, 128, 0.14);
+}
+.social-block .dash-chal-header-ico { font-size: 17px; line-height: 1; flex-shrink: 0; }
+.social-block .dash-chal-header-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.social-block .dash-chal-pending-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #ff453a;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.social-block .dash-chal-chevron {
+  color: var(--color-muted);
+  font-size: 17px;
+  display: inline-block;
+  transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+.social-block .dash-chal-strip[data-expanded="true"] .dash-chal-chevron {
+  transform: rotate(90deg);
+}
+/* Smooth expand/collapse. Using grid-template-rows trick for height
+ * auto-sizing without a JS measurement pass. Falls back to instant show
+ * for browsers without grid animation. */
+.social-block .dash-chal-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 260ms cubic-bezier(0.32, 0.72, 0, 1);
+  border-top: 1px solid transparent;
+}
+.social-block .dash-chal-strip[data-expanded="true"] .dash-chal-body {
+  grid-template-rows: 1fr;
+  border-top-color: var(--panel-border);
+}
+.social-block .dash-chal-body-inner {
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  opacity: 0;
+  transition: opacity 200ms ease 40ms, padding 220ms ease;
+}
+.social-block .dash-chal-strip[data-expanded="true"] .dash-chal-body-inner {
+  opacity: 1;
+  padding: 10px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .social-block .dash-chal-body,
+  .social-block .dash-chal-body-inner,
+  .social-block .dash-chal-chevron {
+    transition: none !important;
+  }
+}
+
+.social-block .dash-chal-card {
+  background: color-mix(in srgb, var(--panel-bg) 60%, transparent);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: background-color 140ms ease, border-color 140ms ease, transform 120ms ease;
+}
+.social-block .dash-chal-card.pending {
+  border-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
+  background: rgba(var(--color-primary-rgb, 251, 191, 36), 0.06);
+}
+.social-block .dash-chal-card.waiting {
+  border-style: dashed;
+  background: rgba(120, 120, 128, 0.08);
+}
+/* Press animation on the card head itself — entire title block is a button */
+.social-block .dash-chal-card-head {
+  background: transparent;
+  border: none;
+  padding: 0;
+  text-align: left;
+  color: var(--color-text);
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-radius: 8px;
+  margin: -4px -4px 0;
+  padding: 4px;
+  transition: background-color 140ms ease, transform 120ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.social-block .dash-chal-card-head:active {
+  background: rgba(var(--color-primary-rgb, 251, 191, 36), 0.14);
+  transform: scale(0.99);
+}
+
 /* Section head row: label on left, optional action on right */
 .social-block .cm-section-head {
   display: flex;
