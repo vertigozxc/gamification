@@ -54,6 +54,8 @@ function PinnedReplacementModal({
   const canAfford = isFreePinnedReroll || hasEnoughTokens;
   const primaryDisabled = replacePinnedSaving || !selectionComplete || !canAfford;
 
+  const swipeBind = useEdgeSwipeBack(onClose);
+
   if (!open) return null;
 
   const handleOverlayClick = (e) => {
@@ -61,7 +63,6 @@ function PinnedReplacementModal({
   };
 
   const progressPct = Math.min(100, Math.round((selectedCount / SELECTION_LIMIT) * 100));
-  const swipeBind = useEdgeSwipeBack(onClose);
 
   return (
     <div
