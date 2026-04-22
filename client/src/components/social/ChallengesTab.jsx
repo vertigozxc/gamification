@@ -2,16 +2,15 @@ import { useCallback, useEffect, useState } from "react";
 import { completeChallenge, fetchUserChallenges } from "../../api";
 import Avatar from "./Avatar";
 import CreateChallengeModal from "./CreateChallengeModal";
-import ChallengeDetailModal from "./ChallengeDetailModal";
+import { haptic } from "./iosNav";
 
 const MAX_ACTIVE = 3;
 
-export default function ChallengesTab({ authUser, t, languageId, onOpenProfile, onChanged }) {
+export default function ChallengesTab({ authUser, t, languageId, onOpenProfile, onOpenChallenge, onChanged }) {
   const meUid = String(authUser?.uid || "").slice(0, 128);
   const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [openChallengeId, setOpenChallengeId] = useState(null);
 
   const refresh = useCallback(async () => {
     if (!meUid) return;
@@ -27,27 +26,19 @@ export default function ChallengesTab({ authUser, t, languageId, onOpenProfile, 
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const pending = window.__pendingSocialChallengeId;
-    if (pending) {
-      setOpenChallengeId(pending);
-      try { window.__pendingSocialChallengeId = null; } catch {}
-    }
-  }, []);
-
   const now = Date.now();
   const active = challenges.filter((c) => new Date(c.endsAt).getTime() > now);
   const ended = challenges.filter((c) => new Date(c.endsAt).getTime() <= now);
   const canCreateMore = active.length < MAX_ACTIVE;
 
   async function quickComplete(challengeId) {
+    haptic("success");
     try {
       await completeChallenge(challengeId, meUid);
       await refresh();
       onChanged && onChanged();
     } catch {
-      /* noop: detail modal surfaces errors */
+      haptic("warning");
     }
   }
 
@@ -95,7 +86,7 @@ export default function ChallengesTab({ authUser, t, languageId, onOpenProfile, 
       <button
         type="button"
         disabled={!canCreateMore}
-        onClick={() => setShowCreate(true)}
+        onClick={() => { haptic("light"); setShowCreate(true); }}
         className="ios-btn-primary ios-tap"
         style={{ padding: "14px" }}
       >
@@ -124,7 +115,7 @@ export default function ChallengesTab({ authUser, t, languageId, onOpenProfile, 
                     t={t}
                     languageId={languageId}
                     meUid={meUid}
-                    onOpen={() => setOpenChallengeId(c.id)}
+                    onOpen={() => { haptic("light"); onOpenChallenge && onOpenChallenge(c.id); }}
                     onQuickComplete={() => quickComplete(c.id)}
                   />
                 ))}
@@ -145,7 +136,7 @@ export default function ChallengesTab({ authUser, t, languageId, onOpenProfile, 
                     languageId={languageId}
                     meUid={meUid}
                     ended
-                    onOpen={() => setOpenChallengeId(c.id)}
+                    onOpen={() => { haptic("light"); onOpenChallenge && onOpenChallenge(c.id); }}
                   />
                 ))}
               </div>
@@ -160,17 +151,6 @@ export default function ChallengesTab({ authUser, t, languageId, onOpenProfile, 
           t={t}
           onClose={() => setShowCreate(false)}
           onCreated={() => { setShowCreate(false); refresh(); onChanged && onChanged(); }}
-        />
-      )}
-
-      {openChallengeId && (
-        <ChallengeDetailModal
-          challengeId={openChallengeId}
-          authUser={authUser}
-          t={t}
-          languageId={languageId}
-          onClose={() => { setOpenChallengeId(null); refresh(); onChanged && onChanged(); }}
-          onOpenProfile={onOpenProfile}
         />
       )}
     </div>

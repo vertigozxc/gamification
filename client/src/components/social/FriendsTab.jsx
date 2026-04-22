@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { fetchFriends, fetchIncomingFriendRequests, removeFriend, respondToFriendRequest } from "../../api";
 import Avatar from "./Avatar";
 import StreakFrame from "./StreakFrame";
+import { haptic, useSwipeAction } from "./iosNav";
 
 export default function FriendsTab({ authUser, t, onOpenProfile, onSwitchToWeekly }) {
   const meUid = String(authUser?.uid || "").slice(0, 128);
@@ -28,15 +29,17 @@ export default function FriendsTab({ authUser, t, onOpenProfile, onSwitchToWeekl
 
   async function handleRespond(requestId, response) {
     setBusy(true);
+    haptic(response === "accept" ? "success" : "light");
     try {
       await respondToFriendRequest(meUid, requestId, response);
       await refresh();
-    } catch { /* swallow */ } finally { setBusy(false); }
+    } catch { haptic("warning"); } finally { setBusy(false); }
   }
 
-  async function handleRemove(username) {
-    if (!window.confirm(t.socialConfirmRemoveFriend || "Remove this friend?")) return;
+  async function handleRemove(username, { skipConfirm = false } = {}) {
+    if (!skipConfirm && !window.confirm(t.socialConfirmRemoveFriend || "Remove this friend?")) return;
     setBusy(true);
+    haptic("warning");
     try {
       await removeFriend(meUid, username);
       await refresh();
@@ -147,46 +150,56 @@ function RequestRow({ request: r, busy, t, onRespond, onOpenProfile, isLast }) {
 }
 
 function FriendRow({ friend: f, busy, t, onOpenProfile, onRemove, isLast }) {
+  const { rowProps, offset, revealed, close } = useSwipeAction({
+    actionWidth: 92,
+    onCommit: () => onRemove(f.username, { skipConfirm: true })
+  });
+
   return (
-    <div
-      className="ios-list-row"
-      style={{ borderBottom: isLast ? "none" : undefined }}
-    >
-      <button
-        type="button"
-        onClick={() => onOpenProfile(f.username)}
-        className="ios-tap"
-        style={{ background: "transparent", border: "none", padding: 0 }}
+    <div className="swipe-row" style={{ borderBottom: isLast ? "none" : "1px solid var(--panel-border)" }}>
+      <div className="swipe-row-bg" style={{ width: 92 }}>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => { close(); onRemove(f.username); }}
+          className="swipe-row-action ios-tap"
+          style={{ width: "100%" }}
+          aria-label={t.socialRemoveFriend || "Remove"}
+        >
+          {t.socialRemove || "Remove"}
+        </button>
+      </div>
+      <div
+        className="swipe-row-content ios-list-row"
+        {...rowProps}
+        style={{ transform: `translateX(${-offset}px)` }}
       >
-        <StreakFrame streak={f.streak} size={40} ringWidth={2}>
-          <Avatar photoUrl={f.photoUrl} displayName={f.displayName} size={40} />
-        </StreakFrame>
-      </button>
-      <button
-        type="button"
-        onClick={() => onOpenProfile(f.username)}
-        className="ios-tap"
-        style={{ flex: 1, minWidth: 0, textAlign: "left", background: "transparent", border: "none", padding: 0, color: "var(--color-text)" }}
-      >
-        <p className="ios-body" style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", letterSpacing: "-0.01em" }}>
-          {f.displayName || f.username}
-        </p>
-        <p className="ios-caption" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <span>{t.socialLevelLabel || "Lv"} {f.level}</span>
-          <span>🔥 {f.streak}</span>
-          {typeof f.weeklyXp === "number" && <span>⚡ {f.weeklyXp}/{t.socialWeekShort || "wk"}</span>}
-        </p>
-      </button>
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => onRemove(f.username)}
-        className="ios-icon-btn ios-tap"
-        aria-label={t.socialRemoveFriend || "Remove friend"}
-        style={{ flexShrink: 0 }}
-      >
-        ✕
-      </button>
+        <button
+          type="button"
+          onClick={() => { if (revealed) { close(); return; } onOpenProfile(f.username); }}
+          className="ios-tap"
+          style={{ background: "transparent", border: "none", padding: 0 }}
+        >
+          <StreakFrame streak={f.streak} size={40} ringWidth={2}>
+            <Avatar photoUrl={f.photoUrl} displayName={f.displayName} size={40} />
+          </StreakFrame>
+        </button>
+        <button
+          type="button"
+          onClick={() => { if (revealed) { close(); return; } onOpenProfile(f.username); }}
+          className="ios-tap"
+          style={{ flex: 1, minWidth: 0, textAlign: "left", background: "transparent", border: "none", padding: 0, color: "var(--color-text)" }}
+        >
+          <p className="ios-body" style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", letterSpacing: "-0.01em" }}>
+            {f.displayName || f.username}
+          </p>
+          <p className="ios-caption" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <span>{t.socialLevelLabel || "Lv"} {f.level}</span>
+            <span>🔥 {f.streak}</span>
+            {typeof f.weeklyXp === "number" && <span>⚡ {f.weeklyXp}/{t.socialWeekShort || "wk"}</span>}
+          </p>
+        </button>
+      </div>
     </div>
   );
 }

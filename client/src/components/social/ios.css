@@ -408,6 +408,192 @@
   margin-top: 1px;
 }
 
+/* ============================================================================
+ * Navigation stack (push / pop) — Apple Settings-style slide navigation.
+ * ========================================================================== */
+.social-block .ios-nav-stack {
+  position: relative;
+  min-height: 100%;
+  overflow: hidden;
+}
+.social-block .ios-nav-screen {
+  width: 100%;
+  will-change: transform;
+}
+.social-block .ios-nav-pushed {
+  position: absolute;
+  inset: 0;
+  background: var(--page-bg, var(--panel-bg));
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.18);
+}
+
+/* Nav bar (top bar with back chevron + centered title) */
+.social-block .ios-nav-bar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 10px 8px;
+  min-height: 44px;
+  background: rgba(var(--panel-bg-rgb, 22, 24, 29), 0.88);
+  backdrop-filter: saturate(1.4) blur(20px);
+  -webkit-backdrop-filter: saturate(1.4) blur(20px);
+  border-bottom: 1px solid var(--panel-border);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.social-block .ios-nav-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  justify-self: start;
+  cursor: pointer;
+}
+.social-block .ios-nav-back-chev {
+  font-size: 22px;
+  font-weight: 300;
+  line-height: 1;
+  margin-top: -2px;
+}
+.social-block .ios-nav-back-label {
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.social-block .ios-nav-bar-title {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+.social-block .ios-nav-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Sliding indicator on segmented control */
+.social-block .ios-segmented {
+  position: relative;
+}
+.social-block .ios-segmented .ios-segmented-slider {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  border-radius: 8px;
+  background: var(--panel-bg);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  transition: transform 360ms cubic-bezier(0.32, 0.72, 0, 1),
+    width 360ms cubic-bezier(0.32, 0.72, 0, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+.social-block .ios-segmented-option {
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Swipe-action container (iOS Mail-style swipe reveal) */
+.social-block .swipe-row {
+  position: relative;
+  overflow: hidden;
+}
+.social-block .swipe-row-bg {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: stretch;
+}
+.social-block .swipe-row-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  font-weight: 600;
+  font-size: 15px;
+  color: #fff;
+  background: #ff453a;
+  border: none;
+  cursor: pointer;
+}
+.social-block .swipe-row-content {
+  position: relative;
+  background: var(--panel-bg);
+  transition: transform 260ms cubic-bezier(0.32, 0.72, 0, 1);
+  touch-action: pan-y;
+  will-change: transform;
+}
+
+/* Pull-to-refresh indicator */
+.social-block .ios-ptr {
+  height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--color-muted);
+  transition: height 240ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.social-block .ios-ptr.active {
+  height: 48px;
+}
+.social-block .ios-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(120, 120, 128, 0.4);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: ios-spin 900ms linear infinite;
+}
+@keyframes ios-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Toast overlay */
+@keyframes ios-toast-in {
+  from { opacity: 0; transform: translate(-50%, -10px) scale(0.96); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+.social-block .ios-toast {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(32, 32, 34, 0.92);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  z-index: 80;
+  pointer-events: none;
+  animation: ios-toast-in 220ms cubic-bezier(0.32, 0.72, 0, 1);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
 /* Typography helpers */
 .social-block .ios-large-title {
   font-size: 28px;

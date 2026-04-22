@@ -531,6 +531,8 @@ export const languagePacks = {
       socialDiscoverPlayers: "Discover players",
       socialDashboardStripTitle: "Group challenges",
       socialDashboardStripMore: "+{n} more",
+      socialRemove: "Remove",
+      socialChallengeSheetTitle: "Challenge",
     },
     themeMeta: {
       adventure: {
@@ -1154,6 +1156,8 @@ export const languagePacks = {
       socialDiscoverPlayers: "Найти игроков",
       socialDashboardStripTitle: "Групповые испытания",
       socialDashboardStripMore: "+ещё {n}",
+      socialRemove: "Удалить",
+      socialChallengeSheetTitle: "Испытание",
     },
     themeMeta: {
       adventure: { label: "Приключение", description: "Героический RPG-стиль" },

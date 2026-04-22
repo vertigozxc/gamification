@@ -10,6 +10,7 @@ import {
 } from "../../api";
 import Avatar from "./Avatar";
 import StreakFrame, { getStreakTier } from "./StreakFrame";
+import { haptic, useIosNav } from "./iosNav";
 
 function parseDistrictLevels(str) {
   return String(str || "0,0,0,0,0")
@@ -32,7 +33,8 @@ function formatDate(value, languageId) {
   }
 }
 
-export default function PublicProfileModal({ targetUsername, meUsername, t, languageId, onClose }) {
+export default function PublicProfileScreen({ targetUsername, meUsername, t, languageId, onRemoved }) {
+  const nav = useIosNav();
   const [profile, setProfile] = useState(null);
   const [relation, setRelation] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -57,13 +59,20 @@ export default function PublicProfileModal({ targetUsername, meUsername, t, lang
 
   useEffect(() => { setLoading(true); refresh(); /* eslint-disable-next-line */ }, [targetUsername, meUsername]);
 
-  async function act(fn) {
+  async function act(fn, { popOnSuccess = false, hapticKind = "light" } = {}) {
     if (!meUsername) return;
     setBusy(true);
+    haptic(hapticKind);
     try {
       await fn();
-      await refresh();
+      if (popOnSuccess) {
+        onRemoved && onRemoved();
+        nav.pop();
+      } else {
+        await refresh();
+      }
     } catch (e) {
+      haptic("warning");
       setError(e?.message || t.socialErrorGeneric || "Action failed");
     } finally {
       setBusy(false);
@@ -73,63 +82,42 @@ export default function PublicProfileModal({ targetUsername, meUsername, t, lang
   const state = relation?.state;
   const isSelf = state === "self";
 
-  return (
-    <div className="social-block">
-      <div role="dialog" aria-modal="true" onClick={onClose} className="ios-sheet-backdrop">
-        <div onClick={(e) => e.stopPropagation()} className="ios-sheet">
-          <div className="ios-sheet-handle" aria-hidden="true" />
-          <div className="ios-sheet-header">
-            <div />
-            <span className="ios-sheet-title">{t.socialProfileLabel || "Player profile"}</span>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label={t.close || "Close"}
-              className="ios-icon-btn ios-tap"
-              style={{ justifySelf: "end" }}
-            >
-              ✕
-            </button>
-          </div>
-
-          <div className="ios-sheet-body" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {loading ? (
-              <p style={{ textAlign: "center", color: "var(--color-muted)", padding: "24px 0" }}>
-                {t.socialLoading || "Loading…"}
-              </p>
-            ) : !profile ? (
-              <p style={{ textAlign: "center", color: "#ff453a", padding: "24px 0" }}>
-                {error || t.socialErrorLoad || "Failed to load profile"}
-              </p>
-            ) : (
-              <>
-                <Hero profile={profile} t={t} />
-                <StatGrid profile={profile} t={t} languageId={languageId} />
-                <CityCard profile={profile} t={t} />
-                {error && (
-                  <p style={{ fontSize: 14, color: "#ff453a", textAlign: "center" }}>{error}</p>
-                )}
-              </>
-            )}
-          </div>
-
-          {!loading && profile && !isSelf && meUsername && (
-            <div className="ios-sheet-footer">
-              <FriendshipAction
-                state={state}
-                relation={relation}
-                busy={busy}
-                t={t}
-                onAdd={() => act(() => sendFriendRequest(meUsername, targetUsername))}
-                onCancel={() => act(() => cancelFriendRequest(meUsername, targetUsername))}
-                onAccept={() => act(() => respondToFriendRequest(meUsername, relation.requestId, "accept"))}
-                onDecline={() => act(() => respondToFriendRequest(meUsername, relation.requestId, "decline"))}
-                onRemove={() => act(() => removeFriend(meUsername, targetUsername))}
-              />
-            </div>
-          )}
-        </div>
+  if (loading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: 10 }}>
+        <div className="ios-spinner" />
       </div>
+    );
+  }
+  if (!profile) {
+    return (
+      <p style={{ textAlign: "center", color: "#ff453a", padding: "40px 16px" }}>
+        {error || t.socialErrorLoad || "Failed to load profile"}
+      </p>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14, paddingBottom: 20 }}>
+      <Hero profile={profile} t={t} />
+      <StatGrid profile={profile} t={t} languageId={languageId} />
+      <CityCard profile={profile} t={t} />
+      {error && <p style={{ fontSize: 14, color: "#ff453a", textAlign: "center" }}>{error}</p>}
+      {!isSelf && meUsername && (
+        <div style={{ paddingTop: 6 }}>
+          <FriendshipAction
+            state={state}
+            relation={relation}
+            busy={busy}
+            t={t}
+            onAdd={() => act(() => sendFriendRequest(meUsername, targetUsername), { hapticKind: "success" })}
+            onCancel={() => act(() => cancelFriendRequest(meUsername, targetUsername))}
+            onAccept={() => act(() => respondToFriendRequest(meUsername, relation.requestId, "accept"), { hapticKind: "success" })}
+            onDecline={() => act(() => respondToFriendRequest(meUsername, relation.requestId, "decline"))}
+            onRemove={() => act(() => removeFriend(meUsername, targetUsername), { hapticKind: "warning" })}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -137,19 +125,11 @@ export default function PublicProfileModal({ targetUsername, meUsername, t, lang
 function Hero({ profile, t }) {
   const tier = getStreakTier(profile.streak);
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10, paddingTop: 4 }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10, paddingTop: 6 }}>
       <StreakFrame streak={profile.streak} size={96} ringWidth={5}>
         <Avatar photoUrl={profile.photoUrl} displayName={profile.displayName} size={96} />
       </StreakFrame>
-      <h2
-        className="ios-title"
-        style={{
-          maxWidth: "100%",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis"
-        }}
-      >
+      <h2 className="ios-title" style={{ maxWidth: "100%", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         {profile.displayName}
       </h2>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
@@ -194,22 +174,10 @@ function CityCard({ profile, t }) {
   const levels = parseDistrictLevels(profile.districtLevels);
   const sum = levels.reduce((acc, n) => acc + n, 0);
   return (
-    <div
-      style={{
-        background: "var(--panel-bg)",
-        border: "1px solid var(--panel-border)",
-        borderRadius: 14,
-        padding: 10,
-        overflow: "hidden"
-      }}
-    >
+    <div style={{ background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: 14, padding: 10, overflow: "hidden" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-        <p className="ios-caption" style={{ fontWeight: 600 }}>
-          {t.socialCityLabel || "City"}
-        </p>
-        <p className="ios-caption">
-          {(t.socialCitySum || "Districts: {n}/25").replace("{n}", String(sum))}
-        </p>
+        <p className="ios-caption" style={{ fontWeight: 600 }}>{t.socialCityLabel || "City"}</p>
+        <p className="ios-caption">{(t.socialCitySum || "Districts: {n}/25").replace("{n}", String(sum))}</p>
       </div>
       <div style={{ aspectRatio: "1 / 1", width: "100%", pointerEvents: "none" }}>
         <CityIsometricOverview levels={levels} selectedIdx={-1} t={t} />

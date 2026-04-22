@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { createChallenge, fetchFriends } from "../../api";
 import Avatar from "./Avatar";
+import { useSwipeDown, haptic } from "./iosNav";
 
 const MAX_INVITEES = 5;
 
 export default function CreateChallengeModal({ authUser, t, onClose, onCreated }) {
   const meUid = String(authUser?.uid || "").slice(0, 128);
+  const { handlers: swipeHandlers, progress: swipeProgress, backdropOpacity, dragging } = useSwipeDown(onClose);
   const [friends, setFriends] = useState([]);
   const [selected, setSelected] = useState([]);
   const [duration, setDuration] = useState(7);
@@ -33,8 +35,8 @@ export default function CreateChallengeModal({ authUser, t, onClose, onCreated }
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
-    if (title.trim().length < 1) { setError(t.socialTitleRequired || "Title is required"); return; }
-    if (questTitle.trim().length < 1) { setError(t.socialQuestRequired || "Task is required"); return; }
+    if (title.trim().length < 1) { haptic("warning"); setError(t.socialTitleRequired || "Title is required"); return; }
+    if (questTitle.trim().length < 1) { haptic("warning"); setError(t.socialQuestRequired || "Task is required"); return; }
     setSubmitting(true);
     try {
       await createChallenge({
@@ -47,8 +49,10 @@ export default function CreateChallengeModal({ authUser, t, onClose, onCreated }
         durationDays: Math.max(1, Math.min(365, Number(duration) || 7)),
         inviteeUsernames: selected
       });
+      haptic("success");
       onCreated();
     } catch (err) {
+      haptic("warning");
       setError(err?.message || t.socialErrorGeneric || "Could not create challenge");
     } finally {
       setSubmitting(false);
@@ -57,13 +61,28 @@ export default function CreateChallengeModal({ authUser, t, onClose, onCreated }
 
   return (
     <div className="social-block">
-      <div role="dialog" aria-modal="true" onClick={onClose} className="ios-sheet-backdrop">
-        <form onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()} className="ios-sheet">
-          <div className="ios-sheet-handle" aria-hidden="true" />
-          <div className="ios-sheet-header">
+      <div
+        role="dialog"
+        aria-modal="true"
+        onClick={onClose}
+        className="ios-sheet-backdrop"
+        style={{ background: `rgba(0,0,0,${0.55 * backdropOpacity})` }}
+      >
+        <form
+          onSubmit={handleSubmit}
+          onClick={(e) => e.stopPropagation()}
+          {...swipeHandlers}
+          className="ios-sheet"
+          style={{
+            transform: swipeProgress > 0 ? `translateY(${swipeProgress}px)` : undefined,
+            transition: dragging ? "none" : "transform 260ms cubic-bezier(0.32,0.72,0,1)"
+          }}
+        >
+          <div className="ios-sheet-handle ios-sheet-handle-zone" aria-hidden="true" />
+          <div className="ios-sheet-header ios-sheet-handle-zone">
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => { haptic("light"); onClose(); }}
               className="ios-btn-ghost ios-tap"
               style={{ justifySelf: "start" }}
             >

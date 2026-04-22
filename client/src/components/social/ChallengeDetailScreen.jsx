@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { completeChallenge, fetchChallenge, leaveChallenge } from "../../api";
 import Avatar from "./Avatar";
+import { haptic, useIosNav } from "./iosNav";
 
-export default function ChallengeDetailModal({ challengeId, authUser, t, languageId, onClose, onOpenProfile }) {
+export default function ChallengeDetailScreen({ challengeId, authUser, t, languageId, onOpenProfile, onChanged }) {
+  const nav = useIosNav();
   const meUid = String(authUser?.uid || "").slice(0, 128);
   const [challenge, setChallenge] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,60 +28,43 @@ export default function ChallengeDetailModal({ challengeId, authUser, t, languag
 
   async function handleComplete() {
     setBusy(true);
-    try { await completeChallenge(challengeId, meUid); await refresh(); }
-    catch (e) { setError(e?.message || t.socialErrorGeneric || "Action failed"); }
+    haptic("success");
+    try { await completeChallenge(challengeId, meUid); await refresh(); onChanged && onChanged(); }
+    catch (e) { haptic("warning"); setError(e?.message || t.socialErrorGeneric || "Action failed"); }
     finally { setBusy(false); }
   }
   async function handleLeave() {
     if (!window.confirm(t.socialConfirmLeave || "Leave this challenge?")) return;
     setBusy(true);
-    try { await leaveChallenge(challengeId, meUid); onClose(); }
+    haptic("warning");
+    try { await leaveChallenge(challengeId, meUid); onChanged && onChanged(); nav.pop(); }
     catch (e) { setError(e?.message || t.socialErrorGeneric || "Action failed"); setBusy(false); }
   }
 
-  return (
-    <div className="social-block">
-      <div role="dialog" aria-modal="true" onClick={onClose} className="ios-sheet-backdrop">
-        <div onClick={(e) => e.stopPropagation()} className="ios-sheet">
-          <div className="ios-sheet-handle" aria-hidden="true" />
-          <div className="ios-sheet-header">
-            <div />
-            <span className="ios-sheet-title">{t.socialChallengeSheetTitle || "Challenge"}</span>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label={t.close || "Close"}
-              className="ios-icon-btn ios-tap"
-              style={{ justifySelf: "end" }}
-            >
-              ✕
-            </button>
-          </div>
-
-          <div className="ios-sheet-body" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {loading ? (
-              <p style={{ textAlign: "center", color: "var(--color-muted)", padding: "24px 0" }}>{t.socialLoading || "Loading…"}</p>
-            ) : !challenge ? (
-              <p style={{ textAlign: "center", color: "#ff453a", padding: "24px 0" }}>{error}</p>
-            ) : (
-              <Body
-                challenge={challenge}
-                meUid={meUid}
-                t={t}
-                languageId={languageId}
-                busy={busy}
-                error={error}
-                showActivity={showActivity}
-                onToggleActivity={() => setShowActivity((v) => !v)}
-                onComplete={handleComplete}
-                onLeave={handleLeave}
-                onOpenProfile={onOpenProfile}
-              />
-            )}
-          </div>
-        </div>
+  if (loading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 0" }}>
+        <div className="ios-spinner" />
       </div>
-    </div>
+    );
+  }
+  if (!challenge) {
+    return <p style={{ textAlign: "center", color: "#ff453a", padding: "40px 16px" }}>{error}</p>;
+  }
+
+  return (
+    <Body
+      challenge={challenge}
+      meUid={meUid}
+      t={t}
+      busy={busy}
+      error={error}
+      showActivity={showActivity}
+      onToggleActivity={() => { haptic("light"); setShowActivity((v) => !v); }}
+      onComplete={handleComplete}
+      onLeave={handleLeave}
+      onOpenProfile={onOpenProfile}
+    />
   );
 }
 
@@ -110,7 +95,7 @@ function Body({ challenge, meUid, t, busy, error, showActivity, onToggleActivity
   }, [participants]);
 
   return (
-    <>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14, paddingBottom: 20 }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2 className="ios-title">{challenge.title}</h2>
@@ -123,7 +108,6 @@ function Body({ challenge, meUid, t, busy, error, showActivity, onToggleActivity
         </span>
       </div>
 
-      {/* Progress hero */}
       <div style={{ padding: 14, background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: 16, display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
           <span className="ios-caption" style={{ fontWeight: 600 }}>{t.socialDurationProgress || "Duration progress"}</span>
@@ -139,7 +123,6 @@ function Body({ challenge, meUid, t, busy, error, showActivity, onToggleActivity
         </div>
       </div>
 
-      {/* Task tile */}
       <div
         style={{
           padding: 14,
@@ -170,13 +153,7 @@ function Body({ challenge, meUid, t, busy, error, showActivity, onToggleActivity
               ✓ {t.socialDoneToday || "Done today"}
             </div>
           ) : (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={onComplete}
-              className="ios-btn-primary ios-tap"
-              style={{ padding: 14, fontSize: 16 }}
-            >
+            <button type="button" disabled={busy} onClick={onComplete} className="ios-btn-primary ios-tap" style={{ padding: 14, fontSize: 16 }}>
               {t.socialMarkDone || "Mark done today · +1 🪙 each"}
             </button>
           )
@@ -188,7 +165,6 @@ function Body({ challenge, meUid, t, busy, error, showActivity, onToggleActivity
         )}
       </div>
 
-      {/* Participants */}
       <div>
         <h3 className="ios-section-header" style={{ margin: "0 6px 8px" }}>{t.socialParticipantsTitle || "Participants"}</h3>
         <div className="ios-list">
@@ -206,7 +182,6 @@ function Body({ challenge, meUid, t, busy, error, showActivity, onToggleActivity
         </div>
       </div>
 
-      {/* Activity */}
       <div>
         <button
           type="button"
@@ -216,7 +191,7 @@ function Body({ challenge, meUid, t, busy, error, showActivity, onToggleActivity
         >
           <span style={{ fontSize: 16 }}>📋</span>
           <span className="ios-body" style={{ flex: 1, fontWeight: 600 }}>{t.socialActivityLog || "Activity"}</span>
-          <span style={{ color: "var(--color-muted)", transition: "transform 200ms", transform: showActivity ? "rotate(90deg)" : "none" }}>›</span>
+          <span style={{ color: "var(--color-muted)", transition: "transform 200ms cubic-bezier(0.32,0.72,0,1)", transform: showActivity ? "rotate(90deg)" : "none" }}>›</span>
         </button>
         {showActivity && (
           <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
@@ -242,7 +217,7 @@ function Body({ challenge, meUid, t, busy, error, showActivity, onToggleActivity
           {t.socialLeaveChallenge || "Leave challenge"}
         </button>
       )}
-    </>
+    </div>
   );
 }
 
