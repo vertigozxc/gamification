@@ -53,25 +53,23 @@
   inset: 0;
   width: 100vw;
   height: 100dvh;
-  /* Solid page-bg as the bottom layer so the sheet never shows anything
-   * behind it (var(--card-bg) is a gradient with translucent stops in
-   * several themes and would otherwise bleed through). */
-  background-color: var(--mobile-page-bg, #0a0e14);
-  background-image: var(--card-bg);
-  background-blend-mode: normal;
+  /* Solid page background — no gradient — so the sheet is fully opaque
+   * and nothing behind shows through. Each theme defines a solid
+   * --mobile-page-bg; we fall back to the adventure-theme dark. */
+  background: var(--mobile-page-bg, #0a0e14) !important;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1),
     opacity 180ms ease;
   will-change: transform, opacity;
+  isolation: isolate;
 }
 .social-block .sb-sheet-header {
   padding: calc(var(--mobile-safe-top, env(safe-area-inset-top, 0px)) + 14px) 16px 12px;
   border-bottom: 1px solid var(--card-border-idle, rgba(255, 255, 255, 0.12));
   flex-shrink: 0;
-  /* Keep header solid even when sheet bg layers are translucent */
-  background-color: var(--mobile-page-bg, #0a0e14);
+  background: var(--mobile-page-bg, #0a0e14);
 }
 .social-block .sb-sheet-title {
   color: var(--color-accent, var(--color-primary));
@@ -115,7 +113,7 @@
   flex-shrink: 0;
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--card-border-idle, rgba(255, 255, 255, 0.12));
-  background-color: var(--mobile-page-bg, #0a0e14);
+  background: var(--mobile-page-bg, #0a0e14);
 }
 
 /* ============================================================================
