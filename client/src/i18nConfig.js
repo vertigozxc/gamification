@@ -533,6 +533,11 @@ export const languagePacks = {
       socialDashboardStripMore: "+{n} more",
       socialRemove: "Remove",
       socialChallengeSheetTitle: "Challenge",
+      socialNotDoneToday: "Not done",
+      socialConfirmRemoveFriendTitle: "Remove from friends?",
+      socialConfirmRemoveFriendDesc: "{name} will no longer see you on the board. You can send a new request later.",
+      socialConfirmLeaveTitle: "Leave this challenge?",
+      back: "Back",
     },
     themeMeta: {
       adventure: {
@@ -1158,6 +1163,11 @@ export const languagePacks = {
       socialDashboardStripMore: "+ещё {n}",
       socialRemove: "Удалить",
       socialChallengeSheetTitle: "Испытание",
+      socialNotDoneToday: "Не сделано",
+      socialConfirmRemoveFriendTitle: "Удалить из друзей?",
+      socialConfirmRemoveFriendDesc: "{name} больше не увидит тебя в рейтинге. Позже можно снова отправить заявку.",
+      socialConfirmLeaveTitle: "Выйти из испытания?",
+      back: "Назад",
     },
     themeMeta: {
       adventure: { label: "Приключение", description: "Героический RPG-стиль" },

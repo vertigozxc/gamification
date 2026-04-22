@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, startTransition, useEffect, useRef, useState } from "react";
 import { auth, googleProvider, firebaseInitError } from "./firebaseAuth";
 import {
   upsertProfile,
@@ -1436,7 +1436,10 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                     try { window.__pendingSocialChallengeId = challengeId; } catch {}
                   }
                   try { window.__pendingSocialSubTab = "challenges"; } catch {}
-                  setMobileTab("leaderboard");
+                  // Wrap the tab change in startTransition so React doesn't
+                  // throw error #426 when the lazy LeaderboardTab chunk
+                  // suspends during a synchronous click handler.
+                  startTransition(() => setMobileTab("leaderboard"));
                 }}
               />
             ) : null}
