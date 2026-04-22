@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "../../ThemeContext";
 import {
   fetchFriends,
@@ -34,6 +34,7 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(null);
+  const swipeRef = useRef(null);
 
   const pendingChallengeId =
     typeof window !== "undefined" ? window.__pendingSocialChallengeId || null : null;
@@ -141,6 +142,37 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
   ];
   const selectedIdx = tabs.findIndex((tb) => tb.id === tab);
 
+  /* Swipe-to-switch between tabs (iOS-native feel) */
+  const onSwipeStart = (e) => {
+    const tch = e.touches ? e.touches[0] : e;
+    swipeRef.current = { x: tch.clientX, y: tch.clientY, t: Date.now(), moved: false, locked: null };
+  };
+  const onSwipeMove = (e) => {
+    const s = swipeRef.current;
+    if (!s) return;
+    const tch = e.touches ? e.touches[0] : e;
+    const dx = tch.clientX - s.x;
+    const dy = tch.clientY - s.y;
+    if (s.locked == null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+      s.locked = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    }
+  };
+  const onSwipeEnd = (e) => {
+    const s = swipeRef.current;
+    if (!s) return;
+    swipeRef.current = null;
+    const tch = e.changedTouches ? e.changedTouches[0] : e;
+    const dx = tch.clientX - s.x;
+    const dy = tch.clientY - s.y;
+    const dt = Date.now() - s.t;
+    if (s.locked !== "x") return;
+    if (Math.abs(dx) < 50 || Math.abs(dy) > 70 || dt > 600) return;
+    const dir = dx < 0 ? 1 : -1;
+    const next = selectedIdx + dir;
+    if (next < 0 || next >= tabs.length) return;
+    setTab(tabs[next].id);
+  };
+
   return (
     <div className="social-block" style={{ minHeight: "calc(100svh - var(--mobile-safe-top, 0px) - var(--mobile-footer-offset, 98px) - 90px)" }}>
       <div style={{ padding: "10px 14px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
@@ -192,7 +224,12 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
             <div className="sb-spinner" />
           </div>
         ) : (
-          <>
+          <div
+            onTouchStart={onSwipeStart}
+            onTouchMove={onSwipeMove}
+            onTouchEnd={onSwipeEnd}
+            style={{ display: "flex", flexDirection: "column", gap: 12, touchAction: "pan-y" }}
+          >
             {tab === "activity" && (
               <ActivityTab leaderboard={leaderboard} meUid={meUid} t={t} onOpenProfile={pushProfile} />
             )}
@@ -218,7 +255,7 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
                 onRemoveRequest={(f) => setConfirmRemove({ username: f.username, displayName: f.displayName || f.username })}
               />
             )}
-          </>
+          </div>
         )}
       </div>
 
@@ -246,8 +283,6 @@ function ActivityTab({ leaderboard, meUid, t, onOpenProfile }) {
   const users = leaderboard?.users || [];
   const me = leaderboard?.me || null;
   const meInShown = me ? users.some((u) => u.username === me.username) : false;
-  const podium = users.slice(0, 3);
-  const rest = users.slice(3, 10);
 
   if (users.length === 0) {
     return (
@@ -265,14 +300,12 @@ function ActivityTab({ leaderboard, meUid, t, onOpenProfile }) {
         {t.communityActivityLead || "Players ranked by XP earned this week."}
       </p>
 
-      {podium.length > 0 && <Podium entries={podium} t={t} meUid={meUid} onOpenProfile={onOpenProfile} />}
-      {rest.length > 0 && (
-        <div className="cm-list">
-          {rest.map((u) => (
-            <PlayerRow key={u.username} entry={u} isMe={u.username === meUid} t={t} onOpenProfile={onOpenProfile} />
-          ))}
-        </div>
-      )}
+      <div className="cm-list">
+        {users.map((u) => (
+          <PlayerRow key={u.username} entry={u} isMe={u.username === meUid} t={t} onOpenProfile={onOpenProfile} />
+        ))}
+      </div>
+
       {me && !meInShown && (
         <>
           <h3 className="cm-section-label">{t.communityYourRank || "Your rank"}</h3>
@@ -281,62 +314,6 @@ function ActivityTab({ leaderboard, meUid, t, onOpenProfile }) {
           </div>
         </>
       )}
-    </div>
-  );
-}
-
-function Podium({ entries, t, meUid, onOpenProfile }) {
-  const [first, second, third] = entries;
-  const slots = [second, first, third].filter(Boolean);
-  return (
-    <div className="cm-podium">
-      {slots.map((e) => {
-        const place = e === first ? 1 : e === second ? 2 : 3;
-        const meta = {
-          1: { medal: "🥇", accent: "#fbbf24", h: 86 },
-          2: { medal: "🥈", accent: "#d1d5db", h: 68 },
-          3: { medal: "🥉", accent: "#d97706", h: 52 },
-        }[place];
-        return (
-          <button
-            key={e.username}
-            type="button"
-            onClick={() => onOpenProfile(e.username)}
-            className="cm-podium-slot press"
-          >
-            <span style={{ fontSize: place === 1 ? 22 : 18, lineHeight: 1 }}>{meta.medal}</span>
-            <StreakFrame streak={e.streak} size={place === 1 ? 52 : 44} ringWidth={3}>
-              <Avatar photoUrl={e.photoUrl} displayName={e.displayName} size={place === 1 ? 52 : 44} />
-            </StreakFrame>
-            <p className="cm-podium-name">
-              {e.displayName || e.username}
-              {e.username === meUid && <span style={{ color: "var(--color-primary)" }}> · {t.communityYou || "you"}</span>}
-            </p>
-            <div
-              style={{
-                width: "100%",
-                height: meta.h,
-                background: `linear-gradient(180deg, ${meta.accent}44, ${meta.accent}10)`,
-                border: `1px solid ${meta.accent}66`,
-                borderRadius: 10,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: 6,
-                gap: 1,
-              }}
-            >
-              <p style={{ fontSize: place === 1 ? 20 : 17, fontWeight: 700, color: meta.accent, lineHeight: 1, letterSpacing: "-0.02em" }}>
-                {e.weeklyXp}
-              </p>
-              <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--color-muted)" }}>
-                XP
-              </p>
-            </div>
-          </button>
-        );
-      })}
     </div>
   );
 }
@@ -386,22 +363,17 @@ function PlayerRow({ entry, isMe, meHighlight, t, onOpenProfile }) {
 function ChallengesInlineTab({ activeChallenges, endedChallenges, canCreate, t, onOpenChallenge, onOpenCreate }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <button
-        type="button"
-        disabled={!canCreate}
-        onClick={onOpenCreate}
-        className="cm-primary-btn press"
-      >
-        ＋ {canCreate
-          ? (t.communityStartChallenge || "Start a challenge")
-          : (t.communityChallengesFull || "3 active · limit reached")}
-      </button>
+      <div className="cm-intro">
+        <p className="cm-intro-title">{t.communityChallengesIntroTitle || "Group challenges"}</p>
+        <p className="cm-intro-body">
+          {t.communityChallengesIntroBody || "Team up with a friend on a daily habit. Every completion earns a token for every participant. Up to 3 active challenges."}
+        </p>
+      </div>
 
       {activeChallenges.length === 0 && endedChallenges.length === 0 && (
         <div className="cm-empty">
           <div className="cm-empty-icon">⚔️</div>
           <p className="cm-empty-title">{t.communityChallengesEmptyTitle || "No group challenges yet"}</p>
-          <p className="cm-empty-body">{t.communityChallengesEmptyBody || "Team up with a friend on a daily habit. Every completion earns a token for every participant."}</p>
         </div>
       )}
 
@@ -426,6 +398,18 @@ function ChallengesInlineTab({ activeChallenges, endedChallenges, canCreate, t, 
           </div>
         </>
       )}
+
+      <button
+        type="button"
+        disabled={!canCreate}
+        onClick={onOpenCreate}
+        className="cm-primary-btn press"
+        style={{ marginTop: 4 }}
+      >
+        ＋ {canCreate
+          ? (t.communityCreateChallenge || "Create challenge")
+          : (t.communityChallengesFull || "3 active · limit reached")}
+      </button>
     </div>
   );
 }
@@ -483,9 +467,12 @@ function ChallengeCard({ challenge: c, ended, t, onOpen }) {
 function FriendsInlineTab({ friends, requests, busy, t, onOpenProfile, onOpenSearch, onRespond, onRemoveRequest }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <button type="button" onClick={onOpenSearch} className="cm-primary-btn press">
-        ＋ {t.communityAddFriend || "Add a friend"}
-      </button>
+      <div className="cm-intro">
+        <p className="cm-intro-title">{t.communityFriendsIntroTitle || "Your friends"}</p>
+        <p className="cm-intro-body">
+          {t.communityFriendsIntroBody || "Friends help you stay accountable — you can see their streaks, cheer their wins, and invite them to group challenges."}
+        </p>
+      </div>
 
       {requests.length > 0 && (
         <>
@@ -515,7 +502,6 @@ function FriendsInlineTab({ friends, requests, busy, t, onOpenProfile, onOpenSea
         <div className="cm-empty">
           <div className="cm-empty-icon">🌱</div>
           <p className="cm-empty-title">{t.communityFriendsEmptyTitle || "No friends yet"}</p>
-          <p className="cm-empty-body">{t.communityFriendsEmptyBody || "Add friends to see their progress and team up on group challenges."}</p>
         </div>
       ) : (
         <div className="cm-list">
@@ -531,6 +517,10 @@ function FriendsInlineTab({ friends, requests, busy, t, onOpenProfile, onOpenSea
           ))}
         </div>
       )}
+
+      <button type="button" onClick={onOpenSearch} className="cm-primary-btn press" style={{ marginTop: 4 }}>
+        ＋ {t.communityAddFriend || "Add a friend"}
+      </button>
     </div>
   );
 }
