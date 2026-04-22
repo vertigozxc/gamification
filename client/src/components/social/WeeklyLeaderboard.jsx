@@ -1,42 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
-import { fetchWeeklyLeaderboard, searchUsers } from "../../api";
+import { useEffect, useState } from "react";
+import { fetchWeeklyLeaderboard } from "../../api";
 import StreakFrame from "./StreakFrame";
 import Avatar from "./Avatar";
 
-function useDebounced(value, delay = 220) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const handle = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(handle);
-  }, [value, delay]);
-  return debounced;
-}
+const TOP_VISIBLE = 10;
 
-function formatRange(weekStartDayKey, languageId) {
-  if (!weekStartDayKey) return "";
-  try {
-    const start = new Date(`${weekStartDayKey}T00:00:00Z`);
-    const end = new Date(start);
-    end.setUTCDate(start.getUTCDate() + 6);
-    const fmt = new Intl.DateTimeFormat(languageId === "ru" ? "ru-RU" : "en-US", {
-      month: "short",
-      day: "numeric",
-      timeZone: "UTC",
-    });
-    return `${fmt.format(start)} – ${fmt.format(end)}`;
-  } catch {
-    return "";
-  }
-}
-
-export default function WeeklyLeaderboard({ authUser, t, languageId, onOpenProfile }) {
+export default function WeeklyLeaderboard({ authUser, t, onOpenProfile }) {
   const meUid = String(authUser?.uid || "").slice(0, 128);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [searching, setSearching] = useState(false);
-  const debouncedSearch = useDebounced(search, 250);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,112 +19,42 @@ export default function WeeklyLeaderboard({ authUser, t, languageId, onOpenProfi
     return () => { cancelled = true; };
   }, [meUid]);
 
-  useEffect(() => {
-    const q = debouncedSearch.trim();
-    if (q.length < 2) { setSearchResults([]); return; }
-    let cancelled = false;
-    setSearching(true);
-    searchUsers(q)
-      .then((r) => { if (!cancelled) setSearchResults(r?.users || []); })
-      .catch(() => { if (!cancelled) setSearchResults([]); })
-      .finally(() => { if (!cancelled) setSearching(false); });
-    return () => { cancelled = true; };
-  }, [debouncedSearch]);
-
-  const users = data?.users || [];
+  const all = data?.users || [];
   const me = data?.me || null;
-  const weekRange = useMemo(() => formatRange(data?.weekStartDayKey, languageId), [data?.weekStartDayKey, languageId]);
+  const visible = all.slice(0, TOP_VISIBLE);
+  const podium = visible.slice(0, 3);
+  const rest = visible.slice(3);
+  const meInShown = me ? visible.some((u) => u.username === me.username) : false;
 
-  const podium = users.slice(0, 3);
-  const rest = users.slice(3);
-  const meInTopShown = me ? users.some((u) => u.username === me.username) : false;
-  const showSearch = search.trim().length >= 2;
+  if (loading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 0" }}>
+        <div className="spinner" />
+      </div>
+    );
+  }
+
+  if (all.length === 0) {
+    return <EmptyWeekly t={t} />;
+  }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <SearchBar search={search} onChange={setSearch} t={t} />
-
-      {showSearch ? (
-        <SearchResults results={searchResults} searching={searching} t={t} onOpenProfile={onOpenProfile} meUid={meUid} />
-      ) : (
-        <>
-          <div
-            style={{
-              padding: "12px 14px",
-              background: "var(--panel-bg)",
-              border: "1px solid var(--panel-border)",
-              borderRadius: 14,
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-            }}
-          >
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(var(--color-primary-rgb,251,191,36),0.18)", color: "var(--color-primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
-              📅
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p className="caption" style={{ fontWeight: 500 }}>{t.socialWeeklyLabel || "This week"}</p>
-              <p className="headline" style={{ marginTop: 1 }}>{weekRange || "—"}</p>
-            </div>
-            <div style={{ textAlign: "right", flexShrink: 0 }}>
-              <p className="caption">{t.socialRankedCount || "Ranked"}</p>
-              <p className="headline" style={{ color: "var(--color-primary)", marginTop: 1 }}>{data?.totalRanked || 0}</p>
-            </div>
-          </div>
-
-          {loading ? (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 0" }}>
-              <div className="spinner" />
-            </div>
-          ) : users.length === 0 ? (
-            <EmptyWeekly t={t} />
-          ) : (
-            <>
-              {podium.length > 0 && <Podium entries={podium} t={t} meUid={meUid} onOpenProfile={onOpenProfile} />}
-              {rest.length > 0 && (
-                <div className="list">
-                  {rest.map((u) => (
-                    <Row key={u.username} entry={u} isMe={u.username === meUid} t={t} onOpenProfile={onOpenProfile} />
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-
-          {me && !meInTopShown && (
-            <>
-              <h3 className="section-header" style={{ marginTop: 18 }}>{t.socialYourRank || "Your rank"}</h3>
-              <div className="list">
-                <Row entry={me} isMe meHighlight t={t} onOpenProfile={onOpenProfile} />
-              </div>
-            </>
-          )}
-        </>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {podium.length > 0 && <Podium entries={podium} t={t} meUid={meUid} onOpenProfile={onOpenProfile} />}
+      {rest.length > 0 && (
+        <div className="list">
+          {rest.map((u) => (
+            <Row key={u.username} entry={u} isMe={u.username === meUid} t={t} onOpenProfile={onOpenProfile} />
+          ))}
+        </div>
       )}
-    </div>
-  );
-}
-
-function SearchBar({ search, onChange, t }) {
-  return (
-    <div className="search">
-      <span style={{ fontSize: 16, opacity: 0.6 }}>🔍</span>
-      <input
-        type="search"
-        value={search}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={t.socialSearchPlaceholder || "Search player by nickname…"}
-      />
-      {search && (
-        <button
-          type="button"
-          onClick={() => onChange("")}
-          aria-label={t.close || "Clear"}
-          className="icon-btn press"
-          style={{ width: 22, height: 22, fontSize: 11, background: "rgba(120,120,128,0.4)", color: "#fff" }}
-        >
-          ✕
-        </button>
+      {me && !meInShown && (
+        <>
+          <h3 className="section-header" style={{ marginTop: 18 }}>{t.socialYourRank || "Your rank"}</h3>
+          <div className="list">
+            <Row entry={me} isMe meHighlight t={t} onOpenProfile={onOpenProfile} />
+          </div>
+        </>
       )}
     </div>
   );
@@ -320,42 +222,6 @@ function EmptyWeekly({ t }) {
         {t.socialWeeklyEmptyTitle || "Fresh week, zero points."}
       </p>
       <p className="subhead">{t.socialWeeklyEmpty || "Complete a task today and you're on the board."}</p>
-    </div>
-  );
-}
-
-function SearchResults({ results, searching, t, onOpenProfile, meUid }) {
-  if (searching) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 0" }}>
-        <div className="spinner" />
-      </div>
-    );
-  }
-  if (results.length === 0) {
-    return <p style={{ textAlign: "center", padding: "24px 12px", color: "var(--color-muted)" }}>{t.socialSearchEmpty || "No players found"}</p>;
-  }
-  return (
-    <div className="list">
-      {results.map((u) => (
-        <button
-          key={u.username}
-          type="button"
-          onClick={() => onOpenProfile(u.username)}
-          className="list-row press"
-        >
-          <StreakFrame streak={u.streak} size={40} ringWidth={2}>
-            <Avatar photoUrl={u.photoUrl} displayName={u.displayName} size={40} />
-          </StreakFrame>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p className="body" style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {u.displayName || u.username}{u.username === meUid ? ` (${t.socialYou || "you"})` : ""}
-            </p>
-            <p className="caption">{t.socialLevelLabel || "Lv"} {u.level} · 🔥 {u.streak}</p>
-          </div>
-          <span style={{ color: "var(--color-muted)", fontSize: 16, flexShrink: 0 }}>›</span>
-        </button>
-      ))}
     </div>
   );
 }

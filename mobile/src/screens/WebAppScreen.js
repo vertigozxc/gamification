@@ -23,7 +23,7 @@ const MOBILE_TAB_STORAGE_KEY = "life_rpg_mobile_tab";
 const MOBILE_LANGUAGE_STORAGE_KEY = "rpg_language";
 const TAB_ITEMS = [
   { key: "city", icon: "business", iconOutline: "business-outline", size: 24 },
-  { key: "leaderboard", icon: "trophy", iconOutline: "trophy-outline", size: 24 },
+  { key: "leaderboard", icon: "people", iconOutline: "people-outline", size: 24 },
   { key: "dashboard", icon: "grid", iconOutline: "grid-outline", size: 28, center: true },
   { key: "store", icon: "bag-handle", iconOutline: "bag-handle-outline", size: 24 },
   { key: "profile", icon: "person-circle", iconOutline: "person-circle-outline", size: 26 }

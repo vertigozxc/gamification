@@ -45,20 +45,6 @@ export default function ChallengesTab({ authUser, t, onOpenChallenge, onOpenCrea
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div className="card" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(var(--color-primary-rgb,251,191,36),0.18)", color: "var(--color-primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
-          ⚔️
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p className="headline" style={{ marginBottom: 2 }}>
-            {t.socialChallengesHintShort || "Stay accountable together."}
-          </p>
-          <p className="caption">
-            {(t.socialChallengesHint || "Up to {max} active. +1 token to everyone each day someone completes.").replace("{max}", String(MAX_ACTIVE))}
-          </p>
-        </div>
-      </div>
-
       <button
         type="button"
         disabled={!canCreateMore}

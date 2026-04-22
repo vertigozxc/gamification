@@ -397,6 +397,65 @@ body[data-theme="light"] .social-block .sb-top-bar {
   margin: 18px 6px 8px;
 }
 
+/* Big native-style tab switcher (main Community tabs). Rounded pill
+ * container with icon-above-label segments and a sliding highlight. */
+.social-block .sb-tabs {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  padding: 4px;
+  background: rgba(120, 120, 128, 0.18);
+  border-radius: 16px;
+  border: 1px solid var(--panel-border);
+  min-height: 64px;
+}
+.social-block .sb-tabs-slider {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 12px;
+  background: var(--panel-bg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  transition: transform 340ms cubic-bezier(0.32, 0.72, 0, 1),
+    width 340ms cubic-bezier(0.32, 0.72, 0, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+.social-block .sb-tab {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 8px;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: color 180ms ease;
+}
+.social-block .sb-tab[aria-selected="true"] {
+  color: var(--color-text);
+  font-weight: 600;
+}
+.social-block .sb-tab-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+.social-block .sb-tab-label {
+  font-size: 13px;
+  letter-spacing: -0.01em;
+}
+.social-block .sb-tab:active:not([aria-selected="true"]) {
+  background: rgba(120, 120, 128, 0.12);
+}
+
 /* Segmented control with sliding indicator */
 .social-block .segmented {
   display: grid;

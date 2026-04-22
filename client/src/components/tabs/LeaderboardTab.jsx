@@ -6,10 +6,13 @@ import ChallengesTab from "../social/ChallengesTab";
 import ProfileScreen from "../social/ProfileScreen";
 import ChallengeDetailScreen from "../social/ChallengeDetailScreen";
 import CreateChallengeScreen from "../social/CreateChallengeScreen";
+import SearchScreen from "../social/SearchScreen";
 import { fetchIncomingFriendRequests } from "../../api";
 import "../social/ios.css";
 
 let screenIdSeq = 0;
+
+const MAX_ACTIVE_CHALLENGES = 3;
 
 export default function LeaderboardTab({ authUser, t: tProp }) {
   const { t: tTheme, languageId } = useTheme();
@@ -20,7 +23,6 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
 
   const [subTab, setSubTab] = useState(pendingSubTab || "weekly");
   const [requestCount, setRequestCount] = useState(0);
-  // Stack of screens; top of stack is visible. Each entry: { id, kind, props }
   const [stack, setStack] = useState([]);
 
   const meUid = String(authUser?.uid || "").slice(0, 128);
@@ -28,10 +30,8 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try { window.__pendingSocialSubTab = null; } catch {}
-
     if (pendingChallengeId) {
       try { window.__pendingSocialChallengeId = null; } catch {}
-      // Push challenge detail after initial render
       setTimeout(() => pushChallengeDetail(pendingChallengeId), 80);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -53,49 +53,79 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
   function pushScreen(entry) {
     setStack((prev) => [...prev, { id: `s-${++screenIdSeq}`, ...entry }]);
   }
-  function popScreen() {
-    setStack((prev) => prev.slice(0, -1));
-  }
+  const popScreen = () => setStack((prev) => prev.slice(0, -1));
 
-  function pushProfile(username) {
-    pushScreen({ kind: "profile", props: { targetUsername: username } });
-  }
-  function pushChallengeDetail(challengeId) {
-    pushScreen({ kind: "challenge", props: { challengeId } });
-  }
-  function pushCreateChallenge() {
-    pushScreen({ kind: "create", props: {} });
-  }
+  function pushProfile(username) { pushScreen({ kind: "profile", props: { targetUsername: username } }); }
+  function pushChallengeDetail(challengeId) { pushScreen({ kind: "challenge", props: { challengeId } }); }
+  function pushCreateChallenge() { pushScreen({ kind: "create", props: {} }); }
+  function pushSearch() { pushScreen({ kind: "search", props: {} }); }
 
   const tabs = [
-    { id: "weekly", label: t.socialTabWeekly || "Active", icon: "🔥" },
-    { id: "challenges", label: t.socialTabChallenges || "Challenges", icon: "⚔️" },
-    { id: "friends", label: t.socialTabFriends || "Friends", icon: "🤝", badge: requestCount },
+    { id: "weekly", label: t.socialTabWeekly || "Active", icon: "🔥", sub: t.socialHeaderSubActive || "Active players this week" },
+    { id: "challenges", label: t.socialTabChallenges || "Challenges", icon: "⚔️", sub: t.socialHeaderSubChallenges || "Stay accountable together" },
+    { id: "friends", label: t.socialTabFriends || "Friends", icon: "🤝", sub: t.socialHeaderSubFriends || "Your inner circle", badge: requestCount },
   ];
   const selectedIdx = tabs.findIndex((tab) => tab.id === subTab);
+  const current = tabs[selectedIdx] || tabs[0];
 
   return (
     <div className="social-block" style={{ minHeight: "calc(100svh - var(--mobile-safe-top, 0px) - var(--mobile-footer-offset, 98px) - 90px)" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: 12 }}>
-        {/* Large title */}
-        <div style={{ padding: "4px 2px 0" }}>
-          <p className="subhead" style={{ fontWeight: 600, color: "var(--color-primary)", letterSpacing: 0 }}>
-            {t.socialHeroKicker || "Community"}
-          </p>
-          <h1 className="title-large" style={{ marginTop: 2 }}>
-            {t.socialHeroTitle || "Social"}
-          </h1>
+        {/* Framed header — matches Dashboard/City/Profile visual language */}
+        <div className="dash-hero top-screen-block">
+          <div className="dash-hero-top" style={{ alignItems: "center" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontFamily: "var(--font-heading)", fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--color-primary-dim)", marginBottom: "0.2rem" }}>
+                {t.socialCommunityTitle || "Community page"}
+              </p>
+              <h2
+                className="cinzel"
+                style={{
+                  fontSize: "1.15rem",
+                  fontWeight: 700,
+                  background: "var(--heading-gradient)",
+                  backgroundClip: "text",
+                  WebkitBackgroundClip: "text",
+                  color: "transparent",
+                  lineHeight: 1.15,
+                }}
+              >
+                {current.icon} {current.sub}
+              </h2>
+            </div>
+            {subTab === "weekly" && (
+              <button
+                type="button"
+                onClick={pushSearch}
+                aria-label={t.socialSearchTitle || "Find players"}
+                className="press"
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  border: "1px solid var(--panel-border)",
+                  background: "rgba(var(--color-primary-rgb,251,191,36),0.14)",
+                  color: "var(--color-primary)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  cursor: "pointer",
+                  fontSize: 18,
+                }}
+              >
+                🔍
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Segmented control with sliding indicator */}
-        <div role="tablist" className="segmented" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
+        {/* Bigger mobile-native tab switcher */}
+        <div role="tablist" className="sb-tabs" aria-label="Community sections">
           <div
-            className="segmented-slider"
-            style={{
-              width: `calc((100% - 6px) / ${tabs.length})`,
-              transform: `translateX(calc(100% * ${selectedIdx}))`,
-            }}
+            className="sb-tabs-slider"
             aria-hidden="true"
+            style={{ width: `calc((100% - 8px) / ${tabs.length})`, transform: `translateX(calc(100% * ${selectedIdx}))` }}
           />
           {tabs.map((tab) => (
             <button
@@ -104,11 +134,11 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
               role="tab"
               aria-selected={subTab === tab.id}
               onClick={() => setSubTab(tab.id)}
-              className="segmented-option press"
+              className="sb-tab press"
             >
-              <span style={{ fontSize: 15 }}>{tab.icon}</span>
-              <span>{tab.label}</span>
-              {tab.badge ? <span className="badge" style={{ marginLeft: 2 }}>{tab.badge}</span> : null}
+              <span className="sb-tab-icon">{tab.icon}</span>
+              <span className="sb-tab-label">{tab.label}</span>
+              {tab.badge ? <span className="badge" style={{ position: "absolute", top: 6, right: 10 }}>{tab.badge}</span> : null}
             </button>
           ))}
         </div>
@@ -130,10 +160,10 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
         )}
       </div>
 
-      {/* Screen stack — only top screen is visible; the rest are torn down on pop */}
+      {/* Screen stack (only top screen renders) */}
       {stack.map((entry, idx) => {
         const isTop = idx === stack.length - 1;
-        if (!isTop) return null; // simple model: only render top
+        if (!isTop) return null;
         const closeThis = popScreen;
         if (entry.kind === "profile") {
           return (
@@ -170,10 +200,18 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
               authUser={authUser}
               t={t}
               onClose={closeThis}
-              onCreated={() => {
-                closeThis();
-                window.dispatchEvent(new Event("social:refresh-challenges"));
-              }}
+              onCreated={() => { closeThis(); window.dispatchEvent(new Event("social:refresh-challenges")); }}
+            />
+          );
+        }
+        if (entry.kind === "search") {
+          return (
+            <SearchScreen
+              key={entry.id}
+              meUid={meUid}
+              t={t}
+              onClose={closeThis}
+              onOpenProfile={pushProfile}
             />
           );
         }
