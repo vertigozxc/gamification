@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { fetchFriends, fetchIncomingFriendRequests, respondToFriendRequest, removeFriend } from "../../api";
-import StreakFrame from "./StreakFrame";
+import { fetchFriends, fetchIncomingFriendRequests, removeFriend, respondToFriendRequest } from "../../api";
 import Avatar from "./Avatar";
+import StreakFrame from "./StreakFrame";
 
-export default function FriendsTab({ authUser, t, onOpenProfile }) {
+export default function FriendsTab({ authUser, t, onOpenProfile, onSwitchToWeekly }) {
   const meUid = String(authUser?.uid || "").slice(0, 128);
   const [friends, setFriends] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -32,20 +32,20 @@ export default function FriendsTab({ authUser, t, onOpenProfile }) {
       await respondToFriendRequest(meUid, requestId, response);
       await refresh();
     } catch {
-      // ignore
+      // swallow
     } finally {
       setBusy(false);
     }
   }
 
-  async function handleRemove(theirUsername) {
+  async function handleRemove(username) {
     if (!window.confirm(t.socialConfirmRemoveFriend || "Remove this friend?")) return;
     setBusy(true);
     try {
-      await removeFriend(meUid, theirUsername);
+      await removeFriend(meUid, username);
       await refresh();
     } catch {
-      // ignore
+      // swallow
     } finally {
       setBusy(false);
     }
@@ -53,148 +53,247 @@ export default function FriendsTab({ authUser, t, onOpenProfile }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
-      {/* Incoming requests */}
       {requests.length > 0 && (
-        <section>
-          <SectionHeading icon="📬" title={`${t.socialIncomingRequestsTitle || "Incoming requests"} · ${requests.length}`} />
-          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-            {requests.map((r) => (
-              <li
-                key={r.requestId}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.6rem",
-                  padding: "0.55rem 0.7rem",
-                  borderRadius: "0.65rem",
-                  background: "rgba(var(--color-primary-rgb,251,191,36),0.08)",
-                  border: "1px solid rgba(var(--color-primary-rgb,251,191,36),0.3)"
-                }}
-              >
-                <button type="button" onClick={() => onOpenProfile(r.from.username)} style={buttonResetStyle}>
-                  <StreakFrame streak={r.from.streak} size={36} ringWidth={2}>
-                    <Avatar photoUrl={r.from.photoUrl} displayName={r.from.displayName} size={36} />
-                  </StreakFrame>
-                </button>
-                <button type="button" onClick={() => onOpenProfile(r.from.username)} style={{ ...buttonResetStyle, flex: 1, minWidth: 0, textAlign: "left" }}>
-                  <p style={{ fontWeight: 600, fontSize: "0.85rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {r.from.displayName || r.from.username}
-                  </p>
-                  <p style={{ fontSize: "0.66rem", color: "var(--color-muted)" }}>
-                    {t.socialLevelLabel || "Lv"} {r.from.level} · 🔥 {r.from.streak}
-                  </p>
-                </button>
-                <button type="button" disabled={busy} onClick={() => handleRespond(r.requestId, "accept")} style={actionBtn("accept")}>
-                  {t.socialAcceptRequest || "Accept"}
-                </button>
-                <button type="button" disabled={busy} onClick={() => handleRespond(r.requestId, "decline")} style={actionBtn("decline")}>
-                  {t.socialDeclineRequest || "Decline"}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <RequestsSection
+          requests={requests}
+          busy={busy}
+          t={t}
+          onRespond={handleRespond}
+          onOpenProfile={onOpenProfile}
+        />
       )}
 
-      {/* Friends list */}
-      <section>
-        <SectionHeading icon="🤝" title={`${t.socialFriendsListTitle || "My friends"} · ${friends.length}`} />
-        {loading ? (
-          <p style={{ textAlign: "center", padding: "1.5rem 0", color: "var(--color-muted)" }}>{t.socialLoading || "Loading…"}</p>
-        ) : friends.length === 0 ? (
-          <p style={{ textAlign: "center", padding: "1.5rem 0.75rem", color: "var(--color-muted)" }}>
-            {t.socialFriendsEmpty || "No friends yet. Find players on the weekly leaderboard or search by nickname."}
-          </p>
-        ) : (
-          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-            {friends.map((f) => (
-              <li
-                key={f.username}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.6rem",
-                  padding: "0.55rem 0.7rem",
-                  borderRadius: "0.65rem",
-                  background: "rgba(0,0,0,0.2)",
-                  border: "1px solid var(--panel-border)"
-                }}
-              >
-                <button type="button" onClick={() => onOpenProfile(f.username)} style={buttonResetStyle}>
-                  <StreakFrame streak={f.streak} size={36} ringWidth={2}>
-                    <Avatar photoUrl={f.photoUrl} displayName={f.displayName} size={36} />
-                  </StreakFrame>
-                </button>
-                <button type="button" onClick={() => onOpenProfile(f.username)} style={{ ...buttonResetStyle, flex: 1, minWidth: 0, textAlign: "left" }}>
-                  <p style={{ fontWeight: 600, fontSize: "0.86rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {f.displayName || f.username}
-                  </p>
-                  <p style={{ fontSize: "0.66rem", color: "var(--color-muted)", display: "flex", gap: "0.45rem", flexWrap: "wrap" }}>
-                    <span>{t.socialLevelLabel || "Lv"} {f.level}</span>
-                    <span>🔥 {f.streak}</span>
-                    <span>· {t.socialWeekXpLabel || "XP"}/{t.socialWeekShort || "wk"}: {f.weeklyXp || 0}</span>
-                  </p>
-                </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => handleRemove(f.username)}
-                  aria-label={t.socialRemoveFriend || "Remove friend"}
-                  style={{
-                    background: "rgba(239,68,68,0.1)",
-                    border: "1px solid rgba(239,68,68,0.35)",
-                    color: "var(--color-text)",
-                    borderRadius: "0.45rem",
-                    padding: "0.35rem 0.55rem",
-                    fontSize: "0.75rem",
-                    cursor: "pointer"
-                  }}
-                >
-                  ✕
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <FriendsSection
+        friends={friends}
+        loading={loading}
+        busy={busy}
+        t={t}
+        onOpenProfile={onOpenProfile}
+        onRemove={handleRemove}
+        onDiscover={onSwitchToWeekly}
+      />
     </div>
   );
 }
 
-const buttonResetStyle = { background: "transparent", border: "none", padding: 0, cursor: "pointer", color: "var(--color-text)" };
-
-function actionBtn(kind) {
-  return {
-    padding: "0.38rem 0.55rem",
-    fontSize: "0.7rem",
-    fontWeight: 700,
-    textTransform: "uppercase",
-    letterSpacing: "0.06em",
-    borderRadius: "0.45rem",
-    cursor: "pointer",
-    border: kind === "accept" ? "1px solid rgba(34,197,94,0.55)" : "1px solid var(--panel-border)",
-    background: kind === "accept" ? "rgba(34,197,94,0.2)" : "rgba(0,0,0,0.25)",
-    color: "var(--color-text)"
-  };
+function RequestsSection({ requests, busy, t, onRespond, onOpenProfile }) {
+  return (
+    <section
+      style={{
+        padding: "0.8rem",
+        borderRadius: "0.75rem",
+        background: "linear-gradient(135deg, rgba(var(--color-primary-rgb,251,191,36),0.16), rgba(var(--color-primary-rgb,251,191,36),0.04))",
+        border: "1px solid rgba(var(--color-primary-rgb,251,191,36),0.45)"
+      }}
+    >
+      <h3
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.4rem",
+          fontSize: "0.68rem",
+          letterSpacing: "0.16em",
+          textTransform: "uppercase",
+          color: "var(--color-primary)",
+          fontWeight: 700,
+          margin: "0 0 0.6rem 0.05rem"
+        }}
+      >
+        <span>📬</span>
+        <span>{t.socialIncomingRequestsTitle || "Incoming requests"} · {requests.length}</span>
+      </h3>
+      <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+        {requests.map((r) => (
+          <li
+            key={r.requestId}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.6rem",
+              padding: "0.55rem 0.65rem",
+              borderRadius: "0.55rem",
+              background: "rgba(0,0,0,0.28)",
+              border: "1px solid var(--panel-border)"
+            }}
+          >
+            <button type="button" onClick={() => onOpenProfile(r.from.username)} style={btnReset}>
+              <StreakFrame streak={r.from.streak} size={36} ringWidth={2}>
+                <Avatar photoUrl={r.from.photoUrl} displayName={r.from.displayName} size={36} />
+              </StreakFrame>
+            </button>
+            <button type="button" onClick={() => onOpenProfile(r.from.username)} style={{ ...btnReset, flex: 1, minWidth: 0, textAlign: "left" }}>
+              <p style={{ fontWeight: 600, fontSize: "0.86rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {r.from.displayName || r.from.username}
+              </p>
+              <p style={{ fontSize: "0.66rem", color: "var(--color-muted)" }}>
+                {t.socialLevelLabel || "Lv"} {r.from.level} · 🔥 {r.from.streak}
+              </p>
+            </button>
+            <div style={{ display: "flex", gap: "0.35rem" }}>
+              <button type="button" disabled={busy} onClick={() => onRespond(r.requestId, "accept")} style={actionBtn("accept")}>
+                ✓
+              </button>
+              <button type="button" disabled={busy} onClick={() => onRespond(r.requestId, "decline")} style={actionBtn("decline")}>
+                ✕
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 }
 
-function SectionHeading({ icon, title }) {
+function FriendsSection({ friends, loading, busy, t, onOpenProfile, onRemove, onDiscover }) {
   return (
-    <h3
+    <section>
+      <h3
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.4rem",
+          fontSize: "0.68rem",
+          letterSpacing: "0.16em",
+          textTransform: "uppercase",
+          color: "var(--color-primary-dim)",
+          fontWeight: 700,
+          margin: "0.15rem 0 0.5rem 0.1rem"
+        }}
+      >
+        <span>🤝</span>
+        <span>{t.socialFriendsListTitle || "My friends"} · {friends.length}</span>
+      </h3>
+
+      {loading ? (
+        <p style={{ textAlign: "center", padding: "1.5rem 0", color: "var(--color-muted)" }}>{t.socialLoading || "Loading…"}</p>
+      ) : friends.length === 0 ? (
+        <EmptyFriends t={t} onDiscover={onDiscover} />
+      ) : (
+        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          {friends.map((f) => (
+            <FriendRow key={f.username} friend={f} busy={busy} t={t} onOpenProfile={onOpenProfile} onRemove={onRemove} />
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function FriendRow({ friend, busy, t, onOpenProfile, onRemove }) {
+  return (
+    <li
       style={{
         display: "flex",
         alignItems: "center",
-        gap: "0.45rem",
-        fontSize: "0.68rem",
-        letterSpacing: "0.16em",
-        textTransform: "uppercase",
-        color: "var(--color-primary-dim)",
-        fontWeight: 700,
-        margin: "0 0 0.45rem 0.25rem"
+        gap: "0.6rem",
+        padding: "0.55rem 0.65rem",
+        borderRadius: "0.65rem",
+        background: "rgba(0,0,0,0.22)",
+        border: "1px solid var(--panel-border)"
       }}
     >
-      <span>{icon}</span>
-      <span>{title}</span>
-    </h3>
+      <button type="button" onClick={() => onOpenProfile(friend.username)} style={btnReset}>
+        <StreakFrame streak={friend.streak} size={38} ringWidth={2}>
+          <Avatar photoUrl={friend.photoUrl} displayName={friend.displayName} size={38} />
+        </StreakFrame>
+      </button>
+      <button
+        type="button"
+        onClick={() => onOpenProfile(friend.username)}
+        style={{ ...btnReset, flex: 1, minWidth: 0, textAlign: "left" }}
+      >
+        <p style={{ fontWeight: 600, fontSize: "0.86rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {friend.displayName || friend.username}
+        </p>
+        <p style={{ fontSize: "0.64rem", color: "var(--color-muted)", display: "flex", gap: "0.55rem", flexWrap: "wrap", marginTop: 1 }}>
+          <span>{t.socialLevelLabel || "Lv"} {friend.level}</span>
+          <span>🔥 {friend.streak}</span>
+          {typeof friend.weeklyXp === "number" && <span>⚡ {friend.weeklyXp}/{t.socialWeekShort || "wk"}</span>}
+        </p>
+      </button>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => onRemove(friend.username)}
+        aria-label={t.socialRemoveFriend || "Remove friend"}
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: "50%",
+          background: "rgba(0,0,0,0.25)",
+          border: "1px solid var(--panel-border)",
+          color: "var(--color-muted)",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "0.85rem"
+        }}
+      >
+        ✕
+      </button>
+    </li>
   );
+}
+
+function EmptyFriends({ t, onDiscover }) {
+  return (
+    <div
+      style={{
+        textAlign: "center",
+        padding: "1.75rem 1rem 2rem",
+        background: "rgba(0,0,0,0.18)",
+        border: "1px solid var(--panel-border)",
+        borderRadius: "0.75rem"
+      }}
+    >
+      <div style={{ fontSize: "2.2rem", marginBottom: "0.5rem" }}>🌱</div>
+      <p style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--color-text)", marginBottom: "0.3rem" }}>
+        {t.socialFriendsEmptyTitle || "Your circle is empty."}
+      </p>
+      <p style={{ fontSize: "0.8rem", color: "var(--color-muted)", lineHeight: 1.4, maxWidth: 280, margin: "0 auto 0.85rem" }}>
+        {t.socialFriendsEmpty || "Find players on the weekly leaderboard or search by nickname — then tap Add friend."}
+      </p>
+      {onDiscover && (
+        <button
+          type="button"
+          onClick={onDiscover}
+          style={{
+            padding: "0.55rem 1rem",
+            borderRadius: "0.5rem",
+            background: "rgba(var(--color-primary-rgb,251,191,36),0.18)",
+            border: "1px solid rgba(var(--color-primary-rgb,251,191,36),0.5)",
+            color: "var(--color-text)",
+            fontFamily: "var(--font-heading)",
+            fontWeight: 700,
+            fontSize: "0.75rem",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            cursor: "pointer"
+          }}
+        >
+          🔍 {t.socialDiscoverPlayers || "Discover players"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+const btnReset = { background: "transparent", border: "none", padding: 0, cursor: "pointer", color: "var(--color-text)" };
+
+function actionBtn(kind) {
+  return {
+    width: 34,
+    height: 34,
+    borderRadius: "50%",
+    fontSize: "0.9rem",
+    fontWeight: 700,
+    cursor: "pointer",
+    border: kind === "accept" ? "1px solid rgba(34,197,94,0.55)" : "1px solid var(--panel-border)",
+    background: kind === "accept" ? "rgba(34,197,94,0.22)" : "rgba(239,68,68,0.12)",
+    color: kind === "accept" ? "#22c55e" : "#f87171",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center"
+  };
 }

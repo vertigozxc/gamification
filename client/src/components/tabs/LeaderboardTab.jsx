@@ -9,9 +9,22 @@ import { fetchIncomingFriendRequests } from "../../api";
 export default function LeaderboardTab({ authUser, t: tProp }) {
   const { t: tTheme, languageId } = useTheme();
   const t = tProp || tTheme;
-  const [subTab, setSubTab] = useState("weekly");
+
+  // Pick up any pending deep-link from the Dashboard strip.
+  const pendingSubTab = (typeof window !== "undefined" && window.__pendingSocialSubTab) || null;
+  const pendingChallengeId = (typeof window !== "undefined" && window.__pendingSocialChallengeId) || null;
+
+  const [subTab, setSubTab] = useState(pendingSubTab || "weekly");
   const [profileUsername, setProfileUsername] = useState(null);
   const [requestCount, setRequestCount] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.__pendingSocialSubTab = null;
+      // __pendingSocialChallengeId is consumed by ChallengesTab via the same global
+    } catch {}
+  }, []);
 
   const meUid = String(authUser?.uid || "").slice(0, 128);
 
@@ -147,6 +160,7 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
         <WeeklyLeaderboard
           authUser={authUser}
           t={t}
+          languageId={languageId}
           onOpenProfile={(username) => setProfileUsername(username)}
         />
       )}
@@ -163,6 +177,7 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
           authUser={authUser}
           t={t}
           onOpenProfile={(username) => setProfileUsername(username)}
+          onSwitchToWeekly={() => setSubTab("weekly")}
         />
       )}
 

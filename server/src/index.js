@@ -4754,8 +4754,10 @@ function currentWeekDayKeys(now = new Date()) {
   return keys;
 }
 
-// GET /api/leaderboard/weekly — top 100 by weekly XP (this week Mon→today UTC)
-app.get("/api/leaderboard/weekly", async (_req, res) => {
+// GET /api/leaderboard/weekly?me=<uid> — top 100 by weekly XP (this week Mon→today UTC).
+// When ?me is provided and the user is outside top 100, a separate `me` field
+// carries their current rank so the client can render a sticky "your rank" card.
+app.get("/api/leaderboard/weekly", async (req, res) => {
   try {
     const dayKeys = currentWeekDayKeys();
     const grouped = await prisma.dailyScore.groupBy({
@@ -4765,12 +4767,33 @@ app.get("/api/leaderboard/weekly", async (_req, res) => {
     });
     grouped.sort((a, b) => (b._sum.xpToday || 0) - (a._sum.xpToday || 0));
     const topIds = grouped.slice(0, 100).map((g) => g.userId);
-    if (topIds.length === 0) {
-      return res.json({ users: [], weekStartDayKey: dayKeys[0], serverNowMs: Date.now() });
+
+    let meUserId = null;
+    const rawMe = String(req.query.me || "").trim().slice(0, 128);
+    if (rawMe) {
+      const me = await prisma.user.findUnique({ where: { username: rawMe }, select: { id: true } });
+      meUserId = me?.id || null;
+    }
+    const meRankIdx = meUserId ? grouped.findIndex((g) => g.userId === meUserId) : -1;
+    const needMeLookup = meUserId && meRankIdx >= 0 && meRankIdx >= 100;
+
+    const lookupIds = [...topIds];
+    if (needMeLookup) lookupIds.push(meUserId);
+
+    if (lookupIds.length === 0) {
+      return res.json({
+        users: [],
+        me: null,
+        weekStartDayKey: dayKeys[0],
+        weekDayCount: dayKeys.length,
+        dayKeys,
+        totalRanked: grouped.length,
+        serverNowMs: Date.now()
+      });
     }
     const users = await prisma.user.findMany({
       where: {
-        id: { in: topIds },
+        id: { in: lookupIds },
         username: { not: { startsWith: LEADERBOARD_TEST_USERNAME_PREFIX } },
         displayName: { not: { startsWith: LEADERBOARD_TEST_DISPLAY_PREFIX } }
       },
@@ -4785,27 +4808,50 @@ app.get("/api/leaderboard/weekly", async (_req, res) => {
       }
     });
     const userMap = new Map(users.map((u) => [u.id, u]));
-    const enriched = grouped
-      .map((g) => {
-        const u = userMap.get(g.userId);
-        if (!u) return null;
-        return {
-          username: u.username,
-          displayName: u.displayName,
-          photoUrl: u.photoUrl,
-          level: u.level,
-          streak: u.streak,
-          maxStreak: u.maxStreak,
-          weeklyXp: g._sum.xpToday || 0,
-          weeklyTasks: g._sum.tasksCompleted || 0
-        };
-      })
-      .filter(Boolean);
+
+    function toEntry(g, rank) {
+      const u = userMap.get(g.userId);
+      if (!u) return null;
+      return {
+        rank,
+        username: u.username,
+        displayName: u.displayName,
+        photoUrl: u.photoUrl,
+        level: u.level,
+        streak: u.streak,
+        maxStreak: u.maxStreak,
+        weeklyXp: g._sum.xpToday || 0,
+        weeklyTasks: g._sum.tasksCompleted || 0
+      };
+    }
+
+    const enriched = grouped.slice(0, 100).map((g, i) => toEntry(g, i + 1)).filter(Boolean);
+
+    let me = null;
+    if (meUserId) {
+      if (meRankIdx >= 0) {
+        if (meRankIdx < 100) {
+          me = enriched[meRankIdx] || null;
+        } else {
+          me = toEntry(grouped[meRankIdx], meRankIdx + 1);
+        }
+      } else {
+        // Ranked but zero XP this week — still show the user card with rank=null
+        const meUser = await prisma.user.findUnique({
+          where: { id: meUserId },
+          select: { username: true, displayName: true, photoUrl: true, level: true, streak: true, maxStreak: true }
+        });
+        if (meUser) me = { rank: null, ...meUser, weeklyXp: 0, weeklyTasks: 0 };
+      }
+    }
 
     res.json({
       users: enriched,
+      me,
       weekStartDayKey: dayKeys[0],
+      weekDayCount: dayKeys.length,
       dayKeys,
+      totalRanked: grouped.length,
       serverNowMs: Date.now()
     });
   } catch (error) {
@@ -4859,6 +4905,7 @@ app.get("/api/users/:username/public", async (req, res) => {
     const user = await prisma.user.findUnique({
       where: { username },
       select: {
+        id: true,
         username: true,
         displayName: true,
         photoUrl: true,
@@ -4872,7 +4919,27 @@ app.get("/api/users/:username/public", async (req, res) => {
       }
     });
     if (!user) return res.status(404).json({ error: "User not found" });
-    res.json({ user });
+
+    // Friend count + this-week XP (cheap aggregates).
+    const [friendCount, weeklyAgg] = await Promise.all([
+      prisma.friendship.count({
+        where: { OR: [{ userAId: user.id }, { userBId: user.id }] }
+      }),
+      prisma.dailyScore.aggregate({
+        where: { userId: user.id, dayKey: { in: currentWeekDayKeys() } },
+        _sum: { xpToday: true, tasksCompleted: true }
+      })
+    ]);
+
+    const { id: _omit, ...publicUser } = user;
+    res.json({
+      user: {
+        ...publicUser,
+        friendCount,
+        weeklyXp: weeklyAgg._sum.xpToday || 0,
+        weeklyTasks: weeklyAgg._sum.tasksCompleted || 0
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch public profile", detail: error.message });
   }

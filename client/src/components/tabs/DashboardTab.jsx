@@ -1,5 +1,6 @@
 import QuestBoard from "../QuestBoard";
 import { useTheme } from "../../ThemeContext";
+import DashboardChallengeStrip from "../social/DashboardChallengeStrip";
 
 export default function DashboardTab({
   state, characterName, t,
@@ -17,7 +18,9 @@ export default function DashboardTab({
   renderQuestTimer,
   emptyPinnedSlotCount,
   emptyOtherSlotCount,
-  onOpenHabitPicker
+  onOpenHabitPicker,
+  authUser,
+  onOpenSocial
 }) {
   const { themeId } = useTheme();
   const isLight = themeId === "light";
@@ -56,6 +59,9 @@ export default function DashboardTab({
           <div className="dash-xp-fill" style={{ width: `${xpPercent}%` }} />
         </div>
       </div>
+
+      {/* Active group challenges strip (hides itself when there are none) */}
+      <DashboardChallengeStrip authUser={authUser} t={t} onOpenSocial={onOpenSocial} />
 
       {/* Daily Board Section */}
       <div className="mobile-card flex flex-col gap-4">

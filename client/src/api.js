@@ -236,8 +236,11 @@ export function fetchPublicProfile(username) {
   return request(`/api/users/${encodeURIComponent(username)}/public`);
 }
 
-export function fetchWeeklyLeaderboard() {
-  return request("/api/leaderboard/weekly");
+export function fetchWeeklyLeaderboard(meUsername) {
+  const path = meUsername
+    ? `/api/leaderboard/weekly?me=${encodeURIComponent(meUsername)}`
+    : "/api/leaderboard/weekly";
+  return request(path);
 }
 
 export function fetchUserChallenges(username) {

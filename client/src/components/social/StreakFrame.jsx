@@ -1,12 +1,45 @@
-// Visual ring around an avatar that signals the owner's streak tier.
-// Tiers per spec: 10+ bronze, 21+ silver, 60+ gold, 100+ diamond.
+// Avatar ring that signals a user's streak tier.
+// Tiers: 10+ bronze, 21+ silver, 60+ gold, 100+ diamond.
+// Each tier has a distinct ring, glow, and corner badge icon.
 
 const TIERS = [
-  { min: 100, name: "diamond", ringColors: ["#a5f3fc", "#7dd3fc", "#c4b5fd", "#f0abfc"], glow: "rgba(165,243,252,0.55)" },
-  { min: 60,  name: "gold",    ringColors: ["#fde68a", "#fbbf24", "#d97706", "#fbbf24"], glow: "rgba(251,191,36,0.55)" },
-  { min: 21,  name: "silver",  ringColors: ["#e5e7eb", "#9ca3af", "#d1d5db", "#9ca3af"], glow: "rgba(209,213,219,0.45)" },
-  { min: 10,  name: "bronze",  ringColors: ["#fed7aa", "#d97706", "#92400e", "#d97706"], glow: "rgba(217,119,6,0.45)" },
-  { min: 0,   name: "none",    ringColors: null, glow: null }
+  {
+    min: 100,
+    name: "diamond",
+    label: "Diamond",
+    icon: "💎",
+    ringColors: ["#a5f3fc", "#7dd3fc", "#c4b5fd", "#f0abfc", "#a5f3fc"],
+    glow: "rgba(165,243,252,0.55)",
+    badgeBg: "linear-gradient(135deg,#a5f3fc,#c4b5fd)"
+  },
+  {
+    min: 60,
+    name: "gold",
+    label: "Gold",
+    icon: "👑",
+    ringColors: ["#fde68a", "#fbbf24", "#d97706", "#fbbf24", "#fde68a"],
+    glow: "rgba(251,191,36,0.55)",
+    badgeBg: "linear-gradient(135deg,#fde68a,#d97706)"
+  },
+  {
+    min: 21,
+    name: "silver",
+    label: "Silver",
+    icon: "🥈",
+    ringColors: ["#e5e7eb", "#9ca3af", "#d1d5db", "#9ca3af", "#e5e7eb"],
+    glow: "rgba(209,213,219,0.45)",
+    badgeBg: "linear-gradient(135deg,#e5e7eb,#9ca3af)"
+  },
+  {
+    min: 10,
+    name: "bronze",
+    label: "Bronze",
+    icon: "🥉",
+    ringColors: ["#fed7aa", "#d97706", "#92400e", "#d97706", "#fed7aa"],
+    glow: "rgba(217,119,6,0.45)",
+    badgeBg: "linear-gradient(135deg,#fed7aa,#92400e)"
+  },
+  { min: 0, name: "none", label: "", icon: "", ringColors: null, glow: null, badgeBg: null }
 ];
 
 export function getStreakTier(streak) {
@@ -14,44 +47,90 @@ export function getStreakTier(streak) {
   return TIERS.find((t) => n >= t.min) || TIERS[TIERS.length - 1];
 }
 
-export default function StreakFrame({ children, streak, size = 44, ringWidth = 3, title }) {
+export default function StreakFrame({ children, streak, size = 44, ringWidth = 3, title, showBadge = true }) {
   const tier = getStreakTier(streak);
   const total = size + ringWidth * 2;
 
   if (!tier.ringColors) {
     return (
-      <div style={{ width: total, height: total, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-        <div style={{ width: size, height: size, borderRadius: "50%", overflow: "hidden", background: "var(--panel-bg)" }}>
+      <div
+        style={{
+          width: total,
+          height: total,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0
+        }}
+      >
+        <div
+          style={{
+            width: size,
+            height: size,
+            borderRadius: "50%",
+            overflow: "hidden",
+            background: "var(--panel-bg)",
+            border: "1px solid var(--panel-border)"
+          }}
+        >
           {children}
         </div>
       </div>
     );
   }
 
-  const [c1, c2, c3, c4] = tier.ringColors;
+  const ringBg = `conic-gradient(from 180deg, ${tier.ringColors.join(", ")})`;
+  const badgeSize = Math.max(14, Math.round(size * 0.36));
+
   return (
     <div
-      title={title}
+      title={title || tier.label}
       style={{
+        position: "relative",
         width: total,
         height: total,
         borderRadius: "50%",
-        background: `conic-gradient(from 0deg, ${c1}, ${c2}, ${c3}, ${c4}, ${c1})`,
+        background: ringBg,
         padding: ringWidth,
         boxShadow: `0 0 ${ringWidth * 3}px ${tier.glow}`,
         flexShrink: 0
       }}
     >
-      <div style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        overflow: "hidden",
-        background: "var(--panel-bg)",
-        border: "1px solid rgba(0,0,0,0.25)"
-      }}>
+      <div
+        style={{
+          width: size,
+          height: size,
+          borderRadius: "50%",
+          overflow: "hidden",
+          background: "var(--panel-bg)",
+          border: "1px solid rgba(0,0,0,0.3)"
+        }}
+      >
         {children}
       </div>
+      {showBadge && (
+        <span
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            right: -2,
+            bottom: -2,
+            width: badgeSize,
+            height: badgeSize,
+            borderRadius: "50%",
+            background: tier.badgeBg,
+            border: "2px solid var(--panel-bg)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: Math.round(badgeSize * 0.55),
+            lineHeight: 1,
+            boxShadow: "0 2px 4px rgba(0,0,0,0.3)"
+          }}
+        >
+          {tier.icon}
+        </span>
+      )}
     </div>
   );
 }

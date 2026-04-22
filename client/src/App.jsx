@@ -1430,6 +1430,14 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 rerollButtonTitle={rerollButtonTitle}
                 rerollingQuestId={rerollingQuestId}
                 rerollingPinned={rerollingPinned}
+                authUser={authUser}
+                onOpenSocial={(challengeId) => {
+                  if (challengeId) {
+                    try { window.__pendingSocialChallengeId = challengeId; } catch {}
+                  }
+                  try { window.__pendingSocialSubTab = "challenges"; } catch {}
+                  setMobileTab("leaderboard");
+                }}
               />
             ) : null}
 
