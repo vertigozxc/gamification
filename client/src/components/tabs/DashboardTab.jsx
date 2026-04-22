@@ -60,9 +60,6 @@ export default function DashboardTab({
         </div>
       </div>
 
-      {/* Active group challenges strip (hides itself when there are none) */}
-      <DashboardChallengeStrip authUser={authUser} t={t} onOpenSocial={onOpenSocial} />
-
       {/* Daily Board Section */}
       <div className="mobile-card flex flex-col gap-4">
         {/* Daily progress strip & Board Title */}
@@ -112,6 +109,10 @@ export default function DashboardTab({
           })}
         </div>
       </div>
+
+      {/* Active group challenges strip — sits right above the "Daily reset"
+          row inside the Quest board (hides itself when there are none) */}
+      <DashboardChallengeStrip authUser={authUser} t={t} onOpenSocial={onOpenSocial} />
 
       {/* Quest board with tabs */}
       <div className="mobile-card">

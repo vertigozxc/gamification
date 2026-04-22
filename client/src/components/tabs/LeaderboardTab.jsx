@@ -5,6 +5,8 @@ import {
   fetchIncomingFriendRequests,
   fetchUserChallenges,
   fetchWeeklyLeaderboard,
+  removeFriend,
+  respondToFriendRequest,
 } from "../../api";
 import Avatar from "../social/Avatar";
 import StreakFrame from "../social/StreakFrame";
@@ -12,31 +14,35 @@ import ProfileScreen from "../social/ProfileScreen";
 import ChallengeDetailScreen from "../social/ChallengeDetailScreen";
 import CreateChallengeScreen from "../social/CreateChallengeScreen";
 import SearchScreen from "../social/SearchScreen";
-import LeaderboardScreen from "../social/LeaderboardScreen";
-import FriendsListScreen from "../social/FriendsListScreen";
-import ChallengesListScreen from "../social/ChallengesListScreen";
+import Alert from "../social/Alert";
 import "../social/ios.css";
 
 let screenIdSeq = 0;
-const MAX_ACTIVE_PACTS = 3;
+const MAX_ACTIVE_CHALLENGES = 3;
 
 export default function LeaderboardTab({ authUser, t: tProp }) {
   const { t: tTheme, languageId } = useTheme();
   const t = tProp || tTheme;
   const meUid = String(authUser?.uid || "").slice(0, 128);
 
+  const [tab, setTab] = useState("activity"); // "activity" | "challenges" | "friends"
   const [stack, setStack] = useState([]);
   const [leaderboard, setLeaderboard] = useState(null);
   const [friends, setFriends] = useState([]);
   const [challenges, setChallenges] = useState([]);
-  const [requestCount, setRequestCount] = useState(0);
+  const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(null);
 
   const pendingChallengeId =
     typeof window !== "undefined" ? window.__pendingSocialChallengeId || null : null;
+  const pendingSubTab =
+    typeof window !== "undefined" ? window.__pendingSocialSubTab || null : null;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (pendingSubTab === "challenges") setTab("challenges");
     try { window.__pendingSocialSubTab = null; } catch {}
     if (pendingChallengeId) {
       try { window.__pendingSocialChallengeId = null; } catch {}
@@ -57,7 +63,7 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
       setLeaderboard(lb || null);
       setFriends(fr?.friends || []);
       setChallenges(ch?.challenges || []);
-      setRequestCount((req?.requests || []).length);
+      setRequests(req?.requests || []);
     } finally {
       setLoading(false);
     }
@@ -77,20 +83,8 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
   const pushChallenge = (id) => push({ kind: "challenge", props: { challengeId: id } });
   const pushCreate = () => push({ kind: "create", props: {} });
   const pushSearch = () => push({ kind: "search", props: {} });
-  const pushFullBoard = () => push({ kind: "leaderboard", props: {} });
-  const pushFullFriends = () => push({ kind: "friends", props: {} });
-  const pushFullPacts = () => push({ kind: "pacts", props: {} });
 
-  const now = Date.now();
-  const activePacts = challenges.filter((c) => new Date(c.endsAt).getTime() > now);
-  const myRank = leaderboard?.me?.rank ?? null;
-  const totalRanked = leaderboard?.totalRanked ?? 0;
-  const weeklyXp = leaderboard?.me?.weeklyXp ?? 0;
-  const myStreak = leaderboard?.me?.streak ?? 0;
-  const topFive = (leaderboard?.users || []).slice(0, 5);
-
-  // When a screen is pushed, render ONLY the top of the stack. The home
-  // is not mounted underneath, so nothing can "show through".
+  /* ── If a screen is pushed, render ONLY it ── */
   const topEntry = stack.length > 0 ? stack[stack.length - 1] : null;
   if (topEntry) {
     const close = pop;
@@ -103,373 +97,547 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
         }}
       >
         {topEntry.kind === "profile" && (
-          <ProfileScreen
-            key={topEntry.id}
-            targetUsername={topEntry.props.targetUsername}
-            meUsername={meUid}
-            t={t}
-            languageId={languageId}
-            onClose={close}
-            onChanged={refresh}
-          />
+          <ProfileScreen targetUsername={topEntry.props.targetUsername} meUsername={meUid} t={t} languageId={languageId} onClose={close} onChanged={refresh} />
         )}
         {topEntry.kind === "challenge" && (
-          <ChallengeDetailScreen
-            key={topEntry.id}
-            challengeId={topEntry.props.challengeId}
-            authUser={authUser}
-            t={t}
-            onClose={close}
-            onOpenProfile={pushProfile}
-            onChanged={refresh}
-          />
+          <ChallengeDetailScreen challengeId={topEntry.props.challengeId} authUser={authUser} t={t} onClose={close} onOpenProfile={pushProfile} onChanged={refresh} />
         )}
         {topEntry.kind === "create" && (
-          <CreateChallengeScreen
-            key={topEntry.id}
-            authUser={authUser}
-            t={t}
-            onClose={close}
-            onCreated={() => { close(); refresh(); }}
-          />
+          <CreateChallengeScreen authUser={authUser} t={t} onClose={close} onCreated={() => { close(); refresh(); }} />
         )}
         {topEntry.kind === "search" && (
-          <SearchScreen key={topEntry.id} meUid={meUid} t={t} onClose={close} onOpenProfile={pushProfile} />
-        )}
-        {topEntry.kind === "leaderboard" && (
-          <LeaderboardScreen key={topEntry.id} meUid={meUid} data={leaderboard} t={t} onClose={close} onOpenProfile={pushProfile} />
-        )}
-        {topEntry.kind === "friends" && (
-          <FriendsListScreen key={topEntry.id} authUser={authUser} t={t} onClose={close} onOpenProfile={pushProfile} onChanged={refresh} />
-        )}
-        {topEntry.kind === "pacts" && (
-          <ChallengesListScreen key={topEntry.id} authUser={authUser} t={t} challenges={challenges} onClose={close} onOpenChallenge={pushChallenge} onOpenCreate={pushCreate} />
+          <SearchScreen meUid={meUid} t={t} onClose={close} onOpenProfile={pushProfile} />
         )}
       </div>
     );
   }
 
+  /* ── Home with 3 tabs ── */
+  const now = Date.now();
+  const activeChallenges = challenges.filter((c) => new Date(c.endsAt).getTime() > now);
+  const endedChallenges = challenges.filter((c) => new Date(c.endsAt).getTime() <= now);
+  const canCreate = activeChallenges.length < MAX_ACTIVE_CHALLENGES;
+
+  async function handleRespond(requestId, response) {
+    setBusy(true);
+    try {
+      await respondToFriendRequest(meUid, requestId, response);
+      await refresh();
+    } finally { setBusy(false); }
+  }
+
+  async function doRemove(username) {
+    setBusy(true);
+    try {
+      await removeFriend(meUid, username);
+      await refresh();
+    } finally { setBusy(false); setConfirmRemove(null); }
+  }
+
+  const tabs = [
+    { id: "activity", label: t.communityTabActivity || "Activity", icon: "⚡" },
+    { id: "challenges", label: t.communityTabChallenges || "Challenges", icon: "⚔️" },
+    { id: "friends", label: t.communityTabFriends || "Friends", icon: "🤝", badge: requests.length },
+  ];
+  const selectedIdx = tabs.findIndex((tb) => tb.id === tab);
+
   return (
     <div className="social-block" style={{ minHeight: "calc(100svh - var(--mobile-safe-top, 0px) - var(--mobile-footer-offset, 98px) - 90px)" }}>
-      <div style={{ padding: "10px 14px 24px", display: "flex", flexDirection: "column", gap: 22 }}>
-        {/* ── Large title ── */}
-        <header className="hh-title-strip">
-          {t.hallEyebrow ? <p className="hh-eyebrow">{t.hallEyebrow}</p> : null}
-          <h1 className="cinzel hh-title">{t.hallTitle || "Community"}</h1>
-          <p className="hh-lede">{t.hallLede || "See where you stand and push each other forward."}</p>
+      <div style={{ padding: "10px 14px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
+        {/* Title */}
+        <header style={{ padding: "4px 2px 0" }}>
+          <h1 className="cinzel sb-title-xl" style={{
+            fontFamily: "var(--font-heading)",
+            fontSize: 28,
+            fontWeight: 800,
+            letterSpacing: "-0.02em",
+            background: "var(--heading-gradient)",
+            backgroundClip: "text",
+            WebkitBackgroundClip: "text",
+            color: "transparent",
+            lineHeight: 1.1,
+          }}>
+            {t.communityTitle || "Community"}
+          </h1>
         </header>
 
+        {/* Big tab switcher */}
+        <div role="tablist" className="cm-tabs">
+          <div
+            className="cm-tabs-slider"
+            aria-hidden="true"
+            style={{
+              width: `calc((100% - 8px) / ${tabs.length})`,
+              transform: `translateX(calc(100% * ${selectedIdx}))`,
+            }}
+          />
+          {tabs.map((tb) => (
+            <button
+              key={tb.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === tb.id}
+              onClick={() => setTab(tb.id)}
+              className="cm-tab press"
+            >
+              <span className="cm-tab-ico">{tb.icon}</span>
+              <span className="cm-tab-label">{tb.label}</span>
+              {tb.badge ? <span className="cm-tab-badge">{tb.badge}</span> : null}
+            </button>
+          ))}
+        </div>
+
         {loading && !leaderboard ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: "64px 0" }}>
+          <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
             <div className="sb-spinner" />
           </div>
         ) : (
           <>
-            {/* ── Hero rank ribbon ── */}
-            <RankRibbon
-              rank={myRank}
-              total={totalRanked}
-              xp={weeklyXp}
-              streak={myStreak}
-              t={t}
-              onOpen={pushFullBoard}
-            />
-
-            {/* ── Quick actions ── */}
-            <div className="hh-quick-row">
-              <button type="button" onClick={pushCreate} className="hh-quick-btn press">
-                <div className="hh-quick-ico">⚔️</div>
-                <div className="hh-quick-label">{t.hallActionPact || "Start a challenge"}</div>
-                <div className="hh-quick-hint">{t.hallActionPactHint || "Pick a habit, invite friends"}</div>
-              </button>
-              <button type="button" onClick={pushSearch} className="hh-quick-btn press">
-                <div className="hh-quick-ico">🔎</div>
-                <div className="hh-quick-label">{t.hallActionScout || "Find friends"}</div>
-                <div className="hh-quick-hint">{t.hallActionScoutHint || "Search by nickname"}</div>
-              </button>
-            </div>
-
-            {/* ── Incoming requests ── */}
-            {requestCount > 0 && (
-              <button type="button" className="hh-banner press" onClick={pushFullFriends}>
-                <span className="hh-banner-dot" aria-hidden="true" />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="hh-banner-title">
-                    {(t.hallRequestsTitle || "{n} new friend request").replace("{n}", String(requestCount))}
-                  </div>
-                  <div className="hh-banner-sub">{t.hallRequestsSub || "Tap to review and answer"}</div>
-                </div>
-                <span style={{ color: "var(--color-muted)", fontSize: 20 }}>›</span>
-              </button>
+            {tab === "activity" && (
+              <ActivityTab leaderboard={leaderboard} meUid={meUid} t={t} onOpenProfile={pushProfile} />
             )}
-
-            {/* ── Top this week ── */}
-            <section className="hh-section">
-              <div className="hh-section-head">
-                <h2 className="cinzel hh-section-title">
-                  {t.hallChampionsTitle || "Top this week"}
-                  {totalRanked > 0 && <span className="count">· {totalRanked}</span>}
-                </h2>
-                {topFive.length > 0 && (
-                  <button type="button" className="hh-section-action press" onClick={pushFullBoard} aria-label={t.hallOpenBoard || "Open board"}>
-                    ›
-                  </button>
-                )}
-              </div>
-              <div className="hh-divider" />
-              {topFive.length === 0 ? (
-                <EmptyChampions t={t} />
-              ) : (
-                <div className="hh-podium">
-                  {topFive.map((u, i) => (
-                    <PodiumRow
-                      key={u.username}
-                      rank={u.rank ?? i + 1}
-                      user={u}
-                      isMe={u.username === meUid}
-                      t={t}
-                      onClick={() => pushProfile(u.username)}
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
-
-            {/* ── Your allies ── */}
-            <section className="hh-section">
-              <div className="hh-section-head">
-                <h2 className="cinzel hh-section-title">
-                  {t.hallAlliesTitle || "Friends"}
-                  {friends.length > 0 && <span className="count">· {friends.length}</span>}
-                </h2>
-                {friends.length > 0 && (
-                  <button type="button" className="hh-section-action press" onClick={pushFullFriends} aria-label={t.hallOpenAllies || "Open allies"}>
-                    ›
-                  </button>
-                )}
-              </div>
-              <div className="hh-divider" />
-              {friends.length === 0 ? (
-                <EmptyAllies t={t} onFind={pushSearch} />
-              ) : (
-                <div className="hh-allies">
-                  {friends.slice(0, 5).map((f) => (
-                    <AllyRow key={f.username} friend={f} t={t} onClick={() => pushProfile(f.username)} />
-                  ))}
-                </div>
-              )}
-            </section>
-
-            {/* ── Active pacts ── */}
-            <section className="hh-section">
-              <div className="hh-section-head">
-                <h2 className="cinzel hh-section-title">
-                  {t.hallPactsTitle || "Group challenges"}
-                  {activePacts.length > 0 && <span className="count">· {activePacts.length}</span>}
-                </h2>
-                {activePacts.length > 0 && (
-                  <button type="button" className="hh-section-action press" onClick={pushFullPacts} aria-label={t.hallOpenPacts || "Open pacts"}>
-                    ›
-                  </button>
-                )}
-              </div>
-              <div className="hh-divider" />
-              {activePacts.length === 0 ? (
-                <EmptyPacts t={t} onStart={pushCreate} />
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {activePacts.slice(0, 3).map((c) => (
-                    <PactCard key={c.id} challenge={c} t={t} onClick={() => pushChallenge(c.id)} />
-                  ))}
-                  {activePacts.length < MAX_ACTIVE_PACTS && (
-                    <button type="button" onClick={pushCreate} className="sb-tinted-btn press" style={{ padding: 12 }}>
-                      ＋ {t.hallForgeAnother || "Start another"}
-                    </button>
-                  )}
-                </div>
-              )}
-            </section>
+            {tab === "challenges" && (
+              <ChallengesInlineTab
+                activeChallenges={activeChallenges}
+                endedChallenges={endedChallenges}
+                canCreate={canCreate}
+                t={t}
+                onOpenChallenge={pushChallenge}
+                onOpenCreate={pushCreate}
+              />
+            )}
+            {tab === "friends" && (
+              <FriendsInlineTab
+                friends={friends}
+                requests={requests}
+                busy={busy}
+                t={t}
+                onOpenProfile={pushProfile}
+                onOpenSearch={pushSearch}
+                onRespond={handleRespond}
+                onRemoveRequest={(f) => setConfirmRemove({ username: f.username, displayName: f.displayName || f.username })}
+              />
+            )}
           </>
         )}
       </div>
+
+      {confirmRemove && (
+        <Alert
+          icon="🗑"
+          title={(t.communityConfirmRemoveTitle || "Remove {name}?").replace("{name}", confirmRemove.displayName)}
+          message={t.communityConfirmRemoveBody || "They will disappear from your friends list. You can send a new request later."}
+          cancelLabel={t.communityCancel || "Cancel"}
+          confirmLabel={t.communityRemove || "Remove"}
+          destructive
+          onCancel={() => setConfirmRemove(null)}
+          onConfirm={() => doRemove(confirmRemove.username)}
+        />
+      )}
     </div>
   );
 }
 
 /* ============================================================================
- * Home subcomponents
+ * Activity tab — weekly leaderboard (top by XP)
  * ========================================================================== */
 
-function RankRibbon({ rank, total, xp, streak, t, onOpen }) {
-  const hasRank = rank != null;
+function ActivityTab({ leaderboard, meUid, t, onOpenProfile }) {
+  const users = leaderboard?.users || [];
+  const me = leaderboard?.me || null;
+  const meInShown = me ? users.some((u) => u.username === me.username) : false;
+  const podium = users.slice(0, 3);
+  const rest = users.slice(3, 10);
+
+  if (users.length === 0) {
+    return (
+      <div className="cm-empty">
+        <div className="cm-empty-icon">⚡</div>
+        <p className="cm-empty-title">{t.communityActivityEmptyTitle || "No active players this week"}</p>
+        <p className="cm-empty-body">{t.communityActivityEmptyBody || "Complete any daily task and you'll appear on the leaderboard."}</p>
+      </div>
+    );
+  }
+
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="hh-rank press"
-      style={{ border: "1px solid color-mix(in srgb, var(--color-primary) 36%, transparent)", width: "100%", textAlign: "left", fontFamily: "inherit", cursor: "pointer" }}
-    >
-      <p className="hh-rank-eyebrow">{t.hallRankEyebrow || "Your week standing"}</p>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
-        <span className="hh-rank-number">{hasRank ? `#${rank}` : "—"}</span>
-        <span className="hh-rank-context">
-          {hasRank
-            ? (t.hallRankContext || "of {n} heroes").replace("{n}", String(total || 1))
-            : (t.hallRankContextUnranked || "start a quest to enter the board")}
-        </span>
-      </div>
-      <div className="hh-rank-hr" />
-      <div className="hh-rank-stats">
-        <div>
-          <p className="hh-rank-stat-label">{t.hallWeekXp || "Week XP"}</p>
-          <p className="hh-rank-stat-value">⚡ {xp}</p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <p className="cm-section-lead">
+        {t.communityActivityLead || "Players ranked by XP earned this week."}
+      </p>
+
+      {podium.length > 0 && <Podium entries={podium} t={t} meUid={meUid} onOpenProfile={onOpenProfile} />}
+      {rest.length > 0 && (
+        <div className="cm-list">
+          {rest.map((u) => (
+            <PlayerRow key={u.username} entry={u} isMe={u.username === meUid} t={t} onOpenProfile={onOpenProfile} />
+          ))}
         </div>
-        <div>
-          <p className="hh-rank-stat-label">{t.hallStreak || "Streak"}</p>
-          <p className="hh-rank-stat-value">🔥 {streak}</p>
-        </div>
-      </div>
-    </button>
+      )}
+      {me && !meInShown && (
+        <>
+          <h3 className="cm-section-label">{t.communityYourRank || "Your rank"}</h3>
+          <div className="cm-list">
+            <PlayerRow entry={me} isMe meHighlight t={t} onOpenProfile={onOpenProfile} />
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
-function PodiumRow({ rank, user, isMe, t, onClick }) {
-  const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
+function Podium({ entries, t, meUid, onOpenProfile }) {
+  const [first, second, third] = entries;
+  const slots = [second, first, third].filter(Boolean);
+  return (
+    <div className="cm-podium">
+      {slots.map((e) => {
+        const place = e === first ? 1 : e === second ? 2 : 3;
+        const meta = {
+          1: { medal: "🥇", accent: "#fbbf24", h: 86 },
+          2: { medal: "🥈", accent: "#d1d5db", h: 68 },
+          3: { medal: "🥉", accent: "#d97706", h: 52 },
+        }[place];
+        return (
+          <button
+            key={e.username}
+            type="button"
+            onClick={() => onOpenProfile(e.username)}
+            className="cm-podium-slot press"
+          >
+            <span style={{ fontSize: place === 1 ? 22 : 18, lineHeight: 1 }}>{meta.medal}</span>
+            <StreakFrame streak={e.streak} size={place === 1 ? 52 : 44} ringWidth={3}>
+              <Avatar photoUrl={e.photoUrl} displayName={e.displayName} size={place === 1 ? 52 : 44} />
+            </StreakFrame>
+            <p className="cm-podium-name">
+              {e.displayName || e.username}
+              {e.username === meUid && <span style={{ color: "var(--color-primary)" }}> · {t.communityYou || "you"}</span>}
+            </p>
+            <div
+              style={{
+                width: "100%",
+                height: meta.h,
+                background: `linear-gradient(180deg, ${meta.accent}44, ${meta.accent}10)`,
+                border: `1px solid ${meta.accent}66`,
+                borderRadius: 10,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 6,
+                gap: 1,
+              }}
+            >
+              <p style={{ fontSize: place === 1 ? 20 : 17, fontWeight: 700, color: meta.accent, lineHeight: 1, letterSpacing: "-0.02em" }}>
+                {e.weeklyXp}
+              </p>
+              <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--color-muted)" }}>
+                XP
+              </p>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function PlayerRow({ entry, isMe, meHighlight, t, onOpenProfile }) {
   return (
     <button
       type="button"
-      onClick={onClick}
-      className="hh-podium-row press"
-      style={{ background: isMe ? "rgba(var(--color-primary-rgb,251,191,36),0.08)" : "transparent" }}
+      onClick={() => onOpenProfile(entry.username)}
+      className="cm-row press"
+      style={{
+        background: meHighlight
+          ? "rgba(var(--color-primary-rgb,251,191,36),0.14)"
+          : isMe
+            ? "rgba(var(--color-primary-rgb,251,191,36),0.06)"
+            : "transparent",
+      }}
     >
-      <span
-        className="hh-podium-rank"
-        style={{ color: rank <= 3 ? "var(--color-primary)" : "var(--color-muted)" }}
-      >
-        {medal || rank}
+      <span className="cm-row-rank" style={{ color: entry.rank && entry.rank <= 3 ? "var(--color-primary)" : "var(--color-muted)" }}>
+        {entry.rank ? entry.rank : "—"}
       </span>
-      <StreakFrame streak={user.streak} size={38} ringWidth={2}>
-        <Avatar photoUrl={user.photoUrl} displayName={user.displayName} size={38} />
+      <StreakFrame streak={entry.streak} size={40} ringWidth={2}>
+        <Avatar photoUrl={entry.photoUrl} displayName={entry.displayName} size={40} />
       </StreakFrame>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p className="hh-podium-name">
-          {user.displayName || user.username}
-          {isMe && <span style={{ color: "var(--color-primary)" }}> · {t.hallYou || "you"}</span>}
+        <p className="cm-row-name">
+          {entry.displayName || entry.username}
+          {isMe && <span style={{ color: "var(--color-primary)", fontWeight: 600 }}> · {t.communityYou || "you"}</span>}
         </p>
-        <p className="hh-podium-meta" style={{ display: "flex", gap: 8 }}>
-          <span>{t.hallLvlShort || "Lv"} {user.level}</span>
-          <span>🔥 {user.streak}</span>
+        <p className="cm-row-meta">
+          <span>{t.communityLvl || "Lv"} {entry.level}</span>
+          <span>🔥 {entry.streak}</span>
         </p>
       </div>
       <div style={{ textAlign: "right", flexShrink: 0 }}>
-        <p className="hh-podium-xp">{user.weeklyXp}</p>
-        <p className="hh-podium-xp-label">{t.hallXp || "XP"}</p>
+        <p className="cm-row-xp">{entry.weeklyXp}</p>
+        <p className="cm-row-xp-label">XP</p>
       </div>
     </button>
   );
 }
 
-function AllyRow({ friend: f, t, onClick }) {
+/* ============================================================================
+ * Challenges tab
+ * ========================================================================== */
+
+function ChallengesInlineTab({ activeChallenges, endedChallenges, canCreate, t, onOpenChallenge, onOpenCreate }) {
   return (
-    <button type="button" onClick={onClick} className="hh-ally-row press">
-      <StreakFrame streak={f.streak} size={42} ringWidth={2}>
-        <Avatar photoUrl={f.photoUrl} displayName={f.displayName} size={42} />
-      </StreakFrame>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontWeight: 600, fontSize: 14, letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {f.displayName || f.username}
-        </p>
-        <p style={{ fontSize: 12, color: "var(--color-muted)", display: "flex", gap: 8, marginTop: 2 }}>
-          <span>{t.hallLvlShort || "Lv"} {f.level}</span>
-          <span>🔥 {f.streak}</span>
-          {typeof f.weeklyXp === "number" && <span>⚡ {f.weeklyXp}</span>}
-        </p>
-      </div>
-      <span style={{ color: "var(--color-muted)", fontSize: 18, flexShrink: 0 }}>›</span>
-    </button>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <button
+        type="button"
+        disabled={!canCreate}
+        onClick={onOpenCreate}
+        className="cm-primary-btn press"
+      >
+        ＋ {canCreate
+          ? (t.communityStartChallenge || "Start a challenge")
+          : (t.communityChallengesFull || "3 active · limit reached")}
+      </button>
+
+      {activeChallenges.length === 0 && endedChallenges.length === 0 && (
+        <div className="cm-empty">
+          <div className="cm-empty-icon">⚔️</div>
+          <p className="cm-empty-title">{t.communityChallengesEmptyTitle || "No group challenges yet"}</p>
+          <p className="cm-empty-body">{t.communityChallengesEmptyBody || "Team up with a friend on a daily habit. Every completion earns a token for every participant."}</p>
+        </div>
+      )}
+
+      {activeChallenges.length > 0 && (
+        <>
+          <h3 className="cm-section-label">{t.communityActive || "Active"}</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {activeChallenges.map((c) => (
+              <ChallengeCard key={c.id} challenge={c} t={t} onOpen={() => onOpenChallenge(c.id)} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {endedChallenges.length > 0 && (
+        <>
+          <h3 className="cm-section-label">{t.communityRecentlyEnded || "Recently ended"}</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {endedChallenges.map((c) => (
+              <ChallengeCard key={c.id} challenge={c} ended t={t} onOpen={() => onOpenChallenge(c.id)} />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
-function PactCard({ challenge: c, t, onClick }) {
+function ChallengeCard({ challenge: c, ended, t, onOpen }) {
   const total = Math.max(1, Number(c.durationDays) || 1);
   const start = new Date(c.startedAt).getTime();
   const end = new Date(c.endsAt).getTime();
-  const elapsed = Math.min(total, Math.max(0, Math.floor((Date.now() - start) / 86400000)));
-  const daysLeft = Math.max(0, Math.ceil((end - Date.now()) / 86400000));
+  const elapsed = ended ? total : Math.min(total, Math.max(0, Math.floor((Date.now() - start) / 86400000)));
+  const daysLeft = ended ? 0 : Math.max(0, Math.ceil((end - Date.now()) / 86400000));
   const pct = Math.round((elapsed / total) * 100);
   const done = c.myLastCompletionDayKey === todayKey();
   const participants = (c.participants || []).filter((p) => !p.leftAt);
 
   return (
-    <button type="button" onClick={onClick} className="hh-pact press">
+    <button
+      type="button"
+      onClick={onOpen}
+      className="cm-challenge press"
+      style={{ opacity: ended ? 0.7 : 1 }}
+    >
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
-        <p className="hh-pact-title">{c.title}</p>
-        <span className="sb-pill sb-pill-accent" style={{ flexShrink: 0 }}>
-          {(t.hallDaysLeft || "{n}d left").replace("{n}", String(daysLeft))}
+        <p className="cm-challenge-title">{c.title}</p>
+        <span className={`cm-pill ${ended ? "" : "cm-pill-accent"}`} style={{ flexShrink: 0 }}>
+          {ended ? (t.communityEnded || "ended") : (t.communityDaysLeft || "{n}d left").replace("{n}", String(daysLeft))}
         </span>
       </div>
-      <p className="hh-pact-quest">🎯 {c.questTitle}</p>
-      <div className="sb-progress">
-        <div className={`sb-progress-fill${done ? " done" : ""}`} style={{ width: `${pct}%` }} />
+      <p className="cm-challenge-quest">🎯 {c.questTitle}</p>
+      <div className="cm-progress">
+        <div className={`cm-progress-fill${done ? " done" : ""}`} style={{ width: `${pct}%` }} />
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ display: "flex" }}>
           {participants.slice(0, 5).map((p, i) => (
-            <div key={p.id} style={{ marginLeft: i === 0 ? 0 : -8, width: 26, height: 26, borderRadius: "50%", overflow: "hidden", border: "2px solid var(--panel-bg)", background: "var(--panel-bg)" }}>
-              <Avatar photoUrl={p.user.photoUrl} displayName={p.user.displayName} size={22} />
+            <div key={p.id} style={{ marginLeft: i === 0 ? 0 : -8, width: 24, height: 24, borderRadius: "50%", overflow: "hidden", border: "2px solid var(--panel-bg)", background: "var(--panel-bg)" }}>
+              <Avatar photoUrl={p.user.photoUrl} displayName={p.user.displayName} size={20} />
             </div>
           ))}
         </div>
-        <span style={{ fontSize: 12, color: "var(--color-muted)" }}>
-          {elapsed}/{total} {t.hallDayMany || "days"}
-        </span>
-        <span
-          className={`sb-pill ${done ? "sb-pill-success" : ""}`}
-          style={{ marginLeft: "auto" }}
-        >
-          {done ? `✓ ${t.hallDone || "today"}` : `🔥 ${c.myConsecutiveDays || 0}`}
-        </span>
+        <span className="cm-caption">{participants.length} {t.communityPlayers || "players"}</span>
+        {!ended && (
+          <span className={`cm-pill ${done ? "cm-pill-success" : ""}`} style={{ marginLeft: "auto" }}>
+            {done ? `✓ ${t.communityDone || "today"}` : `🔥 ${c.myConsecutiveDays || 0}`}
+          </span>
+        )}
       </div>
     </button>
   );
 }
 
-/* ---------- Empty-state cards --------------------------------------------- */
+/* ============================================================================
+ * Friends tab
+ * ========================================================================== */
 
-function EmptyChampions({ t }) {
+function FriendsInlineTab({ friends, requests, busy, t, onOpenProfile, onOpenSearch, onRespond, onRemoveRequest }) {
   return (
-    <div className="hh-empty">
-      <div className="hh-empty-icon">🏔</div>
-      <p className="hh-empty-title">{t.hallChampionsEmptyTitle || "No one on the board yet"}</p>
-      <p className="hh-empty-body">{t.hallChampionsEmptyBody || "Finish a daily task to land on the weekly leaderboard."}</p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <button type="button" onClick={onOpenSearch} className="cm-primary-btn press">
+        ＋ {t.communityAddFriend || "Add a friend"}
+      </button>
+
+      {requests.length > 0 && (
+        <>
+          <h3 className="cm-section-label">
+            📬 {t.communityRequests || "Friend requests"} ({requests.length})
+          </h3>
+          <div className="cm-list">
+            {requests.map((r) => (
+              <RequestRow
+                key={r.requestId}
+                request={r}
+                busy={busy}
+                t={t}
+                onOpenProfile={onOpenProfile}
+                onRespond={onRespond}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      <h3 className="cm-section-label">
+        🤝 {t.communityFriends || "Friends"} ({friends.length})
+      </h3>
+
+      {friends.length === 0 ? (
+        <div className="cm-empty">
+          <div className="cm-empty-icon">🌱</div>
+          <p className="cm-empty-title">{t.communityFriendsEmptyTitle || "No friends yet"}</p>
+          <p className="cm-empty-body">{t.communityFriendsEmptyBody || "Add friends to see their progress and team up on group challenges."}</p>
+        </div>
+      ) : (
+        <div className="cm-list">
+          {friends.map((f) => (
+            <FriendRow
+              key={f.username}
+              friend={f}
+              busy={busy}
+              t={t}
+              onOpenProfile={onOpenProfile}
+              onRemove={() => onRemoveRequest(f)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function EmptyAllies({ t, onFind }) {
+function RequestRow({ request: r, busy, t, onOpenProfile, onRespond }) {
   return (
-    <div className="hh-empty">
-      <div className="hh-empty-icon">🤝</div>
-      <p className="hh-empty-title">{t.hallAlliesEmptyTitle || "No friends yet"}</p>
-      <p className="hh-empty-body">{t.hallAlliesEmptyBody || "Add friends to see their progress and team up on group challenges."}</p>
-      <button type="button" onClick={onFind} className="sb-tinted-btn press">
-        {t.hallAlliesEmptyCta || "Find friends"}
+    <div className="cm-row">
+      <button type="button" onClick={() => onOpenProfile(r.from.username)} className="press" style={btnReset}>
+        <StreakFrame streak={r.from.streak} size={40} ringWidth={2}>
+          <Avatar photoUrl={r.from.photoUrl} displayName={r.from.displayName} size={40} />
+        </StreakFrame>
+      </button>
+      <button
+        type="button"
+        onClick={() => onOpenProfile(r.from.username)}
+        className="press"
+        style={{ ...btnReset, flex: 1, minWidth: 0, textAlign: "left", padding: "4px 6px", borderRadius: 8 }}
+      >
+        <p className="cm-row-name">{r.from.displayName || r.from.username}</p>
+        <p className="cm-row-meta">
+          <span>{t.communityLvl || "Lv"} {r.from.level}</span>
+          <span>🔥 {r.from.streak}</span>
+        </p>
+      </button>
+      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+        <button type="button" disabled={busy} onClick={() => onRespond(r.requestId, "accept")} className="press" style={circleBtn("accept")} aria-label={t.communityAccept || "Accept"}>✓</button>
+        <button type="button" disabled={busy} onClick={() => onRespond(r.requestId, "decline")} className="press" style={circleBtn("decline")} aria-label={t.communityDecline || "Decline"}>✕</button>
+      </div>
+    </div>
+  );
+}
+
+function FriendRow({ friend: f, busy, t, onOpenProfile, onRemove }) {
+  return (
+    <div className="cm-row">
+      <button type="button" onClick={() => onOpenProfile(f.username)} className="press" style={btnReset}>
+        <StreakFrame streak={f.streak} size={40} ringWidth={2}>
+          <Avatar photoUrl={f.photoUrl} displayName={f.displayName} size={40} />
+        </StreakFrame>
+      </button>
+      <button
+        type="button"
+        onClick={() => onOpenProfile(f.username)}
+        className="press"
+        style={{ ...btnReset, flex: 1, minWidth: 0, textAlign: "left", padding: "4px 6px", borderRadius: 8 }}
+      >
+        <p className="cm-row-name">{f.displayName || f.username}</p>
+        <p className="cm-row-meta">
+          <span>{t.communityLvl || "Lv"} {f.level}</span>
+          <span>🔥 {f.streak}</span>
+          {typeof f.weeklyXp === "number" && <span>⚡ {f.weeklyXp}</span>}
+        </p>
+      </button>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={onRemove}
+        className="press"
+        aria-label={t.communityRemove || "Remove"}
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: "50%",
+          background: "rgba(255,255,255,0.06)",
+          border: "1px solid var(--card-border-idle, rgba(255,255,255,0.12))",
+          color: "var(--color-muted)",
+          fontSize: 14,
+          cursor: "pointer",
+          fontFamily: "inherit",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        ✕
       </button>
     </div>
   );
 }
 
-function EmptyPacts({ t, onStart }) {
-  return (
-    <div className="hh-empty">
-      <div className="hh-empty-icon">⚔️</div>
-      <p className="hh-empty-title">{t.hallPactsEmptyTitle || "No group challenges yet"}</p>
-      <p className="hh-empty-body">{t.hallPactsEmptyBody || "Team up on a daily habit. Every completion earns a token for every participant."}</p>
-      <button type="button" onClick={onStart} className="sb-tinted-btn press">
-        {t.hallPactsEmptyCta || "Start your first challenge"}
-      </button>
-    </div>
-  );
+const btnReset = {
+  background: "transparent",
+  border: "none",
+  padding: 0,
+  color: "var(--color-text)",
+  fontFamily: "inherit",
+  cursor: "pointer",
+};
+
+function circleBtn(kind) {
+  const isAccept = kind === "accept";
+  return {
+    width: 34,
+    height: 34,
+    borderRadius: "50%",
+    fontSize: 15,
+    fontWeight: 700,
+    border: "none",
+    background: isAccept ? "rgba(48,209,88,0.18)" : "rgba(255,69,58,0.14)",
+    color: isAccept ? "#30d158" : "#ff6a63",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    fontFamily: "inherit",
+  };
 }
 
 function todayKey() {

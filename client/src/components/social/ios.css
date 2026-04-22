@@ -95,7 +95,331 @@
 }
 
 /* ============================================================================
- * Heroes' Hall home — RPG-themed single-scroll layout
+ * Community home — tabbed layout (Activity / Challenges / Friends)
+ * ========================================================================== */
+
+.social-block .cm-tabs {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 4px;
+  background: rgba(120, 120, 128, 0.18);
+  border-radius: 16px;
+  border: 1px solid var(--panel-border);
+  min-height: 58px;
+}
+.social-block .cm-tabs-slider {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 12px;
+  background: var(--panel-bg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1),
+    width 320ms cubic-bezier(0.32, 0.72, 0, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+.social-block .cm-tab {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: color 180ms ease;
+}
+.social-block .cm-tab[aria-selected="true"] {
+  color: var(--color-text);
+  font-weight: 600;
+}
+.social-block .cm-tab-ico { font-size: 18px; line-height: 1; }
+.social-block .cm-tab-label {
+  font-size: 13px;
+  letter-spacing: -0.01em;
+}
+.social-block .cm-tab-badge {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #ff453a;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Section labels */
+.social-block .cm-section-label {
+  font-family: var(--font-heading);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin: 6px 4px 2px;
+}
+.social-block .cm-section-lead {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin: 0 4px;
+  line-height: 1.4;
+}
+
+/* Primary CTA (Start a challenge / Add a friend) */
+.social-block .cm-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 55%, transparent);
+  background: var(--color-primary, #fbbf24);
+  color: #1b1410;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 6px 18px rgba(var(--color-primary-rgb, 251, 191, 36), 0.2);
+}
+.social-block .cm-primary-btn.press:active:not(:disabled) {
+  filter: brightness(0.9);
+}
+
+/* Podium */
+.social-block .cm-podium {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: end;
+  gap: 8px;
+  padding: 14px 8px 10px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+}
+.social-block .cm-podium-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 12px;
+  background: transparent;
+  border: none;
+  color: var(--color-text);
+  font-family: inherit;
+  cursor: pointer;
+}
+.social-block .cm-podium-name {
+  font-size: 13px;
+  font-weight: 600;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  margin-top: -2px;
+  letter-spacing: -0.01em;
+}
+
+/* Grouped list + rows */
+.social-block .cm-list {
+  background: var(--panel-bg);
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--panel-border);
+}
+.social-block .cm-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  color: var(--color-text);
+  position: relative;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+}
+.social-block .cm-row + .cm-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 58px;
+  right: 14px;
+  height: 1px;
+  background: var(--panel-border);
+  opacity: 0.55;
+}
+.social-block .cm-row-rank {
+  width: 26px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+  letter-spacing: -0.01em;
+  font-family: var(--font-heading);
+}
+.social-block .cm-row-name {
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.social-block .cm-row-meta {
+  font-size: 12px;
+  color: var(--color-muted);
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+.social-block .cm-row-xp {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-family: var(--font-heading);
+}
+.social-block .cm-row-xp-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin-top: 2px;
+}
+
+/* Empty state */
+.social-block .cm-empty {
+  padding: 22px 20px;
+  border-radius: 16px;
+  background: var(--panel-bg);
+  border: 1px dashed color-mix(in srgb, var(--color-primary) 32%, transparent);
+  text-align: center;
+}
+.social-block .cm-empty-icon { font-size: 32px; margin-bottom: 6px; }
+.social-block .cm-empty-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--color-text);
+  margin-bottom: 4px;
+  letter-spacing: 0.02em;
+}
+.social-block .cm-empty-body {
+  font-size: 13px;
+  color: var(--color-muted);
+  line-height: 1.45;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+/* Challenge card (inside challenges tab) */
+.social-block .cm-challenge {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  width: 100%;
+  border-left: 3px solid color-mix(in srgb, var(--color-primary) 70%, transparent);
+}
+.social-block .cm-challenge-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.social-block .cm-challenge-quest {
+  font-size: 13px;
+  color: var(--color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Progress */
+.social-block .cm-progress {
+  height: 6px;
+  background: rgba(120, 120, 128, 0.22);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.social-block .cm-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--color-primary) 70%, transparent), var(--color-primary));
+  transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.social-block .cm-progress-fill.done { background: #30d158; }
+
+/* Pills */
+.social-block .cm-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(120, 120, 128, 0.18);
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.social-block .cm-pill-accent {
+  background: rgba(var(--color-primary-rgb, 251, 191, 36), 0.2);
+  color: var(--color-primary);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 40%, transparent);
+}
+.social-block .cm-pill-success {
+  background: rgba(48, 209, 88, 0.18);
+  color: #30d158;
+  border: 1px solid rgba(48, 209, 88, 0.35);
+}
+
+.social-block .cm-caption {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+/* ============================================================================
+ * Heroes' Hall home — RPG-themed single-scroll layout (legacy — kept for
+ * backwards-compat class usage in Profile / Challenge detail screens)
  * ========================================================================== */
 
 /* ---------- Large title strip --------------------------------------------- */
