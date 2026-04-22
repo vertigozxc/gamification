@@ -27,7 +27,6 @@ export default function ChallengesTab({ authUser, t, languageId, onOpenProfile, 
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  // Deep-link from the Dashboard strip: auto-open the requested challenge.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const pending = window.__pendingSocialChallengeId;
@@ -48,30 +47,45 @@ export default function ChallengesTab({ authUser, t, languageId, onOpenProfile, 
       await refresh();
       onChanged && onChanged();
     } catch {
-      // fall through — detail modal will surface the precise error
+      /* noop: detail modal surfaces errors */
     }
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-      {/* Info banner */}
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* Info card */}
       <div
         style={{
-          padding: "0.8rem",
-          background: "linear-gradient(135deg, rgba(var(--color-primary-rgb,251,191,36),0.1), rgba(0,0,0,0.22))",
+          padding: "12px 14px",
+          background: "var(--panel-bg)",
           border: "1px solid var(--panel-border)",
-          borderRadius: "0.75rem",
+          borderRadius: 14,
           display: "flex",
           alignItems: "center",
-          gap: "0.7rem"
+          gap: 12
         }}
       >
-        <span style={{ fontSize: "1.4rem" }}>⚔️</span>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: "rgba(var(--color-primary-rgb,251,191,36),0.18)",
+            color: "var(--color-primary)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 18,
+            flexShrink: 0
+          }}
+        >
+          ⚔️
+        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--color-text)", marginBottom: 2 }}>
+          <p className="ios-headline" style={{ marginBottom: 2 }}>
             {t.socialChallengesHintShort || "Stay accountable together."}
           </p>
-          <p style={{ fontSize: "0.7rem", color: "var(--color-muted)" }}>
+          <p className="ios-caption">
             {(t.socialChallengesHint || "Up to {max} active. +1 token to everyone each day someone completes.").replace("{max}", String(MAX_ACTIVE))}
           </p>
         </div>
@@ -82,42 +96,27 @@ export default function ChallengesTab({ authUser, t, languageId, onOpenProfile, 
         type="button"
         disabled={!canCreateMore}
         onClick={() => setShowCreate(true)}
-        style={{
-          padding: "0.85rem",
-          border: "1px dashed rgba(var(--color-primary-rgb,251,191,36),0.55)",
-          background: canCreateMore ? "rgba(var(--color-primary-rgb,251,191,36),0.12)" : "rgba(0,0,0,0.15)",
-          color: "var(--color-text)",
-          borderRadius: "0.7rem",
-          cursor: canCreateMore ? "pointer" : "not-allowed",
-          fontFamily: "var(--font-heading)",
-          fontWeight: 700,
-          fontSize: "0.8rem",
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          opacity: canCreateMore ? 1 : 0.55,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "0.4rem"
-        }}
+        className="ios-btn-primary ios-tap"
+        style={{ padding: "14px" }}
       >
-        <span>{canCreateMore ? "＋" : "⏳"}</span>
+        <span style={{ fontSize: 18, lineHeight: 1 }}>＋</span>
         {canCreateMore
           ? (t.socialCreateChallenge || "Start a new challenge")
           : (t.socialChallengesFull || `Max ${MAX_ACTIVE} active challenges`)}
       </button>
 
-      {/* Content */}
       {loading ? (
-        <p style={{ textAlign: "center", padding: "1.5rem 0", color: "var(--color-muted)" }}>{t.socialLoading || "Loading…"}</p>
+        <p style={{ textAlign: "center", padding: "24px 0", color: "var(--color-muted)" }}>{t.socialLoading || "Loading…"}</p>
       ) : active.length === 0 && ended.length === 0 ? (
         <EmptyChallenges t={t} />
       ) : (
         <>
           {active.length > 0 && (
-            <section>
-              <SectionTitle icon="🔥" title={`${t.socialActiveChallenges || "Active"} · ${active.length}`} />
-              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.55rem" }}>
+            <>
+              <h3 className="ios-section-header">
+                🔥 {t.socialActiveChallenges || "Active"} ({active.length})
+              </h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {active.map((c) => (
                   <ChallengeCard
                     key={c.id}
@@ -129,13 +128,15 @@ export default function ChallengesTab({ authUser, t, languageId, onOpenProfile, 
                     onQuickComplete={() => quickComplete(c.id)}
                   />
                 ))}
-              </ul>
-            </section>
+              </div>
+            </>
           )}
           {ended.length > 0 && (
-            <section>
-              <SectionTitle icon="🏁" title={`${t.socialRecentlyEnded || "Recently ended"} · ${ended.length}`} />
-              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.55rem" }}>
+            <>
+              <h3 className="ios-section-header">
+                🏁 {t.socialRecentlyEnded || "Recently ended"} ({ended.length})
+              </h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {ended.map((c) => (
                   <ChallengeCard
                     key={c.id}
@@ -147,8 +148,8 @@ export default function ChallengesTab({ authUser, t, languageId, onOpenProfile, 
                     onOpen={() => setOpenChallengeId(c.id)}
                   />
                 ))}
-              </ul>
-            </section>
+              </div>
+            </>
           )}
         </>
       )}
@@ -188,187 +189,107 @@ function ChallengeCard({ challenge, t, meUid, ended, onOpen, onQuickComplete }) 
   const myStreak = Number(challenge.myConsecutiveDays || 0);
 
   return (
-    <li>
-      <div
-        style={{
-          padding: "0.75rem 0.8rem",
-          borderRadius: "0.75rem",
-          background: ended ? "rgba(0,0,0,0.2)" : "rgba(0,0,0,0.22)",
-          border: `1px solid ${ended ? "var(--panel-border)" : "rgba(var(--color-primary-rgb,251,191,36),0.35)"}`,
-          display: "flex",
-          flexDirection: "column",
-          gap: "0.55rem",
-          opacity: ended ? 0.7 : 1
-        }}
+    <div
+      style={{
+        padding: 14,
+        borderRadius: 16,
+        background: "var(--panel-bg)",
+        border: "1px solid var(--panel-border)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        opacity: ended ? 0.7 : 1
+      }}
+    >
+      <button
+        type="button"
+        onClick={onOpen}
+        className="ios-tap"
+        style={{ background: "transparent", border: "none", padding: 0, textAlign: "left", color: "var(--color-text)" }}
       >
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, justifyContent: "space-between" }}>
+          <p className="ios-headline" style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {challenge.title}
+          </p>
+          <span className={`ios-pill ${ended ? "" : "ios-pill-accent"}`} style={{ flexShrink: 0 }}>
+            {ended
+              ? (t.socialChallengeEnded || "Ended")
+              : (t.socialDaysLeft || "{n}d left").replace("{n}", String(daysLeft))}
+          </span>
+        </div>
+        <p className="ios-caption" style={{ marginTop: 4 }}>🎯 {challenge.questTitle}</p>
+
+        <div style={{ marginTop: 10 }}>
+          <div className="ios-progress">
+            <div className={`ios-progress-fill${ended ? " ended" : ""}`} style={{ width: `${progressPct}%` }} />
+          </div>
+          <div className="ios-caption" style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+            <span>{elapsed}/{total} {t.socialDayMany || "days"}</span>
+            <span>🔥 {myStreak}</span>
+          </div>
+        </div>
+      </button>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <button
           type="button"
           onClick={onOpen}
-          style={{ background: "transparent", border: "none", padding: 0, textAlign: "left", cursor: "pointer", color: "var(--color-text)" }}
+          className="ios-tap"
+          style={{ background: "transparent", border: "none", padding: 0, display: "flex", alignItems: "center", gap: 8, color: "var(--color-muted)" }}
         >
-          {/* Title row */}
-          <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", justifyContent: "space-between" }}>
-            <p style={{ fontWeight: 700, fontSize: "0.95rem", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {challenge.title}
-            </p>
-            <span
-              style={{
-                flexShrink: 0,
-                fontSize: "0.65rem",
-                fontWeight: 700,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                padding: "0.15rem 0.5rem",
-                borderRadius: 999,
-                background: ended ? "rgba(0,0,0,0.35)" : "rgba(var(--color-primary-rgb,251,191,36),0.2)",
-                color: ended ? "var(--color-muted)" : "var(--color-primary)"
-              }}
-            >
-              {ended
-                ? (t.socialChallengeEnded || "Ended")
-                : (t.socialDaysLeft || "{n}d left").replace("{n}", String(daysLeft))}
-            </span>
-          </div>
-
-          <p style={{ fontSize: "0.76rem", color: "var(--color-muted)", marginTop: 2 }}>
-            🎯 {challenge.questTitle}
-          </p>
-
-          {/* Progress bar */}
-          <div style={{ marginTop: "0.55rem" }}>
-            <div style={{ height: 6, borderRadius: 999, background: "rgba(0,0,0,0.35)", overflow: "hidden" }}>
+          <div style={{ display: "flex" }}>
+            {active.slice(0, 5).map((p, i) => (
               <div
+                key={p.id}
                 style={{
-                  width: `${progressPct}%`,
-                  height: "100%",
-                  background: ended
-                    ? "rgba(var(--color-muted-rgb,156,163,175),0.8)"
-                    : "linear-gradient(90deg, rgba(var(--color-primary-rgb,251,191,36),0.7), rgba(var(--color-primary-rgb,251,191,36),1))",
-                  transition: "width 200ms"
+                  marginLeft: i === 0 ? 0 : -8,
+                  width: 26,
+                  height: 26,
+                  borderRadius: "50%",
+                  overflow: "hidden",
+                  border: "2px solid var(--panel-bg)",
+                  background: "var(--panel-bg)"
                 }}
-              />
-            </div>
-            <p style={{ fontSize: "0.62rem", color: "var(--color-muted)", marginTop: 4, display: "flex", justifyContent: "space-between" }}>
-              <span>{elapsed}/{total} {t.socialDayMany || "days"}</span>
-              <span>🔥 {myStreak} {t.socialDayMany || "days"}</span>
-            </p>
+              >
+                <Avatar photoUrl={p.user.photoUrl} displayName={p.user.displayName} size={22} />
+              </div>
+            ))}
           </div>
+          <span className="ios-caption">{active.length} {t.socialParticipants || "players"}</span>
         </button>
 
-        {/* Footer: participants + action */}
-        <div style={{ display: "flex", alignItems: "center", gap: "0.55rem" }}>
-          <button type="button" onClick={onOpen} style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <div style={{ display: "flex" }}>
-              {active.slice(0, 5).map((p, i) => (
-                <div
-                  key={p.id}
-                  style={{
-                    marginLeft: i === 0 ? 0 : -8,
-                    width: 26,
-                    height: 26,
-                    borderRadius: "50%",
-                    overflow: "hidden",
-                    border: "2px solid var(--panel-bg)",
-                    background: "var(--panel-bg)"
-                  }}
-                >
-                  <Avatar photoUrl={p.user.photoUrl} displayName={p.user.displayName} size={22} />
-                </div>
-              ))}
-            </div>
-            <span style={{ fontSize: "0.7rem", color: "var(--color-muted)" }}>
-              {active.length} {t.socialParticipants || "players"}
+        {!ended && (
+          completedToday ? (
+            <span className="ios-pill ios-pill-success" style={{ marginLeft: "auto" }}>
+              ✓ {t.socialDoneToday || "Done today"}
             </span>
-          </button>
-
-          {!ended && (
-            completedToday ? (
-              <span
-                style={{
-                  marginLeft: "auto",
-                  padding: "0.35rem 0.6rem",
-                  background: "rgba(34,197,94,0.15)",
-                  border: "1px solid rgba(34,197,94,0.5)",
-                  borderRadius: "0.5rem",
-                  fontSize: "0.68rem",
-                  fontWeight: 700,
-                  color: "#22c55e",
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase"
-                }}
-              >
-                ✓ {t.socialDoneToday || "Done today"}
-              </span>
-            ) : (
-              <button
-                type="button"
-                onClick={onQuickComplete}
-                style={{
-                  marginLeft: "auto",
-                  padding: "0.42rem 0.75rem",
-                  background: "rgba(var(--color-primary-rgb,251,191,36),0.22)",
-                  border: "1px solid rgba(var(--color-primary-rgb,251,191,36),0.6)",
-                  borderRadius: "0.5rem",
-                  color: "var(--color-text)",
-                  fontFamily: "var(--font-heading)",
-                  fontWeight: 700,
-                  fontSize: "0.7rem",
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap"
-                }}
-              >
-                {t.socialMarkDoneShort || "Mark done"}
-              </button>
-            )
-          )}
-        </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onQuickComplete}
+              className="ios-btn-tinted ios-tap"
+              style={{ marginLeft: "auto", padding: "7px 12px", fontSize: 14 }}
+            >
+              {t.socialMarkDoneShort || "Mark done"}
+            </button>
+          )
+        )}
       </div>
-    </li>
+    </div>
   );
 }
 
 function EmptyChallenges({ t }) {
   return (
-    <div
-      style={{
-        textAlign: "center",
-        padding: "2rem 1rem 2.25rem",
-        background: "rgba(0,0,0,0.18)",
-        border: "1px solid var(--panel-border)",
-        borderRadius: "0.8rem"
-      }}
-    >
-      <div style={{ fontSize: "2.4rem", marginBottom: "0.6rem" }}>🤝</div>
-      <p style={{ fontWeight: 700, fontSize: "0.92rem", color: "var(--color-text)", marginBottom: "0.35rem" }}>
+    <div style={{ textAlign: "center", padding: "32px 20px", background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: 16 }}>
+      <div style={{ fontSize: 40, marginBottom: 10 }}>🤝</div>
+      <p className="ios-headline" style={{ marginBottom: 6 }}>
         {t.socialChallengesEmptyTitle || "Ride together, finish together."}
       </p>
-      <p style={{ fontSize: "0.8rem", color: "var(--color-muted)", lineHeight: 1.45, maxWidth: 320, margin: "0 auto" }}>
+      <p className="ios-subhead" style={{ lineHeight: 1.45, maxWidth: 320, margin: "0 auto" }}>
         {t.socialChallengesEmptyBody || "Pick a friend, pick a task, pick a duration. Every day someone ticks it off, everyone earns a token."}
       </p>
     </div>
-  );
-}
-
-function SectionTitle({ icon, title }) {
-  return (
-    <h3
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "0.4rem",
-        fontSize: "0.68rem",
-        letterSpacing: "0.16em",
-        textTransform: "uppercase",
-        color: "var(--color-primary-dim)",
-        fontWeight: 700,
-        margin: "0.25rem 0 0.5rem 0.1rem"
-      }}
-    >
-      <span>{icon}</span>
-      <span>{title}</span>
-    </h3>
   );
 }
 

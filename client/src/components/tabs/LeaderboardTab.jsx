@@ -5,14 +5,13 @@ import FriendsTab from "../social/FriendsTab";
 import ChallengesTab from "../social/ChallengesTab";
 import PublicProfileModal from "../social/PublicProfileModal";
 import { fetchIncomingFriendRequests } from "../../api";
+import "../social/ios.css";
 
 export default function LeaderboardTab({ authUser, t: tProp }) {
   const { t: tTheme, languageId } = useTheme();
   const t = tProp || tTheme;
 
-  // Pick up any pending deep-link from the Dashboard strip.
   const pendingSubTab = (typeof window !== "undefined" && window.__pendingSocialSubTab) || null;
-  const pendingChallengeId = (typeof window !== "undefined" && window.__pendingSocialChallengeId) || null;
 
   const [subTab, setSubTab] = useState(pendingSubTab || "weekly");
   const [profileUsername, setProfileUsername] = useState(null);
@@ -20,10 +19,7 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      window.__pendingSocialSubTab = null;
-      // __pendingSocialChallengeId is consumed by ChallengesTab via the same global
-    } catch {}
+    try { window.__pendingSocialSubTab = null; } catch {}
   }, []);
 
   const meUid = String(authUser?.uid || "").slice(0, 128);
@@ -49,61 +45,24 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
 
   return (
     <div
-      className="flex flex-col gap-3"
+      className="social-block flex flex-col gap-3"
       style={{ minHeight: "calc(100svh - var(--mobile-safe-top, 0px) - var(--mobile-footer-offset, 98px) - 90px)" }}
     >
-      {/* Hero header */}
-      <div
-        style={{
-          background: "var(--leaderboard-bg)",
-          border: "1px solid var(--leaderboard-border)",
-          borderRadius: "var(--border-radius-panel)",
-          padding: "0.85rem 1rem",
-          display: "flex",
-          alignItems: "center",
-          gap: "0.75rem"
-        }}
-      >
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: "0.75rem",
-            background: "linear-gradient(135deg, rgba(var(--color-primary-rgb,251,191,36),0.24), rgba(0,0,0,0.18))",
-            border: "1px solid var(--leaderboard-border)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "1.25rem",
-            flexShrink: 0
-          }}
-        >
-          🌐
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--color-primary-dim)" }}>
-            {t.socialHeroKicker || "Community"}
-          </p>
-          <h2
-            className="cinzel leading-none text-transparent bg-clip-text"
-            style={{ backgroundImage: "var(--heading-gradient)", fontSize: "1.05rem", fontWeight: 700 }}
-          >
-            {t.socialHeroTitle || "Social"}
-          </h2>
-        </div>
+      {/* Large title — iOS-style navigation header */}
+      <div style={{ padding: "6px 4px 4px" }}>
+        <p className="ios-subhead" style={{ fontWeight: 600, color: "var(--color-primary)", letterSpacing: 0 }}>
+          {t.socialHeroKicker || "Community"}
+        </p>
+        <h1 className="ios-large-title" style={{ marginTop: 2 }}>
+          {t.socialHeroTitle || "Social"}
+        </h1>
       </div>
 
-      {/* Sub-tab pills */}
+      {/* Segmented control */}
       <div
         role="tablist"
-        style={{
-          display: "flex",
-          gap: "0.3rem",
-          padding: "0.25rem",
-          background: "rgba(0,0,0,0.28)",
-          border: "1px solid var(--panel-border)",
-          borderRadius: "0.65rem"
-        }}
+        className="ios-segmented"
+        style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}
       >
         {tabs.map((tab) => (
           <button
@@ -112,46 +71,11 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
             role="tab"
             aria-selected={subTab === tab.id}
             onClick={() => setSubTab(tab.id)}
-            style={{
-              flex: 1,
-              padding: "0.5rem 0.35rem",
-              border: "none",
-              background: subTab === tab.id ? "rgba(var(--color-primary-rgb,251,191,36),0.2)" : "transparent",
-              color: subTab === tab.id ? "var(--color-primary)" : "var(--color-muted)",
-              borderRadius: "0.45rem",
-              cursor: "pointer",
-              fontSize: "0.76rem",
-              fontWeight: 700,
-              letterSpacing: "0.04em",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.3rem",
-              position: "relative"
-            }}
+            className="ios-segmented-option ios-tap"
           >
-            <span>{tab.icon}</span>
-            <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tab.label}</span>
-            {tab.badge ? (
-              <span style={{
-                position: "absolute",
-                top: 2,
-                right: 4,
-                minWidth: 16,
-                height: 16,
-                padding: "0 4px",
-                borderRadius: 999,
-                background: "#ef4444",
-                color: "#fff",
-                fontSize: "0.58rem",
-                fontWeight: 700,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}>
-                {tab.badge}
-              </span>
-            ) : null}
+            <span style={{ fontSize: 15 }}>{tab.icon}</span>
+            <span>{tab.label}</span>
+            {tab.badge ? <span className="ios-badge" style={{ marginLeft: 2 }}>{tab.badge}</span> : null}
           </button>
         ))}
       </div>

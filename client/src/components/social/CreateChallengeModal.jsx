@@ -56,188 +56,194 @@ export default function CreateChallengeModal({ authUser, t, onClose, onCreated }
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 60,
-        background: "rgba(0,0,0,0.72)",
-        backdropFilter: "blur(4px)",
-        display: "flex",
-        alignItems: "stretch",
-        justifyContent: "center",
-        overflowY: "auto"
-      }}
-    >
-      <form
-        onSubmit={handleSubmit}
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%",
-          maxWidth: 520,
-          margin: "auto",
-          background: "var(--panel-bg)",
-          border: "1px solid var(--panel-border)",
-          borderRadius: "var(--border-radius-panel)",
-          padding: "1.1rem",
-          display: "flex",
-          flexDirection: "column",
-          gap: "0.85rem"
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "1.05rem", fontWeight: 700, color: "var(--color-text)" }}>
-            {t.socialCreateChallengeTitle || "New group challenge"}
-          </h2>
-          <button type="button" onClick={onClose} aria-label={t.close || "Close"} style={closeBtnStyle}>✕</button>
-        </div>
-
-        {/* Friends selector */}
-        <Field label={`${t.socialInviteFriends || "Invite friends"} (${selected.length}/${MAX_INVITEES})`}>
-          {friends.length === 0 ? (
-            <p style={{ fontSize: "0.78rem", color: "var(--color-muted)", padding: "0.5rem 0" }}>
-              {t.socialInviteFriendsEmpty || "Add friends first to invite them to a challenge."}
-            </p>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem", maxHeight: 180, overflowY: "auto", paddingRight: 2 }}>
-              {friends.map((f) => {
-                const picked = selected.includes(f.username);
-                return (
-                  <label
-                    key={f.username}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.6rem",
-                      padding: "0.45rem 0.55rem",
-                      borderRadius: "0.55rem",
-                      border: `1px solid ${picked ? "rgba(var(--color-primary-rgb,251,191,36),0.6)" : "var(--panel-border)"}`,
-                      background: picked ? "rgba(var(--color-primary-rgb,251,191,36),0.12)" : "rgba(0,0,0,0.18)",
-                      cursor: "pointer"
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={picked}
-                      onChange={() => toggleFriend(f.username)}
-                      style={{ accentColor: "var(--color-primary)" }}
-                    />
-                    <div style={{ width: 28, height: 28, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: "var(--panel-bg)" }}>
-                      <Avatar photoUrl={f.photoUrl} displayName={f.displayName} size={28} />
-                    </div>
-                    <span style={{ fontSize: "0.82rem", color: "var(--color-text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>
-                      {f.displayName || f.username}
-                    </span>
-                    <span style={{ fontSize: "0.7rem", color: "var(--color-muted)" }}>
-                      {t.socialLevelLabel || "Lv"} {f.level}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          )}
-        </Field>
-
-        {/* Duration */}
-        <Field label={`${t.socialDurationLabel || "Duration"} · ${duration} ${pluralDays(duration, t)}`}>
-          <input
-            type="range"
-            min={1}
-            max={365}
-            value={duration}
-            onChange={(e) => setDuration(Number(e.target.value))}
-            style={{ width: "100%", accentColor: "var(--color-primary)" }}
-          />
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", color: "var(--color-muted)", marginTop: 2 }}>
-            <span>1</span><span>30</span><span>90</span><span>365</span>
+    <div className="social-block">
+      <div role="dialog" aria-modal="true" onClick={onClose} className="ios-sheet-backdrop">
+        <form onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()} className="ios-sheet">
+          <div className="ios-sheet-handle" aria-hidden="true" />
+          <div className="ios-sheet-header">
+            <button
+              type="button"
+              onClick={onClose}
+              className="ios-btn-ghost ios-tap"
+              style={{ justifySelf: "start" }}
+            >
+              {t.cancel || "Cancel"}
+            </button>
+            <span className="ios-sheet-title">{t.socialCreateChallengeTitle || "New challenge"}</span>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="ios-btn-ghost ios-tap"
+              style={{ justifySelf: "end", fontWeight: 600 }}
+            >
+              {submitting ? (t.socialCreating || "Creating…") : (t.socialCreateButton || "Create")}
+            </button>
           </div>
-        </Field>
 
-        {/* Title */}
-        <Field label={t.socialChallengeTitleLabel || "Challenge title"}>
-          <input
-            type="text"
-            value={title}
-            maxLength={80}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={t.socialChallengeTitlePlaceholder || "e.g. Summer shape-up"}
-            style={inputStyle}
-          />
-        </Field>
+          <div className="ios-sheet-body" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Friends selector */}
+            <Field label={`${t.socialInviteFriends || "Invite friends"} (${selected.length}/${MAX_INVITEES})`}>
+              {friends.length === 0 ? (
+                <p className="ios-subhead" style={{ padding: "8px 0" }}>
+                  {t.socialInviteFriendsEmpty || "Add friends first to invite them."}
+                </p>
+              ) : (
+                <div className="ios-list">
+                  {friends.map((f, i) => {
+                    const picked = selected.includes(f.username);
+                    return (
+                      <label
+                        key={f.username}
+                        className="ios-list-row ios-tap"
+                        style={{ borderBottom: i === friends.length - 1 ? "none" : undefined, cursor: "pointer" }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={picked}
+                          onChange={() => toggleFriend(f.username)}
+                          style={{ accentColor: "var(--color-primary)", width: 20, height: 20 }}
+                        />
+                        <div style={{ width: 32, height: 32, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: "var(--panel-bg)" }}>
+                          <Avatar photoUrl={f.photoUrl} displayName={f.displayName} size={32} />
+                        </div>
+                        <span className="ios-body" style={{ fontWeight: 600, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", letterSpacing: "-0.01em" }}>
+                          {f.displayName || f.username}
+                        </span>
+                        <span className="ios-caption">{t.socialLevelLabel || "Lv"} {f.level}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </Field>
 
-        {/* Description */}
-        <Field label={t.socialChallengeDescLabel || "Description (optional)"}>
-          <textarea
-            value={description}
-            maxLength={300}
-            rows={2}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder={t.socialChallengeDescPlaceholder || "Why are we doing this?"}
-            style={{ ...inputStyle, resize: "vertical" }}
-          />
-        </Field>
+            {/* Duration */}
+            <Field label={`${t.socialDurationLabel || "Duration"} · ${duration} ${pluralDays(duration, t)}`}>
+              <input
+                type="range"
+                min={1}
+                max={365}
+                value={duration}
+                onChange={(e) => setDuration(Number(e.target.value))}
+                style={{ width: "100%", accentColor: "var(--color-primary)" }}
+              />
+              <div className="ios-caption" style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
+                <span>1</span><span>30</span><span>90</span><span>365</span>
+              </div>
+            </Field>
 
-        {/* Quest title */}
-        <Field label={t.socialQuestTitleLabel || "Daily task"}>
-          <input
-            type="text"
-            value={questTitle}
-            maxLength={80}
-            onChange={(e) => setQuestTitle(e.target.value)}
-            placeholder={t.socialQuestTitlePlaceholder || "e.g. 30 push-ups"}
-            style={inputStyle}
-          />
-        </Field>
+            {/* Title */}
+            <Field label={t.socialChallengeTitleLabel || "Challenge title"}>
+              <input
+                type="text"
+                value={title}
+                maxLength={80}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={t.socialChallengeTitlePlaceholder || "e.g. Summer shape-up"}
+                className="ios-input"
+                style={inputStyle}
+              />
+            </Field>
 
-        {/* Timer toggle */}
-        <label style={{ display: "flex", alignItems: "center", gap: "0.55rem", fontSize: "0.82rem", color: "var(--color-text)" }}>
-          <input
-            type="checkbox"
-            checked={needsTimer}
-            onChange={(e) => setNeedsTimer(e.target.checked)}
-            style={{ accentColor: "var(--color-primary)" }}
-          />
-          {t.socialNeedsTimerLabel || "This task uses a timer"}
-        </label>
-        {needsTimer && (
-          <Field label={t.socialTimeEstimateLabel || "Estimated time (minutes)"}>
-            <input
-              type="number"
-              min={1}
-              max={600}
-              value={timeEstimateMin}
-              onChange={(e) => setTimeEstimateMin(e.target.value)}
-              style={inputStyle}
-            />
-          </Field>
-        )}
+            {/* Description */}
+            <Field label={t.socialChallengeDescLabel || "Description (optional)"}>
+              <textarea
+                value={description}
+                maxLength={300}
+                rows={2}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder={t.socialChallengeDescPlaceholder || "Why are we doing this?"}
+                style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
+              />
+            </Field>
 
-        {error && <p style={{ color: "var(--color-danger,#f87171)", fontSize: "0.78rem" }}>{error}</p>}
+            {/* Quest title */}
+            <Field label={t.socialQuestTitleLabel || "Daily task"}>
+              <input
+                type="text"
+                value={questTitle}
+                maxLength={80}
+                onChange={(e) => setQuestTitle(e.target.value)}
+                placeholder={t.socialQuestTitlePlaceholder || "e.g. 30 push-ups"}
+                style={inputStyle}
+              />
+            </Field>
 
-        <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
-          <button type="button" onClick={onClose} style={{ ...btnBase, flex: 1, background: "rgba(0,0,0,0.3)" }}>
-            {t.cancel || "Cancel"}
-          </button>
-          <button type="submit" disabled={submitting} style={{ ...btnBase, flex: 1, background: "rgba(var(--color-primary-rgb,251,191,36),0.22)", borderColor: "rgba(var(--color-primary-rgb,251,191,36),0.6)" }}>
-            {submitting ? (t.socialCreating || "Creating…") : (t.socialCreateButton || "Create")}
-          </button>
-        </div>
-      </form>
+            {/* Timer toggle */}
+            <div
+              className="ios-list-row"
+              style={{ background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: 12 }}
+            >
+              <span style={{ fontSize: 18 }}>⏱</span>
+              <span className="ios-body" style={{ flex: 1, fontWeight: 500 }}>
+                {t.socialNeedsTimerLabel || "This task uses a timer"}
+              </span>
+              <IosSwitch checked={needsTimer} onChange={setNeedsTimer} />
+            </div>
+            {needsTimer && (
+              <Field label={t.socialTimeEstimateLabel || "Estimated time (minutes)"}>
+                <input
+                  type="number"
+                  min={1}
+                  max={600}
+                  value={timeEstimateMin}
+                  onChange={(e) => setTimeEstimateMin(e.target.value)}
+                  style={inputStyle}
+                />
+              </Field>
+            )}
+
+            {error && <p style={{ color: "#ff453a", fontSize: 14 }}>{error}</p>}
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
 
 function Field({ label, children }) {
   return (
-    <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
-      <span style={{ fontSize: "0.66rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-primary-dim)", fontWeight: 700 }}>
-        {label}
-      </span>
+    <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <span className="ios-caption" style={{ fontWeight: 600, fontSize: 13, color: "var(--color-muted)" }}>{label}</span>
       {children}
     </label>
+  );
+}
+
+function IosSwitch({ checked, onChange }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className="ios-tap"
+      style={{
+        width: 51,
+        height: 31,
+        borderRadius: 999,
+        border: "none",
+        padding: 2,
+        background: checked ? "#30d158" : "rgba(120,120,128,0.4)",
+        position: "relative",
+        cursor: "pointer",
+        transition: "background 220ms ease"
+      }}
+    >
+      <span
+        style={{
+          position: "absolute",
+          top: 2,
+          left: checked ? 22 : 2,
+          width: 27,
+          height: 27,
+          borderRadius: "50%",
+          background: "#fff",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.25)",
+          transition: "left 220ms cubic-bezier(0.4,0,0.2,1)"
+        }}
+      />
+    </button>
   );
 }
 
@@ -254,37 +260,12 @@ function pluralDays(n, t) {
 
 const inputStyle = {
   width: "100%",
-  padding: "0.55rem 0.65rem",
-  background: "rgba(0,0,0,0.28)",
+  padding: "12px 14px",
+  background: "var(--panel-bg)",
   color: "var(--color-text)",
   border: "1px solid var(--panel-border)",
-  borderRadius: "0.5rem",
-  fontSize: "0.86rem",
-  outline: "none"
-};
-
-const btnBase = {
-  padding: "0.65rem 1rem",
-  borderRadius: "0.55rem",
-  border: "1px solid var(--panel-border)",
-  color: "var(--color-text)",
-  fontFamily: "var(--font-heading)",
-  fontWeight: 700,
-  fontSize: "0.78rem",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-  cursor: "pointer"
-};
-
-const closeBtnStyle = {
-  background: "rgba(0,0,0,0.3)",
-  color: "var(--color-text)",
-  border: "1px solid var(--panel-border)",
-  borderRadius: 999,
-  width: 28,
-  height: 28,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  cursor: "pointer"
+  borderRadius: 10,
+  fontSize: 16,
+  outline: "none",
+  WebkitAppearance: "none"
 };

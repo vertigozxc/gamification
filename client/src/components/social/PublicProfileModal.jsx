@@ -55,11 +55,7 @@ export default function PublicProfileModal({ targetUsername, meUsername, t, lang
     }
   }
 
-  useEffect(() => {
-    setLoading(true);
-    refresh();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetUsername, meUsername]);
+  useEffect(() => { setLoading(true); refresh(); /* eslint-disable-next-line */ }, [targetUsername, meUsername]);
 
   async function act(fn) {
     if (!meUsername) return;
@@ -78,70 +74,61 @@ export default function PublicProfileModal({ targetUsername, meUsername, t, lang
   const isSelf = state === "self";
 
   return (
-    <div role="dialog" aria-modal="true" onClick={onClose} style={overlayStyle}>
-      <div onClick={(e) => e.stopPropagation()} style={sheetStyle}>
-        {/* Header bar */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "0.2rem 0.2rem 0.4rem",
-            flexShrink: 0
-          }}
-        >
-          <div style={{ width: 30 }} />
-          <span style={{ fontSize: "0.62rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--color-muted)", fontWeight: 700 }}>
-            {t.socialProfileLabel || "Player profile"}
-          </span>
-          <button type="button" onClick={onClose} aria-label={t.close || "Close"} style={closeBtnStyle}>✕</button>
-        </div>
+    <div className="social-block">
+      <div role="dialog" aria-modal="true" onClick={onClose} className="ios-sheet-backdrop">
+        <div onClick={(e) => e.stopPropagation()} className="ios-sheet">
+          <div className="ios-sheet-handle" aria-hidden="true" />
+          <div className="ios-sheet-header">
+            <div />
+            <span className="ios-sheet-title">{t.socialProfileLabel || "Player profile"}</span>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={t.close || "Close"}
+              className="ios-icon-btn ios-tap"
+              style={{ justifySelf: "end" }}
+            >
+              ✕
+            </button>
+          </div>
 
-        {loading ? (
-          <p style={{ textAlign: "center", color: "var(--color-muted)", padding: "2rem 0" }}>
-            {t.socialLoading || "Loading…"}
-          </p>
-        ) : !profile ? (
-          <p style={{ textAlign: "center", color: "var(--color-danger,#f87171)", padding: "2rem 0" }}>
-            {error || t.socialErrorLoad || "Failed to load profile"}
-          </p>
-        ) : (
-          <>
-            {/* scrollable body */}
-            <div style={{ overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: "0.85rem", paddingBottom: "0.3rem" }}>
-              <Hero profile={profile} t={t} />
-              <StatGrid profile={profile} t={t} languageId={languageId} />
-              <CityCard profile={profile} t={t} />
-              {error && (
-                <p style={{ fontSize: "0.8rem", color: "var(--color-danger,#f87171)", textAlign: "center" }}>{error}</p>
-              )}
-            </div>
-
-            {/* Sticky action bar */}
-            {!isSelf && meUsername && (
-              <div
-                style={{
-                  flexShrink: 0,
-                  paddingTop: "0.65rem",
-                  borderTop: "1px solid var(--panel-border)",
-                  marginTop: "0.2rem"
-                }}
-              >
-                <FriendshipAction
-                  state={state}
-                  relation={relation}
-                  busy={busy}
-                  t={t}
-                  onAdd={() => act(() => sendFriendRequest(meUsername, targetUsername))}
-                  onCancel={() => act(() => cancelFriendRequest(meUsername, targetUsername))}
-                  onAccept={() => act(() => respondToFriendRequest(meUsername, relation.requestId, "accept"))}
-                  onDecline={() => act(() => respondToFriendRequest(meUsername, relation.requestId, "decline"))}
-                  onRemove={() => act(() => removeFriend(meUsername, targetUsername))}
-                />
-              </div>
+          <div className="ios-sheet-body" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {loading ? (
+              <p style={{ textAlign: "center", color: "var(--color-muted)", padding: "24px 0" }}>
+                {t.socialLoading || "Loading…"}
+              </p>
+            ) : !profile ? (
+              <p style={{ textAlign: "center", color: "#ff453a", padding: "24px 0" }}>
+                {error || t.socialErrorLoad || "Failed to load profile"}
+              </p>
+            ) : (
+              <>
+                <Hero profile={profile} t={t} />
+                <StatGrid profile={profile} t={t} languageId={languageId} />
+                <CityCard profile={profile} t={t} />
+                {error && (
+                  <p style={{ fontSize: 14, color: "#ff453a", textAlign: "center" }}>{error}</p>
+                )}
+              </>
             )}
-          </>
-        )}
+          </div>
+
+          {!loading && profile && !isSelf && meUsername && (
+            <div className="ios-sheet-footer">
+              <FriendshipAction
+                state={state}
+                relation={relation}
+                busy={busy}
+                t={t}
+                onAdd={() => act(() => sendFriendRequest(meUsername, targetUsername))}
+                onCancel={() => act(() => cancelFriendRequest(meUsername, targetUsername))}
+                onAccept={() => act(() => respondToFriendRequest(meUsername, relation.requestId, "accept"))}
+                onDecline={() => act(() => respondToFriendRequest(meUsername, relation.requestId, "decline"))}
+                onRemove={() => act(() => removeFriend(meUsername, targetUsername))}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -150,26 +137,13 @@ export default function PublicProfileModal({ targetUsername, meUsername, t, lang
 function Hero({ profile, t }) {
   const tier = getStreakTier(profile.streak);
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        textAlign: "center",
-        gap: "0.5rem",
-        padding: "0.25rem 0.35rem 0.45rem"
-      }}
-    >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10, paddingTop: 4 }}>
       <StreakFrame streak={profile.streak} size={96} ringWidth={5}>
         <Avatar photoUrl={profile.photoUrl} displayName={profile.displayName} size={96} />
       </StreakFrame>
       <h2
-        className="cinzel"
+        className="ios-title"
         style={{
-          fontFamily: "var(--font-heading)",
-          fontSize: "1.25rem",
-          fontWeight: 700,
-          color: "var(--color-text)",
           maxWidth: "100%",
           whiteSpace: "nowrap",
           overflow: "hidden",
@@ -178,18 +152,12 @@ function Hero({ profile, t }) {
       >
         {profile.displayName}
       </h2>
-      <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", justifyContent: "center" }}>
-        <Pill
-          icon="⭐"
-          text={`${t.socialLevelLabelFull || "Level"} ${profile.level}`}
-          accent="var(--color-primary)"
-        />
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
+        <span className="ios-pill ios-pill-accent">⭐ {t.socialLevelLabelFull || "Level"} {profile.level}</span>
         {tier.label && (
-          <Pill
-            icon={tier.icon}
-            text={(t.socialTierLabels && t.socialTierLabels[tier.name]) || tier.label}
-            accent={tier.name === "gold" ? "#fbbf24" : tier.name === "diamond" ? "#c4b5fd" : tier.name === "silver" ? "#d1d5db" : "#d97706"}
-          />
+          <span className="ios-pill">
+            {tier.icon} {(t.socialTierLabels && t.socialTierLabels[tier.name]) || tier.label}
+          </span>
         )}
       </div>
     </div>
@@ -198,61 +166,24 @@ function Hero({ profile, t }) {
 
 function StatGrid({ profile, t, languageId }) {
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: "0.45rem"
-      }}
-    >
-      <BigStat icon="🔥" label={t.socialStreakLabel || "Current streak"} value={profile.streak || 0} accent="#f97316" />
-      <BigStat icon="🏆" label={t.socialMaxStreakLabel || "Best streak"} value={profile.maxStreak || 0} accent="#fbbf24" />
-      <BigStat icon="⚡" label={t.socialWeeklyXpStatLabel || "XP this week"} value={profile.weeklyXp || 0} accent="var(--color-primary)" />
-      <BigStat icon="🤝" label={t.socialFriendsCountLabel || "Friends"} value={profile.friendCount || 0} accent="var(--color-text)" />
-      <BigStat
-        icon="📅"
-        label={t.socialJoinedLabel || "Joined"}
-        value={formatDate(profile.createdAt, languageId)}
-        accent="var(--color-text)"
-        small
-        span={2}
-      />
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+      <Stat icon="🔥" label={t.socialStreakLabel || "Current streak"} value={profile.streak || 0} accent="#ff9500" />
+      <Stat icon="🏆" label={t.socialMaxStreakLabel || "Best streak"} value={profile.maxStreak || 0} accent="#fbbf24" />
+      <Stat icon="⚡" label={t.socialWeeklyXpStatLabel || "XP this week"} value={profile.weeklyXp || 0} accent="var(--color-primary)" />
+      <Stat icon="🤝" label={t.socialFriendsCountLabel || "Friends"} value={profile.friendCount || 0} />
+      <Stat icon="📅" label={t.socialJoinedLabel || "Joined"} value={formatDate(profile.createdAt, languageId)} span={2} small />
     </div>
   );
 }
 
-function BigStat({ icon, label, value, accent, small, span }) {
+function Stat({ icon, label, value, accent, span, small }) {
   return (
-    <div
-      style={{
-        gridColumn: span ? `span ${span}` : "auto",
-        padding: "0.75rem 0.8rem",
-        background: "rgba(0,0,0,0.22)",
-        border: "1px solid var(--panel-border)",
-        borderRadius: "0.65rem",
-        display: "flex",
-        alignItems: "center",
-        gap: "0.6rem"
-      }}
-    >
-      <span style={{ fontSize: "1.2rem" }}>{icon}</span>
+    <div className="ios-stat" style={{ gridColumn: span ? `span ${span}` : "auto" }}>
+      <span className="icon">{icon}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: "0.58rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-muted)", fontWeight: 700 }}>
-          {label}
-        </p>
-        <p
-          style={{
-            fontSize: small ? "0.82rem" : "1.15rem",
-            fontFamily: "var(--font-heading)",
-            fontWeight: 700,
-            color: accent,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            marginTop: 2
-          }}
-        >
-          {value}
+        <p className="label">{label}</p>
+        <p className="value" style={accent ? { color: accent } : undefined}>
+          {small ? <span style={{ fontSize: 15, fontWeight: 600 }}>{value}</span> : value}
         </p>
       </div>
     </div>
@@ -265,18 +196,18 @@ function CityCard({ profile, t }) {
   return (
     <div
       style={{
-        background: "rgba(0,0,0,0.25)",
+        background: "var(--panel-bg)",
         border: "1px solid var(--panel-border)",
-        borderRadius: "0.7rem",
-        padding: "0.55rem",
+        borderRadius: 14,
+        padding: 10,
         overflow: "hidden"
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.4rem" }}>
-        <p style={{ fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-primary-dim)", fontWeight: 700 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+        <p className="ios-caption" style={{ fontWeight: 600 }}>
           {t.socialCityLabel || "City"}
         </p>
-        <p style={{ fontSize: "0.66rem", color: "var(--color-muted)", fontWeight: 600 }}>
+        <p className="ios-caption">
           {(t.socialCitySum || "Districts: {n}/25").replace("{n}", String(sum))}
         </p>
       </div>
@@ -287,65 +218,28 @@ function CityCard({ profile, t }) {
   );
 }
 
-function Pill({ icon, text, accent }) {
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "0.3rem",
-        padding: "0.22rem 0.6rem",
-        borderRadius: 999,
-        background: "rgba(0,0,0,0.28)",
-        border: "1px solid var(--panel-border)",
-        fontSize: "0.72rem",
-        fontWeight: 700,
-        color: accent,
-        whiteSpace: "nowrap"
-      }}
-    >
-      <span style={{ fontSize: "0.85rem" }}>{icon}</span>
-      {text}
-    </span>
-  );
-}
-
 function FriendshipAction({ state, busy, t, onAdd, onCancel, onAccept, onDecline, onRemove }) {
-  const base = {
-    width: "100%",
-    padding: "0.75rem",
-    borderRadius: "0.6rem",
-    fontFamily: "var(--font-heading)",
-    fontWeight: 700,
-    fontSize: "0.82rem",
-    letterSpacing: "0.08em",
-    textTransform: "uppercase",
-    cursor: busy ? "wait" : "pointer",
-    border: "1px solid var(--panel-border)",
-    color: "var(--color-text)"
-  };
-
   if (state === "friends") {
     return (
-      <button type="button" disabled={busy} onClick={onRemove} style={{ ...base, background: "rgba(239,68,68,0.15)", borderColor: "rgba(239,68,68,0.5)" }}>
+      <button type="button" disabled={busy} onClick={onRemove} className="ios-btn-destructive ios-tap" style={{ width: "100%", padding: "12px" }}>
         {t.socialRemoveFriend || "Remove friend"}
       </button>
     );
   }
   if (state === "outgoing_pending") {
     return (
-      <button type="button" disabled={busy} onClick={onCancel} style={{ ...base, opacity: 0.75, background: "rgba(255,255,255,0.05)" }}>
+      <button type="button" disabled={busy} onClick={onCancel} className="ios-tap" style={{ width: "100%", padding: 12, border: "none", borderRadius: 12, background: "rgba(120,120,128,0.22)", color: "var(--color-text)", fontSize: 15, fontWeight: 600 }}>
         {t.socialPending || "Request sent · tap to cancel"}
       </button>
     );
   }
   if (state === "incoming_pending") {
     return (
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
-        <button type="button" disabled={busy} onClick={onAccept} style={{ ...base, background: "rgba(34,197,94,0.22)", borderColor: "rgba(34,197,94,0.55)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <button type="button" disabled={busy} onClick={onAccept} className="ios-tap" style={{ padding: 12, border: "none", borderRadius: 12, background: "rgba(48,209,88,0.2)", color: "#30d158", fontSize: 15, fontWeight: 600 }}>
           {t.socialAcceptRequest || "Accept"}
         </button>
-        <button type="button" disabled={busy} onClick={onDecline} style={{ ...base, background: "rgba(0,0,0,0.3)" }}>
+        <button type="button" disabled={busy} onClick={onDecline} className="ios-tap" style={{ padding: 12, border: "none", borderRadius: 12, background: "rgba(120,120,128,0.2)", color: "var(--color-text)", fontSize: 15, fontWeight: 600 }}>
           {t.socialDeclineRequest || "Decline"}
         </button>
       </div>
@@ -353,63 +247,14 @@ function FriendshipAction({ state, busy, t, onAdd, onCancel, onAccept, onDecline
   }
   if (state === "declined_by_them") {
     return (
-      <button type="button" disabled style={{ ...base, opacity: 0.5, cursor: "not-allowed" }}>
+      <button type="button" disabled className="ios-btn-tinted" style={{ width: "100%", padding: 12, opacity: 0.5 }}>
         {t.socialDeclinedByThem || "Request was declined"}
       </button>
     );
   }
   return (
-    <button
-      type="button"
-      disabled={busy}
-      onClick={onAdd}
-      style={{
-        ...base,
-        background: "linear-gradient(135deg, rgba(var(--color-primary-rgb,251,191,36),0.28), rgba(var(--color-primary-rgb,251,191,36),0.15))",
-        borderColor: "rgba(var(--color-primary-rgb,251,191,36),0.6)"
-      }}
-    >
+    <button type="button" disabled={busy} onClick={onAdd} className="ios-btn-primary ios-tap" style={{ width: "100%", padding: "14px" }}>
       ＋ {t.socialAddFriend || "Add friend"}
     </button>
   );
 }
-
-const overlayStyle = {
-  position: "fixed",
-  inset: 0,
-  zIndex: 60,
-  background: "rgba(0,0,0,0.72)",
-  backdropFilter: "blur(6px)",
-  display: "flex",
-  alignItems: "stretch",
-  justifyContent: "center",
-  padding: "1rem 0.75rem"
-};
-
-const sheetStyle = {
-  width: "100%",
-  maxWidth: 520,
-  margin: "auto",
-  background: "var(--panel-bg)",
-  border: "1px solid var(--panel-border)",
-  borderRadius: "var(--border-radius-panel)",
-  padding: "1rem",
-  display: "flex",
-  flexDirection: "column",
-  gap: "0.25rem",
-  maxHeight: "calc(100svh - 2rem)",
-  minHeight: 0
-};
-
-const closeBtnStyle = {
-  background: "rgba(0,0,0,0.3)",
-  color: "var(--color-text)",
-  border: "1px solid var(--panel-border)",
-  borderRadius: 999,
-  width: 30,
-  height: 30,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  cursor: "pointer"
-};
