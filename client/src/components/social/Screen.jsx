@@ -27,7 +27,7 @@ export default function Screen({ title, subtitle, headerExtra, onClose, children
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="sb-page-close press"
+            className="ui-close-x"
           >
             ✕
           </button>

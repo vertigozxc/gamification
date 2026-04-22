@@ -153,17 +153,7 @@ export default function AboutAppModal({ open, onClose }) {
                 type="button"
                 onClick={onClose}
                 aria-label={copy.close}
-                style={{
-                  width: 42, height: 42, borderRadius: 999,
-                  background: isLight ? "rgba(15,23,42,0.88)" : "rgba(255,255,255,0.08)",
-                  border: `1px solid ${isLight ? "rgba(15,23,42,0.75)" : "var(--card-border-idle, var(--panel-border))"}`,
-                  color: isLight ? "#f8fafc" : "#e2e8f0",
-                  cursor: "pointer",
-                  fontSize: 20,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  flexShrink: 0,
-                  boxShadow: isLight ? "0 2px 8px rgba(15,23,42,0.25)" : "0 2px 6px rgba(0,0,0,0.35)"
-                }}
+                className="ui-close-x"
               >
                 ✕
               </button>

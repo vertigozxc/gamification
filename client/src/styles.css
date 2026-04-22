@@ -2101,3 +2101,53 @@ body[data-theme="light"] .delete-profile-modal-cancel {
         font-size: .78rem;
     }
 }
+
+/* =============================================================================
+ * Shared close-X button. One shape for every modal/screen dismiss button
+ * so the app has a single visual language (matches AboutAppModal).
+ *   - 42×42 circle
+ *   - Theme-aware tinted surface + hairline border
+ *   - Bright glyph, centered, 20px
+ *   - Tactile :active: scale down + tint up
+ * ========================================================================== */
+.ui-close-x {
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    border: 1px solid var(--card-border-idle, var(--panel-border, rgba(255, 255, 255, 0.12)));
+    background: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+    font-size: 20px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+}
+body[data-theme="light"] .ui-close-x {
+    background: rgba(15, 23, 42, 0.88);
+    border-color: rgba(15, 23, 42, 0.75);
+    color: #f8fafc;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25);
+}
+.ui-close-x:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.14);
+}
+body[data-theme="light"] .ui-close-x:hover:not(:disabled) {
+    background: rgba(15, 23, 42, 0.95);
+}
+.ui-close-x:active:not(:disabled) {
+    transform: scale(0.92);
+    background: rgba(255, 255, 255, 0.22);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+}
+body[data-theme="light"] .ui-close-x:active:not(:disabled) {
+    background: #0b1220;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.35);
+}

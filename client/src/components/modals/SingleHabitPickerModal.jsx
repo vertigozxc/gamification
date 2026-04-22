@@ -159,16 +159,7 @@ export default function SingleHabitPickerModal({
               type="button"
               onClick={onClose}
               aria-label={t.cancelLabel || "Close"}
-              style={{
-                width: 40, height: 40, borderRadius: 999,
-                background: isLight ? "rgba(15,23,42,0.85)" : "rgba(255,255,255,0.08)",
-                border: `1px solid ${isLight ? "rgba(15,23,42,0.75)" : "var(--card-border-idle, var(--panel-border))"}`,
-                color: isLight ? "#f8fafc" : "#e2e8f0",
-                cursor: "pointer", fontSize: 20,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                flexShrink: 0,
-                boxShadow: isLight ? "0 2px 8px rgba(15,23,42,0.25)" : "none"
-              }}
+              className="ui-close-x"
             >
               ✕
             </button>

@@ -122,20 +122,8 @@ function OnboardingModal({
               type="button"
               onClick={handleCloseClick}
               title={t.cancelAndLogout}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 999,
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid var(--card-border-idle)",
-                color: "#e2e8f0",
-                cursor: "pointer",
-                fontSize: 18,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0
-              }}
+              aria-label={t.cancelAndLogout}
+              className="ui-close-x"
             >
               ✕
             </button>
