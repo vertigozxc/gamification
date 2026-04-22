@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTheme } from "../../ThemeContext";
+import useEdgeSwipeBack from "../../hooks/useEdgeSwipeBack";
 
 // Dedicated screen for filling ONE unlocked habit slot (triggered from the
 // "New Habit Unlocked" card). Distinct from PinnedReplacementModal which
@@ -73,6 +74,8 @@ export default function SingleHabitPickerModal({
     });
   }, [availableQuests, search]);
 
+  const swipeBind = useEdgeSwipeBack(onClose);
+
   if (!open) return null;
 
   const heading = t.singleHabitPickerHeading || "Pick a new habit";
@@ -111,6 +114,7 @@ export default function SingleHabitPickerModal({
       className="logout-confirm-overlay"
       style={{ zIndex: 86, alignItems: "stretch", justifyContent: "stretch", padding: 0, background: "rgba(0,0,0,0.76)" }}
       onClick={onClose}
+      {...swipeBind}
     >
       <div
         onClick={(e) => e.stopPropagation()}

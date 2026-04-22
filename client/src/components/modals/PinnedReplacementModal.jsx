@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "../../ThemeContext";
 import CustomHabitManager from "./CustomHabitManager";
+import useEdgeSwipeBack from "../../hooks/useEdgeSwipeBack";
 
 const TOKEN_COST = 7;
 
@@ -60,11 +61,13 @@ function PinnedReplacementModal({
   };
 
   const progressPct = Math.min(100, Math.round((selectedCount / SELECTION_LIMIT) * 100));
+  const swipeBind = useEdgeSwipeBack(onClose);
 
   return (
     <div
       className="logout-confirm-overlay"
       onClick={handleOverlayClick}
+      {...swipeBind}
       style={{
         zIndex: 85,
         alignItems: "stretch",

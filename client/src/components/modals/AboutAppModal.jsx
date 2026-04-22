@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTheme } from "../../ThemeContext";
+import useEdgeSwipeBack from "../../hooks/useEdgeSwipeBack";
 
 export default function AboutAppModal({ open, onClose }) {
   const { languageId, themeId } = useTheme();
@@ -40,6 +41,8 @@ export default function AboutAppModal({ open, onClose }) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
 
+  const swipeBind = useEdgeSwipeBack(onClose);
+
   if (!open) return null;
 
   const copy = isRu ? COPY_RU : COPY_EN;
@@ -49,6 +52,7 @@ export default function AboutAppModal({ open, onClose }) {
       className="logout-confirm-overlay"
       style={{ zIndex: 90, alignItems: "stretch", justifyContent: "stretch", padding: 0, background: "rgba(0,0,0,0.76)" }}
       onClick={onClose}
+      {...swipeBind}
     >
       <div
         onClick={(e) => e.stopPropagation()}

@@ -1,3 +1,5 @@
+import useEdgeSwipeBack from "../../hooks/useEdgeSwipeBack";
+
 /**
  * Plain inline full-screen layout. Not a modal — the caller renders
  * EITHER this or the previous page, never both. No portal, no overlay.
@@ -12,8 +14,9 @@
  *   └──────────────────────────────────┘
  */
 export default function Screen({ title, subtitle, headerExtra, onClose, children, footer }) {
+  const swipeBind = useEdgeSwipeBack(onClose);
   return (
-    <div className="sb-page">
+    <div className="sb-page" {...swipeBind}>
       <div className="sb-page-header">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>

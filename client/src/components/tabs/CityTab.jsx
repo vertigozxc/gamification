@@ -4,6 +4,7 @@ import CityFireworks from "../CityFireworks";
 import CityIsometricOverview, { DISTRICTS } from "../CityIsometricOverview";
 import DistrictView from "../DistrictView";
 import InteractiveMapWrapper from "../InteractiveMapWrapper";
+import useEdgeSwipeBack from "../../hooks/useEdgeSwipeBack";
 import SpinWheelModal from "../SpinWheelModal";
 import { useTheme } from "../../ThemeContext";
 import { pluralizeDays } from "../../i18nConfig";
@@ -336,6 +337,7 @@ export default function CityTab({
   const handleCloseDistrict = useCallback(() => {
     setSelectedDistrictIdx(-1);
   }, []);
+  const districtSwipeBind = useEdgeSwipeBack(handleCloseDistrict, { enabled: selectedDistrictIdx >= 0 });
 
   const handleQuickUpgrade = useCallback(async (districtId) => {
     if (!username) return;
@@ -623,6 +625,7 @@ export default function CityTab({
             <div
               className="absolute inset-0 z-10"
               style={{ background: "var(--panel-bg)" }}
+              {...districtSwipeBind}
             >
               {/* District scene fills the whole shell; pan/zoom enabled. */}
               <InteractiveMapWrapper background="var(--panel-bg)" initialScale={1.0}>
