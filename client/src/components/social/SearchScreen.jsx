@@ -89,7 +89,7 @@ export default function SearchScreen({ meUid, t, onClose, onOpenProfile }) {
             <button
               key={u.username}
               type="button"
-              onClick={() => { onOpenProfile(u.username); onClose(); }}
+              onClick={() => onOpenProfile(u.username)}
               className="sb-list-row press"
             >
               <StreakFrame streak={u.streak} size={40} ringWidth={2}>

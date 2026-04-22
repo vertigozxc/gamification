@@ -169,7 +169,16 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
   };
 
   return (
-    <div className="social-block" style={{ minHeight: "calc(100svh - var(--mobile-safe-top, 0px) - var(--mobile-footer-offset, 98px) - 90px)" }}>
+    <div
+      className="social-block"
+      onTouchStart={onSwipeStart}
+      onTouchEnd={onSwipeEnd}
+      onTouchCancel={onSwipeEnd}
+      style={{
+        minHeight: "calc(100svh - var(--mobile-safe-top, 0px) - var(--mobile-footer-offset, 98px) - 90px)",
+        touchAction: "pan-y",
+      }}
+    >
       <div style={{ padding: "10px 14px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
         {/* Title */}
         <header style={{ padding: "4px 2px 0" }}>
@@ -216,12 +225,7 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
             <div className="sb-spinner" />
           </div>
         ) : (
-          <div
-            onTouchStart={onSwipeStart}
-            onTouchEnd={onSwipeEnd}
-            onTouchCancel={onSwipeEnd}
-            style={{ display: "flex", flexDirection: "column", gap: 12, touchAction: "pan-y", minHeight: 200 }}
-          >
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {tab === "activity" && (
               <ActivityTab leaderboard={leaderboard} meUid={meUid} t={t} onOpenProfile={pushProfile} />
             )}
