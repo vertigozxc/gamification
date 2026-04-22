@@ -12,10 +12,12 @@ function buildWebMessageHandler() {
         const orbText = computed.getPropertyValue('--mobile-tab-orb-text').trim();
         
         if (bg && active) {
-          bridge.postMessage(JSON.stringify({
-            type: 'mobile-theme-update',
-            colors: { bg, active, inactive, orb, orbText }
-          }));
+          try {
+            bridge.postMessage(JSON.stringify({
+              type: 'mobile-theme-update',
+              colors: { bg, active, inactive, orb, orbText }
+            }));
+          } catch (e) { /* webkit messageHandlers can be undefined during teardown */ }
         }
       }
       

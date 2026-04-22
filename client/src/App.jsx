@@ -383,13 +383,17 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       || timerLimitPopup
       || singleHabitPickerOpen
     );
-    bridge.postMessage(JSON.stringify({
-      type: "mobile-shell-state",
-      showTabBar: Boolean(authUser) && !authLoading && !dataLoading && initialDataResolved && !anyOverlayOpen,
-      loading: Boolean(authLoading || dataLoading || (authUser && !initialDataResolved)),
-      activeTab: mobileTab,
-      languageId
-    }));
+    // The injected wrapper relays to `window.webkit.messageHandlers.ReactNativeWebView.postMessage`,
+    // which can be undefined during unload / WebView teardown on iOS. Swallow the TypeError.
+    try {
+      bridge.postMessage(JSON.stringify({
+        type: "mobile-shell-state",
+        showTabBar: Boolean(authUser) && !authLoading && !dataLoading && initialDataResolved && !anyOverlayOpen,
+        loading: Boolean(authLoading || dataLoading || (authUser && !initialDataResolved)),
+        activeTab: mobileTab,
+        languageId
+      }));
+    } catch { /* bridge missing — WebView tearing down */ }
   }, [
     isEmbeddedApp, authUser, authLoading, dataLoading, initialDataResolved,
     showOnboarding, mobileTab, cityFullscreen, showPinnedReplaceModal,

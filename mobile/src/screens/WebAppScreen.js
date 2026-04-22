@@ -66,10 +66,12 @@ function buildThemeObserverScript() {
         const ot = computed.getPropertyValue('--mobile-tab-orb-text').trim();
         const pageBg = computed.getPropertyValue('--mobile-page-bg').trim();
         if (b) {
-          bridge.postMessage(JSON.stringify({
-            type: 'mobile-theme-update',
-            colors: { bg: b, active: a, inactive: i, orb: o, orbText: ot, pageBg: pageBg }
-          }));
+          try {
+            bridge.postMessage(JSON.stringify({
+              type: 'mobile-theme-update',
+              colors: { bg: b, active: a, inactive: i, orb: o, orbText: ot, pageBg: pageBg }
+            }));
+          } catch (e) { /* webkit messageHandlers can be undefined during teardown */ }
         }
       }
       const observer = new MutationObserver(sendTheme);
