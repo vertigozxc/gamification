@@ -288,7 +288,10 @@ body[data-theme="light"] .social-block .cm-tabs-slider {
  *     users happy via prefers-reduced-motion).
  *   - Child cards get an iOS-style press feedback (scale + tint).
  * ========================================================================== */
-.social-block .dash-chal-strip {
+/* Compound selector — .dash-chal-strip lives on the SAME element as
+ * .social-block, not inside it, so the descendant combinator doesn't
+ * match. Merge both classes into one compound selector. */
+.social-block.dash-chal-strip {
   background: color-mix(in srgb, var(--color-primary) 6%, var(--panel-bg));
   border: 1.5px solid color-mix(in srgb, var(--color-primary) 42%, var(--panel-border));
   border-radius: 14px;
@@ -348,7 +351,7 @@ body[data-theme="light"] .social-block .cm-tabs-slider {
   flex-shrink: 0;
   margin-left: 2px;
 }
-.social-block .dash-chal-strip[data-expanded="true"] .dash-chal-chevron {
+.social-block.dash-chal-strip[data-expanded="true"] .dash-chal-chevron {
   transform: rotate(90deg);
 }
 /* Smooth expand/collapse. Using grid-template-rows trick for height
@@ -360,7 +363,7 @@ body[data-theme="light"] .social-block .cm-tabs-slider {
   transition: grid-template-rows 260ms cubic-bezier(0.32, 0.72, 0, 1);
   border-top: 1px solid transparent;
 }
-.social-block .dash-chal-strip[data-expanded="true"] .dash-chal-body {
+.social-block.dash-chal-strip[data-expanded="true"] .dash-chal-body {
   grid-template-rows: 1fr;
   border-top-color: var(--panel-border);
 }
@@ -374,7 +377,7 @@ body[data-theme="light"] .social-block .cm-tabs-slider {
   opacity: 0;
   transition: opacity 200ms ease 40ms, padding 220ms ease;
 }
-.social-block .dash-chal-strip[data-expanded="true"] .dash-chal-body-inner {
+.social-block.dash-chal-strip[data-expanded="true"] .dash-chal-body-inner {
   opacity: 1;
   padding: 10px;
 }
