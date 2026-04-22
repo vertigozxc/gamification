@@ -2,93 +2,73 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 /**
- * Social full-screen primitive. Single unified layout:
- *   ┌──────────────────────────────┐
- *   │  ‹ Back    Title      Action │  ← top bar (52px, blur)
- *   ├──────────────────────────────┤
- *   │                              │
- *   │        scrollable body       │
- *   │                              │
- *   ├──────────────────────────────┤
- *   │    [ Primary action ]        │  ← optional sticky footer
- *   └──────────────────────────────┘
+ * Full-screen modal screen that matches PinnedReplacementModal visual
+ * language (edge-to-edge card background, cinzel title, subtitle line,
+ * round ✕ button top-right, slide-up entry).
  *
- * Opens with a slide-up animation from the bottom of the viewport.
- * Closed by calling onClose (typically wired to the back button).
+ *   ┌──────────────────────────────────┐
+ *   │  Title                       ✕   │   ← cinzel accent
+ *   │  subtitle                        │
+ *   ├──────────────────────────────────┤
+ *   │                                  │
+ *   │          scrollable body         │
+ *   │                                  │
+ *   ├──────────────────────────────────┤
+ *   │        optional footer row       │
+ *   └──────────────────────────────────┘
  */
-
 export default function Screen({
   title,
-  leftLabel = "Back",
-  leftAction,       // optional override; defaults to onClose
-  rightLabel,       // string or null — shows right-side action button
-  rightAction,
-  rightDisabled = false,
-  rightKind = "default",  // "default" | "primary" | "destructive"
+  subtitle,
+  leftSlot,        // optional custom slot to the left of the close button
+  headerExtra,     // optional extra element rendered under title/subtitle
   onClose,
   children,
   footer,
 }) {
   const [entered, setEntered] = useState(false);
-  const [closing, setClosing] = useState(false);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setEntered(true));
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  // Close with animation
-  const triggerClose = () => {
-    if (closing) return;
-    setClosing(true);
-    setTimeout(() => { onClose && onClose(); }, 260);
-  };
-
-  const doLeft = () => (leftAction ? leftAction() : triggerClose());
-
   const content = (
-    <div className="social-block" aria-modal="true" role="dialog">
+    <div
+      className="social-block sb-sheet-overlay"
+      role="dialog"
+      aria-modal="true"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose && onClose(); }}
+    >
       <div
-        className="sb-screen-overlay"
-        style={{ opacity: entered && !closing ? 1 : 0 }}
-        aria-hidden="true"
-      />
-      <div
-        className="sb-screen"
+        className="sb-sheet"
         style={{
-          transform: entered && !closing ? "translateY(0)" : "translateY(100%)",
+          transform: entered ? "translateY(0)" : "translateY(16px)",
+          opacity: entered ? 1 : 0,
         }}
       >
-        <div className="sb-top-bar">
-          <button
-            type="button"
-            onClick={doLeft}
-            className="sb-top-btn sb-top-btn--left press"
-            aria-label={leftLabel}
-          >
-            <span className="sb-chev">‹</span>
-            <span className="sb-top-btn-label">{leftLabel}</span>
-          </button>
-          <div className="sb-top-title" title={typeof title === "string" ? title : undefined}>
-            {title}
+        <div className="sb-sheet-header">
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {leftSlot ? <div style={{ flexShrink: 0 }}>{leftSlot}</div> : null}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h2 className="cinzel sb-sheet-title">{title}</h2>
+              {subtitle ? <p className="sb-sheet-subtitle">{subtitle}</p> : null}
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="sb-sheet-close press"
+            >
+              ✕
+            </button>
           </div>
-          <div className="sb-top-right">
-            {rightLabel ? (
-              <button
-                type="button"
-                onClick={rightAction}
-                disabled={rightDisabled}
-                className={`sb-top-btn sb-top-btn--right press sb-top-btn--${rightKind}`}
-              >
-                {rightLabel}
-              </button>
-            ) : null}
-          </div>
+          {headerExtra ? <div style={{ marginTop: 12 }}>{headerExtra}</div> : null}
         </div>
 
-        <div className="sb-screen-body">{children}</div>
+        <div className="sb-sheet-body">{children}</div>
 
-        {footer ? <div className="sb-screen-footer">{footer}</div> : null}
+        {footer ? <div className="sb-sheet-footer">{footer}</div> : null}
       </div>
     </div>
   );

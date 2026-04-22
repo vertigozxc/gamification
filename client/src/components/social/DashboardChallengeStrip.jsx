@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { fetchUserChallenges } from "../../api";
+import { completeChallenge, fetchUserChallenges } from "../../api";
 import "./ios.css";
 
 function todayKey() {
@@ -7,17 +7,12 @@ function todayKey() {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 }
 
-/**
- * Minimal collapsed strip. Header shows "{title} N/M" where N = challenges
- * the user has completed today and M = total active challenges. Tap the
- * header to expand and reveal per-challenge rows (title + done/not-done
- * pill). Tap a row to open the challenge detail screen.
- */
 export default function DashboardChallengeStrip({ authUser, t, onOpenSocial }) {
   const meUid = String(authUser?.uid || "").slice(0, 128);
   const [active, setActive] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [busyId, setBusyId] = useState(null);
 
   const refresh = useCallback(async () => {
     if (!meUid) return;
@@ -33,14 +28,19 @@ export default function DashboardChallengeStrip({ authUser, t, onOpenSocial }) {
   }, [meUid]);
 
   useEffect(() => { refresh(); }, [refresh]);
-
-  // Refresh whenever the social side signals a change (create, complete,
-  // leave). Keeps the strip consistent without needing to remount.
   useEffect(() => {
-    const handler = () => refresh();
-    window.addEventListener("social:refresh-challenges", handler);
-    return () => window.removeEventListener("social:refresh-challenges", handler);
+    const h = () => refresh();
+    window.addEventListener("social:refresh-challenges", h);
+    return () => window.removeEventListener("social:refresh-challenges", h);
   }, [refresh]);
+
+  async function handleComplete(id) {
+    setBusyId(id);
+    try {
+      await completeChallenge(id, meUid);
+      await refresh();
+    } catch { /* silent */ } finally { setBusyId(null); }
+  }
 
   if (!loaded || active.length === 0) return null;
 
@@ -68,13 +68,14 @@ export default function DashboardChallengeStrip({ authUser, t, onOpenSocial }) {
           gap: 10,
           fontFamily: "inherit",
           textAlign: "left",
+          cursor: "pointer",
         }}
       >
         <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>⚔️</span>
-        <span className="body" style={{ fontWeight: 600, flex: 1, letterSpacing: "-0.01em" }}>
-          {t.socialDashboardStripTitle || "Group challenges"}
+        <span className="sb-body" style={{ fontWeight: 600, flex: 1, letterSpacing: "-0.01em" }}>
+          {t.arenaDashStripTitle || "Your pacts"}
         </span>
-        <span className="pill pill-accent" style={{ flexShrink: 0 }}>
+        <span className="sb-pill sb-pill-accent" style={{ flexShrink: 0 }}>
           {doneToday}/{active.length}
         </span>
         <span
@@ -98,16 +99,27 @@ export default function DashboardChallengeStrip({ authUser, t, onOpenSocial }) {
           {active.map((c) => {
             const completedToday = c.myLastCompletionDayKey === tKey;
             return (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => onOpenSocial && onOpenSocial(c.id)}
-                className="list-row press"
-                style={{ fontFamily: "inherit" }}
-              >
-                <span style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center" }}>
+              <div key={c.id} className="sb-list-row" style={{ padding: "10px 14px" }}>
+                <button
+                  type="button"
+                  onClick={() => onOpenSocial && onOpenSocial(c.id)}
+                  className="press"
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    padding: 0,
+                    background: "transparent",
+                    border: "none",
+                    color: "var(--color-text)",
+                    fontFamily: "inherit",
+                    textAlign: "left",
+                    cursor: "pointer",
+                  }}
+                >
                   <span
-                    className="body"
+                    className="sb-body"
                     style={{
                       fontWeight: 600,
                       whiteSpace: "nowrap",
@@ -118,20 +130,23 @@ export default function DashboardChallengeStrip({ authUser, t, onOpenSocial }) {
                   >
                     {c.title}
                   </span>
-                </span>
+                </button>
                 {completedToday ? (
-                  <span className="pill pill-success" style={{ flexShrink: 0 }}>
-                    ✓ {t.socialDoneToday || "Done"}
+                  <span className="sb-pill sb-pill-success" style={{ flexShrink: 0 }}>
+                    ✓ {t.arenaDashDone || "done"}
                   </span>
                 ) : (
-                  <span
-                    className="pill"
-                    style={{ flexShrink: 0, background: "rgba(120,120,128,0.12)", color: "var(--color-muted)" }}
+                  <button
+                    type="button"
+                    disabled={busyId === c.id}
+                    onClick={() => handleComplete(c.id)}
+                    className="sb-tinted-btn press"
+                    style={{ flexShrink: 0, padding: "6px 12px", fontSize: 13 }}
                   >
-                    · {t.socialNotDoneToday || "Not done"}
-                  </span>
+                    {busyId === c.id ? "…" : (t.arenaDashTick || "Tick")}
+                  </button>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>

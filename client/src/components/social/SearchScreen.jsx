@@ -5,30 +5,29 @@ import StreakFrame from "./StreakFrame";
 import Screen from "./Screen";
 
 function useDebounced(value, delay = 220) {
-  const [debounced, setDebounced] = useState(value);
+  const [v, setV] = useState(value);
   useEffect(() => {
-    const h = setTimeout(() => setDebounced(value), delay);
+    const h = setTimeout(() => setV(value), delay);
     return () => clearTimeout(h);
   }, [value, delay]);
-  return debounced;
+  return v;
 }
 
 export default function SearchScreen({ meUid, t, onClose, onOpenProfile }) {
   const [q, setQ] = useState("");
-  const debounced = useDebounced(q, 250);
+  const d = useDebounced(q, 250);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [touched, setTouched] = useState(false);
   const inputRef = useRef(null);
 
   useEffect(() => {
-    // Autofocus after open-animation settles
-    const timer = setTimeout(() => { inputRef.current && inputRef.current.focus(); }, 340);
-    return () => clearTimeout(timer);
+    const t1 = setTimeout(() => { inputRef.current && inputRef.current.focus(); }, 300);
+    return () => clearTimeout(t1);
   }, []);
 
   useEffect(() => {
-    const term = debounced.trim();
+    const term = d.trim();
     if (term.length < 2) { setResults([]); setLoading(false); return; }
     setLoading(true);
     setTouched(true);
@@ -38,19 +37,22 @@ export default function SearchScreen({ meUid, t, onClose, onOpenProfile }) {
       .catch(() => { if (!cancelled) setResults([]); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [debounced]);
+  }, [d]);
 
   return (
-    <Screen title={t.socialSearchTitle || "Find players"} leftLabel={t.cancel || "Cancel"} onClose={onClose}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div className="search">
+    <Screen
+      title={t.arenaScoutTitle || "Scout players"}
+      subtitle={t.arenaScoutSubtitle || "Find someone by nickname"}
+      onClose={onClose}
+      headerExtra={
+        <div className="sb-search">
           <span style={{ fontSize: 16, opacity: 0.6 }}>🔍</span>
           <input
             ref={inputRef}
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder={t.socialSearchPlaceholder || "Search player by nickname…"}
+            placeholder={t.arenaScoutPlaceholder || "Type a nickname…"}
             autoComplete="off"
             autoCorrect="off"
             spellCheck={false}
@@ -59,51 +61,51 @@ export default function SearchScreen({ meUid, t, onClose, onOpenProfile }) {
             <button
               type="button"
               onClick={() => setQ("")}
-              aria-label={t.close || "Clear"}
-              className="icon-btn press"
-              style={{ width: 22, height: 22, fontSize: 11, background: "rgba(120,120,128,0.4)", color: "#fff" }}
+              aria-label={t.arenaCancel || "Clear"}
+              className="press"
+              style={{ width: 22, height: 22, borderRadius: 11, border: "none", background: "rgba(120,120,128,0.5)", color: "#fff", fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontFamily: "inherit" }}
             >
               ✕
             </button>
           )}
         </div>
-
-        {loading ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 0" }}>
-            <div className="spinner" />
-          </div>
-        ) : !touched || q.trim().length < 2 ? (
-          <p style={{ textAlign: "center", padding: "40px 20px", color: "var(--color-muted)" }}>
-            {t.socialSearchHint || "Type at least 2 characters to search."}
-          </p>
-        ) : results.length === 0 ? (
-          <p style={{ textAlign: "center", padding: "24px 12px", color: "var(--color-muted)" }}>
-            {t.socialSearchEmpty || "No players found"}
-          </p>
-        ) : (
-          <div className="list">
-            {results.map((u) => (
-              <button
-                key={u.username}
-                type="button"
-                onClick={() => { onOpenProfile(u.username); onClose(); }}
-                className="list-row press"
-              >
-                <StreakFrame streak={u.streak} size={40} ringWidth={2}>
-                  <Avatar photoUrl={u.photoUrl} displayName={u.displayName} size={40} />
-                </StreakFrame>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p className="body" style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {u.displayName || u.username}{u.username === meUid ? ` (${t.socialYou || "you"})` : ""}
-                  </p>
-                  <p className="caption">{t.socialLevelLabel || "Lv"} {u.level} · 🔥 {u.streak}</p>
-                </div>
-                <span style={{ color: "var(--color-muted)", fontSize: 16, flexShrink: 0 }}>›</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      }
+    >
+      {loading ? (
+        <div style={{ display: "flex", justifyContent: "center", padding: "24px 0" }}>
+          <div className="sb-spinner" />
+        </div>
+      ) : !touched || q.trim().length < 2 ? (
+        <p style={{ textAlign: "center", padding: "40px 20px", color: "var(--color-muted)" }}>
+          {t.arenaScoutHint || "Type at least 2 characters."}
+        </p>
+      ) : results.length === 0 ? (
+        <p style={{ textAlign: "center", padding: "24px 12px", color: "var(--color-muted)" }}>
+          {t.arenaScoutEmpty || "Nobody matches that."}
+        </p>
+      ) : (
+        <div className="sb-list">
+          {results.map((u) => (
+            <button
+              key={u.username}
+              type="button"
+              onClick={() => { onOpenProfile(u.username); onClose(); }}
+              className="sb-list-row press"
+            >
+              <StreakFrame streak={u.streak} size={40} ringWidth={2}>
+                <Avatar photoUrl={u.photoUrl} displayName={u.displayName} size={40} />
+              </StreakFrame>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p className="sb-body" style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {u.displayName || u.username}{u.username === meUid ? ` (${t.arenaYou || "you"})` : ""}
+                </p>
+                <p className="sb-caption">{t.arenaLvlShort || "Lv"} {u.level} · 🔥 {u.streak}</p>
+              </div>
+              <span style={{ color: "var(--color-muted)", fontSize: 16, flexShrink: 0 }}>›</span>
+            </button>
+          ))}
+        </div>
+      )}
     </Screen>
   );
 }

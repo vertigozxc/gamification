@@ -35,8 +35,8 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
 
   async function handleCreate() {
     setError("");
-    if (title.trim().length < 1) { setError(t.socialTitleRequired || "Title is required"); return; }
-    if (questTitle.trim().length < 1) { setError(t.socialQuestRequired || "Task is required"); return; }
+    if (title.trim().length < 1) { setError(t.arenaCreateErrorTitle || "Name your pact"); return; }
+    if (questTitle.trim().length < 1) { setError(t.arenaCreateErrorTask || "Describe the ritual"); return; }
     setSubmitting(true);
     try {
       await createChallenge({
@@ -51,39 +51,48 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
       });
       onCreated && onCreated();
     } catch (err) {
-      setError(err?.message || t.socialErrorGeneric || "Could not create challenge");
+      setError(err?.message || t.arenaCreateErrorGeneric || "Couldn't forge the pact");
     } finally {
       setSubmitting(false);
     }
   }
 
+  const footer = (
+    <button
+      type="button"
+      disabled={!canSubmit}
+      onClick={handleCreate}
+      className="sb-primary-btn press"
+      style={{ width: "100%", padding: 14 }}
+    >
+      {submitting ? (t.arenaForging || "Forging…") : (t.arenaForgePact || "Forge the pact")}
+    </button>
+  );
+
   return (
     <Screen
-      title={t.socialCreateChallengeTitle || "New challenge"}
-      leftLabel={t.cancel || "Cancel"}
+      title={t.arenaNewPactTitle || "New pact"}
+      subtitle={t.arenaNewPactSubtitle || "Friends · span · daily ritual"}
       onClose={onClose}
-      rightLabel={submitting ? (t.socialCreating || "Creating…") : (t.socialCreateButton || "Create")}
-      rightAction={handleCreate}
-      rightDisabled={!canSubmit}
-      rightKind="primary"
+      footer={footer}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-        {/* Friends */}
-        <Field label={`${t.socialInviteFriends || "Invite friends"} (${selected.length}/${MAX_INVITEES})`}>
+        <Field label={`${t.arenaInvitePals || "Invite pals"} (${selected.length}/${MAX_INVITEES})`}>
           {friends.length === 0 ? (
-            <p className="subhead" style={{ padding: "8px 0" }}>
-              {t.socialInviteFriendsEmpty || "Add friends first to invite them."}
+            <p className="sb-caption" style={{ padding: "8px 0" }}>
+              {t.arenaNoFriendsYet || "Find some pals first — they'll appear here."}
             </p>
           ) : (
-            <div className="list">
-              {friends.map((f) => {
+            <div className="sb-list">
+              {friends.map((f, i) => {
                 const picked = selected.includes(f.username);
                 return (
                   <button
                     key={f.username}
                     type="button"
                     onClick={() => toggleFriend(f.username)}
-                    className="list-row press"
+                    className="sb-list-row press"
+                    style={{ borderBottom: i === friends.length - 1 ? "none" : undefined }}
                   >
                     <span
                       style={{
@@ -106,10 +115,10 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
                     <div style={{ width: 32, height: 32, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: "var(--panel-bg)" }}>
                       <Avatar photoUrl={f.photoUrl} displayName={f.displayName} size={32} />
                     </div>
-                    <span className="body" style={{ fontWeight: 600, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", letterSpacing: "-0.01em" }}>
+                    <span className="sb-body" style={{ fontWeight: 600, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", letterSpacing: "-0.01em" }}>
                       {f.displayName || f.username}
                     </span>
-                    <span className="caption">{t.socialLevelLabel || "Lv"} {f.level}</span>
+                    <span className="sb-caption">{t.arenaLvlShort || "Lv"} {f.level}</span>
                   </button>
                 );
               })}
@@ -117,8 +126,7 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
           )}
         </Field>
 
-        {/* Duration */}
-        <Field label={`${t.socialDurationLabel || "Duration"} · ${duration} ${pluralDays(duration, t)}`}>
+        <Field label={`${t.arenaSpan || "Span"} · ${duration} ${pluralDays(duration, t)}`}>
           <input
             type="range"
             min={1}
@@ -127,66 +135,71 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
             onChange={(e) => setDuration(Number(e.target.value))}
             style={{ width: "100%", accentColor: "var(--color-primary)" }}
           />
-          <div className="caption" style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
+          <div className="sb-caption" style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
             <span>1</span><span>30</span><span>90</span><span>365</span>
           </div>
         </Field>
 
-        <Field label={t.socialChallengeTitleLabel || "Challenge title"}>
+        <Field label={t.arenaPactNameLabel || "Pact name"}>
           <input
             type="text"
             value={title}
             maxLength={80}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder={t.socialChallengeTitlePlaceholder || "e.g. Summer shape-up"}
-            style={inputStyle}
+            placeholder={t.arenaPactNamePlaceholder || "e.g. Morning hustle"}
+            className="sb-input"
           />
         </Field>
 
-        <Field label={t.socialChallengeDescLabel || "Description (optional)"}>
+        <Field label={t.arenaPactHowLabel || "Why are we doing this? (optional)"}>
           <textarea
             value={description}
             maxLength={300}
             rows={2}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder={t.socialChallengeDescPlaceholder || "Why are we doing this?"}
-            style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
+            placeholder={t.arenaPactHowPlaceholder || "Tell the crew the vibe"}
+            className="sb-input"
+            style={{ resize: "vertical" }}
           />
         </Field>
 
-        <Field label={t.socialQuestTitleLabel || "Daily task"}>
+        <Field label={t.arenaRitualLabel || "Daily ritual"}>
           <input
             type="text"
             value={questTitle}
             maxLength={80}
             onChange={(e) => setQuestTitle(e.target.value)}
-            placeholder={t.socialQuestTitlePlaceholder || "e.g. 30 push-ups"}
-            style={inputStyle}
+            placeholder={t.arenaRitualPlaceholder || "e.g. 30 push-ups before breakfast"}
+            className="sb-input"
           />
         </Field>
 
-        {/* Timer toggle */}
-        <div className="list-row press" style={{ background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: 12 }} onClick={() => setNeedsTimer((v) => !v)}>
+        <div
+          className="sb-list-row press"
+          style={{ background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: 12 }}
+          onClick={() => setNeedsTimer((v) => !v)}
+        >
           <span style={{ fontSize: 18 }}>⏱</span>
-          <span className="body" style={{ flex: 1, fontWeight: 500 }}>
-            {t.socialNeedsTimerLabel || "This task uses a timer"}
+          <span className="sb-body" style={{ flex: 1, fontWeight: 500 }}>
+            {t.arenaRitualIsTimed || "Timed ritual"}
           </span>
           <Switch checked={needsTimer} onChange={setNeedsTimer} />
         </div>
+
         {needsTimer && (
-          <Field label={t.socialTimeEstimateLabel || "Estimated time (minutes)"}>
+          <Field label={t.arenaTimedMinutes || "Minutes on the clock"}>
             <input
               type="number"
               min={1}
               max={600}
               value={timeEstimateMin}
               onChange={(e) => setTimeEstimateMin(e.target.value)}
-              style={inputStyle}
+              className="sb-input"
             />
           </Field>
         )}
 
-        {error && <p style={{ color: "#ff453a", fontSize: 14 }}>{error}</p>}
+        {error && <p style={{ color: "#ff6a63", fontSize: 14 }}>{error}</p>}
       </div>
     </Screen>
   );
@@ -195,7 +208,7 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
 function Field({ label, children }) {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <span className="caption" style={{ fontWeight: 600, fontSize: 13, color: "var(--color-muted)" }}>{label}</span>
+      <span className="sb-caption" style={{ fontWeight: 600, fontSize: 13, color: "var(--color-muted)" }}>{label}</span>
       {children}
     </label>
   );
@@ -243,22 +256,9 @@ function pluralDays(n, t) {
   const lang = (typeof window !== "undefined" && window.i18nLanguage) || "en";
   if (lang === "ru") {
     const mod10 = n % 10, mod100 = n % 100;
-    if (mod10 === 1 && mod100 !== 11) return t.socialDayOne || "день";
-    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return t.socialDayFew || "дня";
-    return t.socialDayMany || "дней";
+    if (mod10 === 1 && mod100 !== 11) return t.arenaDayOne || "день";
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return t.arenaDayFew || "дня";
+    return t.arenaDayMany || "дней";
   }
-  return n === 1 ? (t.socialDayOne || "day") : (t.socialDayMany || "days");
+  return n === 1 ? (t.arenaDayOne || "day") : (t.arenaDayMany || "days");
 }
-
-const inputStyle = {
-  width: "100%",
-  padding: "12px 14px",
-  background: "var(--panel-bg)",
-  color: "var(--color-text)",
-  border: "1px solid var(--panel-border)",
-  borderRadius: 10,
-  fontSize: 16,
-  outline: "none",
-  WebkitAppearance: "none",
-  fontFamily: "inherit",
-};
