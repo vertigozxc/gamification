@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import CityIsometricOverview from "../CityIsometricOverview";
 import {
   cancelFriendRequest,
@@ -6,11 +6,12 @@ import {
   fetchPublicProfile,
   removeFriend,
   respondToFriendRequest,
-  sendFriendRequest
+  sendFriendRequest,
 } from "../../api";
 import Avatar from "./Avatar";
 import StreakFrame, { getStreakTier } from "./StreakFrame";
-import { haptic, useIosNav } from "./iosNav";
+import Screen from "./Screen";
+import Alert from "./Alert";
 
 function parseDistrictLevels(str) {
   return String(str || "0,0,0,0,0")
@@ -26,27 +27,27 @@ function formatDate(value, languageId) {
     return new Date(value).toLocaleDateString(languageId === "ru" ? "ru-RU" : "en-US", {
       year: "numeric",
       month: "short",
-      day: "numeric"
+      day: "numeric",
     });
   } catch {
     return "—";
   }
 }
 
-export default function PublicProfileScreen({ targetUsername, meUsername, t, languageId, onRemoved }) {
-  const nav = useIosNav();
+export default function ProfileScreen({ targetUsername, meUsername, t, languageId, backLabel, onClose, onChanged }) {
   const [profile, setProfile] = useState(null);
   const [relation, setRelation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [confirmRemove, setConfirmRemove] = useState(false);
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     setError("");
     try {
       const [p, r] = await Promise.all([
         fetchPublicProfile(targetUsername),
-        meUsername ? fetchFriendRelation(meUsername, targetUsername) : Promise.resolve(null)
+        meUsername ? fetchFriendRelation(meUsername, targetUsername) : Promise.resolve(null),
       ]);
       setProfile(p?.user || null);
       setRelation(r || null);
@@ -55,24 +56,18 @@ export default function PublicProfileScreen({ targetUsername, meUsername, t, lan
     } finally {
       setLoading(false);
     }
-  }
+  }, [targetUsername, meUsername, t]);
 
-  useEffect(() => { setLoading(true); refresh(); /* eslint-disable-next-line */ }, [targetUsername, meUsername]);
+  useEffect(() => { setLoading(true); refresh(); }, [refresh]);
 
-  async function act(fn, { popOnSuccess = false, hapticKind = "light" } = {}) {
+  async function act(fn) {
     if (!meUsername) return;
     setBusy(true);
-    haptic(hapticKind);
     try {
       await fn();
-      if (popOnSuccess) {
-        onRemoved && onRemoved();
-        nav.pop();
-      } else {
-        await refresh();
-      }
+      await refresh();
+      onChanged && onChanged();
     } catch (e) {
-      haptic("warning");
       setError(e?.message || t.socialErrorGeneric || "Action failed");
     } finally {
       setBusy(false);
@@ -82,43 +77,60 @@ export default function PublicProfileScreen({ targetUsername, meUsername, t, lan
   const state = relation?.state;
   const isSelf = state === "self";
 
-  if (loading) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: 10 }}>
-        <div className="ios-spinner" />
-      </div>
-    );
-  }
-  if (!profile) {
-    return (
-      <p style={{ textAlign: "center", color: "#ff453a", padding: "40px 16px" }}>
-        {error || t.socialErrorLoad || "Failed to load profile"}
-      </p>
-    );
-  }
+  const footer = !loading && profile && !isSelf && meUsername ? (
+    <FriendshipAction
+      state={state}
+      busy={busy}
+      t={t}
+      onAdd={() => act(() => sendFriendRequest(meUsername, targetUsername))}
+      onCancel={() => act(() => cancelFriendRequest(meUsername, targetUsername))}
+      onAccept={() => act(() => respondToFriendRequest(meUsername, relation.requestId, "accept"))}
+      onDecline={() => act(() => respondToFriendRequest(meUsername, relation.requestId, "decline"))}
+      onRemove={() => setConfirmRemove(true)}
+    />
+  ) : null;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14, paddingBottom: 20 }}>
-      <Hero profile={profile} t={t} />
-      <StatGrid profile={profile} t={t} languageId={languageId} />
-      <CityCard profile={profile} t={t} />
-      {error && <p style={{ fontSize: 14, color: "#ff453a", textAlign: "center" }}>{error}</p>}
-      {!isSelf && meUsername && (
-        <div style={{ paddingTop: 6 }}>
-          <FriendshipAction
-            state={state}
-            relation={relation}
-            busy={busy}
-            t={t}
-            onAdd={() => act(() => sendFriendRequest(meUsername, targetUsername), { hapticKind: "success" })}
-            onCancel={() => act(() => cancelFriendRequest(meUsername, targetUsername))}
-            onAccept={() => act(() => respondToFriendRequest(meUsername, relation.requestId, "accept"), { hapticKind: "success" })}
-            onDecline={() => act(() => respondToFriendRequest(meUsername, relation.requestId, "decline"))}
-            onRemove={() => act(() => removeFriend(meUsername, targetUsername), { hapticKind: "warning" })}
-          />
-        </div>
+    <>
+      <Screen
+        title={profile?.displayName || (t.socialProfileLabel || "Player profile")}
+        leftLabel={backLabel || t.back || "Back"}
+        onClose={onClose}
+        footer={footer}
+      >
+        {loading ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0" }}>
+            <div className="spinner" />
+          </div>
+        ) : !profile ? (
+          <p style={{ textAlign: "center", color: "#ff453a", padding: "40px 16px" }}>
+            {error || t.socialErrorLoad || "Failed to load profile"}
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <Hero profile={profile} t={t} />
+            <StatGrid profile={profile} t={t} languageId={languageId} />
+            <CityCard profile={profile} t={t} />
+            {error && <p style={{ fontSize: 14, color: "#ff453a", textAlign: "center" }}>{error}</p>}
+          </div>
+        )}
+      </Screen>
+      {confirmRemove && (
+        <Alert
+          icon="🗑"
+          title={t.socialConfirmRemoveFriend || "Remove this friend?"}
+          message={t.socialConfirmRemoveFriendDesc || "You can send a new request later."}
+          cancelLabel={t.cancel || "Cancel"}
+          confirmLabel={t.socialRemove || "Remove"}
+          destructive
+          onCancel={() => setConfirmRemove(false)}
+          onConfirm={() => {
+            setConfirmRemove(false);
+            act(() => removeFriend(meUsername, targetUsername));
+          }}
+        />
       )}
-    </div>
+    </>
   );
 }
 
@@ -129,13 +141,13 @@ function Hero({ profile, t }) {
       <StreakFrame streak={profile.streak} size={96} ringWidth={5}>
         <Avatar photoUrl={profile.photoUrl} displayName={profile.displayName} size={96} />
       </StreakFrame>
-      <h2 className="ios-title" style={{ maxWidth: "100%", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+      <h2 className="title" style={{ maxWidth: "100%", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         {profile.displayName}
       </h2>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
-        <span className="ios-pill ios-pill-accent">⭐ {t.socialLevelLabelFull || "Level"} {profile.level}</span>
+        <span className="pill pill-accent">⭐ {t.socialLevelLabelFull || "Level"} {profile.level}</span>
         {tier.label && (
-          <span className="ios-pill">
+          <span className="pill">
             {tier.icon} {(t.socialTierLabels && t.socialTierLabels[tier.name]) || tier.label}
           </span>
         )}
@@ -158,7 +170,7 @@ function StatGrid({ profile, t, languageId }) {
 
 function Stat({ icon, label, value, accent, span, small }) {
   return (
-    <div className="ios-stat" style={{ gridColumn: span ? `span ${span}` : "auto" }}>
+    <div className="stat" style={{ gridColumn: span ? `span ${span}` : "auto" }}>
       <span className="icon">{icon}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <p className="label">{label}</p>
@@ -176,8 +188,8 @@ function CityCard({ profile, t }) {
   return (
     <div style={{ background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: 14, padding: 10, overflow: "hidden" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-        <p className="ios-caption" style={{ fontWeight: 600 }}>{t.socialCityLabel || "City"}</p>
-        <p className="ios-caption">{(t.socialCitySum || "Districts: {n}/25").replace("{n}", String(sum))}</p>
+        <p className="caption" style={{ fontWeight: 600 }}>{t.socialCityLabel || "City"}</p>
+        <p className="caption">{(t.socialCitySum || "Districts: {n}/25").replace("{n}", String(sum))}</p>
       </div>
       <div style={{ aspectRatio: "1 / 1", width: "100%", pointerEvents: "none" }}>
         <CityIsometricOverview levels={levels} selectedIdx={-1} t={t} />
@@ -189,14 +201,14 @@ function CityCard({ profile, t }) {
 function FriendshipAction({ state, busy, t, onAdd, onCancel, onAccept, onDecline, onRemove }) {
   if (state === "friends") {
     return (
-      <button type="button" disabled={busy} onClick={onRemove} className="ios-btn-destructive ios-tap" style={{ width: "100%", padding: "12px" }}>
+      <button type="button" disabled={busy} onClick={onRemove} className="btn-destructive press" style={{ width: "100%", padding: 14 }}>
         {t.socialRemoveFriend || "Remove friend"}
       </button>
     );
   }
   if (state === "outgoing_pending") {
     return (
-      <button type="button" disabled={busy} onClick={onCancel} className="ios-tap" style={{ width: "100%", padding: 12, border: "none", borderRadius: 12, background: "rgba(120,120,128,0.22)", color: "var(--color-text)", fontSize: 15, fontWeight: 600 }}>
+      <button type="button" disabled={busy} onClick={onCancel} className="btn-tinted press" style={{ width: "100%", padding: 14 }}>
         {t.socialPending || "Request sent · tap to cancel"}
       </button>
     );
@@ -204,10 +216,10 @@ function FriendshipAction({ state, busy, t, onAdd, onCancel, onAccept, onDecline
   if (state === "incoming_pending") {
     return (
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-        <button type="button" disabled={busy} onClick={onAccept} className="ios-tap" style={{ padding: 12, border: "none", borderRadius: 12, background: "rgba(48,209,88,0.2)", color: "#30d158", fontSize: 15, fontWeight: 600 }}>
+        <button type="button" disabled={busy} onClick={onAccept} className="btn-primary press" style={{ padding: 14 }}>
           {t.socialAcceptRequest || "Accept"}
         </button>
-        <button type="button" disabled={busy} onClick={onDecline} className="ios-tap" style={{ padding: 12, border: "none", borderRadius: 12, background: "rgba(120,120,128,0.2)", color: "var(--color-text)", fontSize: 15, fontWeight: 600 }}>
+        <button type="button" disabled={busy} onClick={onDecline} className="btn-tinted press" style={{ padding: 14 }}>
           {t.socialDeclineRequest || "Decline"}
         </button>
       </div>
@@ -215,13 +227,13 @@ function FriendshipAction({ state, busy, t, onAdd, onCancel, onAccept, onDecline
   }
   if (state === "declined_by_them") {
     return (
-      <button type="button" disabled className="ios-btn-tinted" style={{ width: "100%", padding: 12, opacity: 0.5 }}>
+      <button type="button" disabled className="btn-tinted" style={{ width: "100%", padding: 14, opacity: 0.5 }}>
         {t.socialDeclinedByThem || "Request was declined"}
       </button>
     );
   }
   return (
-    <button type="button" disabled={busy} onClick={onAdd} className="ios-btn-primary ios-tap" style={{ width: "100%", padding: "14px" }}>
+    <button type="button" disabled={busy} onClick={onAdd} className="btn-primary press" style={{ width: "100%", padding: 14 }}>
       ＋ {t.socialAddFriend || "Add friend"}
     </button>
   );

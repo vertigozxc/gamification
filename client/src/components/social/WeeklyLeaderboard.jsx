@@ -21,7 +21,7 @@ function formatRange(weekStartDayKey, languageId) {
     const fmt = new Intl.DateTimeFormat(languageId === "ru" ? "ru-RU" : "en-US", {
       month: "short",
       day: "numeric",
-      timeZone: "UTC"
+      timeZone: "UTC",
     });
     return `${fmt.format(start)} – ${fmt.format(end)}`;
   } catch {
@@ -76,7 +76,6 @@ export default function WeeklyLeaderboard({ authUser, t, languageId, onOpenProfi
         <SearchResults results={searchResults} searching={searching} t={t} onOpenProfile={onOpenProfile} meUid={meUid} />
       ) : (
         <>
-          {/* Week header */}
           <div
             style={{
               padding: "12px 14px",
@@ -85,55 +84,35 @@ export default function WeeklyLeaderboard({ authUser, t, languageId, onOpenProfi
               borderRadius: 14,
               display: "flex",
               alignItems: "center",
-              gap: 12
+              gap: 12,
             }}
           >
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: "rgba(var(--color-primary-rgb,251,191,36),0.18)",
-                color: "var(--color-primary)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 18,
-                flexShrink: 0
-              }}
-            >
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(var(--color-primary-rgb,251,191,36),0.18)", color: "var(--color-primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
               📅
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p className="ios-caption" style={{ fontWeight: 500 }}>
-                {t.socialWeeklyLabel || "This week"}
-              </p>
-              <p className="ios-headline" style={{ marginTop: 1 }}>{weekRange || "—"}</p>
+              <p className="caption" style={{ fontWeight: 500 }}>{t.socialWeeklyLabel || "This week"}</p>
+              <p className="headline" style={{ marginTop: 1 }}>{weekRange || "—"}</p>
             </div>
             <div style={{ textAlign: "right", flexShrink: 0 }}>
-              <p className="ios-caption">{t.socialRankedCount || "Ranked"}</p>
-              <p className="ios-headline" style={{ color: "var(--color-primary)", marginTop: 1 }}>{data?.totalRanked || 0}</p>
+              <p className="caption">{t.socialRankedCount || "Ranked"}</p>
+              <p className="headline" style={{ color: "var(--color-primary)", marginTop: 1 }}>{data?.totalRanked || 0}</p>
             </div>
           </div>
 
           {loading ? (
-            <p style={{ textAlign: "center", padding: "32px 0", color: "var(--color-muted)" }}>{t.socialLoading || "Loading…"}</p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 0" }}>
+              <div className="spinner" />
+            </div>
           ) : users.length === 0 ? (
             <EmptyWeekly t={t} />
           ) : (
             <>
               {podium.length > 0 && <Podium entries={podium} t={t} meUid={meUid} onOpenProfile={onOpenProfile} />}
               {rest.length > 0 && (
-                <div className="ios-list">
-                  {rest.map((u, i) => (
-                    <Row
-                      key={u.username}
-                      entry={u}
-                      isMe={u.username === meUid}
-                      t={t}
-                      onOpenProfile={onOpenProfile}
-                      isLast={i === rest.length - 1}
-                    />
+                <div className="list">
+                  {rest.map((u) => (
+                    <Row key={u.username} entry={u} isMe={u.username === meUid} t={t} onOpenProfile={onOpenProfile} />
                   ))}
                 </div>
               )}
@@ -142,9 +121,9 @@ export default function WeeklyLeaderboard({ authUser, t, languageId, onOpenProfi
 
           {me && !meInTopShown && (
             <>
-              <h3 className="ios-section-header" style={{ marginTop: 18 }}>{t.socialYourRank || "Your rank"}</h3>
-              <div className="ios-list">
-                <Row entry={me} isMe meHighlight t={t} onOpenProfile={onOpenProfile} isLast />
+              <h3 className="section-header" style={{ marginTop: 18 }}>{t.socialYourRank || "Your rank"}</h3>
+              <div className="list">
+                <Row entry={me} isMe meHighlight t={t} onOpenProfile={onOpenProfile} />
               </div>
             </>
           )}
@@ -154,11 +133,9 @@ export default function WeeklyLeaderboard({ authUser, t, languageId, onOpenProfi
   );
 }
 
-/* ------ sub-pieces ------ */
-
 function SearchBar({ search, onChange, t }) {
   return (
-    <div className="ios-search">
+    <div className="search">
       <span style={{ fontSize: 16, opacity: 0.6 }}>🔍</span>
       <input
         type="search"
@@ -171,19 +148,8 @@ function SearchBar({ search, onChange, t }) {
           type="button"
           onClick={() => onChange("")}
           aria-label={t.close || "Clear"}
-          className="ios-tap"
-          style={{
-            width: 20,
-            height: 20,
-            borderRadius: 10,
-            border: "none",
-            background: "rgba(120,120,128,0.4)",
-            color: "#fff",
-            fontSize: 11,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center"
-          }}
+          className="icon-btn press"
+          style={{ width: 22, height: 22, fontSize: 11, background: "rgba(120,120,128,0.4)", color: "#fff" }}
         >
           ✕
         </button>
@@ -195,7 +161,6 @@ function SearchBar({ search, onChange, t }) {
 function Podium({ entries, t, meUid, onOpenProfile }) {
   const [first, second, third] = entries;
   const slots = [second, first, third].filter(Boolean);
-
   return (
     <div
       style={{
@@ -206,7 +171,7 @@ function Podium({ entries, t, meUid, onOpenProfile }) {
         padding: "14px 8px 10px",
         background: "var(--panel-bg)",
         border: "1px solid var(--panel-border)",
-        borderRadius: 16
+        borderRadius: 16,
       }}
     >
       {slots.map((e) => (
@@ -227,24 +192,24 @@ function PodiumSlot({ entry, place, isMe, t, onOpenProfile }) {
   const meta = {
     1: { medal: "🥇", accent: "#fbbf24", height: 96 },
     2: { medal: "🥈", accent: "#d1d5db", height: 76 },
-    3: { medal: "🥉", accent: "#d97706", height: 60 }
+    3: { medal: "🥉", accent: "#d97706", height: 60 },
   }[place];
   const avatarSize = place === 1 ? 58 : 48;
-
   return (
     <button
       type="button"
       onClick={() => onOpenProfile(entry.username)}
-      className="ios-tap"
+      className="press"
       style={{
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         gap: 6,
-        padding: 0,
+        padding: 8,
+        borderRadius: 12,
         background: "transparent",
         border: "none",
-        color: "var(--color-text)"
+        color: "var(--color-text)",
       }}
     >
       <span style={{ fontSize: place === 1 ? 22 : 18, lineHeight: 1 }}>{meta.medal}</span>
@@ -252,7 +217,7 @@ function PodiumSlot({ entry, place, isMe, t, onOpenProfile }) {
         <Avatar photoUrl={entry.photoUrl} displayName={entry.displayName} size={avatarSize} />
       </StreakFrame>
       <p
-        className="ios-body"
+        className="body"
         style={{
           fontSize: place === 1 ? 14 : 13,
           fontWeight: 600,
@@ -262,7 +227,7 @@ function PodiumSlot({ entry, place, isMe, t, onOpenProfile }) {
           textOverflow: "ellipsis",
           textAlign: "center",
           marginTop: -2,
-          letterSpacing: "-0.01em"
+          letterSpacing: "-0.01em",
         }}
       >
         {entry.displayName || entry.username}
@@ -280,13 +245,13 @@ function PodiumSlot({ entry, place, isMe, t, onOpenProfile }) {
           alignItems: "center",
           justifyContent: "center",
           padding: 6,
-          gap: 1
+          gap: 1,
         }}
       >
         <p style={{ fontSize: place === 1 ? 22 : 18, fontWeight: 700, color: meta.accent, lineHeight: 1, letterSpacing: "-0.02em" }}>
           {entry.weeklyXp}
         </p>
-        <p className="ios-caption" style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+        <p className="caption" style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}>
           {t.socialWeekXpLabel || "XP"}
         </p>
       </div>
@@ -294,19 +259,18 @@ function PodiumSlot({ entry, place, isMe, t, onOpenProfile }) {
   );
 }
 
-function Row({ entry, isMe, meHighlight, t, onOpenProfile, isLast }) {
+function Row({ entry, isMe, meHighlight, t, onOpenProfile }) {
   return (
     <button
       type="button"
       onClick={() => onOpenProfile(entry.username)}
-      className="ios-list-row ios-tap"
+      className="list-row press"
       style={{
         background: meHighlight
           ? "rgba(var(--color-primary-rgb,251,191,36),0.14)"
           : isMe
             ? "rgba(var(--color-primary-rgb,251,191,36),0.06)"
             : "transparent",
-        borderBottom: isLast ? "none" : undefined
       }}
     >
       <span
@@ -317,7 +281,7 @@ function Row({ entry, isMe, meHighlight, t, onOpenProfile, isLast }) {
           color: entry.rank && entry.rank <= 3 ? "var(--color-primary)" : "var(--color-muted)",
           fontSize: 13,
           flexShrink: 0,
-          letterSpacing: "-0.01em"
+          letterSpacing: "-0.01em",
         }}
       >
         {entry.rank ? entry.rank : "—"}
@@ -326,11 +290,11 @@ function Row({ entry, isMe, meHighlight, t, onOpenProfile, isLast }) {
         <Avatar photoUrl={entry.photoUrl} displayName={entry.displayName} size={40} />
       </StreakFrame>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p className="ios-body" style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", letterSpacing: "-0.01em" }}>
+        <p className="body" style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", letterSpacing: "-0.01em" }}>
           {entry.displayName || entry.username}
           {isMe && <span style={{ color: "var(--color-primary)", fontWeight: 600 }}> · {t.socialYou || "you"}</span>}
         </p>
-        <p className="ios-caption" style={{ display: "flex", gap: 8, marginTop: 1 }}>
+        <p className="caption" style={{ display: "flex", gap: 8, marginTop: 1 }}>
           <span>{t.socialLevelLabel || "Lv"} {entry.level}</span>
           <span>🔥 {entry.streak}</span>
           {typeof entry.weeklyTasks === "number" && <span>✓ {entry.weeklyTasks}</span>}
@@ -340,7 +304,7 @@ function Row({ entry, isMe, meHighlight, t, onOpenProfile, isLast }) {
         <p style={{ fontSize: 17, fontWeight: 700, color: "var(--color-primary)", lineHeight: 1.1, letterSpacing: "-0.02em" }}>
           {entry.weeklyXp}
         </p>
-        <p className="ios-caption" style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+        <p className="caption" style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}>
           {t.socialWeekXpLabel || "XP"}
         </p>
       </div>
@@ -352,38 +316,42 @@ function EmptyWeekly({ t }) {
   return (
     <div style={{ textAlign: "center", padding: "40px 20px" }}>
       <div style={{ fontSize: 40, marginBottom: 8 }}>🔥</div>
-      <p className="ios-headline" style={{ marginBottom: 4 }}>
+      <p className="headline" style={{ marginBottom: 4 }}>
         {t.socialWeeklyEmptyTitle || "Fresh week, zero points."}
       </p>
-      <p className="ios-subhead">{t.socialWeeklyEmpty || "Complete a task today and you're on the board."}</p>
+      <p className="subhead">{t.socialWeeklyEmpty || "Complete a task today and you're on the board."}</p>
     </div>
   );
 }
 
 function SearchResults({ results, searching, t, onOpenProfile, meUid }) {
   if (searching) {
-    return <p style={{ textAlign: "center", padding: "24px 0", color: "var(--color-muted)" }}>{t.socialLoading || "Searching…"}</p>;
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 0" }}>
+        <div className="spinner" />
+      </div>
+    );
   }
   if (results.length === 0) {
     return <p style={{ textAlign: "center", padding: "24px 12px", color: "var(--color-muted)" }}>{t.socialSearchEmpty || "No players found"}</p>;
   }
   return (
-    <div className="ios-list">
-      {results.map((u, i) => (
+    <div className="list">
+      {results.map((u) => (
         <button
           key={u.username}
           type="button"
           onClick={() => onOpenProfile(u.username)}
-          className="ios-list-row ios-tap"
+          className="list-row press"
         >
           <StreakFrame streak={u.streak} size={40} ringWidth={2}>
             <Avatar photoUrl={u.photoUrl} displayName={u.displayName} size={40} />
           </StreakFrame>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p className="ios-body" style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <p className="body" style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {u.displayName || u.username}{u.username === meUid ? ` (${t.socialYou || "you"})` : ""}
             </p>
-            <p className="ios-caption">{t.socialLevelLabel || "Lv"} {u.level} · 🔥 {u.streak}</p>
+            <p className="caption">{t.socialLevelLabel || "Lv"} {u.level} · 🔥 {u.streak}</p>
           </div>
           <span style={{ color: "var(--color-muted)", fontSize: 16, flexShrink: 0 }}>›</span>
         </button>
