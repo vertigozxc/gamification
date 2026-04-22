@@ -50,7 +50,7 @@ export default function FriendsListScreen({ authUser, t, onClose, onOpenProfile,
   return (
     <>
       <Screen
-        title={t.arenaCircleScreenTitle || "Your circle"}
+        title={t.arenaCircleScreenTitle || "Friends"}
         subtitle={`${friends.length} · ${requests.length} ${(t.arenaRequestsShort || "pending")}`}
         onClose={onClose}
       >
@@ -89,7 +89,7 @@ export default function FriendsListScreen({ authUser, t, onClose, onOpenProfile,
                 <div style={{ fontSize: 32, marginBottom: 6 }}>🌱</div>
                 <p className="sb-headline" style={{ marginBottom: 4 }}>{t.arenaFriendsEmptyTitle || "No friends yet"}</p>
                 <p className="sb-caption" style={{ maxWidth: 300, margin: "0 auto" }}>
-                  {t.arenaFriendsEmptyBody || "Find someone on the week board and send them an invite."}
+                  {t.arenaFriendsEmptyBody || "Find someone on the leaderboard and send them an invite."}
                 </p>
               </div>
             ) : (
@@ -114,10 +114,10 @@ export default function FriendsListScreen({ authUser, t, onClose, onOpenProfile,
       {confirm && (
         <Alert
           icon="🗑"
-          title={(t.arenaConfirmRemoveTitle || "Drop {name}?").replace("{name}", confirm.displayName)}
-          message={t.arenaConfirmRemoveBody || "They'll disappear from your circle. You can invite them again any time."}
+          title={(t.arenaConfirmRemoveTitle || "Remove {name}?").replace("{name}", confirm.displayName)}
+          message={t.arenaConfirmRemoveBody || "They will disappear from your friends list. You can send a new request later."}
           cancelLabel={t.arenaCancel || "Cancel"}
-          confirmLabel={t.arenaRemoveAction || "Drop"}
+          confirmLabel={t.arenaRemoveAction || "Remove"}
           destructive
           onCancel={() => setConfirm(null)}
           onConfirm={() => doRemove(confirm.username)}
@@ -234,7 +234,7 @@ function FriendRow({ friend: f, busy, t, onOpenProfile, onRemove, isLast }) {
         disabled={busy}
         onClick={onRemove}
         className="sb-icon-btn press"
-        aria-label={t.arenaRemoveAction || "Drop"}
+        aria-label={t.arenaRemoveAction || "Remove"}
         style={{ flexShrink: 0 }}
       >
         ✕

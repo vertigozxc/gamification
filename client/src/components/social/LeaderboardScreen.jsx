@@ -9,7 +9,7 @@ export default function LeaderboardScreen({ meUid, data, t, onClose, onOpenProfi
 
   return (
     <Screen
-      title={t.arenaBoardTitle || "Week board"}
+      title={t.arenaBoardTitle || "Weekly leaderboard"}
       subtitle={t.arenaBoardSubtitle || "Top 100 · XP this week"}
       onClose={onClose}
     >
@@ -20,7 +20,7 @@ export default function LeaderboardScreen({ meUid, data, t, onClose, onOpenProfi
             {t.arenaBoardEmptyTitle || "Quiet week so far"}
           </p>
           <p className="sb-caption">
-            {t.arenaBoardEmptyBody || "Complete any task and you'll land on the board."}
+            {t.arenaBoardEmptyBody || "Complete any task and you will appear on the leaderboard."}
           </p>
         </div>
       ) : (

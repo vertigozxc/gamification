@@ -24,7 +24,7 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
       const data = await fetchChallenge(challengeId);
       setChallenge(data?.challenge || null);
     } catch (e) {
-      setError(e?.message || t.arenaLoadError || "Couldn't fetch");
+      setError(e?.message || t.arenaLoadError || "Could not load");
     } finally {
       setLoading(false);
     }
@@ -39,7 +39,7 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
       await refresh();
       onChanged && onChanged();
     } catch (e) {
-      setError(e?.message || t.arenaActionError || "Couldn't mark it done");
+      setError(e?.message || t.arenaActionError || "Could not update");
     } finally {
       setBusy(false);
     }
@@ -53,7 +53,7 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
       onChanged && onChanged();
       onClose();
     } catch (e) {
-      setError(e?.message || t.arenaActionError || "Couldn't leave the pact");
+      setError(e?.message || t.arenaActionError || "Could not leave");
       setBusy(false);
     }
   }
@@ -69,11 +69,11 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
   const footer = !loading && challenge && isActive && !ended ? (
     completedToday ? (
       <div className="sb-pill sb-pill-success" style={{ justifyContent: "center", padding: 14, fontSize: 15, width: "100%", display: "flex" }}>
-        ✓ {t.arenaDoneTodayFull || "Ticked off for today"}
+        ✓ {t.arenaDoneTodayFull || "Done for today"}
       </div>
     ) : (
       <button type="button" disabled={busy} onClick={handleComplete} className="sb-primary-btn press" style={{ width: "100%", padding: 14 }}>
-        {t.arenaTickOff || "Tick it off · +1 🪙 to everyone"}
+        {t.arenaTickOff || "Mark done today · +1 🪙 each"}
       </button>
     )
   ) : null;
@@ -81,7 +81,7 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
   return (
     <>
       <Screen
-        title={challenge?.title || (t.arenaPactTitle || "Pact")}
+        title={challenge?.title || (t.arenaPactTitle || "Challenge")}
         subtitle={
           challenge
             ? (ended
@@ -121,10 +121,10 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
       {confirmLeave && (
         <Alert
           icon="🚪"
-          title={t.arenaConfirmLeaveTitle || "Step out of this pact?"}
-          message={t.arenaConfirmLeaveBody || "Your streak in this pact stops here. You can return if the others invite you again."}
+          title={t.arenaConfirmLeaveTitle || "Leave this challenge?"}
+          message={t.arenaConfirmLeaveBody || "Your progress here stops. You can come back if the others invite you again."}
           cancelLabel={t.arenaCancel || "Cancel"}
-          confirmLabel={t.arenaStepOut || "Step out"}
+          confirmLabel={t.arenaStepOut || "Leave challenge"}
           destructive
           onCancel={() => setConfirmLeave(false)}
           onConfirm={doLeave}
@@ -160,7 +160,7 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, t
       {/* Progress */}
       <div className="sb-card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-          <span className="sb-caption" style={{ fontWeight: 600 }}>{t.arenaDurationProgress || "Span progress"}</span>
+          <span className="sb-caption" style={{ fontWeight: 600 }}>{t.arenaDurationProgress || "Duration progress"}</span>
           <span className="sb-caption">{elapsed}/{total} · {pct}%</span>
         </div>
         <div className="sb-progress" style={{ height: 8 }}>
@@ -184,7 +184,7 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, t
           gap: 8,
         }}
       >
-        <p className="sb-caption" style={{ fontWeight: 600 }}>{t.arenaDailyRitual || "Daily ritual"}</p>
+        <p className="sb-caption" style={{ fontWeight: 600 }}>{t.arenaDailyRitual || "Daily task"}</p>
         <p className="sb-headline" style={{ fontSize: 17 }}>
           🎯 {challenge.questTitle}
           {challenge.needsTimer && challenge.timeEstimateMin ? (
@@ -193,14 +193,14 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, t
         </p>
         {challenge.questDescription && <p className="sb-caption">{challenge.questDescription}</p>}
         {!ended && !todayAward && !completedToday && (
-          <p className="sb-caption">{t.arenaTokensUnlockHint || "Tokens for today unlock the moment anyone ticks this off."}</p>
+          <p className="sb-caption">{t.arenaTokensUnlockHint || "Tokens for today unlock when any participant marks it done."}</p>
         )}
       </div>
 
       {/* Participants */}
       <div>
         <h3 className="sb-section-title" style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-muted)", margin: "4px 4px 8px" }}>
-          {t.arenaCrew || "Crew"}
+          {t.arenaCrew || "Participants"}
         </h3>
         <div className="sb-list">
           {ranked.map((p, i) => (
@@ -219,7 +219,7 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, t
         {showActivity && (
           <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
             {(challenge.logs || []).length === 0 && (
-              <p className="sb-caption" style={{ textAlign: "center", padding: "8px 0" }}>{t.arenaActivityEmpty || "Nothing here yet."}</p>
+              <p className="sb-caption" style={{ textAlign: "center", padding: "8px 0" }}>{t.arenaActivityEmpty || "No activity yet."}</p>
             )}
             {(challenge.logs || []).map((log) => (
               <div key={log.id} style={{ fontSize: 13, color: "var(--color-text)", padding: "6px 10px", borderRadius: 8, background: "rgba(120,120,128,0.12)" }}>
@@ -237,7 +237,7 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, t
 
       {isActive && !ended && (
         <button type="button" onClick={onLeave} disabled={busy} className="sb-destructive-btn press" style={{ marginTop: 4 }}>
-          {t.arenaStepOut || "Step out"}
+          {t.arenaStepOut || "Leave challenge"}
         </button>
       )}
     </div>
@@ -266,7 +266,7 @@ function ParticipantRow({ rank, participant, meUid, t, onOpenProfile, isLast }) 
         <p className="sb-body" style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", letterSpacing: "-0.01em" }}>
           {participant.user.displayName || participant.user.username}
           {isMe && <span style={{ color: "var(--color-primary)" }}> · {t.arenaYou || "you"}</span>}
-          {left && <span style={{ color: "var(--color-muted)", fontWeight: 400 }}> · {t.arenaStepped || "stepped out"}</span>}
+          {left && <span style={{ color: "var(--color-muted)", fontWeight: 400 }}> · {t.arenaStepped || "left"}</span>}
         </p>
         <p className="sb-caption" style={{ display: "flex", gap: 8 }}>
           <span>✓ {participant.completions || 0}</span>
@@ -288,10 +288,10 @@ function Mini({ label, value }) {
 }
 
 function logVerb(type, t) {
-  if (type === "created") return t.arenaLogCreated || "started the pact";
+  if (type === "created") return t.arenaLogCreated || "started the challenge";
   if (type === "joined") return t.arenaLogJoined || "joined";
-  if (type === "left") return t.arenaLogLeft || "stepped out";
-  if (type === "completed") return t.arenaLogCompleted || "ticked off the ritual";
+  if (type === "left") return t.arenaLogLeft || "left";
+  if (type === "completed") return t.arenaLogCompleted || "completed today's task";
   return type;
 }
 

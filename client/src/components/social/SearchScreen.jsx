@@ -41,8 +41,8 @@ export default function SearchScreen({ meUid, t, onClose, onOpenProfile }) {
 
   return (
     <Screen
-      title={t.arenaScoutTitle || "Scout players"}
-      subtitle={t.arenaScoutSubtitle || "Find someone by nickname"}
+      title={t.arenaScoutTitle || "Find friends"}
+      subtitle={t.arenaScoutSubtitle || "Search by nickname"}
       onClose={onClose}
       headerExtra={
         <div className="sb-search">
@@ -81,7 +81,7 @@ export default function SearchScreen({ meUid, t, onClose, onOpenProfile }) {
         </p>
       ) : results.length === 0 ? (
         <p style={{ textAlign: "center", padding: "24px 12px", color: "var(--color-muted)" }}>
-          {t.arenaScoutEmpty || "Nobody matches that."}
+          {t.arenaScoutEmpty || "No players found."}
         </p>
       ) : (
         <div className="sb-list">

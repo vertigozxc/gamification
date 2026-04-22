@@ -35,8 +35,8 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
 
   async function handleCreate() {
     setError("");
-    if (title.trim().length < 1) { setError(t.arenaCreateErrorTitle || "Name your pact"); return; }
-    if (questTitle.trim().length < 1) { setError(t.arenaCreateErrorTask || "Describe the ritual"); return; }
+    if (title.trim().length < 1) { setError(t.arenaCreateErrorTitle || "Challenge needs a name"); return; }
+    if (questTitle.trim().length < 1) { setError(t.arenaCreateErrorTask || "Describe the task"); return; }
     setSubmitting(true);
     try {
       await createChallenge({
@@ -51,7 +51,7 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
       });
       onCreated && onCreated();
     } catch (err) {
-      setError(err?.message || t.arenaCreateErrorGeneric || "Couldn't forge the pact");
+      setError(err?.message || t.arenaCreateErrorGeneric || "Could not create the challenge");
     } finally {
       setSubmitting(false);
     }
@@ -65,22 +65,22 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
       className="sb-primary-btn press"
       style={{ width: "100%", padding: 14 }}
     >
-      {submitting ? (t.arenaForging || "Forging…") : (t.arenaForgePact || "Forge the pact")}
+      {submitting ? (t.arenaForging || "Creating…") : (t.arenaForgePact || "Create challenge")}
     </button>
   );
 
   return (
     <Screen
-      title={t.arenaNewPactTitle || "New pact"}
-      subtitle={t.arenaNewPactSubtitle || "Friends · span · daily ritual"}
+      title={t.arenaNewPactTitle || "New challenge"}
+      subtitle={t.arenaNewPactSubtitle || "Friends · duration · daily task"}
       onClose={onClose}
       footer={footer}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-        <Field label={`${t.arenaInvitePals || "Invite pals"} (${selected.length}/${MAX_INVITEES})`}>
+        <Field label={`${t.arenaInvitePals || "Invite friends"} (${selected.length}/${MAX_INVITEES})`}>
           {friends.length === 0 ? (
             <p className="sb-caption" style={{ padding: "8px 0" }}>
-              {t.arenaNoFriendsYet || "Find some pals first — they'll appear here."}
+              {t.arenaNoFriendsYet || "Add friends first — they will appear here."}
             </p>
           ) : (
             <div className="sb-list">
@@ -126,7 +126,7 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
           )}
         </Field>
 
-        <Field label={`${t.arenaSpan || "Span"} · ${duration} ${pluralDays(duration, t)}`}>
+        <Field label={`${t.arenaSpan || "Duration"} · ${duration} ${pluralDays(duration, t)}`}>
           <input
             type="range"
             min={1}
@@ -140,30 +140,30 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
           </div>
         </Field>
 
-        <Field label={t.arenaPactNameLabel || "Pact name"}>
+        <Field label={t.arenaPactNameLabel || "Challenge name"}>
           <input
             type="text"
             value={title}
             maxLength={80}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder={t.arenaPactNamePlaceholder || "e.g. Morning hustle"}
+            placeholder={t.arenaPactNamePlaceholder || "e.g. Morning routine"}
             className="sb-input"
           />
         </Field>
 
-        <Field label={t.arenaPactHowLabel || "Why are we doing this? (optional)"}>
+        <Field label={t.arenaPactHowLabel || "Description (optional)"}>
           <textarea
             value={description}
             maxLength={300}
             rows={2}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder={t.arenaPactHowPlaceholder || "Tell the crew the vibe"}
+            placeholder={t.arenaPactHowPlaceholder || "What are we doing and why"}
             className="sb-input"
             style={{ resize: "vertical" }}
           />
         </Field>
 
-        <Field label={t.arenaRitualLabel || "Daily ritual"}>
+        <Field label={t.arenaRitualLabel || "Daily task"}>
           <input
             type="text"
             value={questTitle}
@@ -181,13 +181,13 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
         >
           <span style={{ fontSize: 18 }}>⏱</span>
           <span className="sb-body" style={{ flex: 1, fontWeight: 500 }}>
-            {t.arenaRitualIsTimed || "Timed ritual"}
+            {t.arenaRitualIsTimed || "Timed task"}
           </span>
           <Switch checked={needsTimer} onChange={setNeedsTimer} />
         </div>
 
         {needsTimer && (
-          <Field label={t.arenaTimedMinutes || "Minutes on the clock"}>
+          <Field label={t.arenaTimedMinutes || "Duration (minutes)"}>
             <input
               type="number"
               min={1}

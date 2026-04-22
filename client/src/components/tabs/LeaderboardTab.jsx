@@ -94,9 +94,9 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
       <div style={{ padding: "10px 14px 24px", display: "flex", flexDirection: "column", gap: 22 }}>
         {/* ── Large title ── */}
         <header className="hh-title-strip">
-          <p className="hh-eyebrow">{t.hallEyebrow || "Guild"}</p>
-          <h1 className="cinzel hh-title">{t.hallTitle || "Heroes' Hall"}</h1>
-          <p className="hh-lede">{t.hallLede || "The road is better with company at your side."}</p>
+          {t.hallEyebrow ? <p className="hh-eyebrow">{t.hallEyebrow}</p> : null}
+          <h1 className="cinzel hh-title">{t.hallTitle || "Community"}</h1>
+          <p className="hh-lede">{t.hallLede || "See where you stand and push each other forward."}</p>
         </header>
 
         {loading && !leaderboard ? (
@@ -119,13 +119,13 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
             <div className="hh-quick-row">
               <button type="button" onClick={pushCreate} className="hh-quick-btn press">
                 <div className="hh-quick-ico">⚔️</div>
-                <div className="hh-quick-label">{t.hallActionPact || "Forge a quest"}</div>
-                <div className="hh-quick-hint">{t.hallActionPactHint || "Pick a habit, invite allies"}</div>
+                <div className="hh-quick-label">{t.hallActionPact || "Start a challenge"}</div>
+                <div className="hh-quick-hint">{t.hallActionPactHint || "Pick a habit, invite friends"}</div>
               </button>
               <button type="button" onClick={pushSearch} className="hh-quick-btn press">
                 <div className="hh-quick-ico">🔎</div>
-                <div className="hh-quick-label">{t.hallActionScout || "Find a hero"}</div>
-                <div className="hh-quick-hint">{t.hallActionScoutHint || "Search by name"}</div>
+                <div className="hh-quick-label">{t.hallActionScout || "Find friends"}</div>
+                <div className="hh-quick-hint">{t.hallActionScoutHint || "Search by nickname"}</div>
               </button>
             </div>
 
@@ -135,7 +135,7 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
                 <span className="hh-banner-dot" aria-hidden="true" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="hh-banner-title">
-                    {(t.hallRequestsTitle || "{n} hero wants to join you").replace("{n}", String(requestCount))}
+                    {(t.hallRequestsTitle || "{n} new friend request").replace("{n}", String(requestCount))}
                   </div>
                   <div className="hh-banner-sub">{t.hallRequestsSub || "Tap to review and answer"}</div>
                 </div>
@@ -143,11 +143,11 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
               </button>
             )}
 
-            {/* ── Champions this week ── */}
+            {/* ── Top this week ── */}
             <section className="hh-section">
               <div className="hh-section-head">
                 <h2 className="cinzel hh-section-title">
-                  {t.hallChampionsTitle || "Champions this week"}
+                  {t.hallChampionsTitle || "Top this week"}
                   {totalRanked > 0 && <span className="count">· {totalRanked}</span>}
                 </h2>
                 {topFive.length > 0 && (
@@ -179,7 +179,7 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
             <section className="hh-section">
               <div className="hh-section-head">
                 <h2 className="cinzel hh-section-title">
-                  {t.hallAlliesTitle || "Your allies"}
+                  {t.hallAlliesTitle || "Friends"}
                   {friends.length > 0 && <span className="count">· {friends.length}</span>}
                 </h2>
                 {friends.length > 0 && (
@@ -204,7 +204,7 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
             <section className="hh-section">
               <div className="hh-section-head">
                 <h2 className="cinzel hh-section-title">
-                  {t.hallPactsTitle || "Co-op quests"}
+                  {t.hallPactsTitle || "Group challenges"}
                   {activePacts.length > 0 && <span className="count">· {activePacts.length}</span>}
                 </h2>
                 {activePacts.length > 0 && (
@@ -223,7 +223,7 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
                   ))}
                   {activePacts.length < MAX_ACTIVE_PACTS && (
                     <button type="button" onClick={pushCreate} className="sb-tinted-btn press" style={{ padding: 12 }}>
-                      ＋ {t.hallForgeAnother || "Forge another"}
+                      ＋ {t.hallForgeAnother || "Start another"}
                     </button>
                   )}
                 </div>
@@ -408,8 +408,8 @@ function EmptyChampions({ t }) {
   return (
     <div className="hh-empty">
       <div className="hh-empty-icon">🏔</div>
-      <p className="hh-empty-title">{t.hallChampionsEmptyTitle || "The board is empty"}</p>
-      <p className="hh-empty-body">{t.hallChampionsEmptyBody || "Complete a daily quest to claim a spot this week."}</p>
+      <p className="hh-empty-title">{t.hallChampionsEmptyTitle || "No one on the board yet"}</p>
+      <p className="hh-empty-body">{t.hallChampionsEmptyBody || "Finish a daily task to land on the weekly leaderboard."}</p>
     </div>
   );
 }
@@ -418,10 +418,10 @@ function EmptyAllies({ t, onFind }) {
   return (
     <div className="hh-empty">
       <div className="hh-empty-icon">🤝</div>
-      <p className="hh-empty-title">{t.hallAlliesEmptyTitle || "Traveling alone"}</p>
-      <p className="hh-empty-body">{t.hallAlliesEmptyBody || "Invite a friend by name and bring them along."}</p>
+      <p className="hh-empty-title">{t.hallAlliesEmptyTitle || "No friends yet"}</p>
+      <p className="hh-empty-body">{t.hallAlliesEmptyBody || "Add friends to see their progress and team up on group challenges."}</p>
       <button type="button" onClick={onFind} className="sb-tinted-btn press">
-        {t.hallAlliesEmptyCta || "Find a hero"}
+        {t.hallAlliesEmptyCta || "Find friends"}
       </button>
     </div>
   );
@@ -431,10 +431,10 @@ function EmptyPacts({ t, onStart }) {
   return (
     <div className="hh-empty">
       <div className="hh-empty-icon">⚔️</div>
-      <p className="hh-empty-title">{t.hallPactsEmptyTitle || "No co-op quests yet"}</p>
-      <p className="hh-empty-body">{t.hallPactsEmptyBody || "Team up on a daily habit. Every tick earns a token for the whole party."}</p>
+      <p className="hh-empty-title">{t.hallPactsEmptyTitle || "No group challenges yet"}</p>
+      <p className="hh-empty-body">{t.hallPactsEmptyBody || "Team up on a daily habit. Every completion earns a token for every participant."}</p>
       <button type="button" onClick={onStart} className="sb-tinted-btn press">
-        {t.hallPactsEmptyCta || "Forge your first quest"}
+        {t.hallPactsEmptyCta || "Start your first challenge"}
       </button>
     </div>
   );

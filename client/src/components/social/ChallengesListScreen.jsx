@@ -17,13 +17,13 @@ export default function ChallengesListScreen({ challenges = [], t, onClose, onOp
       className="sb-primary-btn press"
       style={{ width: "100%", padding: 14 }}
     >
-      {canCreate ? `＋ ${t.arenaPactForgeCta || "Forge a pact"}` : (t.arenaPactLimit || "3 pacts active · limit reached")}
+      {canCreate ? `＋ ${t.arenaPactForgeCta || "Start a challenge"}` : (t.arenaPactLimit || "3 active challenges · limit reached")}
     </button>
   );
 
   return (
     <Screen
-      title={t.arenaPactsScreenTitle || "Your pacts"}
+      title={t.arenaPactsScreenTitle || "Group challenges"}
       subtitle={`${active.length} ${t.arenaPactActiveWord || "active"} · ${ended.length} ${t.arenaPactEndedWord || "ended"}`}
       onClose={onClose}
       footer={footer}
@@ -58,10 +58,10 @@ export default function ChallengesListScreen({ challenges = [], t, onClose, onOp
         <div style={{ textAlign: "center", padding: "48px 20px" }}>
           <div style={{ fontSize: 38, marginBottom: 8 }}>🤝</div>
           <p className="sb-headline" style={{ marginBottom: 4 }}>
-            {t.arenaPactsListEmptyTitle || "No pacts yet"}
+            {t.arenaPactsListEmptyTitle || "No group challenges yet"}
           </p>
           <p className="sb-caption" style={{ maxWidth: 300, margin: "0 auto" }}>
-            {t.arenaPactsListEmptyBody || "Pick a friend, pick a habit, pick a span of days. Every daily tick earns everyone a token."}
+            {t.arenaPactsListEmptyBody || "Pick a friend, pick a habit, pick a duration. Every daily completion earns a token for everyone."}
           </p>
         </div>
       )}

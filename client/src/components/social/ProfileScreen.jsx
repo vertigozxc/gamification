@@ -52,7 +52,7 @@ export default function ProfileScreen({ targetUsername, meUsername, t, languageI
       setProfile(p?.user || null);
       setRelation(r || null);
     } catch (e) {
-      setError(e?.message || t.arenaLoadError || "Couldn't fetch this profile");
+      setError(e?.message || t.arenaLoadError || "Could not load this profile");
     } finally {
       setLoading(false);
     }
@@ -68,7 +68,7 @@ export default function ProfileScreen({ targetUsername, meUsername, t, languageI
       await refresh();
       onChanged && onChanged();
     } catch (e) {
-      setError(e?.message || t.arenaActionError || "Action didn't go through");
+      setError(e?.message || t.arenaActionError || "Something went wrong");
     } finally {
       setBusy(false);
     }
@@ -93,7 +93,7 @@ export default function ProfileScreen({ targetUsername, meUsername, t, languageI
   return (
     <>
       <Screen
-        title={profile?.displayName || (t.arenaProfileTitle || "Player")}
+        title={profile?.displayName || (t.arenaProfileTitle || "Profile")}
         subtitle={
           profile
             ? `${t.arenaLvlFull || "Level"} ${profile.level} · 🔥 ${profile.streak}`
@@ -108,7 +108,7 @@ export default function ProfileScreen({ targetUsername, meUsername, t, languageI
           </div>
         ) : !profile ? (
           <p style={{ textAlign: "center", color: "#ff6a63", padding: "40px 16px" }}>
-            {error || (t.arenaLoadError || "Couldn't fetch this profile")}
+            {error || (t.arenaLoadError || "Could not load this profile")}
           </p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -161,11 +161,11 @@ function Hero({ profile, t }) {
 function StatGrid({ profile, t, languageId }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-      <Stat icon="🔥" label={t.arenaStatStreak || "Now"} value={profile.streak || 0} accent="#ff9500" />
-      <Stat icon="🏆" label={t.arenaStatMaxStreak || "Peak"} value={profile.maxStreak || 0} accent="#fbbf24" />
+      <Stat icon="🔥" label={t.arenaStatStreak || "Current"} value={profile.streak || 0} accent="#ff9500" />
+      <Stat icon="🏆" label={t.arenaStatMaxStreak || "Best"} value={profile.maxStreak || 0} accent="#fbbf24" />
       <Stat icon="⚡" label={t.arenaStatWeek || "Week XP"} value={profile.weeklyXp || 0} accent="var(--color-primary)" />
-      <Stat icon="🤝" label={t.arenaStatFriends || "Circle"} value={profile.friendCount || 0} />
-      <Stat icon="📅" label={t.arenaStatJoined || "In the game since"} value={formatDate(profile.createdAt, languageId)} span={2} small />
+      <Stat icon="🤝" label={t.arenaStatFriends || "Friends"} value={profile.friendCount || 0} />
+      <Stat icon="📅" label={t.arenaStatJoined || "Joined"} value={formatDate(profile.createdAt, languageId)} span={2} small />
     </div>
   );
 }
@@ -216,14 +216,14 @@ function FriendshipAction({ state, busy, t, onAdd, onCancel, onAccept, onDecline
   if (state === "friends") {
     return (
       <button type="button" disabled={busy} onClick={onRemove} className="sb-destructive-btn press" style={{ width: "100%", padding: 14 }}>
-        {t.arenaDropFriend || "Drop from circle"}
+        {t.arenaDropFriend || "Remove friend"}
       </button>
     );
   }
   if (state === "outgoing_pending") {
     return (
       <button type="button" disabled={busy} onClick={onCancel} className="press" style={{ width: "100%", padding: 14, border: "1px solid var(--card-border-idle)", borderRadius: 12, background: "rgba(120,120,128,0.22)", color: "var(--color-text)", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
-        {t.arenaPendingCancel || "Pending · tap to cancel"}
+        {t.arenaPendingCancel || "Request sent · tap to cancel"}
       </button>
     );
   }
@@ -242,13 +242,13 @@ function FriendshipAction({ state, busy, t, onAdd, onCancel, onAccept, onDecline
   if (state === "declined_by_them") {
     return (
       <button type="button" disabled className="sb-tinted-btn" style={{ width: "100%", padding: 14, opacity: 0.5 }}>
-        {t.arenaDeclined || "They passed · wait for their move"}
+        {t.arenaDeclined || "Request was declined"}
       </button>
     );
   }
   return (
     <button type="button" disabled={busy} onClick={onAdd} className="sb-primary-btn press" style={{ width: "100%", padding: 14 }}>
-      ＋ {t.arenaInviteToCircle || "Invite to circle"}
+      ＋ {t.arenaInviteToCircle || "Add friend"}
     </button>
   );
 }
