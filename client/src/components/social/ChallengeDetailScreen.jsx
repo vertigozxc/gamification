@@ -122,24 +122,17 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
   // reading `Date.now()` inside elapsedMs (we intentionally re-render via tick).
   void tick;
 
+  // Footer: done pill for completed day, or the "Mark done" button for
+  // non-timed challenges. Timed challenges no longer surface a Start-timer
+  // button here — that UX lives on the dashboard challenge card (same place
+  // as timed quests).
   const footer = !loading && challenge && isActive && !ended ? (
     completedToday ? (
       <div className="sb-pill sb-pill-success" style={{ justifyContent: "center", padding: 14, fontSize: 15, width: "100%", display: "flex" }}>
         ✓ {t.arenaDoneTodayFull || "Done for today"}
       </div>
     ) : challenge.needsTimer && targetMs > 0 ? (
-      <ChallengeTimerPanel
-        status={timer.status}
-        elapsedMs={elapsedMs}
-        targetMs={targetMs}
-        percent={timerPct}
-        busy={busy}
-        t={t}
-        onStart={startTimer}
-        onPause={pauseTimer}
-        onResume={resumeTimer}
-        onStop={stopTimer}
-      />
+      null
     ) : (
       <button type="button" disabled={busy} onClick={handleComplete} className="sb-primary-btn press" style={{ width: "100%", padding: 14 }}>
         {t.arenaTickOff || "Mark done today · +1 🪙 each"}

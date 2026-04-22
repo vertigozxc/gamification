@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import CityIsometricOverview from "../CityIsometricOverview";
+import CityIsometricOverview, { DISTRICTS } from "../CityIsometricOverview";
+import DistrictView from "../DistrictView";
+import InteractiveMapWrapper from "../InteractiveMapWrapper";
 import {
   cancelFriendRequest,
   fetchFriendRelation,
@@ -12,6 +14,8 @@ import Avatar from "./Avatar";
 import StreakFrame, { getStreakTier } from "./StreakFrame";
 import Screen from "./Screen";
 import Alert from "./Alert";
+
+const DISTRICT_MAX_LEVEL = 5;
 
 function parseDistrictLevels(str) {
   return String(str || "0,0,0,0,0")
@@ -195,14 +199,89 @@ function Stat({ icon, label, value, accent, span, small }) {
 function CityCard({ profile, t }) {
   const levels = parseDistrictLevels(profile.districtLevels);
   const sum = levels.reduce((a, n) => a + n, 0);
+  const [selectedIdx, setSelectedIdx] = useState(-1);
+
+  const handleDistrictClick = useCallback((idx) => {
+    const entry = DISTRICTS[idx];
+    if (!entry || entry.locked) return;
+    setSelectedIdx(idx);
+  }, []);
+  const handleClose = useCallback(() => setSelectedIdx(-1), []);
+
+  const district = selectedIdx >= 0 ? DISTRICTS[selectedIdx] : null;
+  const districtLevel = selectedIdx >= 0
+    ? Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(Number(levels[selectedIdx]) || 0)))
+    : 0;
+  const districtName = district
+    ? (t?.[`district${district.id.charAt(0).toUpperCase() + district.id.slice(1)}`] || district.id)
+    : "";
+
   return (
     <div className="sb-card" style={{ padding: 10, overflow: "hidden" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
         <p className="sb-caption" style={{ fontWeight: 600 }}>{t.arenaCity || "City"}</p>
         <p className="sb-caption">{(t.arenaCityStat || "{n} / 25").replace("{n}", String(sum))}</p>
       </div>
-      <div style={{ aspectRatio: "1 / 1", width: "100%", pointerEvents: "none" }}>
-        <CityIsometricOverview levels={levels} selectedIdx={-1} t={t} />
+      <div style={{ position: "relative", aspectRatio: "1 / 1", width: "100%", borderRadius: 12, overflow: "hidden", background: "var(--panel-bg)" }}>
+        {district ? (
+          <>
+            <InteractiveMapWrapper background="var(--panel-bg)" initialScale={1.0}>
+              <DistrictView districtId={district.id} level={districtLevel} />
+            </InteractiveMapWrapper>
+            <div
+              style={{
+                position: "absolute",
+                top: 8, left: 0, right: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "0 8px",
+                zIndex: 2,
+                pointerEvents: "none",
+              }}
+            >
+              <button
+                type="button"
+                onClick={handleClose}
+                aria-label="Back"
+                style={{
+                  width: 36, height: 36, borderRadius: 10,
+                  border: "1px solid rgba(15,23,42,0.55)",
+                  background: "rgba(15,23,42,0.78)",
+                  backdropFilter: "blur(6px)",
+                  color: "#f8fafc",
+                  cursor: "pointer", padding: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: "0 3px 10px rgba(0,0,0,0.35)",
+                  pointerEvents: "auto",
+                }}
+              >
+                <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 6l-6 6 6 6" />
+                </svg>
+              </button>
+              <div
+                style={{
+                  padding: "5px 12px",
+                  borderRadius: 999,
+                  background: "rgba(15,23,42,0.72)",
+                  border: "1px solid rgba(148,163,184,0.35)",
+                  color: "#f8fafc",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: "0.02em",
+                  backdropFilter: "blur(6px)",
+                }}
+              >
+                {districtName} · {t.districtLevelLabel || "Level"} {districtLevel}/{DISTRICT_MAX_LEVEL}
+              </div>
+            </div>
+          </>
+        ) : (
+          <InteractiveMapWrapper background="var(--panel-bg)" initialScale={1.0}>
+            <CityIsometricOverview levels={levels} selectedIdx={-1} onDistrictClick={handleDistrictClick} t={t} />
+          </InteractiveMapWrapper>
+        )}
       </div>
     </div>
   );

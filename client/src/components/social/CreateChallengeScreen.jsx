@@ -38,7 +38,7 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
         title: title.trim(),
         questTitle: questTitle.trim(),
         needsTimer,
-        timeEstimateMin: needsTimer ? Math.max(1, Math.min(600, Number(timeEstimateMin) || 0)) : 0,
+        timeEstimateMin: needsTimer ? Math.max(1, Math.min(180, Number(timeEstimateMin) || 0)) : 0,
         durationDays: Math.max(1, Math.min(MAX_DURATION_DAYS, Number(duration) || 7)),
         inviteeUsernames: selected,
       });
@@ -179,7 +179,7 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
               <input
                 type="number"
                 min={1}
-                max={600}
+                max={180}
                 value={timeEstimateMin}
                 onChange={(e) => setTimeEstimateMin(e.target.value)}
                 className="sb-input"
@@ -233,11 +233,13 @@ function InviteFriendsSheet({ friends, selected, maxInvitees, t, onClose, onChan
           margin: "auto",
           height: "100svh",
           maxHeight: "100svh",
+          // Push the header below the notch/status bar to match the Community
+          // screen's top rhythm.
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 14px)",
         }}
       >
         <div
-          className="sb-page-header"
-          style={{ flexShrink: 0, padding: "16px 16px 12px", borderBottom: "1px solid var(--card-border-idle, var(--panel-border))" }}
+          style={{ flexShrink: 0, padding: "4px 16px 12px", borderBottom: "1px solid var(--card-border-idle, var(--panel-border))" }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -250,65 +252,68 @@ function InviteFriendsSheet({ friends, selected, maxInvitees, t, onClose, onChan
           </div>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
+        {/* Scrollable body: the list AND the confirm button sit inside the
+            same scroll container, so the button appears right under the last
+            friend in the list instead of being pinned in the tab bar. */}
+        <div style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: `14px 16px calc(16px + env(safe-area-inset-bottom, 0px))` }}>
           {friends.length === 0 ? (
             <p className="sb-caption" style={{ textAlign: "center", padding: "24px 12px" }}>
               {t.arenaNoFriendsYet || "Add friends first — they will appear here."}
             </p>
           ) : (
-            <div className="sb-list">
-              {friends.map((f, i) => {
-                const picked = selected.includes(f.username);
-                const atLimit = !picked && selected.length >= maxInvitees;
-                return (
-                  <button
-                    key={f.username}
-                    type="button"
-                    onClick={() => toggle(f.username)}
-                    disabled={atLimit}
-                    className="sb-list-row press"
-                    style={{
-                      borderBottom: i === friends.length - 1 ? "none" : undefined,
-                      background: picked ? "rgba(var(--color-primary-rgb,251,191,36),0.12)" : "transparent",
-                      opacity: atLimit ? 0.4 : 1,
-                    }}
-                  >
-                    <span
+            <>
+              <div className="sb-list">
+                {friends.map((f, i) => {
+                  const picked = selected.includes(f.username);
+                  const atLimit = !picked && selected.length >= maxInvitees;
+                  return (
+                    <button
+                      key={f.username}
+                      type="button"
+                      onClick={() => toggle(f.username)}
+                      disabled={atLimit}
+                      className="sb-list-row press"
                       style={{
-                        width: 22,
-                        height: 22,
-                        borderRadius: "50%",
-                        border: `2px solid ${picked ? "var(--color-primary)" : "rgba(120,120,128,0.5)"}`,
-                        background: picked ? "var(--color-primary)" : "transparent",
-                        color: "#1b1410",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 13,
-                        fontWeight: 700,
-                        flexShrink: 0,
+                        borderBottom: i === friends.length - 1 ? "none" : undefined,
+                        background: picked ? "rgba(var(--color-primary-rgb,251,191,36),0.12)" : "transparent",
+                        opacity: atLimit ? 0.4 : 1,
                       }}
                     >
-                      {picked ? "✓" : ""}
-                    </span>
-                    <div style={{ width: 32, height: 32, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: "var(--panel-bg)" }}>
-                      <Avatar photoUrl={f.photoUrl} displayName={f.displayName} size={32} />
-                    </div>
-                    <span className="sb-body" style={{ fontWeight: 600, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", letterSpacing: "-0.01em" }}>
-                      {f.displayName || f.username}
-                    </span>
-                    <span className="sb-caption">{t.arenaLvlShort || "Lv"} {f.level}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                      <span
+                        style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: "50%",
+                          border: `2px solid ${picked ? "var(--color-primary)" : "rgba(120,120,128,0.5)"}`,
+                          background: picked ? "var(--color-primary)" : "transparent",
+                          color: "#1b1410",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 13,
+                          fontWeight: 700,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {picked ? "✓" : ""}
+                      </span>
+                      <div style={{ width: 32, height: 32, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: "var(--panel-bg)" }}>
+                        <Avatar photoUrl={f.photoUrl} displayName={f.displayName} size={32} />
+                      </div>
+                      <span className="sb-body" style={{ fontWeight: 600, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", letterSpacing: "-0.01em" }}>
+                        {f.displayName || f.username}
+                      </span>
+                      <span className="sb-caption">{t.arenaLvlShort || "Lv"} {f.level}</span>
+                    </button>
+                  );
+                })}
+              </div>
 
-        <div style={{ flexShrink: 0, padding: `12px 16px calc(12px + env(safe-area-inset-bottom, 0px))`, borderTop: "1px solid var(--card-border-idle, var(--panel-border))" }}>
-          <button type="button" onClick={onClose} className="sb-primary-btn press" style={{ width: "100%", padding: 14 }}>
-            {t.arenaInviteSheetDone || "Done"} · {selected.length}/{maxInvitees}
-          </button>
+              <button type="button" onClick={onClose} className="sb-primary-btn press" style={{ width: "100%", padding: 14, marginTop: 14 }}>
+                {t.arenaInvitePals || "Invite friends"} · {selected.length}/{maxInvitees}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

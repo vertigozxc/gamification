@@ -5210,7 +5210,7 @@ app.get("/api/friends/list/:username", async (req, res) => {
 
 // ---- Group challenges ----
 
-const MAX_ACTIVE_CHALLENGES_PER_USER = 3;
+const MAX_ACTIVE_CHALLENGES_PER_USER = 2;
 const MAX_PARTICIPANTS_PER_CHALLENGE = 6; // creator + up to 5 friends
 
 async function activeParticipationCount(userId) {
@@ -5233,8 +5233,8 @@ app.post("/api/challenges", async (req, res) => {
     questTitle: z.string().min(1).max(80),
     questDescription: z.string().max(300).optional(),
     needsTimer: z.boolean().optional(),
-    timeEstimateMin: z.number().int().min(0).max(600).optional(),
-    durationDays: z.number().int().min(1).max(365),
+    timeEstimateMin: z.number().int().min(0).max(180).optional(),
+    durationDays: z.number().int().min(1).max(90),
     inviteeUsernames: z.array(z.string().min(2).max(128)).max(5)
   });
   try {
@@ -5266,6 +5266,21 @@ app.post("/api/challenges", async (req, res) => {
       });
       if (friendLinks.length !== users.length) {
         return res.status(403).json({ error: "All invitees must be friends of the creator" });
+      }
+      // Each invitee must also have capacity — a challenge counts the same
+      // against every participant's limit.
+      const overLimit = [];
+      for (const u of users) {
+        const count = await activeParticipationCount(u.id);
+        if (count >= MAX_ACTIVE_CHALLENGES_PER_USER) overLimit.push(u.username);
+      }
+      if (overLimit.length > 0) {
+        return res.status(409).json({
+          error: "Invitee at challenge limit",
+          code: "invitee_limit",
+          usernames: overLimit,
+          limit: MAX_ACTIVE_CHALLENGES_PER_USER
+        });
       }
       inviteeUsers.push(...users);
     }
@@ -5422,33 +5437,30 @@ app.post("/api/challenges/:id/complete", async (req, res) => {
       ? meParticipant.consecutiveDays + 1
       : 1;
 
-    // Daily award: if this is first completion today across the whole challenge,
-    // credit every active participant with +1 token and +1 tokensEarned (in-challenge).
-    const shouldAward = challenge.lastAwardedDayKey !== dayKey;
-
+    // Per-completer award: the user who actually completed the task today
+    // gets +1 token. Other participants earn nothing for this user's tick —
+    // they must complete themselves to get their own token.
     await prisma.$transaction(async (tx) => {
       await tx.challengeParticipant.update({
         where: { id: meParticipant.id },
         data: {
           completions: { increment: 1 },
           consecutiveDays: nextConsecutive,
-          lastCompletionDayKey: dayKey
+          lastCompletionDayKey: dayKey,
+          tokensEarned: { increment: 1 }
         }
       });
       await tx.challengeLogEntry.create({
         data: { challengeId, userId: me.id, type: "completed" }
       });
-
-      if (shouldAward) {
-        const activeIds = challenge.participants.filter((p) => !p.leftAt).map((p) => p.userId);
-        await tx.user.updateMany({
-          where: { id: { in: activeIds } },
-          data: { tokens: { increment: 1 } }
-        });
-        await tx.challengeParticipant.updateMany({
-          where: { challengeId, userId: { in: activeIds }, leftAt: null },
-          data: { tokensEarned: { increment: 1 } }
-        });
+      await tx.user.update({
+        where: { id: me.id },
+        data: { tokens: { increment: 1 } }
+      });
+      // Keep lastAwardedDayKey roughly up-to-date for compatibility with
+      // existing challenge cards that surface "today's award happened" — we
+      // set it whenever any completion lands so the UI hint disappears.
+      if (challenge.lastAwardedDayKey !== dayKey) {
         await tx.groupChallenge.update({
           where: { id: challengeId },
           data: { lastAwardedDayKey: dayKey }
@@ -5456,7 +5468,7 @@ app.post("/api/challenges/:id/complete", async (req, res) => {
       }
     });
 
-    res.json({ ok: true, awardedTokensToday: shouldAward });
+    res.json({ ok: true, awardedTokensToday: true });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
   }
