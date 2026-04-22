@@ -1,204 +1,180 @@
-import SidePanels from "../SidePanels";
+import { useEffect, useState } from "react";
+import { useTheme } from "../../ThemeContext";
+import WeeklyLeaderboard from "../social/WeeklyLeaderboard";
+import FriendsTab from "../social/FriendsTab";
+import ChallengesTab from "../social/ChallengesTab";
+import PublicProfileModal from "../social/PublicProfileModal";
+import { fetchIncomingFriendRequests } from "../../api";
 
-export default function LeaderboardTab({ leaderboard, authUser, logs, t }) {
-  const sluggedUid = String(authUser?.uid || "").trim().slice(0, 128);
-  const userRank = leaderboard.findIndex((entry) => entry.username === sluggedUid) + 1;
-  const rankLabel = userRank > 0 ? `#${userRank}` : "—";
-  const userEntry = leaderboard.find((e) => e.username === sluggedUid);
-  const userLevel = userEntry?.level ?? "—";
-  const userStreak = userEntry?.streak ?? 0;
-  const totalPlayers = leaderboard.length;
-  const currentRankLabel = t.mobileCurrentRankLabel || "Your current rank";
-  const boardTitle = (t.leaderboard || "🏆 Leaderboard").replace(/^🏆\s*/, "");
+export default function LeaderboardTab({ authUser, t: tProp }) {
+  const { t: tTheme, languageId } = useTheme();
+  const t = tProp || tTheme;
+  const [subTab, setSubTab] = useState("weekly");
+  const [profileUsername, setProfileUsername] = useState(null);
+  const [requestCount, setRequestCount] = useState(0);
 
-  const statDivider = (
-    <div style={{ width: 1, alignSelf: "stretch", background: "var(--leaderboard-border)", opacity: 0.35, margin: "0 0.25rem" }} />
-  );
+  const meUid = String(authUser?.uid || "").slice(0, 128);
+
+  useEffect(() => {
+    let cancelled = false;
+    function tick() {
+      if (!meUid) return;
+      fetchIncomingFriendRequests(meUid)
+        .then((d) => { if (!cancelled) setRequestCount((d?.requests || []).length); })
+        .catch(() => {});
+    }
+    tick();
+    const interval = setInterval(tick, 60_000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [meUid]);
+
+  const tabs = [
+    { id: "weekly", label: t.socialTabWeekly || "Active", icon: "🔥" },
+    { id: "challenges", label: t.socialTabChallenges || "Challenges", icon: "⚔️" },
+    { id: "friends", label: t.socialTabFriends || "Friends", icon: "🤝", badge: requestCount }
+  ];
 
   return (
     <div
-      className="flex flex-col gap-4"
-      style={{
-        minHeight: "calc(100svh - var(--mobile-safe-top, 0px) - var(--mobile-footer-offset, 98px) - 90px)"
-      }}
+      className="flex flex-col gap-3"
+      style={{ minHeight: "calc(100svh - var(--mobile-safe-top, 0px) - var(--mobile-footer-offset, 98px) - 90px)" }}
     >
-      {/* ── Hero banner card ── */}
+      {/* Hero header */}
       <div
-        className="overflow-hidden top-screen-block"
         style={{
           background: "var(--leaderboard-bg)",
+          border: "1px solid var(--leaderboard-border)",
           borderRadius: "var(--border-radius-panel)",
-          boxShadow: "0 4px 24px rgba(0,0,0,0.35)",
+          padding: "0.85rem 1rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.75rem"
         }}
       >
-        {/* Top strip: icon + title */}
         <div
-          className="flex items-center gap-3"
           style={{
-            padding: "1rem 1.25rem 0.875rem",
-            borderBottom: "1px solid var(--leaderboard-border)",
-            background: "rgba(0,0,0,0.15)",
+            width: 40,
+            height: 40,
+            borderRadius: "0.75rem",
+            background: "linear-gradient(135deg, rgba(var(--color-primary-rgb,251,191,36),0.24), rgba(0,0,0,0.18))",
+            border: "1px solid var(--leaderboard-border)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "1.25rem",
+            flexShrink: 0
           }}
         >
-          <div
+          🌐
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--color-primary-dim)" }}>
+            {t.socialHeroKicker || "Community"}
+          </p>
+          <h2
+            className="cinzel leading-none text-transparent bg-clip-text"
+            style={{ backgroundImage: "var(--heading-gradient)", fontSize: "1.05rem", fontWeight: 700 }}
+          >
+            {t.socialHeroTitle || "Social"}
+          </h2>
+        </div>
+      </div>
+
+      {/* Sub-tab pills */}
+      <div
+        role="tablist"
+        style={{
+          display: "flex",
+          gap: "0.3rem",
+          padding: "0.25rem",
+          background: "rgba(0,0,0,0.28)",
+          border: "1px solid var(--panel-border)",
+          borderRadius: "0.65rem"
+        }}
+      >
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={subTab === tab.id}
+            onClick={() => setSubTab(tab.id)}
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: "0.875rem",
-              background: "linear-gradient(135deg, rgba(var(--color-primary-rgb,251,191,36),0.18), rgba(0,0,0,0.1))",
-              border: "1px solid var(--leaderboard-border)",
+              flex: 1,
+              padding: "0.5rem 0.35rem",
+              border: "none",
+              background: subTab === tab.id ? "rgba(var(--color-primary-rgb,251,191,36),0.2)" : "transparent",
+              color: subTab === tab.id ? "var(--color-primary)" : "var(--color-muted)",
+              borderRadius: "0.45rem",
+              cursor: "pointer",
+              fontSize: "0.76rem",
+              fontWeight: 700,
+              letterSpacing: "0.04em",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              flexShrink: 0,
-              fontSize: "1.4rem",
+              gap: "0.3rem",
+              position: "relative"
             }}
           >
-            🏆
-          </div>
-          <div className="min-w-0 flex-1">
-            <p
-              style={{
-                fontFamily: "var(--font-heading)",
-                fontSize: "0.6rem",
+            <span>{tab.icon}</span>
+            <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tab.label}</span>
+            {tab.badge ? (
+              <span style={{
+                position: "absolute",
+                top: 2,
+                right: 4,
+                minWidth: 16,
+                height: 16,
+                padding: "0 4px",
+                borderRadius: 999,
+                background: "#ef4444",
+                color: "#fff",
+                fontSize: "0.58rem",
                 fontWeight: 700,
-                letterSpacing: "0.18em",
-                textTransform: "uppercase",
-                color: "var(--color-primary-dim)",
-                marginBottom: "0.2rem",
-              }}
-            >
-              {t.mobileLeaderboardLabel || "Hall of Heroes"}
-            </p>
-            <h2
-              className="cinzel leading-none text-transparent bg-clip-text"
-              style={{ backgroundImage: "var(--heading-gradient)", fontSize: "1.15rem", fontWeight: 700 }}
-            >
-              {boardTitle}
-            </h2>
-          </div>
-          {/* Player count pill */}
-          {totalPlayers > 0 && (
-            <div
-              style={{
-                padding: "0.2rem 0.65rem",
-                borderRadius: "999px",
-                background: "rgba(0,0,0,0.28)",
-                border: "1px solid var(--leaderboard-border)",
-                fontSize: "0.65rem",
-                fontWeight: 600,
-                color: "var(--color-muted)",
-                letterSpacing: "0.06em",
-                whiteSpace: "nowrap",
-                flexShrink: 0,
-              }}
-            >
-              {totalPlayers} {window.i18nLanguage === "ru" ? "игроков" : "players"}
-            </div>
-          )}
-        </div>
-
-        {/* Stats row */}
-        <div className="flex items-center" style={{ padding: "1rem 1.25rem" }}>
-          {/* Rank */}
-          <div className="flex-1 flex flex-col items-center gap-1">
-            <p
-              style={{
-                fontFamily: "var(--font-heading)",
-                fontSize: "0.59rem",
-                fontWeight: 700,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "var(--color-primary-dim)",
-              }}
-            >
-              {currentRankLabel}
-            </p>
-            <p
-              className="cinzel text-transparent bg-clip-text leading-none"
-              style={{
-                backgroundImage: "var(--heading-gradient)",
-                fontSize: "2.25rem",
-                fontWeight: 700,
-                lineHeight: 1,
-              }}
-            >
-              {rankLabel}
-            </p>
-
-          </div>
-
-          {statDivider}
-
-          {/* Level */}
-          <div className="flex-1 flex flex-col items-center gap-1">
-            <p
-              style={{
-                fontFamily: "var(--font-heading)",
-                fontSize: "0.59rem",
-                fontWeight: 700,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "var(--color-primary-dim)",
-              }}
-            >
-              {t.levelShort || "Level"}
-            </p>
-            <p
-              className="cinzel text-transparent bg-clip-text leading-none"
-              style={{
-                backgroundImage: "var(--heading-gradient)",
-                fontSize: "2.25rem",
-                fontWeight: 700,
-                lineHeight: 1,
-              }}
-            >
-              {userLevel}
-            </p>
-          </div>
-
-          {statDivider}
-
-          {/* Streak */}
-          <div className="flex-1 flex flex-col items-center gap-1">
-            <p
-              style={{
-                fontFamily: "var(--font-heading)",
-                fontSize: "0.59rem",
-                fontWeight: 700,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "var(--color-primary-dim)",
-              }}
-            >
-              {t.streakUnit || "Streak"}
-            </p>
-            <p
-              className="cinzel text-transparent bg-clip-text leading-none"
-              style={{
-                backgroundImage: "var(--heading-gradient)",
-                fontSize: "2.25rem",
-                fontWeight: 700,
-                lineHeight: 1,
-              }}
-            >
-              {userStreak}
-            </p>
-          </div>
-        </div>
-
-
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}>
+                {tab.badge}
+              </span>
+            ) : null}
+          </button>
+        ))}
       </div>
 
-      <div
-        style={{
-          flex: 1,
-          minHeight: "30vh",
-          padding: "0"
-        }}
-      >
-        <SidePanels leaderboard={leaderboard} authUser={authUser} logs={logs} compact />
-      </div>
+      {subTab === "weekly" && (
+        <WeeklyLeaderboard
+          authUser={authUser}
+          t={t}
+          onOpenProfile={(username) => setProfileUsername(username)}
+        />
+      )}
+      {subTab === "challenges" && (
+        <ChallengesTab
+          authUser={authUser}
+          t={t}
+          languageId={languageId}
+          onOpenProfile={(username) => setProfileUsername(username)}
+        />
+      )}
+      {subTab === "friends" && (
+        <FriendsTab
+          authUser={authUser}
+          t={t}
+          onOpenProfile={(username) => setProfileUsername(username)}
+        />
+      )}
+
+      {profileUsername && (
+        <PublicProfileModal
+          targetUsername={profileUsername}
+          meUsername={meUid}
+          t={t}
+          languageId={languageId}
+          onClose={() => setProfileUsername(null)}
+        />
+      )}
     </div>
   );
 }
