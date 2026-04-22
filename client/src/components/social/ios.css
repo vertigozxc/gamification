@@ -1,11 +1,6 @@
 /* =============================================================================
- * Community block — mobile-native primitives.
- *
- *   <Screen>  Full-screen slide-up sheet (matches Replace-Habits style)
- *   <Alert>   Centered confirmation (matches Logout/Delete-Profile modal)
- *   .press    Universal press-state highlight on every tappable
- *
- * Scoped under .social-block so nothing leaks to the rest of the app.
+ * Heroes' Hall — social block primitives.
+ * All styles scoped under .social-block to keep them contained.
  * ============================================================================= */
 
 .social-block {
@@ -15,7 +10,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* ---------- Press state: background tint shift on :active ------------------ */
+/* ---------- Press state: one rule, everywhere ----------------------------- */
 .social-block .press {
   transition: background-color 120ms ease, opacity 120ms ease, filter 120ms ease;
   cursor: pointer;
@@ -30,17 +25,20 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
-
-/* Primary / destructive CTAs need their own press tint so the fill stays */
 .social-block .sb-primary-btn.press:active:not(:disabled) {
-  background-color: rgba(var(--color-primary-rgb, 251, 191, 36), 1);
   filter: brightness(0.9);
 }
 .social-block .sb-destructive-btn.press:active:not(:disabled) {
   filter: brightness(0.88);
+  background-color: rgba(255, 59, 48, 0.28);
+}
+.social-block .sb-tinted-btn.press:active:not(:disabled) {
+  background-color: rgba(var(--color-primary-rgb, 251, 191, 36), 0.26);
 }
 
-/* ---------- <Screen> — full-screen sheet ----------------------------------- */
+/* ============================================================================
+ * <Screen> — full-screen slide-up sheet (same chrome as Replace Habits)
+ * ========================================================================== */
 .social-block .sb-sheet-overlay {
   position: fixed;
   inset: 0;
@@ -113,7 +111,428 @@
   background: var(--card-bg, #0f172a);
 }
 
-/* ---------- Generic buttons ----------------------------------------------- */
+/* ============================================================================
+ * Heroes' Hall home — RPG-themed single-scroll layout
+ * ========================================================================== */
+
+/* ---------- Large title strip --------------------------------------------- */
+.social-block .hh-title-strip {
+  padding: 6px 4px 10px;
+}
+.social-block .hh-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-primary) 75%, var(--color-muted));
+  margin-bottom: 4px;
+}
+.social-block .hh-title {
+  font-family: var(--font-heading);
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  background: var(--heading-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+.social-block .hh-lede {
+  font-size: 14px;
+  color: var(--color-muted);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+/* ---------- Section heading ----------------------------------------------- */
+.social-block .hh-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.social-block .hh-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 4px;
+}
+.social-block .hh-section-title {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-primary-dim, var(--color-primary));
+  background: var(--heading-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.social-block .hh-section-title .count {
+  font-size: 12px;
+  color: var(--color-muted);
+  letter-spacing: 0.04em;
+  -webkit-text-fill-color: var(--color-muted);
+  font-weight: 600;
+}
+.social-block .hh-section-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid var(--card-border-idle, rgba(255, 255, 255, 0.12));
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.social-block .hh-divider {
+  height: 1px;
+  margin: 0 4px;
+  background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--color-primary) 50%, transparent) 18%, color-mix(in srgb, var(--color-primary) 50%, transparent) 82%, transparent 100%);
+  opacity: 0.5;
+}
+
+/* ---------- Hero rank ribbon (big week standing) -------------------------- */
+.social-block .hh-rank {
+  position: relative;
+  overflow: hidden;
+  padding: 22px 22px 20px;
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 36%, transparent);
+  background:
+    radial-gradient(circle at 85% 10%, color-mix(in srgb, var(--color-accent) 32%, transparent), transparent 44%),
+    radial-gradient(circle at 10% 95%, color-mix(in srgb, var(--color-primary) 28%, transparent), transparent 48%),
+    linear-gradient(180deg, color-mix(in srgb, var(--card-bg) 85%, transparent), color-mix(in srgb, var(--card-bg) 98%, transparent)),
+    var(--card-bg);
+  color: var(--color-text);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+}
+.social-block .hh-rank::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, transparent 0 45%, color-mix(in srgb, var(--color-primary) 22%, transparent) 50%, transparent 55%);
+  opacity: 0.25;
+}
+.social-block .hh-rank-eyebrow {
+  font-family: var(--font-heading);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-primary-dim, var(--color-primary));
+  position: relative;
+}
+.social-block .hh-rank-number {
+  font-family: var(--font-heading);
+  font-size: 58px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  background: var(--heading-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  position: relative;
+  margin-top: 4px;
+}
+.social-block .hh-rank-context {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin-top: 4px;
+  position: relative;
+}
+.social-block .hh-rank-hr {
+  position: relative;
+  margin: 16px -22px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--color-primary) 40%, transparent) 20%, color-mix(in srgb, var(--color-primary) 40%, transparent) 80%, transparent 100%);
+  opacity: 0.6;
+}
+.social-block .hh-rank-stats {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.social-block .hh-rank-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.social-block .hh-rank-stat-value {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+  margin-top: 2px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+/* ---------- Quick-action row ---------------------------------------------- */
+.social-block .hh-quick-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.social-block .hh-quick-btn {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--card-border-idle, rgba(255, 255, 255, 0.12));
+  background: color-mix(in srgb, var(--panel-bg) 88%, transparent);
+  color: var(--color-text);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  min-height: 100px;
+}
+.social-block .hh-quick-ico {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(var(--color-primary-rgb, 251, 191, 36), 0.18);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+.social-block .hh-quick-label {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+.social-block .hh-quick-hint {
+  font-size: 12px;
+  color: var(--color-muted);
+  line-height: 1.35;
+}
+
+/* ---------- Requests banner ------------------------------------------------ */
+.social-block .hh-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 16%, transparent), color-mix(in srgb, var(--color-primary) 8%, transparent));
+  border: 1px solid color-mix(in srgb, var(--color-primary) 45%, transparent);
+  color: var(--color-text);
+  cursor: pointer;
+  font-family: inherit;
+}
+.social-block .hh-banner-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff453a;
+  box-shadow: 0 0 12px rgba(255, 69, 58, 0.65);
+  flex-shrink: 0;
+}
+.social-block .hh-banner-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+.social-block .hh-banner-sub {
+  font-size: 12px;
+  color: var(--color-muted);
+  margin-top: 1px;
+}
+
+/* ---------- Champions podium list (compact 5-row) ------------------------- */
+.social-block .hh-podium {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.social-block .hh-podium-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  color: var(--color-text);
+  position: relative;
+  font-family: inherit;
+  cursor: pointer;
+}
+.social-block .hh-podium-row + .hh-podium-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 58px;
+  right: 14px;
+  height: 1px;
+  background: var(--panel-border);
+  opacity: 0.5;
+}
+.social-block .hh-podium-rank {
+  width: 24px;
+  text-align: center;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+.social-block .hh-podium-name {
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.social-block .hh-podium-meta {
+  font-size: 11px;
+  color: var(--color-muted);
+}
+.social-block .hh-podium-xp {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--color-primary);
+  letter-spacing: -0.02em;
+}
+.social-block .hh-podium-xp-label {
+  font-size: 10px;
+  color: var(--color-muted);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* ---------- Allies list --------------------------------------------------- */
+.social-block .hh-allies {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.social-block .hh-ally-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  color: var(--color-text);
+  position: relative;
+  font-family: inherit;
+  cursor: pointer;
+}
+.social-block .hh-ally-row + .hh-ally-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 72px;
+  right: 14px;
+  height: 1px;
+  background: var(--panel-border);
+  opacity: 0.5;
+}
+
+/* ---------- Pact card (full width, rich) ---------------------------------- */
+.social-block .hh-pact {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  width: 100%;
+  border-left: 3px solid color-mix(in srgb, var(--color-primary) 70%, transparent);
+}
+.social-block .hh-pact.ended {
+  opacity: 0.65;
+  border-left-color: color-mix(in srgb, var(--color-muted) 70%, transparent);
+}
+.social-block .hh-pact-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.social-block .hh-pact-quest {
+  font-size: 13px;
+  color: var(--color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Empty states -------------------------------------------------- */
+.social-block .hh-empty {
+  padding: 22px 20px;
+  border-radius: 16px;
+  background: var(--panel-bg);
+  border: 1px dashed color-mix(in srgb, var(--color-primary) 34%, transparent);
+  text-align: center;
+}
+.social-block .hh-empty-icon {
+  font-size: 32px;
+  margin-bottom: 6px;
+}
+.social-block .hh-empty-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--color-text);
+  margin-bottom: 4px;
+  letter-spacing: 0.02em;
+}
+.social-block .hh-empty-body {
+  font-size: 13px;
+  color: var(--color-muted);
+  line-height: 1.45;
+  max-width: 300px;
+  margin: 0 auto 12px;
+}
+
+/* ============================================================================
+ * Shared atoms used inside list screens and drill-downs
+ * ========================================================================== */
+
+/* ---------- Buttons ------------------------------------------------------- */
 .social-block .sb-primary-btn {
   display: inline-flex;
   align-items: center;
@@ -121,12 +540,12 @@
   gap: 6px;
   padding: 14px 18px;
   border-radius: 14px;
-  border: none;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 55%, transparent);
   background: var(--color-primary, #fbbf24);
   color: #1b1410;
   font-weight: 700;
-  font-size: 16px;
-  letter-spacing: -0.01em;
+  font-size: 15px;
+  letter-spacing: 0.02em;
   cursor: pointer;
   font-family: inherit;
   box-shadow: 0 6px 18px rgba(var(--color-primary-rgb, 251, 191, 36), 0.22);
@@ -142,12 +561,9 @@
   background: rgba(var(--color-primary-rgb, 251, 191, 36), 0.12);
   color: var(--color-primary, #fbbf24);
   font-weight: 600;
-  font-size: 15px;
+  font-size: 14px;
   cursor: pointer;
   font-family: inherit;
-}
-.social-block .sb-tinted-btn.press:active:not(:disabled) {
-  background-color: rgba(var(--color-primary-rgb, 251, 191, 36), 0.22);
 }
 .social-block .sb-destructive-btn {
   display: inline-flex;
@@ -160,21 +576,6 @@
   background: rgba(255, 59, 48, 0.18);
   color: #ff6a63;
   font-weight: 600;
-  font-size: 15px;
-  cursor: pointer;
-  font-family: inherit;
-}
-.social-block .sb-ghost-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: none;
-  background: transparent;
-  color: var(--color-primary, #fbbf24);
-  font-weight: 500;
   font-size: 15px;
   cursor: pointer;
   font-family: inherit;
@@ -194,7 +595,7 @@
   font-family: inherit;
 }
 
-/* ---------- List rows (iOS Settings-style grouped cell) -------------------- */
+/* ---------- Grouped list (for screens) ------------------------------------ */
 .social-block .sb-list {
   background: var(--panel-bg);
   border-radius: 14px;
@@ -224,10 +625,9 @@
   right: 14px;
   height: 1px;
   background: var(--panel-border);
-  opacity: 0.55;
+  opacity: 0.5;
 }
 
-/* ---------- Card ---------------------------------------------------------- */
 .social-block .sb-card {
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
@@ -235,227 +635,17 @@
   padding: 14px;
 }
 
-/* ---------- Section header ------------------------------------------------- */
-.social-block .sb-section-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 0 4px;
-  margin: 16px 0 8px;
-}
 .social-block .sb-section-title {
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--color-text);
-  margin: 0;
-}
-.social-block .sb-section-link {
+  font-family: var(--font-heading);
   font-size: 13px;
-  font-weight: 600;
-  color: var(--color-primary);
-  background: transparent;
-  border: none;
-  padding: 4px 6px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-/* ---------- Pulse card (hero on home) ------------------------------------- */
-.social-block .sb-pulse {
-  position: relative;
-  overflow: hidden;
-  padding: 18px 18px 16px;
-  border-radius: 22px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
-  background:
-    radial-gradient(circle at 85% 10%, color-mix(in srgb, var(--color-accent) 28%, transparent), transparent 42%),
-    radial-gradient(circle at 10% 90%, color-mix(in srgb, var(--color-primary) 22%, transparent), transparent 46%),
-    var(--card-bg);
-  color: var(--color-text);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
-}
-.social-block .sb-pulse-eyebrow {
-  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--color-primary-dim, var(--color-primary));
-  margin-bottom: 4px;
-}
-.social-block .sb-pulse-rank {
-  font-family: var(--font-heading);
-  font-size: 46px;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  background: var(--heading-gradient);
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-}
-.social-block .sb-pulse-rank-unit {
-  font-size: 16px;
-  color: var(--color-muted);
-  font-weight: 600;
-  margin-left: 6px;
-}
-.social-block .sb-pulse-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 14px;
-}
-.social-block .sb-pulse-stat {
-  border: 1px solid color-mix(in srgb, var(--panel-border) 70%, transparent);
-  background: color-mix(in srgb, var(--panel-bg) 85%, transparent);
-  border-radius: 12px;
-  padding: 10px 12px;
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-}
-.social-block .sb-pulse-stat-label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--color-muted);
-}
-.social-block .sb-pulse-stat-value {
-  font-family: var(--font-heading);
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--color-text);
-  letter-spacing: -0.02em;
-  margin-top: 2px;
+  margin: 4px 4px 8px;
 }
 
-/* ---------- Quick actions row (2 buttons side-by-side) -------------------- */
-.social-block .sb-quick-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-.social-block .sb-quick-btn {
-  padding: 14px 14px;
-  border-radius: 16px;
-  border: 1px solid var(--card-border-idle, rgba(255, 255, 255, 0.12));
-  background: color-mix(in srgb, var(--panel-bg) 88%, transparent);
-  color: var(--color-text);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  cursor: pointer;
-  font-family: inherit;
-  text-align: left;
-  min-height: 92px;
-}
-.social-block .sb-quick-btn .sb-quick-ico {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: rgba(var(--color-primary-rgb, 251, 191, 36), 0.2);
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-}
-.social-block .sb-quick-btn .sb-quick-label {
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: -0.01em;
-}
-.social-block .sb-quick-btn .sb-quick-hint {
-  font-size: 12px;
-  color: var(--color-muted);
-}
-
-/* ---------- Requests banner ------------------------------------------------ */
-.social-block .sb-banner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: rgba(var(--color-primary-rgb, 251, 191, 36), 0.12);
-  border: 1px solid color-mix(in srgb, var(--color-primary) 40%, transparent);
-  color: var(--color-text);
-  cursor: pointer;
-  font-family: inherit;
-}
-.social-block .sb-banner-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #ff453a;
-  box-shadow: 0 0 10px rgba(255, 69, 58, 0.6);
-  flex-shrink: 0;
-}
-.social-block .sb-banner-title {
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: -0.01em;
-}
-.social-block .sb-banner-sub {
-  font-size: 12px;
-  color: var(--color-muted);
-}
-.social-block .sb-banner-chev {
-  color: var(--color-muted);
-  font-size: 18px;
-  flex-shrink: 0;
-}
-
-/* ---------- Horizontal carousels ------------------------------------------ */
-.social-block .sb-scroll-x {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  padding: 2px 4px 6px;
-  margin: 0 -4px;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-.social-block .sb-scroll-x::-webkit-scrollbar { display: none; }
-.social-block .sb-scroll-x > * {
-  scroll-snap-align: start;
-  flex-shrink: 0;
-}
-
-/* ---------- Challenge carousel card --------------------------------------- */
-.social-block .sb-challenge-tile {
-  width: min(78vw, 300px);
-  padding: 14px;
-  border-radius: 18px;
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  color: var(--color-text);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
-}
-.social-block .sb-challenge-title {
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.social-block .sb-challenge-meta {
-  font-size: 12px;
-  color: var(--color-muted);
-  display: flex;
-  gap: 10px;
-}
+/* ---------- Progress ------------------------------------------------------ */
 .social-block .sb-progress {
   height: 6px;
   background: rgba(120, 120, 128, 0.22);
@@ -465,49 +655,12 @@
 .social-block .sb-progress-fill {
   height: 100%;
   border-radius: 999px;
-  background: var(--color-primary);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--color-primary) 70%, transparent), var(--color-primary));
   transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 .social-block .sb-progress-fill.done { background: #30d158; }
 
-/* ---------- Friends strip -------------------------------------------------- */
-.social-block .sb-friends-strip {
-  display: flex;
-  gap: 14px;
-  padding: 14px;
-  border-radius: 16px;
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-.social-block .sb-friends-strip::-webkit-scrollbar { display: none; }
-.social-block .sb-friend-chip {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  min-width: 64px;
-  background: transparent;
-  border: none;
-  padding: 4px;
-  color: var(--color-text);
-  cursor: pointer;
-  font-family: inherit;
-  border-radius: 10px;
-}
-.social-block .sb-friend-name {
-  font-size: 11px;
-  font-weight: 600;
-  max-width: 68px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  letter-spacing: -0.01em;
-}
-
-/* ---------- Pills ---------------------------------------------------------- */
+/* ---------- Pills --------------------------------------------------------- */
 .social-block .sb-pill {
   display: inline-flex;
   align-items: center;
@@ -524,17 +677,15 @@
 .social-block .sb-pill-accent {
   background: rgba(var(--color-primary-rgb, 251, 191, 36), 0.2);
   color: var(--color-primary);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 40%, transparent);
 }
 .social-block .sb-pill-success {
   background: rgba(48, 209, 88, 0.18);
   color: #30d158;
-}
-.social-block .sb-pill-danger {
-  background: rgba(255, 69, 58, 0.18);
-  color: #ff6a63;
+  border: 1px solid rgba(48, 209, 88, 0.35);
 }
 
-/* ---------- Stat block ----------------------------------------------------- */
+/* ---------- Stat tile (used in Profile screen) ---------------------------- */
 .social-block .sb-stat {
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
@@ -545,7 +696,7 @@
   gap: 10px;
 }
 
-/* ---------- Spinner -------------------------------------------------------- */
+/* ---------- Spinner ------------------------------------------------------- */
 .social-block .sb-spinner {
   width: 22px;
   height: 22px;
@@ -556,7 +707,7 @@
 }
 @keyframes sb-spin { to { transform: rotate(360deg); } }
 
-/* ---------- Search input --------------------------------------------------- */
+/* ---------- Search input + text inputs ------------------------------------ */
 .social-block .sb-search {
   display: flex;
   align-items: center;
@@ -579,8 +730,6 @@
 .social-block .sb-search input::placeholder {
   color: rgba(148, 163, 184, 0.7);
 }
-
-/* ---------- Input / textarea ---------------------------------------------- */
 .social-block .sb-input {
   width: 100%;
   padding: 12px 14px;
@@ -597,22 +746,10 @@
   border-color: color-mix(in srgb, var(--color-primary) 60%, var(--panel-border));
 }
 
-/* ---------- Caption / body / heading helpers ------------------------------ */
-.social-block .sb-title-xl {
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--color-text);
-}
-.social-block .sb-title-lg {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--color-text);
-}
+/* ---------- Typography helpers -------------------------------------------- */
 .social-block .sb-headline {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--color-text);
 }
@@ -623,8 +760,4 @@
 .social-block .sb-caption {
   font-size: 12px;
   color: var(--color-muted);
-}
-
-.social-block .sb-destructive-btn.press:active:not(:disabled) {
-  background-color: rgba(255, 59, 48, 0.28);
 }
