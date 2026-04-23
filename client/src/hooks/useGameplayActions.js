@@ -407,7 +407,9 @@ function useGameplayActions({
   async function handleResetDaily() {
     if (!window.confirm(vocab?.resetDailyConfirm || "Reset daily quests? This will clear today's completed quests and give you a fresh set.")) return;
     try {
-      const result = await resetDaily(resolvedUsername, false);
+      // force: true — the explicit "Reset Day" user action always rotates,
+      // unlike the auto-call on app mount which is idempotent per UTC day.
+      const result = await resetDaily(resolvedUsername, false, [], [], [], true);
       if (typeof onServerTimeSync === "function") {
         onServerTimeSync(result);
       }

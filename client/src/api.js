@@ -158,10 +158,10 @@ export function completeQuest(username, questId) {
   });
 }
 
-export function resetDaily(username, isReroll = false, excludeCategories = [], targetQuestIds = [], keepQuestIds = []) {
+export function resetDaily(username, isReroll = false, excludeCategories = [], targetQuestIds = [], keepQuestIds = [], force = false) {
   return request("/api/reset-daily", {
     method: "POST",
-    body: JSON.stringify({ username, isReroll, excludeCategories, targetQuestIds, keepQuestIds })
+    body: JSON.stringify({ username, isReroll, excludeCategories, targetQuestIds, keepQuestIds, force })
   });
 }
 

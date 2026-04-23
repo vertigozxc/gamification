@@ -81,7 +81,7 @@ export default function ProfileScreen({ targetUsername, meUsername, t, languageI
   const state = relation?.state;
   const isSelf = state === "self";
 
-  const footer = !loading && profile && !isSelf && meUsername ? (
+  const friendshipAction = !loading && profile && !isSelf && meUsername ? (
     <FriendshipAction
       state={state}
       busy={busy}
@@ -94,13 +94,20 @@ export default function ProfileScreen({ targetUsername, meUsername, t, languageI
     />
   ) : null;
 
+  // When we're already friends with this profile, the "Remove friend"
+  // action lives INSIDE the scroll, right under the stats grid (above the
+  // city card) — per UX request. The sticky screen footer only hosts the
+  // discovery-style CTAs (Add / Accept / Cancel / Decline).
+  const footerAction = state === "friends" ? null : friendshipAction;
+  const inlineRemoveAction = state === "friends" ? friendshipAction : null;
+
   return (
     <>
       <Screen
         title={profile?.displayName || (t.arenaProfileTitle || "Profile")}
         subtitle={profile ? "" : (t.arenaLoadingShort || "Loading")}
         onClose={onClose}
-        footer={footer}
+        footer={footerAction}
       >
         {loading ? (
           <div style={{ display: "flex", justifyContent: "center", padding: "64px 0" }}>
@@ -114,6 +121,7 @@ export default function ProfileScreen({ targetUsername, meUsername, t, languageI
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <Hero profile={profile} t={t} />
             <StatGrid profile={profile} t={t} languageId={languageId} />
+            {inlineRemoveAction}
             <CityCard profile={profile} t={t} />
             {error && <p style={{ fontSize: 14, color: "#ff6a63", textAlign: "center" }}>{error}</p>}
           </div>
@@ -159,15 +167,23 @@ function Hero({ profile, t }) {
 }
 
 function StatGrid({ profile, t, languageId }) {
+  const totalXp = Number(profile.totalXp) || 0;
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
       <Stat icon="🔥" label={t.arenaStatStreak || "Current"} value={profile.streak || 0} accent="#ff9500" />
-      <Stat icon="🏆" label={t.arenaStatMaxStreak || "Best"} value={profile.maxStreak || 0} accent="#fbbf24" />
+      <Stat icon="🎯" label={t.arenaStatTotalXp || "Total XP"} value={formatNumber(totalXp)} accent="#fbbf24" />
       <Stat icon="⚡" label={t.arenaStatWeek || "Week XP"} value={profile.weeklyXp || 0} accent="var(--color-primary)" />
       <Stat icon="🤝" label={t.arenaStatFriends || "Friends"} value={profile.friendCount || 0} />
       <Stat icon="📅" label={t.arenaStatJoined || "Joined"} value={formatDate(profile.createdAt, languageId)} span={2} small />
     </div>
   );
+}
+
+function formatNumber(n) {
+  if (!Number.isFinite(n)) return "0";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`;
+  if (n >= 10_000) return `${(n / 1_000).toFixed(0)}k`;
+  return n.toLocaleString();
 }
 
 function Stat({ icon, label, value, accent, span, small }) {

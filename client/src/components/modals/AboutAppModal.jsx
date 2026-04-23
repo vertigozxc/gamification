@@ -538,7 +538,7 @@ const COPY_EN = {
       body: (
         <>
           <Bullets items={[
-            "Level up — each level awards 1 token (2 tokens from level 10 onward).",
+            "Level up — tokens per level scale: 1 (lvl 2–10), 2 (11–20), 3 (21–30), 4 (31–50), 5 (51+).",
             "Daily board — 3 tokens for filling all 4 milestone slots.",
             "Habit milestone — +10 token bonus for completing the same habit 21 days in a row.",
             "Business district — claim a daily token bundle (1–5 tokens based on district level).",
@@ -769,7 +769,7 @@ const COPY_RU = {
       body: (
         <>
           <Bullets items={[
-            "Новый уровень — 1 токен за каждый уровень (с 10-го уровня — 2 токена).",
+            "Новый уровень — шкала токенов за уровень: 1 (ур. 2–10), 2 (11–20), 3 (21–30), 4 (31–50), 5 (51+).",
             "Дейли борд — 3 токена за заполнение всех 4 вех.",
             "Веха привычки — +10 токенов бонусом за закрытие одной привычки 21 день подряд.",
             "Район Бизнес — раз в день забираете пачку токенов (1–5 в зависимости от уровня района).",

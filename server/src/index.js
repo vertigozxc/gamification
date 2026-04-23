@@ -1754,6 +1754,14 @@ function findReplacementQuestCombination({
     return !excludeCategories.has(category) && !usedCategories.has(category);
   });
 
+  // Shuffle so repeated reroll calls with the same user state don't always
+  // produce the same "first valid combination" (which was giving users the
+  // feeling that reroll returns the same quest back).
+  for (let i = candidates.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+  }
+
   let solution = null;
 
   function backtrack(startIndex, chosen, chosenCategories, chosenEffort) {
@@ -1893,6 +1901,17 @@ function calculateStreak(completedCount, currentStreak) {
 
 function milestoneRewardForCount(completedCount) {
   return getConfiguredMilestoneRewardForCount(completedCount);
+}
+
+// Token rewards per level reached: 1 base, +1 more after every major
+// milestone (11+ → 2, 21+ → 3, 31+ → 4, 51+ → 5).
+function tokensForLevel(level) {
+  const lvl = Number(level) || 0;
+  if (lvl >= 51) return 5;
+  if (lvl >= 31) return 4;
+  if (lvl >= 21) return 3;
+  if (lvl >= 11) return 2;
+  return 1;
 }
 
 function applyBonusXpProgress(state, bonusXp) {
@@ -2784,7 +2803,7 @@ async function awardQuestCompletion({ user, quest, dayKey, availableQuests, cust
     let freshTokenIncrement = baseTokenIncrement;
     if (freshXpStateWithMilestone.level > freshUser.level) {
       for (let lvl = freshUser.level + 1; lvl <= freshXpStateWithMilestone.level; lvl++) {
-        freshTokenIncrement += lvl >= 10 ? 2 : 1;
+        freshTokenIncrement += tokensForLevel(lvl);
       }
     }
 
@@ -3357,6 +3376,11 @@ app.get("/api/city/spin-status/:username", async (req, res) => {
   }
 });
 
+// Single-shot spin: pick a reward, apply it, and stamp the cooldown in one
+// request. This replaces the old two-step spin→claim dance — if the user
+// closed the app after spinning the reward was silently dropped and the
+// cooldown never reset. Now everything happens atomically server-side, and
+// the client just animates the wheel to the correct segment.
 app.post("/api/city/spin", async (req, res) => {
   const schema = z.object({ username: z.string().min(2).max(64) });
   try {
@@ -3366,25 +3390,44 @@ app.post("/api/city/spin", async (req, res) => {
 
     const now = new Date();
     const todayKey = getDateKey(now);
-    const nextSpinAt = computeNextSpinAt(user, now).toISOString();
     if (isSpinOnCooldown(user, now)) {
-      return res.json({ ok: false, alreadySpun: true, nextSpinAt });
+      return res.json({
+        ok: false,
+        alreadySpun: true,
+        nextSpinAt: computeNextSpinAt(user, now).toISOString()
+      });
     }
 
     const reward = pickCitySpinReward();
-    const claimToken = createSpinClaimToken({
-      userId: user.id,
-      username: user.username,
-      reward,
-      dayKey: todayKey,
-      expiresAtMs: Date.parse(nextSpinAt)
-    });
+
+    // Apply the reward AND stamp lastCitySpinAt so the cooldown resets
+    // immediately after the click — even if the user closes the app before
+    // the animation finishes, they still got credit for the spin.
+    const rewardedUser = await applyCitySpinReward(user, reward, todayKey);
+    try {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastCitySpinAt: now }
+      });
+    } catch (e) {
+      console.warn("[City Spin] failed to set lastCitySpinAt:", e?.message || e);
+    }
+
+    const nextSpinAt = computeNextSpinAt(
+      { ...rewardedUser, lastCitySpinAt: now, districtLevels: user.districtLevels },
+      now
+    ).toISOString();
 
     return res.json({
       ok: true,
-      pending: true,
+      claimed: true,
       reward: { id: reward.id, type: reward.type, amount: reward.amount },
-      claimToken,
+      user: {
+        level: rewardedUser.level,
+        xp: rewardedUser.xp,
+        xpNext: rewardedUser.xpNext,
+        tokens: rewardedUser.tokens
+      },
       nextSpinAt
     });
   } catch (error) {
@@ -3846,6 +3889,10 @@ app.post("/api/reset-daily", async (req, res) => {
     const schema = z.object({
       username: z.string().min(2).max(64),
       isReroll: z.boolean().optional(),
+      // Forces the day rotation even if the same UTC day has already been
+      // processed — used by the explicit "Reset Day" user action. Plain app
+      // mounts leave this undefined so the call becomes an idempotent no-op.
+      force: z.boolean().optional(),
       excludeCategories: z.array(z.string()).optional(),
       targetQuestIds: z.array(z.number().int()).optional(),
       targetQuestId: z.number().int().optional().nullable(),
@@ -3870,6 +3917,44 @@ app.post("/api/reset-daily", async (req, res) => {
     const today = getDateKey(now);
     const streakDecayData = {};
     let todayRows = [];
+
+    // Idempotency: the client calls /api/reset-daily on every fresh mount of
+    // the app to handle day rollover. If it's already been called today for a
+    // non-reroll reset we must NOT rotate the random-quest pool again —
+    // otherwise opening the app twice on the same day gives a fresh set each
+    // session (and the "previous" stash overwrites itself so we lose track of
+    // which quests to exclude across days). Return the current state instead.
+    if (!parsed.isReroll && !parsed.force) {
+      const lastDailyResetKey = user.lastDailyResetAt ? getDateKey(new Date(user.lastDailyResetAt)) : null;
+      if (lastDailyResetKey === today) {
+        const userCustomQuestsEarly = await fetchUserCustomQuests(user.id);
+        const completedRows = await prisma.questCompletion.findMany({
+          where: { userId: user.id, dayKey: today },
+          orderBy: { completedAt: "asc" },
+          select: { questId: true }
+        });
+        const completedQuestIdsEarly = completedRows.map((item) => item.questId);
+        const productivityStateEarly = await updateAndReadProductivity(user, now);
+        const finalUserEarly = productivityStateEarly.user;
+        const { preferredQuestIds: preferredEarly } = onboardingStatus(finalUserEarly, userCustomQuestsEarly);
+        const pinnedQuestProgress21dEarly = preferredEarly.length > 0
+          ? await getPinnedQuestProgress21d(finalUserEarly, preferredEarly, now)
+          : [];
+        return res.json({
+          ok: true,
+          user: finalUserEarly,
+          hasRerolledToday: hasUsedDailyRerollToday(finalUserEarly, now),
+          extraRerollsToday: Number(finalUserEarly.extraRerollsToday || 0),
+          quests: composeDailyQuests(finalUserEarly, completedQuestIdsEarly, now, [], language, userCustomQuestsEarly),
+          completedQuestIds: completedQuestIdsEarly,
+          pinnedQuestProgress21d: pinnedQuestProgress21dEarly,
+          customQuests: userCustomQuestsEarly.map(buildCustomQuestEntry),
+          productivity: productivityStateEarly.productivity,
+          questSlots: getQuestSlotsForLevel(finalUserEarly.level || 1, finalUserEarly.streak || 0),
+          ...buildServerTimeMeta(now)
+        });
+      }
+    }
 
     if (!parsed.isReroll) {
       // On the first reset of a new UTC day, streak rules should be evaluated
@@ -5071,14 +5156,18 @@ app.get("/api/users/:username/public", async (req, res) => {
     });
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // Friend count + this-week XP (cheap aggregates).
-    const [friendCount, weeklyAgg] = await Promise.all([
+    // Friend count + this-week XP + lifetime XP (cheap aggregates).
+    const [friendCount, weeklyAgg, totalAgg] = await Promise.all([
       prisma.friendship.count({
         where: { OR: [{ userAId: user.id }, { userBId: user.id }] }
       }),
       prisma.dailyScore.aggregate({
         where: { userId: user.id, dayKey: { in: currentWeekDayKeys() } },
         _sum: { xpToday: true, tasksCompleted: true }
+      }),
+      prisma.dailyScore.aggregate({
+        where: { userId: user.id },
+        _sum: { xpToday: true }
       })
     ]);
 
@@ -5088,7 +5177,8 @@ app.get("/api/users/:username/public", async (req, res) => {
         ...publicUser,
         friendCount,
         weeklyXp: weeklyAgg._sum.xpToday || 0,
-        weeklyTasks: weeklyAgg._sum.tasksCompleted || 0
+        weeklyTasks: weeklyAgg._sum.tasksCompleted || 0,
+        totalXp: totalAgg._sum.xpToday || 0
       }
     });
   } catch (error) {

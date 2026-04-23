@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { citySpin, citySpinClaim } from "../api";
+import { citySpin } from "../api";
 
 const REWARDS = [
   { id: 1,  type: "xp",    amount: 10,  emoji: "✨", darkText: false },
@@ -22,7 +22,8 @@ const SEG_COLORS = [
 
 const SEG_COUNT = REWARDS.length;
 const SEG_DEG = 360 / SEG_COUNT; // 36°
-const CX = 150, CY = 150, R = 138, R_TEXT = 100;
+const WHEEL_SIZE = 340;
+const CX = 170, CY = 170, R = 158, R_TEXT = 115;
 
 function toRad(deg) { return (deg * Math.PI) / 180; }
 
@@ -46,8 +47,11 @@ function textPos(i) {
 }
 
 function rewardLabel(r) {
+  // Token segments already show 🪙 as the emoji above the label — don't
+  // duplicate the coin in the number itself. XP shows the unit, level is
+  // a one-off string.
   if (r.type === "xp") return `+${r.amount} XP`;
-  if (r.type === "token") return `+${r.amount}🪙`;
+  if (r.type === "token") return `+${r.amount}`;
   return "+1 LVL";
 }
 
@@ -62,12 +66,11 @@ function msToHMS(ms) {
 const SPIN_DURATION_MS = 5200;
 
 export default function SpinWheelModal({ open, username, t, onClose, onRewardClaimed }) {
-  const [phase, setPhase] = useState("idle"); // idle | loading | spinning | result
+  const [phase, setPhase] = useState("idle"); // idle | loading | spinning | result | cooldown
   const [rotation, setRotation] = useState(0);
   const [spinResult, setSpinResult] = useState(null);
   const [error, setError] = useState(null);
-  const [claiming, setClaiming] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(null); // ms until next spin
+  const [timeLeft, setTimeLeft] = useState(null);
 
   // Reset when opened
   useEffect(() => {
@@ -76,7 +79,6 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
       setRotation(0);
       setSpinResult(null);
       setError(null);
-      setClaiming(false);
       setTimeLeft(null);
     }
   }, [open]);
@@ -105,7 +107,6 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
       const result = await citySpin(username);
 
       if (!result.ok) {
-        // Already spun today
         setSpinResult(result);
         setPhase("cooldown");
         return;
@@ -115,281 +116,286 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
       const rewardIndex = result.reward.id - 1;
       const segCenter = rewardIndex * SEG_DEG + SEG_DEG / 2;
       const EXTRA_SPINS = 5;
-      // Pointer is fixed at top (0deg). Rotate wheel so winning segment center aligns to top.
       const finalRot = EXTRA_SPINS * 360 - segCenter;
 
       setSpinResult(result);
       setRotation(finalRot);
       setPhase("spinning");
 
-      setTimeout(() => setPhase("result"), SPIN_DURATION_MS + 300);
-    } catch (error) {
+      // Notify the parent immediately so the user's tokens/xp/level in the
+      // header update in sync with the wheel result — the reward has already
+      // been applied server-side, even if the user closes the modal mid-anim.
+      onRewardClaimed?.(result);
+
+      setTimeout(() => setPhase("result"), SPIN_DURATION_MS + 200);
+    } catch (e) {
       setPhase("idle");
-      setError(error?.message || t.spinNetworkError || "Request failed. Please try again.");
+      setError(e?.message || t.spinNetworkError || "Request failed. Please try again.");
     }
-  }, [phase, t.spinNetworkError, t.spinNoProfile, username]);
-
-  const handleClaim = useCallback(async () => {
-    if (claiming || !spinResult?.claimToken) {
-      if (!spinResult?.claimToken) {
-        setError(t.spinClaimError || "Claim token is missing. Please spin again.");
-      }
-      return;
-    }
-
-    setClaiming(true);
-    setError(null);
-    try {
-      const claimed = await citySpinClaim(username, spinResult.claimToken);
-      if (!claimed.ok) {
-        setSpinResult(claimed);
-        setPhase("cooldown");
-        return;
-      }
-      onRewardClaimed?.(claimed);
-      onClose();
-    } catch (claimError) {
-      setError(claimError?.message || t.spinClaimError || "Could not claim reward. Please try again.");
-    } finally {
-      setClaiming(false);
-    }
-  }, [claiming, onClose, onRewardClaimed, spinResult, t.spinClaimError, username]);
+  }, [phase, t.spinNetworkError, t.spinNoProfile, username, onRewardClaimed]);
 
   if (!open) return null;
 
   const wonReward = spinResult?.reward ? REWARDS.find(r => r.id === spinResult.reward.id) : null;
 
   return (
-    <div
-      style={{
-        position: "fixed", inset: 0, zIndex: 300,
-        background: "rgba(2, 6, 23, 0.95)",
-        display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center",
-        padding: "16px",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
-      }}
-    >
-      {/* Close button */}
-      <button
-        onClick={onClose}
+    <div className="logout-confirm-overlay" onClick={onClose} style={{ zIndex: 300 }}>
+      <div
+        className="logout-confirm-card"
+        onClick={(event) => event.stopPropagation()}
         style={{
-          position: "absolute", top: 18, right: 18,
-          width: 36, height: 36, borderRadius: "50%",
-          background: "rgba(255,255,255,0.08)",
-          border: "1px solid rgba(255,255,255,0.15)",
-          color: "#94a3b8", fontSize: 16, cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center",
+          width: "min(420px, 100%)",
+          borderColor: "color-mix(in srgb, var(--color-primary) 55%, transparent)",
+          boxShadow: "0 0 40px rgba(167,139,250,0.2), 0 25px 50px rgba(0, 0, 0, 0.6)",
+          padding: "1.5rem 1.25rem 1.25rem",
+          position: "relative"
         }}
-      >✕</button>
-
-      {/* Title */}
-      <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <h2 style={{
-          color: "var(--color-primary, #a78bfa)",
-          fontFamily: "Cinzel, Georgia, serif",
-          fontSize: 22, fontWeight: 900,
-          margin: 0, letterSpacing: "0.06em",
-          textShadow: "0 0 20px var(--color-primary, #a78bfa)",
-        }}>
-          {t.spinTitle || "CITY FORTUNE"}
-        </h2>
-        <p style={{ color: "#64748b", fontSize: 12, margin: "4px 0 0" }}>
-          {t.spinSubtitle || "Spin to win daily rewards!"}
-        </p>
-      </div>
-
-      {/* Wheel */}
-      <div style={{ position: "relative", marginBottom: 24 }}>
-        {/* Pointer arrow at top */}
-        <div style={{
-          position: "absolute", top: -14, left: "50%",
-          transform: "translateX(-50%)",
-          width: 0, height: 0,
-          borderLeft: "11px solid transparent",
-          borderRight: "11px solid transparent",
-          borderTop: "22px solid var(--color-primary, #a78bfa)",
-          zIndex: 10,
-          filter: "drop-shadow(0 0 8px var(--color-primary, #a78bfa))",
-        }} />
-
-        {/* Spinning wheel */}
-        <div
-          style={{
-            width: 300, height: 300,
-            transform: `rotate(${rotation}deg)`,
-            transition: phase === "spinning"
-              ? `transform ${SPIN_DURATION_MS}ms cubic-bezier(0.17, 0.67, 0.12, 0.99)`
-              : "none",
-            willChange: "transform",
-          }}
-        >
-          <svg viewBox="0 0 300 300" width="300" height="300">
-            {REWARDS.map((r, i) => {
-              const { x, y, rotate } = textPos(i);
-              return (
-                <g key={r.id}>
-                  <path
-                    d={segPath(i)}
-                    fill={SEG_COLORS[i]}
-                    stroke="rgba(0,0,0,0.25)"
-                    strokeWidth="1.5"
-                  />
-                  <text
-                    x={x} y={y - 9}
-                    textAnchor="middle" dominantBaseline="middle"
-                    fontSize="17"
-                    transform={`rotate(${rotate}, ${x}, ${y})`}
-                    style={{ userSelect: "none" }}
-                  >{r.emoji}</text>
-                  <text
-                    x={x} y={y + 11}
-                    textAnchor="middle" dominantBaseline="middle"
-                    fontSize="8.5"
-                    fontWeight="700"
-                    fill={r.darkText ? "#1a1a1a" : "#ffffff"}
-                    transform={`rotate(${rotate}, ${x}, ${y})`}
-                    style={{ userSelect: "none" }}
-                  >{rewardLabel(r)}</text>
-                </g>
-              );
-            })}
-            {/* Center cap */}
-            <circle cx={CX} cy={CY} r={20} fill="#0f172a" stroke="rgba(255,255,255,0.12)" strokeWidth="2" />
-            <text x={CX} y={CY} textAnchor="middle" dominantBaseline="middle" fontSize="14" style={{ userSelect: "none" }}>🎆</text>
-          </svg>
-        </div>
-
-        {/* Outer glow ring */}
-        <div style={{
-          position: "absolute", inset: -3,
-          border: "3px solid var(--color-primary, #a78bfa)",
-          borderRadius: "50%",
-          pointerEvents: "none",
-          boxShadow: "0 0 24px var(--color-primary, #a78bfa), 0 0 60px rgba(167,139,250,0.2)",
-        }} />
-      </div>
-
-      {/* Spin button (idle & loading states) */}
-      {(phase === "idle" || phase === "loading") && (
+      >
+        {/* Close X */}
         <button
-          onClick={handleSpin}
-          disabled={phase !== "idle"}
-          style={{
-            padding: "15px 52px",
-            fontSize: 18, fontWeight: 900,
-            fontFamily: "Cinzel, Georgia, serif",
-            letterSpacing: "0.15em",
-            color: "#0f172a",
-            background: phase === "idle"
-              ? "linear-gradient(135deg, var(--color-primary, #a78bfa), #c084fc)"
-              : "rgba(255,255,255,0.06)",
-            border: "none", borderRadius: 16,
-            cursor: phase === "idle" ? "pointer" : "default",
-            boxShadow: phase === "idle" ? "0 0 28px rgba(167,139,250,0.5)" : "none",
-            transition: "all 0.3s ease",
-            minWidth: 160,
-          }}
+          type="button"
+          aria-label={t.closeLabel || "Close"}
+          onClick={onClose}
+          className="ui-close-x"
+          style={{ position: "absolute", top: 12, right: 12 }}
         >
-          {phase === "idle" ? (t.spinButtonLabel || "🎰 SPIN!") : "⏳"}
+          ✕
         </button>
-      )}
 
-      {/* Spinning status */}
-      {phase === "spinning" && (
-        <p style={{ color: "#94a3b8", fontSize: 14, margin: 0, letterSpacing: "0.1em" }}>
-          {t.spinSpinning || "Spinning..."}
-        </p>
-      )}
-
-      {/* Error */}
-      {error && (
-        <p style={{ color: "#f87171", fontSize: 12, marginTop: 8, textAlign: "center" }}>{error}</p>
-      )}
-
-      {/* Already spun cooldown */}
-      {phase === "cooldown" && spinResult && (
-        <div style={{
-          marginTop: 8, textAlign: "center",
-          background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(255,255,255,0.1)",
-          borderRadius: 14, padding: "16px 24px",
-        }}>
-          <div style={{ fontSize: 36, marginBottom: 8 }}>⏳</div>
-          <p style={{ color: "#94a3b8", fontSize: 14, margin: "0 0 4px" }}>
-            {t.spinAlreadyUsed || "Already spun today!"}
-          </p>
-          <p style={{ color: "var(--color-primary, #a78bfa)", fontSize: 20, fontWeight: 700, margin: 0, fontVariantNumeric: "tabular-nums" }}>
-            {timeLeft !== null ? msToHMS(timeLeft) : "—"}
-          </p>
-          <p style={{ color: "#475569", fontSize: 11, marginTop: 4 }}>
-            {t.spinNextReset || "Resets at midnight (UTC)"}
-          </p>
-        </div>
-      )}
-
-      {/* Result popup */}
-      {phase === "result" && spinResult && wonReward && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: 32, left: 16, right: 16,
-            background: "linear-gradient(135deg, rgba(15,23,42,0.98), rgba(30,41,59,0.98))",
-            border: "1.5px solid var(--color-primary, #a78bfa)",
-            borderRadius: 22,
-            padding: "28px 24px 20px",
-            textAlign: "center",
-            boxShadow: "0 0 40px rgba(167,139,250,0.35), 0 24px 60px rgba(0,0,0,0.6)",
-            animation: "spin-result-in 0.4s cubic-bezier(0.34,1.56,0.64,1) both",
-          }}
-        >
-          <style>{`
-            @keyframes spin-result-in {
-              from { transform: translateY(40px) scale(0.9); opacity: 0; }
-              to   { transform: translateY(0)    scale(1);   opacity: 1; }
-            }
-          `}</style>
-
-          <div style={{ fontSize: 52, marginBottom: 6, lineHeight: 1 }}>{wonReward.emoji}</div>
-          <h3 style={{
-            color: "var(--color-primary, #a78bfa)",
-            fontFamily: "Cinzel, Georgia, serif",
-            fontSize: 18, margin: "0 0 6px",
-          }}>
-            {t.spinWinTitle || "You won!"}
-          </h3>
-          <p style={{ color: "#f1f5f9", fontSize: 24, fontWeight: 900, margin: "0 0 18px" }}>
-            {spinResult.reward.type === "xp"
-              ? `+${spinResult.reward.amount} XP`
-              : spinResult.reward.type === "token"
-                ? `+${spinResult.reward.amount} 🪙`
-                : "+1 LEVEL! 🎉"}
-          </p>
-
-          <button
-            onClick={handleClaim}
-            disabled={claiming}
+        {/* Title */}
+        <div style={{ textAlign: "center", marginBottom: 14 }}>
+          <h2
+            className="cinzel"
             style={{
-              padding: "13px 40px",
-              background: "linear-gradient(135deg, var(--color-primary, #a78bfa), #c084fc)",
-              border: "none", borderRadius: 14,
-              color: "#0f172a", fontSize: 16, fontWeight: 900,
-              cursor: claiming ? "default" : "pointer", width: "100%",
-              opacity: claiming ? 0.82 : 1,
-              boxShadow: "0 0 20px rgba(167,139,250,0.4)",
+              color: "var(--color-primary, #a78bfa)",
+              fontSize: 22,
+              fontWeight: 900,
+              margin: 0,
+              letterSpacing: "0.06em",
+              textShadow: "0 0 20px var(--color-primary, #a78bfa)"
             }}
           >
-            {claiming ? (t.spinClaiming || "Claiming...") : (t.spinClose || "Claim! 🎉")}
-          </button>
-
-          {spinResult.nextSpinAt && (
-            <p style={{ color: "#475569", fontSize: 11, marginTop: 12 }}>
-              {t.spinNextReset || "Next spin resets at midnight (UTC)"}
-            </p>
-          )}
+            {t.spinTitle || "CITY FORTUNE"}
+          </h2>
+          <p style={{ color: "#64748b", fontSize: 12, margin: "4px 0 0" }}>
+            {t.spinSubtitle || "Spin to win daily rewards!"}
+          </p>
         </div>
-      )}
+
+        {/* Wheel stage: a fixed-size container so clicking the Spin button
+            never causes layout shift of the wheel. */}
+        <div style={{
+          position: "relative",
+          width: WHEEL_SIZE,
+          height: WHEEL_SIZE,
+          margin: "0 auto 16px"
+        }}>
+          {/* Pointer arrow at top */}
+          <div style={{
+            position: "absolute", top: -16, left: "50%",
+            transform: "translateX(-50%)",
+            width: 0, height: 0,
+            borderLeft: "12px solid transparent",
+            borderRight: "12px solid transparent",
+            borderTop: "24px solid var(--color-primary, #a78bfa)",
+            zIndex: 10,
+            filter: "drop-shadow(0 0 8px var(--color-primary, #a78bfa))"
+          }} />
+
+          {/* Spinning wheel */}
+          <div
+            style={{
+              width: WHEEL_SIZE, height: WHEEL_SIZE,
+              transform: `rotate(${rotation}deg)`,
+              transition: phase === "spinning"
+                ? `transform ${SPIN_DURATION_MS}ms cubic-bezier(0.17, 0.67, 0.12, 0.99)`
+                : "none",
+              willChange: "transform"
+            }}
+          >
+            <svg viewBox="0 0 340 340" width={WHEEL_SIZE} height={WHEEL_SIZE}>
+              {REWARDS.map((r, i) => {
+                const { x, y, rotate } = textPos(i);
+                return (
+                  <g key={r.id}>
+                    <path
+                      d={segPath(i)}
+                      fill={SEG_COLORS[i]}
+                      stroke="rgba(0,0,0,0.25)"
+                      strokeWidth="1.5"
+                    />
+                    <text
+                      x={x} y={y - 10}
+                      textAnchor="middle" dominantBaseline="middle"
+                      fontSize="19"
+                      transform={`rotate(${rotate}, ${x}, ${y})`}
+                      style={{ userSelect: "none" }}
+                    >{r.emoji}</text>
+                    <text
+                      x={x} y={y + 12}
+                      textAnchor="middle" dominantBaseline="middle"
+                      fontSize="10"
+                      fontWeight="700"
+                      fill={r.darkText ? "#1a1a1a" : "#ffffff"}
+                      transform={`rotate(${rotate}, ${x}, ${y})`}
+                      style={{ userSelect: "none" }}
+                    >{rewardLabel(r)}</text>
+                  </g>
+                );
+              })}
+              {/* Center cap */}
+              <circle cx={CX} cy={CY} r={22} fill="#0f172a" stroke="rgba(255,255,255,0.12)" strokeWidth="2" />
+              <text x={CX} y={CY} textAnchor="middle" dominantBaseline="middle" fontSize="16" style={{ userSelect: "none" }}>🎆</text>
+            </svg>
+          </div>
+
+          {/* Outer glow ring */}
+          <div style={{
+            position: "absolute", inset: -3,
+            border: "3px solid var(--color-primary, #a78bfa)",
+            borderRadius: "50%",
+            pointerEvents: "none",
+            boxShadow: "0 0 24px var(--color-primary, #a78bfa), 0 0 60px rgba(167,139,250,0.2)"
+          }} />
+        </div>
+
+        {/* Result banner — rendered in-flow below the wheel so the wheel
+            never shifts when it appears. */}
+        {phase === "result" && spinResult && wonReward && (
+          <div
+            style={{
+              margin: "0 4px 14px",
+              padding: "14px 16px",
+              background: "linear-gradient(135deg, rgba(167,139,250,0.12), rgba(192,132,252,0.08))",
+              border: "1.5px solid var(--color-primary, #a78bfa)",
+              borderRadius: 16,
+              textAlign: "center",
+              boxShadow: "0 0 24px rgba(167,139,250,0.22)",
+              animation: "spin-result-in 0.4s cubic-bezier(0.34,1.56,0.64,1) both"
+            }}
+          >
+            <style>{`
+              @keyframes spin-result-in {
+                from { transform: translateY(12px) scale(0.96); opacity: 0; }
+                to   { transform: translateY(0)    scale(1);    opacity: 1; }
+              }
+            `}</style>
+            <div style={{ fontSize: 36, lineHeight: 1, marginBottom: 4 }}>{wonReward.emoji}</div>
+            <p className="cinzel" style={{
+              color: "var(--color-primary, #a78bfa)",
+              fontSize: 14,
+              margin: "0 0 2px",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase"
+            }}>
+              {t.spinWinTitle || "You won!"}
+            </p>
+            <p style={{ color: "#f1f5f9", fontSize: 22, fontWeight: 900, margin: 0 }}>
+              {spinResult.reward.type === "xp"
+                ? `+${spinResult.reward.amount} XP`
+                : spinResult.reward.type === "token"
+                  ? `+${spinResult.reward.amount} 🪙`
+                  : "+1 LEVEL 🎉"}
+            </p>
+          </div>
+        )}
+
+        {/* Cooldown state */}
+        {phase === "cooldown" && spinResult && (
+          <div style={{
+            margin: "0 4px 14px",
+            padding: "14px 16px",
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 14,
+            textAlign: "center"
+          }}>
+            <div style={{ fontSize: 30, marginBottom: 4 }}>⏳</div>
+            <p style={{ color: "#94a3b8", fontSize: 13, margin: "0 0 2px" }}>
+              {t.spinAlreadyUsed || "Already spun today!"}
+            </p>
+            <p style={{
+              color: "var(--color-primary, #a78bfa)",
+              fontSize: 20,
+              fontWeight: 700,
+              margin: 0,
+              fontVariantNumeric: "tabular-nums"
+            }}>
+              {timeLeft !== null ? msToHMS(timeLeft) : "—"}
+            </p>
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <p style={{ color: "#f87171", fontSize: 12, textAlign: "center", margin: "0 0 10px" }}>{error}</p>
+        )}
+
+        {/* Bottom action button */}
+        {phase === "idle" || phase === "loading" ? (
+          <button
+            type="button"
+            onClick={handleSpin}
+            disabled={phase !== "idle"}
+            className="cinzel"
+            style={{
+              width: "100%",
+              padding: "14px 20px",
+              fontSize: 16,
+              fontWeight: 900,
+              letterSpacing: "0.15em",
+              color: "#0f172a",
+              background: phase === "idle"
+                ? "linear-gradient(135deg, var(--color-primary, #a78bfa), #c084fc)"
+                : "rgba(255,255,255,0.06)",
+              border: "none",
+              borderRadius: 14,
+              cursor: phase === "idle" ? "pointer" : "default",
+              boxShadow: phase === "idle" ? "0 0 24px rgba(167,139,250,0.45)" : "none",
+              transition: "all 0.3s ease"
+            }}
+          >
+            {phase === "idle" ? (t.spinButtonLabel || "🎰 SPIN!") : "⏳"}
+          </button>
+        ) : phase === "spinning" ? (
+          <p className="cinzel" style={{
+            color: "#94a3b8",
+            fontSize: 13,
+            textAlign: "center",
+            margin: "6px 0 2px",
+            letterSpacing: "0.1em"
+          }}>
+            {t.spinSpinning || "Spinning..."}
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={onClose}
+            className="cinzel"
+            style={{
+              width: "100%",
+              padding: "14px 20px",
+              fontSize: 16,
+              fontWeight: 900,
+              letterSpacing: "0.15em",
+              color: "#0f172a",
+              background: "linear-gradient(135deg, var(--color-primary, #a78bfa), #c084fc)",
+              border: "none",
+              borderRadius: 14,
+              cursor: "pointer",
+              boxShadow: "0 0 24px rgba(167,139,250,0.45)"
+            }}
+          >
+            {t.closeLabel || "Close"}
+          </button>
+        )}
+
+        {phase === "result" && spinResult?.nextSpinAt && (
+          <p style={{ color: "#475569", fontSize: 11, textAlign: "center", marginTop: 8 }}>
+            {t.spinNextReset || "Next spin available later — check back!"}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
