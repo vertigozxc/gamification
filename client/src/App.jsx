@@ -451,7 +451,11 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     const name = authUser.displayName || defaultCharacterName;
     setCharacterName(name);
     setNameDraft(name);
-    setPortraitData(authUser.photoURL || "");
+    // Deliberately ignore authUser.photoURL (Google avatar). Google's CDN
+    // sometimes returns blank/403 and the fallback spinner is ugly. The
+    // user uploads their own photo via the profile editor; the server's
+    // stored photoUrl is what we trust (loaded below from /game-state).
+    setPortraitData("");
     const savedNotes = localStorage.getItem(notesKey(uid)) || "";
     setPrivateNotes(savedNotes);
     setNotesDraft(savedNotes);
@@ -479,7 +483,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       return;
     }
     const profileName = authUser.displayName || defaultCharacterName;
-    const profilePortrait = authUser.photoURL || "";
+    // Don't seed the profile with the Google avatar — it's flaky and users
+    // prefer to set their own photo. New accounts start with no portrait.
+    const profilePortrait = "";
     setInitialDataResolved(false);
     setDataLoading(true);
     setDataLoadError("");
