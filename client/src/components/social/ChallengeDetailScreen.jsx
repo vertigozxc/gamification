@@ -936,54 +936,78 @@ function ParticipantRow({ rank, participant, meUid, t, onOpenProfile, canRemove,
   const isMe = participant.user.username === meUid;
   const left = !!participant.leftAt;
   const pending = !participant.acceptedAt && !left;
+  const medalTint = rank === 1 ? "#facc15" : rank === 2 ? "#cbd5e1" : rank === 3 ? "#f59e0b" : null;
 
   return (
     <div
       style={{
-        display: "grid",
-        gridTemplateColumns: "28px 28px 1fr auto auto",
+        position: "relative",
+        display: "flex",
         alignItems: "center",
-        gap: 10,
-        padding: "8px 10px",
-        borderRadius: 10,
+        gap: 12,
+        padding: "12px 14px",
+        // Reserve right-side space for the remove button on EVERY row
+        // (visible or hidden), so adding/removing a row never shifts the
+        // stats column sideways.
+        paddingRight: 52,
+        borderRadius: 12,
         border: `1px solid ${isMe ? "color-mix(in srgb, var(--color-primary) 45%, transparent)" : "var(--card-border-idle)"}`,
         background: isMe ? "color-mix(in srgb, var(--color-primary) 7%, transparent)" : "rgba(255,255,255,0.02)",
-        opacity: left ? 0.5 : 1
+        opacity: left ? 0.55 : 1,
+        overflow: "hidden"
       }}
     >
+      {/* Left-edge rank bar — muted grey for 4+, theme-coloured medal for top 3 */}
+      <span
+        aria-hidden
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 3,
+          background: medalTint || "rgba(148,163,184,0.28)"
+        }}
+      />
+
       <span
         style={{
-          fontSize: 11,
+          minWidth: 26,
+          fontSize: 12,
           fontWeight: 800,
-          color: "var(--color-muted)",
+          color: medalTint || "var(--color-muted)",
           fontVariantNumeric: "tabular-nums",
           textAlign: "center"
         }}
       >
         {rank != null ? `#${rank}` : "—"}
       </span>
+
       <button
         type="button"
         onClick={() => onOpenProfile && onOpenProfile(participant.user.username)}
         className="press"
         style={{
-          width: 28,
-          height: 28,
+          width: 36,
+          height: 36,
           borderRadius: "50%",
           overflow: "hidden",
           background: "var(--panel-bg)",
-          border: "none",
+          border: "1px solid var(--card-border-idle)",
           padding: 0,
-          cursor: "pointer"
+          cursor: "pointer",
+          flexShrink: 0
         }}
       >
-        <Avatar photoUrl={participant.user.photoUrl} displayName={participant.user.displayName} size={28} />
+        <Avatar photoUrl={participant.user.photoUrl} displayName={participant.user.displayName} size={36} />
       </button>
+
       <button
         type="button"
         onClick={() => onOpenProfile && onOpenProfile(participant.user.username)}
         className="press"
         style={{
+          flex: 1,
           minWidth: 0,
           background: "transparent",
           border: "none",
@@ -993,50 +1017,53 @@ function ParticipantRow({ rank, participant, meUid, t, onOpenProfile, canRemove,
           color: "inherit",
           display: "flex",
           flexDirection: "column",
-          gap: 1
+          gap: 3
         }}
       >
-        <span
-          style={{
-            fontSize: 13,
-            fontWeight: 700,
-            color: isMe ? "var(--color-primary)" : "var(--color-text)",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis"
-          }}
-        >
-          {participant.user.displayName || participant.user.username}
-        </span>
-        {pending ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
           <span
             style={{
-              fontSize: 9,
-              color: "var(--color-muted)",
+              fontSize: 14,
               fontWeight: 700,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase"
+              color: isMe ? "var(--color-primary)" : "var(--color-text)",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              letterSpacing: "-0.01em"
             }}
           >
-            {t.arenaPactPending || "pending"}
+            {participant.user.displayName || participant.user.username}
           </span>
-        ) : null}
+          {pending ? (
+            <span
+              style={{
+                fontSize: 9,
+                padding: "1px 7px",
+                borderRadius: 999,
+                background: "rgba(148,163,184,0.18)",
+                color: "var(--color-muted)",
+                fontWeight: 800,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                flexShrink: 0
+              }}
+            >
+              {t.arenaPactPending || "pending"}
+            </span>
+          ) : null}
+        </div>
+        <div style={{ display: "flex", gap: 10, fontSize: 12, color: "var(--color-muted)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+          <span>✓ {participant.completions || 0}</span>
+          <span style={{ color: "var(--card-border-idle)" }}>·</span>
+          <span>🔥 {participant.consecutiveDays || 0}</span>
+          <span style={{ color: "var(--card-border-idle)" }}>·</span>
+          <span>🪙 {participant.tokensEarned || 0}</span>
+        </div>
       </button>
-      <div
-        style={{
-          display: "flex",
-          gap: 8,
-          fontSize: 11,
-          color: "var(--color-muted)",
-          fontWeight: 700,
-          fontVariantNumeric: "tabular-nums",
-          whiteSpace: "nowrap"
-        }}
-      >
-        <span>✓{participant.completions || 0}</span>
-        <span>🔥{participant.consecutiveDays || 0}</span>
-        <span>🪙{participant.tokensEarned || 0}</span>
-      </div>
+
+      {/* Remove button is absolutely positioned so showing/hiding it
+          never shifts the rest of the row. Always centred vertically in
+          the right-side gutter we reserved via paddingRight. */}
       {canRemove ? (
         <button
           type="button"
@@ -1044,13 +1071,17 @@ function ParticipantRow({ rank, participant, meUid, t, onOpenProfile, canRemove,
           aria-label={t.arenaPactRemoveShort || "Remove"}
           className="mobile-pressable"
           style={{
-            width: 34,
-            height: 34,
+            position: "absolute",
+            top: "50%",
+            right: 10,
+            transform: "translateY(-50%)",
+            width: 32,
+            height: 32,
             borderRadius: 999,
             border: "1px solid rgba(248,113,113,0.5)",
             background: "rgba(248,113,113,0.12)",
             color: "#f87171",
-            fontSize: 15,
+            fontSize: 14,
             fontWeight: 800,
             cursor: "pointer",
             display: "flex",
@@ -1061,7 +1092,7 @@ function ParticipantRow({ rank, participant, meUid, t, onOpenProfile, canRemove,
         >
           ✕
         </button>
-      ) : <span style={{ width: 0 }} />}
+      ) : null}
     </div>
   );
 }
