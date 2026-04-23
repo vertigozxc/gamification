@@ -469,9 +469,7 @@ function useOnboardingPinned({
     }
   }
 
-  // onDone: optional callback(result) — when provided, called instead of setShowOnboarding(false).
-  // Used by TourOverlay to keep the overlay open after setup is saved and advance to the tour phase.
-  async function handleCompleteOnboarding(handle, onDone) {
+  async function handleCompleteOnboarding(handle) {
     const trimmedName = onboardingName.trim();
     if (!trimmedName) {
       setOnboardingError(t.nicknameRequired);
@@ -528,11 +526,7 @@ function useOnboardingPinned({
       }));
       const { users } = await fetchLeaderboard();
       setLeaderboard(users || []);
-      if (typeof onDone === "function") {
-        onDone(result);
-      } else {
-        setShowOnboarding(false);
-      }
+      setShowOnboarding(false);
     } catch (error) {
       setOnboardingError(error?.message || t.setupFailed);
     } finally {
@@ -543,7 +537,6 @@ function useOnboardingPinned({
   return {
     showPinnedReplaceModal,
     setShowPinnedReplaceModal,
-    setShowOnboarding,
     replacePinnedQuestIds,
     replacePinnedSearch,
     setReplacePinnedSearch,

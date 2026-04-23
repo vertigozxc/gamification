@@ -2971,40 +2971,6 @@ app.post("/api/onboarding/skip", async (req, res) => {
   }
 });
 
-// Grant +1 level as a one-time reward for completing the onboarding tour.
-// Called by the client after the user has walked through all spotlight steps.
-app.post("/api/onboarding/tour-bonus", async (req, res) => {
-  const schema = z.object({ username: z.string().min(2).max(64) });
-  try {
-    const parsed = schema.parse(req.body);
-    const username = slugifyUsername(parsed.username);
-    const user = await prisma.user.findUnique({ where: { username } });
-    if (!user) return res.status(404).json({ error: "User not found" });
-
-    const newLevel = (user.level || 1) + 1;
-    const newXpNext = Math.floor((user.xpNext || 250) * 1.1);
-    const tokenBonus = newLevel >= 10 ? 2 : 1;
-
-    const updatedUser = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        level: newLevel,
-        xp: 0,
-        xpNext: newXpNext,
-        tokens: (user.tokens || 0) + tokenBonus,
-      },
-    });
-
-    res.json({
-      ok: true,
-      user: updatedUser,
-      tourBonusGranted: true,
-    });
-  } catch (error) {
-    res.status(400).json({ error: "Invalid request", detail: error.message });
-  }
-});
-
 // Quantize a raw completion percent to the scoring tiers: <50 → 0 (rejected),
 // 50-74 → 50, 75-99 → 75, >=100 → 100.
 function quantizeCompletionPercent(rawPercent) {

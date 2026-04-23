@@ -182,13 +182,6 @@ export function skipOnboarding(username, displayName, photoUrl, handle) {
   });
 }
 
-export function tourBonus(username) {
-  return request("/api/onboarding/tour-bonus", {
-    method: "POST",
-    body: JSON.stringify({ username })
-  });
-}
-
 // Server suggests an unclaimed @handle seeded from the displayName the
 // user just typed. Used to pre-fill the onboarding @handle input.
 export function suggestHandle(displayName) {

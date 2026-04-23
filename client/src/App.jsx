@@ -20,8 +20,7 @@ import {
   fetchProfileStats,
   deleteProfile,
   addPinnedQuest,
-  updatePreferredLanguage,
-  tourBonus as applyTourBonus
+  updatePreferredLanguage
 } from "./api";
 import useGameplayActions from "./hooks/useGameplayActions";
 import useAuthSession from "./hooks/useAuthSession";
@@ -55,7 +54,7 @@ const FreezeSuccessModal = lazy(() => import("./components/modals/FreezeSuccessM
 const RerollConfirmModal = lazy(() => import("./components/modals/RerollConfirmModal"));
 const LogoutConfirmModal = lazy(() => import("./components/modals/LogoutConfirmModal"));
 const NotesModal = lazy(() => import("./components/modals/NotesModal"));
-const TourOverlay = lazy(() => import("./components/TourOverlay"));
+const OnboardingModal = lazy(() => import("./components/modals/OnboardingModal"));
 const PinnedReplacementModal = lazy(() => import("./components/modals/PinnedReplacementModal"));
 const LoginScreen = lazy(() => import("./components/LoginScreen"));
 const LevelUpPopup = lazy(() => import("./components/LevelUpPopup"));
@@ -264,7 +263,6 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const {
     showPinnedReplaceModal,
     setShowPinnedReplaceModal,
-    setShowOnboarding,
     replacePinnedQuestIds,
     replacePinnedSearch,
     setReplacePinnedSearch,
@@ -1110,26 +1108,6 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     }
   }, [authUser, initialDataResolved]);
 
-  async function handleTourBonus() {
-    try {
-      const result = await applyTourBonus(username);
-      if (result?.user) {
-        const newLvl = result.user.level ?? 1;
-        setState((prev) => ({
-          ...prev,
-          lvl: newLvl,
-          xp: result.user.xp ?? 0,
-          xpNext: result.user.xpNext ?? prev.xpNext,
-          tokens: result.user.tokens ?? prev.tokens,
-        }));
-        return newLvl;
-      }
-    } catch {
-      /* non-fatal — tour still closes */
-    }
-    return null;
-  }
-
   function handleAddXp(amount) {
     setState((prev) => {
       let xp = prev.xp + amount;
@@ -1646,13 +1624,14 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         </div>
       ) : null}
 
-      <TourOverlay
+      <OnboardingModal
         open={showOnboarding}
+        onClose={handleLogoutConfirm}
         onboardingName={onboardingName}
-        setOnboardingName={setOnboardingName}
+        onOnboardingNameChange={setOnboardingName}
         onboardingQuestIds={onboardingQuestIds}
         onboardingQuestSearch={onboardingQuestSearch}
-        setOnboardingQuestSearch={setOnboardingQuestSearch}
+        onOnboardingQuestSearchChange={setOnboardingQuestSearch}
         filteredOnboardingQuests={filteredOnboardingQuests}
         allEligibleQuestOptions={allEligibleQuestOptions}
         onToggleOnboardingQuest={toggleOnboardingQuest}
@@ -1660,7 +1639,6 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         onboardingSaving={onboardingSaving}
         onComplete={handleCompleteOnboarding}
         onSkip={handleSkipOnboarding}
-        onTourBonus={handleTourBonus}
         customQuests={customQuests}
         customSaving={customSaving}
         customError={customError}
@@ -1669,9 +1647,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         onUpdateCustomQuest={handleUpdateCustomQuest}
         onDeleteCustomQuest={handleDeleteCustomQuest}
         selectionLimit={Number(state.questSlots?.pinned) || 2}
+        randomQuestCount={Number(state.questSlots?.random) || 2}
         authUsername={authUser?.uid || ""}
-        mobileTab={mobileTab}
-        setMobileTab={setMobileTab}
       />
 
       <PinnedReplacementModal
@@ -1768,7 +1745,6 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           >
           <div className="w-full max-w-3xl mx-auto embedded-content-safe">
             {mobileTab === "city" ? (
-              <div data-tour="city-tab">
               <CityTab
                 stage={Math.max(0, Math.floor(state.lvl) || 0)}
                 dailyXpToday={state.productivity?.xpToday ?? 0}
@@ -1809,7 +1785,6 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                   }));
                 }}
               />
-              </div>
             ) : null}
 
             {mobileTab === "dashboard" ? (
@@ -1871,18 +1846,15 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             ) : null}
 
             {mobileTab === "leaderboard" ? (
-              <div data-tour="leaderboard-tab">
               <LeaderboardTab
                 leaderboard={leaderboard}
                 authUser={authUser}
                 logs={state.logs}
                 t={t}
               />
-              </div>
             ) : null}
 
             {mobileTab === "store" ? (
-              <div data-tour="store-tab">
               <StoreTab
                 tokens={state.tokens}
                 streakFreezeCharges={Number(state.user?.streakFreezeCharges) || 0}
@@ -1930,11 +1902,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 onResetCity={() => setCityResetConfirmOpen(true)}
                 t={t}
               />
-              </div>
             ) : null}
 
             {mobileTab === "profile" ? (
-              <div data-tour="profile-tab">
               <ProfileTab
                 characterName={characterName}
                 editingName={editingName}
@@ -1974,14 +1944,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                     }
                   }));
                 }}
-                onStartTour={() => setShowOnboarding(true)}
-                showStartTour={
-                  !showOnboarding
-                  && Boolean(state?.user?.onboardingSkippedAt)
-                  && !(state?.preferredQuestIds?.length > 0)
-                }
               />
-              </div>
             ) : null}
           </div>
           </PullToRefresh>
