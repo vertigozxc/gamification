@@ -6090,6 +6090,136 @@ app.post("/api/challenges/:id/leave", async (req, res) => {
   }
 });
 
+// POST /api/challenges/:id/invite { inviterUsername, inviteeUsernames[] }
+// Creator-only. Creates pending ChallengeParticipant rows for each
+// invitee (friends only, under the global participant cap).
+app.post("/api/challenges/:id/invite", async (req, res) => {
+  const schema = z.object({
+    inviterUsername: z.string().min(2).max(128),
+    inviteeUsernames: z.array(z.string().min(2).max(128)).min(1).max(10)
+  });
+  try {
+    const parsed = schema.parse(req.body);
+    const inviter = await loadUserByUsername(parsed.inviterUsername);
+    if (!inviter) return res.status(404).json({ error: "User not found" });
+    const challenge = await prisma.groupChallenge.findUnique({
+      where: { id: req.params.id },
+      include: { participants: true }
+    });
+    if (!challenge) return res.status(404).json({ error: "Challenge not found" });
+    if (challenge.creatorId !== inviter.id) {
+      return res.status(403).json({ error: "Only the creator can invite" });
+    }
+    if (new Date(challenge.endsAt) <= new Date()) {
+      return res.status(409).json({ error: "Challenge already ended" });
+    }
+
+    const uniq = Array.from(new Set(parsed.inviteeUsernames.map((u) => slugifyUsername(u)).filter(Boolean)));
+    const users = await prisma.user.findMany({ where: { username: { in: uniq } } });
+    if (users.length !== uniq.length) {
+      return res.status(400).json({ error: "One or more invitees not found" });
+    }
+
+    const friendLinks = await prisma.friendship.findMany({
+      where: {
+        OR: users.flatMap((u) => {
+          const [aId, bId] = sortedFriendshipTuple(inviter.id, u.id);
+          return [{ userAId: aId, userBId: bId }];
+        })
+      }
+    });
+    if (friendLinks.length !== users.length) {
+      return res.status(403).json({ error: "All invitees must be friends of the creator" });
+    }
+
+    const existingByUserId = new Map(challenge.participants.map((p) => [p.userId, p]));
+    const activeCount = challenge.participants.filter((p) => !p.leftAt).length;
+    const newlyAddable = users.filter((u) => {
+      const existing = existingByUserId.get(u.id);
+      return !existing || existing.leftAt; // absent, or previously left → can re-invite
+    });
+    if (activeCount + newlyAddable.length > MAX_PARTICIPANTS_PER_CHALLENGE) {
+      return res.status(409).json({
+        error: "Too many participants",
+        code: "challenge_full",
+        limit: MAX_PARTICIPANTS_PER_CHALLENGE
+      });
+    }
+
+    const nowTs = new Date();
+    const ops = [];
+    const added = [];
+    for (const u of newlyAddable) {
+      const existing = existingByUserId.get(u.id);
+      if (existing) {
+        // Previously left → reset to pending invite (acceptedAt cleared).
+        ops.push(prisma.challengeParticipant.update({
+          where: { id: existing.id },
+          data: { leftAt: null, acceptedAt: null }
+        }));
+      } else {
+        ops.push(prisma.challengeParticipant.create({
+          data: { challengeId: challenge.id, userId: u.id }
+        }));
+      }
+      ops.push(prisma.challengeLogEntry.create({
+        data: { challengeId: challenge.id, userId: u.id, type: "invited" }
+      }));
+      added.push(u.username);
+    }
+    await prisma.$transaction(ops);
+    res.json({ ok: true, added, skipped: users.filter((u) => !newlyAddable.includes(u)).map((u) => u.username) });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// POST /api/challenges/:id/remove-participant { requesterUsername, username }
+// Creator-only. Marks the target participant as left (preserves history).
+app.post("/api/challenges/:id/remove-participant", async (req, res) => {
+  const schema = z.object({
+    requesterUsername: z.string().min(2).max(128),
+    username: z.string().min(2).max(128)
+  });
+  try {
+    const parsed = schema.parse(req.body);
+    const requester = await loadUserByUsername(parsed.requesterUsername);
+    if (!requester) return res.status(404).json({ error: "Requester not found" });
+    const target = await loadUserByUsername(parsed.username);
+    if (!target) return res.status(404).json({ error: "Target user not found" });
+
+    const challenge = await prisma.groupChallenge.findUnique({
+      where: { id: req.params.id }
+    });
+    if (!challenge) return res.status(404).json({ error: "Challenge not found" });
+    if (challenge.creatorId !== requester.id) {
+      return res.status(403).json({ error: "Only the creator can remove participants" });
+    }
+    if (target.id === requester.id) {
+      return res.status(400).json({ error: "Creator cannot remove themselves — use leave instead" });
+    }
+
+    const participant = await prisma.challengeParticipant.findUnique({
+      where: { challengeId_userId: { challengeId: challenge.id, userId: target.id } }
+    });
+    if (!participant || participant.leftAt) {
+      return res.status(404).json({ error: "Not an active participant" });
+    }
+    await prisma.$transaction([
+      prisma.challengeParticipant.update({
+        where: { id: participant.id },
+        data: { leftAt: new Date() }
+      }),
+      prisma.challengeLogEntry.create({
+        data: { challengeId: challenge.id, userId: target.id, type: "removed" }
+      })
+    ]);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
 // POST /api/challenges/:id/join { username } — rejoin after leaving (or be invited later)
 app.post("/api/challenges/:id/join", async (req, res) => {
   const schema = z.object({ username: z.string().min(2).max(128) });

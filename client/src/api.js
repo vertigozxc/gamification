@@ -365,6 +365,20 @@ export function completeChallenge(challengeId, username) {
   });
 }
 
+export function inviteToChallenge(challengeId, inviterUsername, inviteeUsernames) {
+  return request(`/api/challenges/${encodeURIComponent(challengeId)}/invite`, {
+    method: "POST",
+    body: JSON.stringify({ inviterUsername, inviteeUsernames })
+  });
+}
+
+export function removeChallengeParticipant(challengeId, requesterUsername, username) {
+  return request(`/api/challenges/${encodeURIComponent(challengeId)}/remove-participant`, {
+    method: "POST",
+    body: JSON.stringify({ requesterUsername, username })
+  });
+}
+
 export function syncState(username, { level, xp, xpNext, tokens }) {
   return request("/api/sync-state", {
     method: "POST",

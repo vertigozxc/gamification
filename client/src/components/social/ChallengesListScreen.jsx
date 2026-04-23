@@ -1,4 +1,6 @@
+import { useState } from "react";
 import Avatar from "./Avatar";
+import Alert from "./Alert";
 import Screen from "./Screen";
 
 const MAX_ACTIVE = 3;
@@ -8,16 +10,24 @@ export default function ChallengesListScreen({ challenges = [], t, onClose, onOp
   const active = challenges.filter((c) => new Date(c.endsAt).getTime() > now);
   const ended = challenges.filter((c) => new Date(c.endsAt).getTime() <= now);
   const canCreate = active.length < MAX_ACTIVE;
+  const [showLimitAlert, setShowLimitAlert] = useState(false);
 
   const footer = (
     <button
       type="button"
-      disabled={!canCreate}
-      onClick={onOpenCreate}
+      onClick={() => {
+        if (canCreate) {
+          onOpenCreate?.();
+        } else {
+          // Instead of a dead disabled button, show a styled popup
+          // explaining the limit so the user knows what to do next.
+          setShowLimitAlert(true);
+        }
+      }}
       className="sb-primary-btn press"
-      style={{ width: "100%", padding: 14 }}
+      style={{ width: "100%", padding: 14, opacity: canCreate ? 1 : 0.85 }}
     >
-      {canCreate ? `＋ ${t.arenaPactForgeCta || "Start a challenge"}` : (t.arenaPactLimit || "3 active challenges · limit reached")}
+      {canCreate ? `＋ ${t.arenaPactForgeCta || "Start a challenge"}` : `＋ ${t.arenaPactForgeCta || "Start a challenge"}`}
     </button>
   );
 
@@ -64,6 +74,16 @@ export default function ChallengesListScreen({ challenges = [], t, onClose, onOp
             {t.arenaPactsListEmptyBody || "Pick a friend, pick a habit, pick a duration. Every daily completion earns a token for everyone."}
           </p>
         </div>
+      )}
+
+      {showLimitAlert && (
+        <Alert
+          icon="🚧"
+          title={t.arenaPactLimitTitle || "Max challenges reached"}
+          message={(t.arenaPactLimitBody || "You can run up to {max} group challenges at once. Finish or leave one to start a new pact.").replace("{max}", String(MAX_ACTIVE))}
+          confirmLabel={t.arenaPactLimitConfirm || "Got it"}
+          onConfirm={() => setShowLimitAlert(false)}
+        />
       )}
     </Screen>
   );

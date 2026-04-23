@@ -97,9 +97,11 @@ export default function ProfileScreen({ targetUsername, meUsername, t, languageI
   // When we're already friends with this profile, the "Remove friend"
   // action lives INSIDE the scroll, right under the stats grid (above the
   // city card) — per UX request. The sticky screen footer only hosts the
-  // discovery-style CTAs (Add / Accept / Cancel / Decline).
-  const footerAction = state === "friends" ? null : friendshipAction;
-  const inlineRemoveAction = state === "friends" ? friendshipAction : null;
+  // All friendship actions now live in one place — directly under the
+  // stat grid (whose last row is the "Joined" date). The sticky footer
+  // is no longer used for friend CTAs so the user always finds the same
+  // button in the same spot regardless of relation state.
+  const inlineAction = friendshipAction;
 
   return (
     <>
@@ -107,7 +109,6 @@ export default function ProfileScreen({ targetUsername, meUsername, t, languageI
         title={profile?.displayName || (t.arenaProfileTitle || "Profile")}
         subtitle={profile ? "" : (t.arenaLoadingShort || "Loading")}
         onClose={onClose}
-        footer={footerAction}
       >
         {loading ? (
           <div style={{ display: "flex", justifyContent: "center", padding: "64px 0" }}>
@@ -121,7 +122,7 @@ export default function ProfileScreen({ targetUsername, meUsername, t, languageI
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <Hero profile={profile} t={t} />
             <StatGrid profile={profile} t={t} languageId={languageId} />
-            {inlineRemoveAction}
+            {inlineAction}
             <CityCard profile={profile} t={t} />
             {error && <p style={{ fontSize: 14, color: "#ff6a63", textAlign: "center" }}>{error}</p>}
           </div>
