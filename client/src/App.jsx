@@ -278,6 +278,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     toggleOnboardingQuest,
     toggleReplacePinnedQuest,
     openPinnedReplacementModal,
+    pinnedReplacementOpening,
     handleBuyPinnedReplacement,
     handleCompleteOnboarding,
     seedAllQuestOptions,
@@ -336,6 +337,14 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     }
 
     const handleMobileTabChange = (event) => {
+      // Tab-bar tap should return the user to the underlying screen —
+      // dismiss any full-screen modal overlays first so the tab change
+      // isn't invisible behind them.
+      setShowNotesHistory(false);
+      setShowThemePicker(false);
+      setShowLanguagePicker(false);
+      setShowAbout(false);
+      setSingleHabitPickerOpen(false);
       setMobileTab(normalizeMobileTab(event?.detail));
     };
 
@@ -1331,6 +1340,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     <>
       {dataLoading && !isEmbeddedApp ? <PortalPreloader title={t.loadingText} fullscreen /> : null}
       {onboardingSaving ? <PortalPreloader title={t.loadingText} fullscreen /> : null}
+      {pinnedReplacementOpening ? <PortalPreloader title={t.loadingText} fullscreen /> : null}
       <NetworkRetryBanner />
 
       <Suspense fallback={null}>
@@ -1563,7 +1573,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         {isEmbeddedApp ? (
           <PullToRefresh
             onRefresh={handlePullRefresh}
-            disabled={mobileTab === "city" || Boolean(noteQuest) || showOnboarding}
+            disabled={Boolean(noteQuest) || showOnboarding}
           >
           <div className="w-full max-w-3xl mx-auto embedded-content-safe">
             {mobileTab === "city" ? (

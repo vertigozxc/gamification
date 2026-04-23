@@ -54,6 +54,7 @@ function useOnboardingPinned({
   const [onboardingQuestSearch, setOnboardingQuestSearch] = useState("");
   const [onboardingError, setOnboardingError] = useState("");
   const [onboardingSaving, setOnboardingSaving] = useState(false);
+  const [pinnedReplacementOpening, setPinnedReplacementOpening] = useState(false);
   const [allQuestOptions, setAllQuestOptions] = useState([]);
   const [customQuests, setCustomQuests] = useState([]);
   const [customSaving, setCustomSaving] = useState(false);
@@ -302,6 +303,10 @@ function useOnboardingPinned({
   async function openPinnedReplacementModal() {
     setReplacePinnedError("");
     setReplacePinnedSaving(true);
+    // Show a loading preloader while we pre-fetch authoritative state —
+    // without it the user taps "Reroll habits" and sees nothing for ~1 s
+    // until the modal finally mounts.
+    setPinnedReplacementOpening(true);
     setReplacePinnedSearch("");
     setReplacePinnedQuestIds(Array.isArray(state.preferredQuestIds) ? state.preferredQuestIds.slice(0, preferredQuestLimit) : []);
 
@@ -336,6 +341,7 @@ function useOnboardingPinned({
 
     setShowPinnedReplaceModal(true);
     setReplacePinnedSaving(false);
+    setPinnedReplacementOpening(false);
   }
 
   async function handleBuyPinnedReplacement() {
@@ -498,6 +504,7 @@ function useOnboardingPinned({
     toggleOnboardingQuest,
     toggleReplacePinnedQuest,
     openPinnedReplacementModal,
+    pinnedReplacementOpening,
     handleBuyPinnedReplacement,
     handleCompleteOnboarding
   };

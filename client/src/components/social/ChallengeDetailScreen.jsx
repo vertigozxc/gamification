@@ -474,52 +474,111 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, i
     return copy;
   }, [challenge.participants]);
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      {/* Progress */}
-      <div className="sb-card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-          <span className="sb-caption" style={{ fontWeight: 600 }}>{t.arenaDurationProgress || "Duration progress"}</span>
-          <span className="sb-caption">{elapsed}/{total} · {pct}%</span>
-        </div>
-        <div className="sb-progress" style={{ height: 8 }}>
-          <div className={`sb-progress-fill${ended ? " done" : ""}`} style={{ width: `${pct}%` }} />
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 4 }}>
-          <Mini label={t.arenaTotalDone || "Total"} value={totalCompletions} />
-          <Mini label={t.arenaPlayers || "Players"} value={active.length} />
-          <Mini label={t.arenaMyStreak || "My streak"} value={`🔥 ${me?.consecutiveDays || 0}`} />
-        </div>
-      </div>
+  const daysLeft = ended ? 0 : Math.max(0, Math.ceil((new Date(challenge.endsAt).getTime() - Date.now()) / 86400000));
+  const top3 = ranked.filter((p) => !p.leftAt).slice(0, 3);
+  const rest = ranked.filter((p) => !p.leftAt).slice(3);
+  const leftList = ranked.filter((p) => p.leftAt);
 
-      {/* Daily task */}
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* HERO — circular day progress + chips */}
       <div
-        className="sb-card"
         style={{
-          background: completedToday ? "rgba(48,209,88,0.1)" : "var(--panel-bg)",
-          borderColor: completedToday ? "rgba(48,209,88,0.4)" : "var(--panel-border)",
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
+          position: "relative",
+          padding: "18px 16px 20px",
+          borderRadius: 18,
+          border: "1px solid var(--panel-border)",
+          background: `radial-gradient(120% 120% at 50% 0%, color-mix(in srgb, var(--color-primary) 18%, var(--panel-bg)) 0%, var(--panel-bg) 60%)`,
+          overflow: "hidden"
         }}
       >
-        <p className="sb-caption" style={{ fontWeight: 600 }}>{t.arenaDailyRitual || "Daily task"}</p>
-        <p className="sb-headline" style={{ fontSize: 17 }}>
-          🎯 {challenge.questTitle}
-          {challenge.needsTimer && challenge.timeEstimateMin ? (
-            <span style={{ color: "var(--color-muted)", fontWeight: 500 }}> · ⏱ {challenge.timeEstimateMin} {t.arenaMinAbbrev || "min"}</span>
-          ) : null}
-        </p>
-        {challenge.questDescription && <p className="sb-caption">{challenge.questDescription}</p>}
-        {!ended && !todayAward && !completedToday && (
-          <p className="sb-caption">{t.arenaTokensUnlockHint || "Tokens for today unlock when any participant marks it done."}</p>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+          <DayRing elapsed={elapsed} total={total} ended={ended} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p
+              style={{
+                fontSize: 10,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "var(--color-muted)",
+                margin: 0,
+                fontWeight: 700
+              }}
+            >
+              {ended ? (t.arenaPactEndedWord || "Ended") : `${daysLeft} ${t.arenaDaysLeftUnit || "days left"}`}
+            </p>
+            <h2 className="cinzel" style={{ fontSize: 18, fontWeight: 800, margin: "4px 0 0", color: "var(--color-text)", lineHeight: 1.25 }}>
+              {challenge.title}
+            </h2>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 6, marginTop: 14, flexWrap: "wrap" }}>
+          <HeroChip icon="✓" value={totalCompletions} label={t.arenaTotalDone || "total done"} />
+          <HeroChip icon="👥" value={active.length} label={t.arenaPlayers || "players"} />
+          <HeroChip icon="🔥" value={me?.consecutiveDays || 0} label={t.arenaMyStreak || "my streak"} />
+        </div>
       </div>
 
-      {/* Participants */}
+      {/* MISSION — prominent daily task */}
+      <div
+        style={{
+          padding: 16,
+          borderRadius: 18,
+          border: `1px solid ${completedToday ? "rgba(48,209,88,0.45)" : "var(--panel-border)"}`,
+          background: completedToday
+            ? "color-mix(in srgb, #10b981 14%, var(--panel-bg))"
+            : "var(--panel-bg)",
+          display: "flex",
+          gap: 14,
+          alignItems: "flex-start"
+        }}
+      >
+        <div
+          style={{
+            flexShrink: 0,
+            width: 48,
+            height: 48,
+            borderRadius: 14,
+            background: completedToday
+              ? "color-mix(in srgb, #10b981 25%, transparent)"
+              : "color-mix(in srgb, var(--color-primary) 18%, transparent)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 24
+          }}
+        >
+          {completedToday ? "✓" : "🎯"}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p
+            style={{
+              fontSize: 10,
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: completedToday ? "#6ee7b7" : "var(--color-muted)",
+              margin: 0,
+              fontWeight: 700
+            }}
+          >
+            {completedToday ? (t.arenaMissionDone || "Done today") : (t.arenaDailyRitual || "Daily mission")}
+          </p>
+          <p className="sb-headline" style={{ fontSize: 15, margin: "4px 0 0", color: "var(--color-text)", lineHeight: 1.3 }}>
+            {challenge.questTitle}
+            {challenge.needsTimer && challenge.timeEstimateMin ? (
+              <span style={{ color: "var(--color-muted)", fontWeight: 500, fontSize: 13 }}> · ⏱ {challenge.timeEstimateMin} {t.arenaMinAbbrev || "min"}</span>
+            ) : null}
+          </p>
+          {challenge.questDescription && (
+            <p className="sb-caption" style={{ marginTop: 6 }}>{challenge.questDescription}</p>
+          )}
+        </div>
+      </div>
+
+      {/* PARTICIPANTS — podium + list */}
       <div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "4px 4px 10px" }}>
-          <h3 className="sb-section-title" style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-muted)", margin: 0, flex: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "4px 4px 12px" }}>
+          <h3 className="sb-section-title" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--color-muted)", margin: 0, flex: 1, fontWeight: 700 }}>
             {t.arenaCrew || "Participants"} · {active.length}
           </h3>
           {isCreator && !ended ? (
@@ -545,23 +604,60 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, i
             </button>
           ) : null}
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {ranked.map((p, i) => (
-            <ParticipantCard
-              key={p.id}
-              rank={i + 1}
-              participant={p}
-              meUid={meUid}
-              t={t}
-              onOpenProfile={onOpenProfile}
-              canRemove={isCreator && !ended && !p.leftAt && p.user.username !== meUid}
-              onRemove={() => onRequestRemove?.(p)}
-            />
-          ))}
-        </div>
+
+        {top3.length > 0 ? (
+          <Podium
+            top3={top3}
+            meUid={meUid}
+            t={t}
+            onOpenProfile={onOpenProfile}
+            isCreator={isCreator}
+            ended={ended}
+            onRequestRemove={onRequestRemove}
+          />
+        ) : null}
+
+        {rest.length > 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: top3.length > 0 ? 12 : 0 }}>
+            {rest.map((p, i) => (
+              <ParticipantRow
+                key={p.id}
+                rank={i + 4}
+                participant={p}
+                meUid={meUid}
+                t={t}
+                onOpenProfile={onOpenProfile}
+                canRemove={isCreator && !ended && p.user.username !== meUid}
+                onRemove={() => onRequestRemove?.(p)}
+              />
+            ))}
+          </div>
+        ) : null}
+
+        {leftList.length > 0 ? (
+          <div style={{ marginTop: 12 }}>
+            <p style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-muted)", margin: "0 4px 6px", fontWeight: 700 }}>
+              {t.arenaLeftSection || "Left"} · {leftList.length}
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {leftList.map((p, i) => (
+                <ParticipantRow
+                  key={p.id}
+                  rank={null}
+                  participant={p}
+                  meUid={meUid}
+                  t={t}
+                  onOpenProfile={onOpenProfile}
+                  canRemove={false}
+                  onRemove={null}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
 
-      {/* Activity */}
+      {/* ACTIVITY FEED — kept collapsible */}
       <div className={`chal-activity${showActivity ? " open" : ""}`}>
         <button type="button" onClick={onToggleActivity} className="chal-activity-toggle" aria-expanded={showActivity}>
           <span style={{ fontSize: 16 }}>📋</span>
@@ -574,11 +670,25 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, i
               <p className="sb-caption" style={{ textAlign: "center", padding: "8px 0" }}>{t.arenaActivityEmpty || "No activity yet."}</p>
             )}
             {(challenge.logs || []).map((log) => (
-              <div key={log.id} style={{ fontSize: 13, color: "var(--color-text)", padding: "6px 10px", borderRadius: 8, background: "rgba(120,120,128,0.12)" }}>
-                <span style={{ color: "var(--color-primary)", fontWeight: 600 }}>{log.user.displayName || log.user.username}</span>{" "}
-                <span style={{ color: "var(--color-muted)" }}>{logVerb(log.type, t)}</span>
-                {" · "}
-                <span style={{ color: "var(--color-muted)", fontSize: 12 }}>{formatRelative(log.createdAt, t)}</span>
+              <div
+                key={log.id}
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "flex-start",
+                  padding: "8px 12px",
+                  borderRadius: 10,
+                  background: "rgba(255,255,255,0.03)"
+                }}
+              >
+                <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--color-primary)", marginTop: 7, flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0, fontSize: 13, lineHeight: 1.4 }}>
+                  <span style={{ color: "var(--color-primary)", fontWeight: 700 }}>{log.user.displayName || log.user.username}</span>{" "}
+                  <span style={{ color: "var(--color-muted)" }}>{logVerb(log.type, t)}</span>
+                  <div style={{ color: "var(--color-muted)", fontSize: 11, marginTop: 2 }}>
+                    {formatRelative(log.createdAt, t)}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -596,7 +706,331 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, i
   );
 }
 
-function ParticipantCard({ rank, participant, meUid, t, onOpenProfile, canRemove, onRemove }) {
+function DayRing({ elapsed, total, ended }) {
+  const size = 88;
+  const stroke = 7;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const pct = Math.min(1, Math.max(0, total > 0 ? elapsed / total : 0));
+  const offset = circumference * (1 - pct);
+  return (
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        <circle cx={size / 2} cy={size / 2} r={radius} stroke="rgba(148,163,184,0.22)" strokeWidth={stroke} fill="none" />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={ended ? "#10b981" : "var(--color-primary)"}
+          strokeWidth={stroke}
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          style={{ transition: "stroke-dashoffset 600ms ease" }}
+        />
+      </svg>
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          color: "var(--color-text)"
+        }}
+      >
+        <p className="cinzel" style={{ fontSize: 20, fontWeight: 900, margin: 0, lineHeight: 1, color: ended ? "#6ee7b7" : "var(--color-primary)" }}>
+          {elapsed}
+        </p>
+        <p style={{ fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-muted)", margin: "2px 0 0", fontWeight: 700 }}>
+          of {total}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function HeroChip({ icon, value, label }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "6px 10px",
+        borderRadius: 999,
+        background: "rgba(255,255,255,0.05)",
+        border: "1px solid var(--card-border-idle)",
+        fontSize: 11,
+        color: "var(--color-text)",
+        fontWeight: 700
+      }}
+    >
+      <span style={{ fontSize: 12 }}>{icon}</span>
+      <span style={{ fontVariantNumeric: "tabular-nums" }}>{value}</span>
+      <span style={{ color: "var(--color-muted)", fontWeight: 500, textTransform: "lowercase" }}>{label}</span>
+    </span>
+  );
+}
+
+function Podium({ top3, meUid, t, onOpenProfile, isCreator, ended, onRequestRemove }) {
+  // Visual arrangement: 2nd — 1st — 3rd
+  const slots = [
+    { rank: 2, participant: top3[1], height: 58, emoji: "🥈" },
+    { rank: 1, participant: top3[0], height: 78, emoji: "🥇" },
+    { rank: 3, participant: top3[2], height: 42, emoji: "🥉" }
+  ].filter((s) => s.participant);
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr 1fr",
+        gap: 8,
+        alignItems: "end",
+        padding: "12px 8px 14px",
+        borderRadius: 18,
+        background: "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.04))",
+        border: "1px solid var(--panel-border)"
+      }}
+    >
+      {slots.map((slot) => (
+        <PodiumSpot
+          key={slot.rank}
+          rank={slot.rank}
+          participant={slot.participant}
+          height={slot.height}
+          emoji={slot.emoji}
+          meUid={meUid}
+          t={t}
+          onOpenProfile={onOpenProfile}
+          canRemove={isCreator && !ended && slot.participant.user.username !== meUid}
+          onRemove={() => onRequestRemove?.(slot.participant)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function PodiumSpot({ rank, participant, height, emoji, meUid, t, onOpenProfile, canRemove, onRemove }) {
+  const isMe = participant.user.username === meUid;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, position: "relative" }}>
+      {canRemove ? (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onRemove?.(); }}
+          aria-label={t.arenaPactRemoveShort || "Remove"}
+          className="mobile-pressable"
+          style={{
+            position: "absolute",
+            top: -4,
+            right: -4,
+            width: 22,
+            height: 22,
+            borderRadius: 999,
+            border: "1px solid rgba(248,113,113,0.4)",
+            background: "rgba(248,113,113,0.12)",
+            color: "#f87171",
+            fontSize: 11,
+            fontWeight: 800,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 2
+          }}
+        >
+          ✕
+        </button>
+      ) : null}
+      <button
+        type="button"
+        onClick={() => onOpenProfile && onOpenProfile(participant.user.username)}
+        className="press"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 4,
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
+          padding: 0,
+          width: "100%"
+        }}
+      >
+        <div
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: "50%",
+            overflow: "hidden",
+            border: `2px solid ${isMe ? "var(--color-primary)" : "var(--card-border-idle)"}`,
+            background: "var(--panel-bg)",
+            boxShadow: rank === 1 ? "0 0 14px color-mix(in srgb, var(--color-primary) 35%, transparent)" : "none"
+          }}
+        >
+          <Avatar photoUrl={participant.user.photoUrl} displayName={participant.user.displayName} size={52} />
+        </div>
+        <p
+          style={{
+            fontSize: 12,
+            fontWeight: 700,
+            color: isMe ? "var(--color-primary)" : "var(--color-text)",
+            margin: 0,
+            maxWidth: "100%",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis"
+          }}
+        >
+          {participant.user.displayName || participant.user.username}
+        </p>
+      </button>
+      <div
+        style={{
+          width: "100%",
+          height,
+          borderRadius: "10px 10px 4px 4px",
+          background: rank === 1
+            ? "linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 60%, transparent), color-mix(in srgb, var(--color-primary) 25%, transparent))"
+            : "rgba(148,163,184,0.18)",
+          border: `1px solid ${rank === 1 ? "color-mix(in srgb, var(--color-primary) 55%, transparent)" : "var(--card-border-idle)"}`,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 2,
+          padding: "6px 4px"
+        }}
+      >
+        <span style={{ fontSize: 18, lineHeight: 1 }}>{emoji}</span>
+        <span style={{ fontSize: 11, fontWeight: 800, color: "var(--color-text)", fontVariantNumeric: "tabular-nums" }}>
+          ✓ {participant.completions || 0}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ParticipantRow({ rank, participant, meUid, t, onOpenProfile, canRemove, onRemove }) {
+  const isMe = participant.user.username === meUid;
+  const left = !!participant.leftAt;
+  const pending = !participant.acceptedAt && !left;
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "10px 12px",
+        borderRadius: 12,
+        border: `1px solid ${isMe ? "color-mix(in srgb, var(--color-primary) 55%, transparent)" : "var(--card-border-idle)"}`,
+        background: isMe ? "color-mix(in srgb, var(--color-primary) 8%, transparent)" : "var(--panel-bg)",
+        opacity: left ? 0.5 : 1
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => onOpenProfile && onOpenProfile(participant.user.username)}
+        className="press"
+        style={{
+          flex: 1,
+          minWidth: 0,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
+          padding: 0,
+          textAlign: "left",
+          color: "inherit"
+        }}
+      >
+        {rank != null ? (
+          <span style={{ flexShrink: 0, width: 24, textAlign: "center", fontSize: 11, fontWeight: 800, color: "var(--color-muted)" }}>
+            #{rank}
+          </span>
+        ) : null}
+        <div style={{ width: 32, height: 32, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: "var(--panel-bg)" }}>
+          <Avatar photoUrl={participant.user.photoUrl} displayName={participant.user.displayName} size={32} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: isMe ? "var(--color-primary)" : "var(--color-text)",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                minWidth: 0
+              }}
+            >
+              {participant.user.displayName || participant.user.username}
+            </span>
+            {pending ? (
+              <span
+                style={{
+                  fontSize: 9,
+                  padding: "1px 6px",
+                  borderRadius: 999,
+                  background: "rgba(148,163,184,0.18)",
+                  color: "var(--color-muted)",
+                  fontWeight: 800,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase"
+                }}
+              >
+                {t.arenaPactPending || "pending"}
+              </span>
+            ) : null}
+          </div>
+          <div style={{ display: "flex", gap: 10, fontSize: 11, color: "var(--color-muted)", marginTop: 2, fontWeight: 600 }}>
+            <span>✓ {participant.completions || 0}</span>
+            <span>🔥 {participant.consecutiveDays || 0}</span>
+            <span>🪙 {participant.tokensEarned || 0}</span>
+          </div>
+        </div>
+      </button>
+      {canRemove ? (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onRemove?.(); }}
+          aria-label={t.arenaPactRemoveShort || "Remove"}
+          className="mobile-pressable"
+          style={{
+            flexShrink: 0,
+            width: 28,
+            height: 28,
+            borderRadius: 999,
+            border: "1px solid rgba(248,113,113,0.4)",
+            background: "rgba(248,113,113,0.08)",
+            color: "#f87171",
+            fontSize: 12,
+            fontWeight: 800,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center"
+          }}
+        >
+          ✕
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+// eslint-disable-next-line no-unused-vars
+function ParticipantCard_Legacy({ rank, participant, meUid, t, onOpenProfile, canRemove, onRemove }) {
   const isMe = participant.user.username === meUid;
   const left = !!participant.leftAt;
   const pending = !participant.acceptedAt && !left;
