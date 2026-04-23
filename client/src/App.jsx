@@ -45,6 +45,7 @@ import {
   getMsUntilNextUtcMidnight
 } from "./utils/gameHelpers";
 import PortalPreloader from "./components/PortalPreloader";
+import NetworkRetryBanner from "./components/NetworkRetryBanner";
 
 const FreezeSuccessModal = lazy(() => import("./components/modals/FreezeSuccessModal"));
 const RerollConfirmModal = lazy(() => import("./components/modals/RerollConfirmModal"));
@@ -1308,6 +1309,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     <>
       {dataLoading && !isEmbeddedApp ? <PortalPreloader title={t.loadingText} fullscreen /> : null}
       {onboardingSaving ? <PortalPreloader title={t.loadingText} fullscreen /> : null}
+      <NetworkRetryBanner />
 
       <Suspense fallback={null}>
         <DevTestPanel

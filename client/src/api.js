@@ -39,62 +39,111 @@ function getSelectedLanguage() {
     : "en";
 }
 
+// Transient server errors and cold-start timeouts are retry-worthy; a
+// plain 4xx is a logic error and should bubble up immediately.
+const RETRYABLE_STATUS = new Set([408, 502, 503, 504]);
+// Delays before attempt 2, 3, 4. Total worst-case added wait ~3.2s before
+// we give up — keeps the UX snappy when the network actually IS broken
+// while surviving a single Render cold-start or Cloudflare hiccup.
+const RETRY_BACKOFFS_MS = [300, 900, 2000];
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function dispatchNetworkEvent(name, detail) {
+  try {
+    if (typeof window !== "undefined" && typeof CustomEvent === "function") {
+      window.dispatchEvent(new CustomEvent(name, { detail }));
+    }
+  } catch {
+    // ignore — diagnostics only, must never break the request.
+  }
+}
+
 async function request(path, options = {}) {
   const selectedLanguage = getSelectedLanguage();
-  let response;
-  try {
-    response = await fetch(`${API_BASE}${path}`, {
-      headers: {
-        "Content-Type": "application/json",
-        "x-language": selectedLanguage,
-        ...(options.headers || {})
-      },
-      cache: "no-store",
-      ...options
-    });
-  } catch (networkError) {
+  const method = ((options && options.method) || "GET").toUpperCase();
+  // Only retry idempotent reads — POST/PUT/PATCH/DELETE could double-apply.
+  const canRetry = method === "GET" || method === "HEAD";
+  const maxAttempts = canRetry ? RETRY_BACKOFFS_MS.length + 1 : 1;
+  let notifiedRetry = false;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    let response;
     try {
-      const mod = await import("./eventLogger.js");
-      mod.logError("api_network_error", networkError, {
-        path,
-        method: (options && options.method) || "GET"
+      response = await fetch(`${API_BASE}${path}`, {
+        headers: {
+          "Content-Type": "application/json",
+          "x-language": selectedLanguage,
+          ...(options.headers || {})
+        },
+        cache: "no-store",
+        ...options
       });
-    } catch {
-      // ignore
-    }
-    throw networkError;
-  }
-
-  let data = null;
-  try {
-    data = await response.json();
-  } catch {
-    data = null;
-  }
-
-  if (!response.ok) {
-    const errorMessage = (data && data.error) || `Request failed (${response.status})`;
-    try {
-      const mod = await import("./eventLogger.js");
-      mod.logEvent("api_error", {
-        level: response.status >= 500 ? "error" : "warn",
-        message: errorMessage,
-        meta: {
-          path,
-          status: response.status,
-          method: (options && options.method) || "GET"
+    } catch (networkError) {
+      // Network-level failure — fetch rejected. Retry if we still have
+      // attempts left and the method is idempotent.
+      if (canRetry && attempt < maxAttempts) {
+        if (!notifiedRetry) {
+          dispatchNetworkEvent("api-retry-start", { path, method });
+          notifiedRetry = true;
         }
-      });
-    } catch {
-      // ignore
+        await delay(RETRY_BACKOFFS_MS[attempt - 1]);
+        continue;
+      }
+      try {
+        const mod = await import("./eventLogger.js");
+        mod.logError("api_network_error", networkError, { path, method, attempts: attempt });
+      } catch {
+        // ignore
+      }
+      if (notifiedRetry) dispatchNetworkEvent("api-retry-end", { path, method, ok: false });
+      throw networkError;
     }
-    const errObj = new Error(errorMessage);
-    errObj.data = data;
-    errObj.status = response.status;
-    throw errObj;
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (!response.ok) {
+      // Retry only the transient 5xx/408. 4xx responses surface immediately.
+      if (canRetry && attempt < maxAttempts && RETRYABLE_STATUS.has(response.status)) {
+        if (!notifiedRetry) {
+          dispatchNetworkEvent("api-retry-start", { path, method });
+          notifiedRetry = true;
+        }
+        await delay(RETRY_BACKOFFS_MS[attempt - 1]);
+        continue;
+      }
+
+      const errorMessage = (data && data.error) || `Request failed (${response.status})`;
+      try {
+        const mod = await import("./eventLogger.js");
+        mod.logEvent("api_error", {
+          level: response.status >= 500 ? "error" : "warn",
+          message: errorMessage,
+          meta: { path, status: response.status, method, attempts: attempt }
+        });
+      } catch {
+        // ignore
+      }
+      if (notifiedRetry) dispatchNetworkEvent("api-retry-end", { path, method, ok: false });
+      const errObj = new Error(errorMessage);
+      errObj.data = data;
+      errObj.status = response.status;
+      throw errObj;
+    }
+
+    if (notifiedRetry) dispatchNetworkEvent("api-retry-end", { path, method, ok: true });
+    return data;
   }
 
-  return data;
+  // Unreachable (loop always returns/throws) but keeps the linter happy.
+  throw new Error("request() exhausted retries");
 }
 
 export function upsertProfile(username, displayName, photoUrl) {

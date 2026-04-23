@@ -1626,6 +1626,7 @@ body[data-theme="light"] .delete-profile-confirm-cancel {
 .tier-stepper-dot:active{background:var(--color-primary)!important;transform:scale(1.25)}
 .no-scrollbar{scrollbar-width:none;-ms-overflow-style:none}
 .no-scrollbar::-webkit-scrollbar{display:none;width:0;height:0}
+@keyframes spin{to{transform:rotate(360deg)}}
 .qt-btn{-webkit-tap-highlight-color:transparent}
 .qt-btn:active:not(:disabled){transform:scale(.94);filter:brightness(1.35);box-shadow:0 0 14px rgba(250,204,21,.35)}
 .qt-btn:disabled{opacity:.55;cursor:not-allowed}
