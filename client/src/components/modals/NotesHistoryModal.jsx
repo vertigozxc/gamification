@@ -39,6 +39,13 @@ export default function NotesHistoryModal({ open, username, onClose }) {
   // When editingId is non-null the compose modal saves via PATCH instead
   // of POST and shows an "Edit note" title.
   const [editingId, setEditingId] = useState(null);
+  // Baseline text captured when the composer opens, so we can tell if
+  // the user has typed anything worth warning about before dismissing.
+  const [composeOriginal, setComposeOriginal] = useState("");
+  // Asks for explicit discard consent when the user tries to close the
+  // composer while it holds unsaved changes. No more silent text loss
+  // from a stray outside-tap or ✕.
+  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
   // Custom delete-confirm: no more window.confirm (unstyled, doesn't
   // work well inside full-screen overlays on iOS WebView).
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
@@ -76,24 +83,47 @@ export default function NotesHistoryModal({ open, username, onClose }) {
   const openCreate = () => {
     setComposeError("");
     setComposeText("");
+    setComposeOriginal("");
     setEditingId(null);
+    setDiscardConfirmOpen(false);
     setComposeOpen(true);
   };
 
   const openEdit = (entry) => {
     if (!entry || entry.kind !== "personal") return;
+    const original = String((entry.items || [])[0]?.text || "");
     setComposeError("");
-    setComposeText(String((entry.items || [])[0]?.text || ""));
+    setComposeText(original);
+    setComposeOriginal(original);
     setEditingId(entry.id);
+    setDiscardConfirmOpen(false);
     setComposeOpen(true);
   };
 
-  const closeCompose = () => {
-    if (composeSaving) return;
+  // True when the composer holds edits that would be lost on dismiss —
+  // any non-empty new note, or an edit whose text differs from the
+  // original.
+  const composeHasUnsaved = composeOpen
+    && !composeSaving
+    && composeText.trim().length > 0
+    && composeText !== composeOriginal;
+
+  const forceCloseCompose = () => {
     setComposeOpen(false);
     setEditingId(null);
     setComposeText("");
+    setComposeOriginal("");
     setComposeError("");
+    setDiscardConfirmOpen(false);
+  };
+
+  const requestCloseCompose = () => {
+    if (composeSaving) return;
+    if (composeHasUnsaved) {
+      setDiscardConfirmOpen(true);
+      return;
+    }
+    forceCloseCompose();
   };
 
   const handleSavePersonal = async () => {
@@ -115,8 +145,10 @@ export default function NotesHistoryModal({ open, username, onClose }) {
         setFilter("personal");
       }
       setComposeText("");
+      setComposeOriginal("");
       setComposeOpen(false);
       setEditingId(null);
+      setDiscardConfirmOpen(false);
     } catch (err) {
       setComposeError(String(err?.message || (t.noteSubmitFailed || "Submission failed.")));
     } finally {
@@ -635,7 +667,7 @@ export default function NotesHistoryModal({ open, username, onClose }) {
       {composeOpen ? (
         <div
           className="logout-confirm-overlay"
-          onClick={(event) => { if (event.target === event.currentTarget) closeCompose(); }}
+          onClick={(event) => { if (event.target === event.currentTarget) requestCloseCompose(); }}
           style={{
             zIndex: 90,
             background: "rgba(0,0,0,0.72)",
@@ -674,7 +706,7 @@ export default function NotesHistoryModal({ open, username, onClose }) {
               </div>
               <button
                 type="button"
-                onClick={closeCompose}
+                onClick={requestCloseCompose}
                 aria-label={t.closeLabel || "Close"}
                 className="ui-close-x"
               >
@@ -733,6 +765,96 @@ export default function NotesHistoryModal({ open, username, onClose }) {
                   ? (t.notesHistoryUpdateLabel || "Save changes")
                   : (t.notesHistorySaveLabel || "Save note")}
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {discardConfirmOpen ? (
+        <div
+          className="logout-confirm-overlay"
+          onClick={(event) => { if (event.target === event.currentTarget) setDiscardConfirmOpen(false); }}
+          style={{ zIndex: 96, background: "rgba(0,0,0,0.78)", padding: 20 }}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={t.notesHistoryDiscardTitle || "Discard unsaved changes?"}
+            style={{
+              width: "100%",
+              maxWidth: 340,
+              background: "var(--panel-bg)",
+              border: "1px solid color-mix(in srgb, var(--color-primary) 45%, transparent)",
+              borderRadius: 20,
+              padding: "20px 20px calc(16px + env(safe-area-inset-bottom, 0px))",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 12,
+              boxShadow: "0 18px 50px rgba(0,0,0,0.5)"
+            }}
+          >
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: "50%",
+                background: "color-mix(in srgb, var(--color-primary) 16%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--color-primary) 45%, transparent)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 26
+              }}
+            >
+              📝
+            </div>
+            <h3 className="cinzel" style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "var(--color-text)", textAlign: "center" }}>
+              {t.notesHistoryDiscardTitle || "Discard unsaved changes?"}
+            </h3>
+            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: "var(--color-muted)", textAlign: "center" }}>
+              {t.notesHistoryDiscardBody || "Your text will be lost if you close without saving."}
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, width: "100%", marginTop: 2 }}>
+              <button
+                type="button"
+                onClick={() => setDiscardConfirmOpen(false)}
+                className="mobile-pressable cinzel"
+                style={{
+                  minHeight: 46,
+                  borderRadius: 12,
+                  border: "1px solid color-mix(in srgb, var(--color-primary) 45%, transparent)",
+                  background: "color-mix(in srgb, var(--color-primary) 12%, transparent)",
+                  color: "var(--color-primary)",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  cursor: "pointer"
+                }}
+              >
+                {t.notesHistoryKeepEditing || "Keep editing"}
+              </button>
+              <button
+                type="button"
+                onClick={forceCloseCompose}
+                className="mobile-pressable cinzel"
+                style={{
+                  minHeight: 46,
+                  borderRadius: 12,
+                  border: "1px solid var(--card-border-idle)",
+                  background: "rgba(255,255,255,0.04)",
+                  color: "var(--color-muted)",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  cursor: "pointer"
+                }}
+              >
+                {t.notesHistoryDiscard || "Discard"}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

@@ -400,6 +400,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       || showThemePicker
       || showLanguagePicker
       || achievementModalOpen
+      || showNotesHistory
       || deleteProfileOpen
       || questCompletePopup
       || timerLimitPopup
@@ -421,7 +422,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     showOnboarding, mobileTab, cityFullscreen, showPinnedReplaceModal,
     showAbout, showLogoutConfirm, showLevelUp, showHabitMilestone,
     showFreezeSuccess, showRerollConfirm, showNotesModal, showThemePicker,
-    showLanguagePicker, achievementModalOpen, deleteProfileOpen, questCompletePopup, timerLimitPopup,
+    showLanguagePicker, achievementModalOpen, showNotesHistory, deleteProfileOpen, questCompletePopup, timerLimitPopup,
     singleHabitPickerOpen, languageId
   ]);
 
