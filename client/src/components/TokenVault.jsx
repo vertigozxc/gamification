@@ -27,14 +27,16 @@ function TokenVault({
     return count === 1 ? singular : plural;
   }
 
-  // Amber/gold chip style for token costs — readable across all themes
-  // (dark bg vs. light bg), replaces the theme-tinted pill that rendered
-  // invisible on the light theme.
+  // Token-cost chip uses theme variables so it blends into each interface
+  // theme (adventure / balance / light) instead of punching a gold hole
+  // through the card. Individual glyph colors below now read from
+  // --color-accent too.
   const costChipStyle = {
-    background: "rgba(251, 191, 36, 0.14)",
-    border: "1px solid rgba(217, 119, 6, 0.45)",
-    color: "#d97706"
+    background: "var(--card-bg)",
+    border: "1px solid var(--card-border-idle)",
+    color: "var(--color-accent)"
   };
+  const costValueColor = "var(--color-accent)";
 
   const xpBoostMs = xpBoostExpiresAt ? new Date(xpBoostExpiresAt).getTime() - Date.now() : 0;
   const xpBoostActive = xpBoostMs > 0;
@@ -53,7 +55,7 @@ function TokenVault({
               </div>
               <div className="flex items-center gap-1 rounded-full px-3 py-1" style={costChipStyle}>
                 <span className="text-base">{t.tokenIcon}</span>
-                <span className="cinzel font-bold text-sm" style={{ color: "#d97706" }}>{freezeCost}</span>
+                <span className="cinzel font-bold text-sm" style={{ color: costValueColor }}>{freezeCost}</span>
               </div>
             </div>
             <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
@@ -91,7 +93,7 @@ function TokenVault({
               </div>
               <div className="flex items-center gap-1 rounded-full px-3 py-1" style={costChipStyle}>
                 <span className="text-base">{t.tokenIcon}</span>
-                <span className="cinzel font-bold text-sm" style={{ color: "#d97706" }}>{rerollCost}</span>
+                <span className="cinzel font-bold text-sm" style={{ color: costValueColor }}>{rerollCost}</span>
               </div>
             </div>
             {extraRerollsToday > 0 && (
@@ -124,23 +126,18 @@ function TokenVault({
                 <p className="cinzel font-bold text-base tracking-wide" style={{ color: "var(--color-text)" }}>{t.pinnedQuestRerollTitle}</p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.pinnedQuestRerollDesc}</p>
               </div>
-              <div
-                className="flex items-center gap-1 rounded-full px-3 py-1 self-start"
-                style={isFreePinnedReroll
-                  ? { background: "linear-gradient(90deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))", border: "1px solid rgba(16,185,129,0.35)" }
-                  : costChipStyle}
-              >
+              <div className="flex items-center gap-1 rounded-full px-3 py-1 self-start" style={costChipStyle}>
                 {isFreePinnedReroll ? (
                   <>
                     <span className="text-base">🎁</span>
-                    <span className="cinzel font-bold text-xs" style={{ color: "#6ee7b7", letterSpacing: "0.06em" }}>
+                    <span className="cinzel font-bold text-xs" style={{ color: costValueColor, letterSpacing: "0.06em" }}>
                       {t.freeLabel || "FREE"}
                     </span>
                   </>
                 ) : (
                   <>
                     <span className="text-base">{t.tokenIcon}</span>
-                    <span className="cinzel font-bold text-sm" style={{ color: "#d97706" }}>7</span>
+                    <span className="cinzel font-bold text-sm" style={{ color: costValueColor }}>7</span>
                   </>
                 )}
               </div>
@@ -150,15 +147,13 @@ function TokenVault({
               disabled={!canRerollPinned}
               className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 ${
                 canRerollPinned
-                  ? (isFreePinnedReroll
-                      ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 shadow-md"
-                      : "bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:from-fuchsia-700 hover:to-violet-700 shadow-md")
+                  ? "bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:from-fuchsia-700 hover:to-violet-700 shadow-md"
                   : "bg-slate-800/80 text-slate-500 cursor-not-allowed"
               }`}
             >
               <span>⟳</span>
               {isFreePinnedReroll
-                ? (t.pinnedRerollFreeUse || t.freeLabel || "Free use")
+                ? (t.pinnedRerollFreeUse || t.freeLabel || "Free Reroll")
                 : (tokens < 7
                     ? t.notEnough
                     : `${t.buyPrefix} 7 ${getPluralizedToken(7)}`)}
@@ -182,7 +177,7 @@ function TokenVault({
               </div>
               <div className="flex items-center gap-1 rounded-full px-3 py-1 self-start" style={costChipStyle}>
                 <span className="text-base">{t.tokenIcon}</span>
-                <span className="cinzel font-bold text-sm" style={{ color: "#d97706" }}>{xpBoostCost}</span>
+                <span className="cinzel font-bold text-sm" style={{ color: costValueColor }}>{xpBoostCost}</span>
               </div>
             </div>
             <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
