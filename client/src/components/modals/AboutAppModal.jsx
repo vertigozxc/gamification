@@ -352,20 +352,21 @@ function Rows({ rows }) {
 
 const COPY_EN = {
   title: "About the app",
-  subtitle: "Simple guide to how it works",
+  subtitle: "Complete guide to how everything works",
   close: "Close",
   sections: [
     {
       icon: "🎯",
       title: "The main idea",
-      summary: "One sentence: show up every day and build habits.",
+      summary: "Show up every day, build habits, grow a city.",
       body: (
         <>
           <Bullets items={[
-            "Every day you get a small set of quests to do.",
-            "Complete them → earn XP → level up.",
-            "Keep going every day → grow your streak.",
-            "Your streak makes every quest reward bigger."
+            "Every day you get a small set of quests to complete.",
+            "Finishing quests earns XP (levels you up) and sometimes tokens (premium currency).",
+            "Showing up day after day grows your streak, which multiplies the XP from every quest.",
+            "Tokens upgrade districts in your personal city — each district gives a permanent gameplay perk.",
+            "Everything is designed around one habit: come back every day."
           ]} />
         </>
       )
@@ -377,9 +378,10 @@ const COPY_EN = {
       body: (
         <>
           <Bullets items={[
-            "You always have two kinds of quests: your habits (you pick them) and daily quests (they shuffle every day).",
-            "The higher your level, the more quests you unlock each day.",
-            "At higher levels you also get access to harder quests."
+            "Your board mixes two kinds of quests: habits (you pick them, they stay pinned) and daily quests (shuffle each day).",
+            "The higher your level, the more quests unlock each day, and the harder quests appear.",
+            "You can reroll today's random quests once for free; extra rerolls cost 3 tokens each in the shop.",
+            "Finishing a quest at 100% always counts toward your streak. Timer quests can earn partial XP — see the Timer section."
           ]} />
           <Rows rows={[
             { label: "Level 1–4", value: "2 habits + 2 daily" },
@@ -388,7 +390,7 @@ const COPY_EN = {
             { label: "Level 20+", value: "4 habits + 4 daily" }
           ]} />
           <p style={{ fontSize: 12, color: "var(--color-muted)", marginTop: 10, fontStyle: "italic", lineHeight: 1.5 }}>
-            The toughest quests (difficulty 5) only show up once your streak is at least 14 days.
+            The hardest quests (difficulty 5) only appear once your streak reaches 14 days.
           </p>
         </>
       )
@@ -396,16 +398,16 @@ const COPY_EN = {
     {
       icon: "🔥",
       title: "Streak — your daily chain",
-      summary: "Finish enough quests every day to keep it alive.",
+      summary: "The core mechanic. Every extra day makes every quest worth more.",
       body: (
         <>
           <Bullets items={[
-            "Finish 4 or more quests today → streak goes up by 1.",
-            "Finish exactly 3 → streak stays the same.",
+            "Finish 4 or more quests today → streak +1.",
+            "Finish exactly 3 → streak holds (no change).",
             "Finish 2 or fewer → streak resets to 0.",
-            "The longer your streak, the more XP every quest gives you.",
-            "Running a streak of 14+ days unlocks the hardest quests.",
-            "Used a Streak Freeze? You're protected for one skipped day."
+            "Streak multiplies the XP from every single quest, permanently while the streak holds.",
+            "Reaching 14 days unlocks the hardest (difficulty 5) quests.",
+            "A Streak Freeze protects you from one missed day — see Shop and Profile."
           ]} />
           <Rows rows={[
             { label: "0–2 day streak", value: "normal XP" },
@@ -413,8 +415,12 @@ const COPY_EN = {
             { label: "7–13 day streak", value: "+10% XP" },
             { label: "14–20 day streak", value: "+15% XP" },
             { label: "21–29 day streak", value: "+20% XP" },
-            { label: "30+ day streak", value: "+30% XP" }
+            { label: "30–49 day streak", value: "+30% XP" },
+            { label: "50+ day streak", value: "+50% XP" }
           ]} />
+          <p style={{ fontSize: 12, color: "var(--color-muted)", marginTop: 10, fontStyle: "italic", lineHeight: 1.5 }}>
+            The XP bonus stacks with district perks and the XP Boost shop item.
+          </p>
         </>
       )
     },
@@ -481,19 +487,65 @@ const COPY_EN = {
     {
       icon: "🏙",
       title: "Your city",
-      summary: "Spend tokens on districts, they give you permanent perks.",
+      summary: "Why a city? Every district is a permanent gameplay perk you earn.",
       body: (
         <>
           <Bullets items={[
-            "Sport — every level boosts the XP you earn from all quests.",
-            "Square — when you fill the daily board, you get extra tokens.",
-            "Residential — discounts on shop items, plus a monthly Streak Freeze and vacation mode.",
-            "Business — collect a small pile of tokens once a day.",
-            "Education — shortens the cooldown before you can reroll again."
+            "Your city is the long-term progression layer. As you save tokens and upgrade districts, each district unlocks a permanent perk that changes how the game plays for you.",
+            "It also gives daily work something visible: the city physically grows as you keep showing up — a snapshot of your discipline.",
+            "Districts can be upgraded to level 5. Costs scale up (5 → 15 → 25 → 50 → 100 tokens) and higher levels also require a minimum streak and account level.",
+            "Districts upgrade independently — you can specialize, or spread upgrades across all five."
+          ]} />
+          <Rows rows={[
+            { label: "🏃 Sport", value: "+5% XP per level (max +25%)" },
+            { label: "💼 Business", value: "Claim a token bundle once a day" },
+            { label: "🌳 Park", value: "Shortens Wheel of Fortune cooldown" },
+            { label: "🏛 Square", value: "Extra tokens for filling the full daily board" },
+            { label: "🏘 Residential", value: "Shop discount, monthly free Freeze, Vacation mode" }
           ]} />
           <p style={{ fontSize: 12, color: "var(--color-muted)", marginTop: 10, fontStyle: "italic", lineHeight: 1.5 }}>
-            Districts upgrade independently, so pick the perks that fit how you play.
+            Residential unlocks the Vacation mode — pause your streak for up to 20 days without losing it.
           </p>
+        </>
+      )
+    },
+    {
+      icon: "🎰",
+      title: "Wheel of Fortune",
+      summary: "Daily free spin for XP, tokens, or a level up.",
+      body: (
+        <>
+          <Bullets items={[
+            "You can spin the Wheel from the City screen. Rewards include XP, tokens, or a free level up.",
+            "After you spin, a cooldown kicks in before the next spin.",
+            "The Park district shortens the cooldown at every level."
+          ]} />
+          <Rows rows={[
+            { label: "Park 0 (no district)", value: "48 hours" },
+            { label: "Park 1", value: "24 hours" },
+            { label: "Park 2", value: "20 hours" },
+            { label: "Park 3", value: "16 hours" },
+            { label: "Park 4", value: "12 hours" },
+            { label: "Park 5", value: "8 hours" }
+          ]} />
+        </>
+      )
+    },
+    {
+      icon: "🪙",
+      title: "Tokens — where they come from",
+      summary: "Everything you can spend in the Shop and City.",
+      body: (
+        <>
+          <Bullets items={[
+            "Level up — each level awards 1 token (2 tokens from level 10 onward).",
+            "Daily board — 3 tokens for filling all 4 milestone slots.",
+            "Habit milestone — +10 token bonus for completing the same habit 21 days in a row.",
+            "Business district — claim a daily token bundle (1–5 tokens based on district level).",
+            "Square district — at level 1+, filling the full daily board gives extra tokens equal to district level.",
+            "Wheel of Fortune — tokens are one of the possible spin rewards.",
+            "Residential district — awards free Streak Freeze charges (1–2 per month) instead of tokens directly."
+          ]} />
         </>
       )
     },
@@ -504,10 +556,11 @@ const COPY_EN = {
       body: (
         <>
           <Bullets items={[
-            "Streak Freeze — costs 7 tokens, keeps your streak alive for one missed day. One per week.",
-            "Extra Daily Reroll — costs 3 tokens, shuffles today's random quests again.",
-            "Replace Habits — free once every 21 days, otherwise 7 tokens.",
-            "The Residential district gives a discount on every shop item."
+            "Streak Freeze — 7 tokens. Adds one charge to your inventory (visible in Profile). Activate it there to protect your streak from one missed day. Limit: 1 purchase per week.",
+            "Extra Daily Reroll — 3 tokens. Reshuffles today's random quests once more after the free reroll is used. You can buy multiple.",
+            "XP Boost — 15 tokens. Gives +15% XP on every completed quest for 7 days. Buying again while active extends the timer.",
+            "Pinned Quest Reroll — 7 tokens. Opens the picker to replace your pinned habits. You also get a free pinned reroll every 21 days.",
+            "Residential district gives a discount on every shop item (−1 token from level 1, −2 tokens from level 5)."
           ]} />
         </>
       )
@@ -515,14 +568,16 @@ const COPY_EN = {
     {
       icon: "💡",
       title: "Tips",
-      summary: "Small things that make a big difference.",
+      summary: "Small habits that pay off over months.",
       body: (
         <>
           <Bullets items={[
-            "Aim for 4 quests a day — that's the sweet spot for streak growth.",
-            "Pick habits you genuinely want to build. Hitting 21 days in a row is very rewarding.",
-            "Going on vacation? Unlock the Residential district early for the vacation mode that pauses your streak.",
-            "Use timer quests for deep-work sessions — they are the best way to stack XP."
+            "Aim for 4 quests a day — that's the streak growth line.",
+            "Pick habits you genuinely want to build. Hitting the 21-day bonus is very rewarding.",
+            "Stack multipliers for big XP days: high streak × Sport district × XP Boost shop item.",
+            "Save Streak Freeze charges — they're earned for free from the Residential district cycle and Vacation mode.",
+            "Use timer quests for deep-work sessions — they give the largest XP rewards.",
+            "Going on vacation? Upgrade Residential early to unlock Vacation mode and pause your streak."
           ]} />
         </>
       )
@@ -532,19 +587,20 @@ const COPY_EN = {
 
 const COPY_RU = {
   title: "О приложении",
-  subtitle: "Простой гид по тому, как это работает",
+  subtitle: "Подробный гид по всем механикам",
   close: "Закрыть",
   sections: [
     {
       icon: "🎯",
       title: "Главная идея",
-      summary: "Одним предложением: каждый день появляться и строить привычки.",
+      summary: "Приходить каждый день, строить привычки, развивать город.",
       body: (
         <Bullets items={[
-          "Каждый день вам выдаётся небольшой набор квестов.",
-          "Выполняете их → получаете XP → растёте в уровне.",
-          "Приходите каждый день → растёт стрик.",
-          "Чем выше стрик, тем больше награда за каждый квест."
+          "Каждый день вы получаете небольшой набор квестов.",
+          "Закрывая квесты, вы зарабатываете опыт (для уровней) и иногда токены (премиум-валюта).",
+          "Если появляетесь каждый день — растёт стрик, который умножает опыт с каждого квеста.",
+          "Токены тратятся на прокачку районов в вашем городе, а каждый район даёт постоянный игровой бонус.",
+          "Всё приложение построено вокруг одной привычки: возвращаться каждый день."
         ]} />
       )
     },
@@ -555,9 +611,10 @@ const COPY_RU = {
       body: (
         <>
           <Bullets items={[
-            "У вас всегда два типа квестов: привычки (вы их выбираете сами) и дневные (меняются каждый день).",
-            "Чем выше уровень — тем больше квестов в день.",
-            "На высоких уровнях открываются более сложные квесты."
+            "На борде два типа квестов: привычки (вы их выбираете сами, они закреплены) и дневные (меняются каждый день).",
+            "Чем выше уровень — тем больше квестов в день и тем сложнее становятся дневные.",
+            "Перемешать сегодняшние дневные квесты можно один раз бесплатно; дополнительные реролы — по 3 токена в магазине.",
+            "Квест на 100% всегда засчитывается в стрик. У квестов с таймером есть частичные награды — см. раздел «Квесты с таймером»."
           ]} />
           <Rows rows={[
             { label: "Уровень 1–4", value: "2 привычки + 2 дневных" },
@@ -566,7 +623,7 @@ const COPY_RU = {
             { label: "Уровень 20+", value: "4 привычки + 4 дневных" }
           ]} />
           <p style={{ fontSize: 12, color: "var(--color-muted)", marginTop: 10, fontStyle: "italic", lineHeight: 1.5 }}>
-            Самые сложные квесты (уровень сложности 5) появляются только если стрик 14+ дней.
+            Самые сложные квесты (уровень сложности 5) появляются, когда стрик достигает 14 дней.
           </p>
         </>
       )
@@ -574,16 +631,16 @@ const COPY_RU = {
     {
       icon: "🔥",
       title: "Стрик — ваша цепочка дней",
-      summary: "Выполняйте достаточно квестов, чтобы не прерывалась.",
+      summary: "Ядро игры. Каждый лишний день делает все квесты ценнее.",
       body: (
         <>
           <Bullets items={[
             "Закрыли 4+ квестов за день → стрик +1.",
-            "Ровно 3 → стрик сохраняется.",
+            "Ровно 3 → стрик сохраняется без изменений.",
             "2 и меньше → стрик сбрасывается в 0.",
-            "Чем дольше стрик, тем больше XP за каждый квест.",
+            "Стрик постоянно умножает опыт с каждого квеста, пока он держится.",
             "Стрик 14+ дней открывает самые сложные квесты.",
-            "Купили Streak Freeze? Он защитит стрик на один пропущенный день."
+            "Заморозка стрика (Streak Freeze) защищает его от одного пропущенного дня — см. разделы «Магазин» и «Профиль»."
           ]} />
           <Rows rows={[
             { label: "Стрик 0–2", value: "обычный XP" },
@@ -591,8 +648,12 @@ const COPY_RU = {
             { label: "Стрик 7–13", value: "+10% XP" },
             { label: "Стрик 14–20", value: "+15% XP" },
             { label: "Стрик 21–29", value: "+20% XP" },
-            { label: "Стрик 30+", value: "+30% XP" }
+            { label: "Стрик 30–49", value: "+30% XP" },
+            { label: "Стрик 50+", value: "+50% XP" }
           ]} />
+          <p style={{ fontSize: 12, color: "var(--color-muted)", marginTop: 10, fontStyle: "italic", lineHeight: 1.5 }}>
+            Множитель стрика складывается с бонусами от районов и с товаром «Буст опыта» из магазина.
+          </p>
         </>
       )
     },
@@ -657,19 +718,65 @@ const COPY_RU = {
     {
       icon: "🏙",
       title: "Ваш город",
-      summary: "Районы дают постоянные бонусы за токены.",
+      summary: "Зачем город? Каждый район — это постоянный игровой бонус.",
       body: (
         <>
           <Bullets items={[
-            "Спорт — каждый уровень увеличивает XP со всех квестов.",
-            "Площадь — за полный дейли борд получаете дополнительные токены.",
-            "Жилой — скидки в магазине, ежемесячный Streak Freeze и режим отпуска.",
-            "Бизнес — раз в день забираете небольшую пачку токенов.",
-            "Образование — сокращает время до следующего рерола."
+            "Город — это слой долгосрочного прогресса. Копите токены, прокачивайте районы, и каждый район открывает постоянный бонус, меняющий саму игру.",
+            "А ещё город делает ежедневную работу видимой: он буквально растёт, пока вы не сдаётесь — это визуальный след вашей дисциплины.",
+            "Районы прокачиваются до 5 уровня. Стоимость растёт (5 → 15 → 25 → 50 → 100 токенов), а верхние уровни требуют минимального стрика и уровня аккаунта.",
+            "Районы независимы — можно сконцентрироваться на одном или равномерно прокачивать все пять."
+          ]} />
+          <Rows rows={[
+            { label: "🏃 Спорт", value: "+5% XP за уровень (до +25%)" },
+            { label: "💼 Бизнес", value: "Забираете пачку токенов раз в день" },
+            { label: "🌳 Парк", value: "Сокращает кулдаун колеса удачи" },
+            { label: "🏛 Площадь", value: "Больше токенов за полный дейли борд" },
+            { label: "🏘 Жилой", value: "Скидка в магазине, бесплатный Freeze и режим отпуска" }
           ]} />
           <p style={{ fontSize: 12, color: "var(--color-muted)", marginTop: 10, fontStyle: "italic", lineHeight: 1.5 }}>
-            Районы прокачиваются отдельно — выбирайте то, что подходит именно вам.
+            Жилой район открывает режим отпуска — можно поставить стрик на паузу на срок до 20 дней.
           </p>
+        </>
+      )
+    },
+    {
+      icon: "🎰",
+      title: "Колесо удачи",
+      summary: "Ежедневный бесплатный спин на XP, токены или уровень.",
+      body: (
+        <>
+          <Bullets items={[
+            "Крутить колесо можно в экране «Город». Награды — опыт, токены или бесплатный уровень.",
+            "После спина запускается кулдаун до следующего.",
+            "Парк сокращает кулдаун на каждом уровне."
+          ]} />
+          <Rows rows={[
+            { label: "Парк 0 (район не построен)", value: "48 часов" },
+            { label: "Парк 1", value: "24 часа" },
+            { label: "Парк 2", value: "20 часов" },
+            { label: "Парк 3", value: "16 часов" },
+            { label: "Парк 4", value: "12 часов" },
+            { label: "Парк 5", value: "8 часов" }
+          ]} />
+        </>
+      )
+    },
+    {
+      icon: "🪙",
+      title: "Токены — откуда брать",
+      summary: "Всё, что можно тратить в магазине и на городе.",
+      body: (
+        <>
+          <Bullets items={[
+            "Новый уровень — 1 токен за каждый уровень (с 10-го уровня — 2 токена).",
+            "Дейли борд — 3 токена за заполнение всех 4 вех.",
+            "Веха привычки — +10 токенов бонусом за закрытие одной привычки 21 день подряд.",
+            "Район Бизнес — раз в день забираете пачку токенов (1–5 в зависимости от уровня района).",
+            "Район Площадь — с 1 уровня за полный дейли борд начисляются дополнительные токены, равные уровню района.",
+            "Колесо удачи — токены это одна из возможных наград за спин.",
+            "Жилой район — вместо токенов выдаёт бесплатные заряды заморозки стрика (1–2 в месяц)."
+          ]} />
         </>
       )
     },
@@ -679,23 +786,26 @@ const COPY_RU = {
       summary: "Что можно купить за токены.",
       body: (
         <Bullets items={[
-          "Streak Freeze — 7 токенов, спасёт стрик от одного пропущенного дня. Один раз в неделю.",
-          "Extra Daily Reroll — 3 токена, перетасовывает сегодняшние дневные квесты.",
-          "Замена привычек — раз в 21 день бесплатно, иначе 7 токенов.",
-          "Жилой район даёт скидку на всё в магазине."
+          "Заморозка стрика — 7 токенов. Добавляет 1 заряд в инвентарь (виден в профиле). Активируется там же и защищает стрик от одного пропущенного дня. Лимит: 1 покупка в неделю.",
+          "Доп. перемешивание — 3 токена. Ещё раз перетасовывает сегодняшние дневные квесты после бесплатного рерола. Можно покупать несколько раз.",
+          "Буст опыта — 15 токенов. Даёт +15% XP за каждый выполненный квест в течение 7 дней. Покупка во время действия продлевает таймер.",
+          "Замена привычек — 7 токенов. Открывает выбор новых привычек. Раз в 21 день такая замена бесплатна.",
+          "Жилой район даёт скидку на все товары магазина (−1 токен с 1 уровня, −2 токена с 5 уровня)."
         ]} />
       )
     },
     {
       icon: "💡",
       title: "Советы",
-      summary: "Маленькие штуки, которые дают большой эффект.",
+      summary: "Маленькие привычки, которые окупаются за месяцы.",
       body: (
         <Bullets items={[
-          "Целитесь в 4 квеста в день — это оптимум для роста стрика.",
-          "Выбирайте привычки, которые действительно хочется развивать. 21 день — это сильный результат.",
-          "Собрались в отпуск? Прокачайте Жилой район пораньше — там есть режим отпуска, который ставит стрик на паузу.",
-          "Квесты с таймером — лучший способ нарастить XP за глубокую работу."
+          "Целитесь в 4 квеста в день — это порог роста стрика.",
+          "Выбирайте привычки, которые действительно хочется развивать. 21 день — сильный результат и токен-бонус.",
+          "Складывайте множители для больших XP-дней: высокий стрик × район Спорт × Буст опыта из магазина.",
+          "Копите заряды заморозки стрика — они также начисляются бесплатно Жилым районом и режимом отпуска.",
+          "Квесты с таймером — лучший способ наростить XP на глубокой работе.",
+          "Собираетесь в отпуск? Прокачайте Жилой район заранее — там есть режим отпуска, который ставит стрик на паузу."
         ]} />
       )
     }

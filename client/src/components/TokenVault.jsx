@@ -94,9 +94,6 @@ function TokenVault({
                 <span className="cinzel font-bold text-sm" style={{ color: "#d97706" }}>{rerollCost}</span>
               </div>
             </div>
-            <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
-              {t.rerollShopDetail}
-            </p>
             {extraRerollsToday > 0 && (
               <div className="flex items-center gap-2 bg-violet-900/30 border border-violet-500/50 rounded-xl px-3 py-1.5">
                 <span className="text-violet-300">✦</span>
@@ -174,7 +171,7 @@ function TokenVault({
               disabled={tokens < xpBoostCost}
               className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 ${
                 tokens >= xpBoostCost
-                  ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-white hover:from-amber-600 hover:to-yellow-600 shadow-md"
+                  ? "bg-gradient-to-r from-violet-500 to-purple-500 text-white hover:from-violet-600 hover:to-purple-600 shadow-md"
                   : "bg-slate-800/80 text-slate-500 cursor-not-allowed"
               }`}
             >

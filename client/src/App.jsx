@@ -630,15 +630,17 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     }
   }, [mobileTab, authUser]);
 
-  const streakMultiplier = state.streak >= 25
-    ? 1.30
-    : state.streak >= 15
-      ? 1.25
-      : state.streak >= 10
+  // Keep in sync with server streak_xp_multiplier tiers
+  // (server/rpg_life_daily_quests_v2.json).
+  const streakMultiplier = state.streak >= 50
+    ? 1.50
+    : state.streak >= 30
+      ? 1.30
+      : state.streak >= 21
         ? 1.20
-        : state.streak >= 7
+        : state.streak >= 14
           ? 1.15
-          : state.streak >= 5
+          : state.streak >= 7
             ? 1.10
             : state.streak >= 3
               ? 1.05
