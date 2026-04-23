@@ -142,10 +142,7 @@ export default function SearchScreen({ meUid, t, onClose, onOpenProfile }) {
                   <p className="sb-body" style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {u.displayName || u.username}{u.username === meUid ? ` (${t.arenaYou || "you"})` : ""}
                   </p>
-                  <p className="sb-caption">
-                    {u.handle ? <span>@{u.handle} · </span> : null}
-                    {t.arenaLvlShort || "Lv"} {u.level} · 🔥 {u.streak}
-                  </p>
+                  <p className="sb-caption">{t.arenaLvlShort || "Lv"} {u.level} · 🔥 {u.streak}</p>
                 </div>
                 {badgeLabel ? (
                   <span

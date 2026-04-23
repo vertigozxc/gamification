@@ -450,25 +450,6 @@ function OnboardingModal({
             {t.onboardingHandleHint || "3–20 letters / digits / underscore. Others find you by this."}
           </p>
 
-          <div style={{ marginTop: 14 }}>
-            <InputWithClear
-              value={onboardingQuestSearch}
-              onChange={onOnboardingQuestSearchChange}
-              placeholder={t.onboardingSearch}
-              clearAriaLabel={t.clearLabel || "Clear"}
-              inputStyle={{
-                padding: "12px 14px",
-                borderRadius: 12,
-                background: "rgba(0,0,0,0.35)",
-                border: "1px solid var(--card-border-idle)",
-                color: "#e2e8f0",
-                fontSize: 16,
-                minHeight: 44,
-                outline: "none"
-              }}
-            />
-          </div>
-
           <CustomHabitManager
             customQuests={customQuests}
             selectedIds={onboardingQuestIds}
@@ -507,6 +488,28 @@ function OnboardingModal({
                 categories={categoryOptions}
                 counts={categoryCounts}
                 translateCategory={translateCategory}
+              />
+            </div>
+
+            {/* Quest-name search sits directly above the list so the user
+                filters after picking a category — matches the natural
+                top-to-bottom reading order of the section. */}
+            <div style={{ marginBottom: 10 }}>
+              <InputWithClear
+                value={onboardingQuestSearch}
+                onChange={onOnboardingQuestSearchChange}
+                placeholder={t.onboardingSearch}
+                clearAriaLabel={t.clearLabel || "Clear"}
+                inputStyle={{
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  background: "rgba(0,0,0,0.35)",
+                  border: "1px solid var(--card-border-idle)",
+                  color: "#e2e8f0",
+                  fontSize: 16,
+                  minHeight: 44,
+                  outline: "none"
+                }}
               />
             </div>
 
