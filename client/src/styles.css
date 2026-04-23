@@ -1624,6 +1624,8 @@ body[data-theme="light"] .delete-profile-confirm-cancel {
 .quest-note-cta:active:not(:disabled){background:linear-gradient(90deg,rgba(250,204,21,.3),rgba(250,204,21,.18))!important;box-shadow:0 0 18px rgba(250,204,21,.35)!important}
 .tier-stepper-arrow:active:not(:disabled){background:color-mix(in srgb,var(--color-primary) 22%,transparent)!important;color:var(--color-primary)!important}
 .tier-stepper-dot:active{background:var(--color-primary)!important;transform:scale(1.25)}
+.no-scrollbar{scrollbar-width:none;-ms-overflow-style:none}
+.no-scrollbar::-webkit-scrollbar{display:none;width:0;height:0}
 .qt-btn{-webkit-tap-highlight-color:transparent}
 .qt-btn:active:not(:disabled){transform:scale(.94);filter:brightness(1.35);box-shadow:0 0 14px rgba(250,204,21,.35)}
 .qt-btn:disabled{opacity:.55;cursor:not-allowed}

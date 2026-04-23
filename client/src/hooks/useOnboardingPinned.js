@@ -489,6 +489,9 @@ function useOnboardingPinned({
     refreshCustomQuests,
     filteredOnboardingQuests,
     filteredReplacePinnedQuests,
+    // Unfiltered pool (before search) — modals use it to re-surface
+    // initially-selected habits that a search term would otherwise drop.
+    allEligibleQuestOptions: combinedQuestOptions,
     resetOnLogout,
     applyServerBootstrap,
     seedAllQuestOptions,

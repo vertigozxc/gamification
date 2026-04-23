@@ -270,6 +270,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     onboardingSaving,
     filteredOnboardingQuests,
     filteredReplacePinnedQuests,
+    allEligibleQuestOptions,
     resetOnLogout,
     toggleOnboardingQuest,
     toggleReplacePinnedQuest,
@@ -1432,6 +1433,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         onboardingQuestSearch={onboardingQuestSearch}
         onOnboardingQuestSearchChange={setOnboardingQuestSearch}
         filteredOnboardingQuests={filteredOnboardingQuests}
+        allEligibleQuestOptions={allEligibleQuestOptions}
         onToggleOnboardingQuest={toggleOnboardingQuest}
         onboardingError={onboardingError}
         onboardingSaving={onboardingSaving}
@@ -1453,6 +1455,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         replacePinnedSearch={replacePinnedSearch}
         onReplacePinnedSearchChange={setReplacePinnedSearch}
         filteredReplacePinnedQuests={filteredReplacePinnedQuests}
+        allEligibleQuestOptions={allEligibleQuestOptions}
         replacePinnedQuestIds={replacePinnedQuestIds}
         onToggleReplacePinnedQuest={toggleReplacePinnedQuest}
         replacePinnedError={replacePinnedError}

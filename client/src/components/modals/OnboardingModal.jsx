@@ -15,6 +15,7 @@ function OnboardingModal({
   onboardingQuestSearch,
   onOnboardingQuestSearchChange,
   filteredOnboardingQuests,
+  allEligibleQuestOptions,
   onToggleOnboardingQuest,
   onboardingError,
   onboardingSaving,
@@ -79,7 +80,10 @@ function OnboardingModal({
   const questGroups = useMemo(() => {
     const filteredGroups = groupQuests(filteredByCategory);
     const initialSet = new Set(initialSelectedIds);
-    const initialGroupsFromFullPool = groupQuests(nonCustomQuests).filter(
+    const fullPool = Array.isArray(allEligibleQuestOptions)
+      ? allEligibleQuestOptions.filter((q) => !q.isCustom)
+      : nonCustomQuests;
+    const initialGroupsFromFullPool = groupQuests(fullPool).filter(
       (g) => g.variants.some((q) => initialSet.has(q.id))
     );
     const filteredKeys = new Set(filteredGroups.map((g) => g.key));
@@ -92,7 +96,7 @@ function OnboardingModal({
       const bSelected = b.variants.some((q) => initialSet.has(q.id)) ? 0 : 1;
       return aSelected - bSelected;
     });
-  }, [filteredByCategory, nonCustomQuests, initialSelectedIds]);
+  }, [filteredByCategory, nonCustomQuests, initialSelectedIds, allEligibleQuestOptions]);
 
   const selectedCount = Array.isArray(onboardingQuestIds) ? onboardingQuestIds.length : 0;
   const selectionComplete = selectedCount === SELECTION_LIMIT;
@@ -321,9 +325,35 @@ function OnboardingModal({
             </div>
 
             {questGroups.length === 0 ? (
-              <p style={{ fontSize: 12, color: "#64748b", textAlign: "center", padding: "16px 0" }}>
-                {t.onboardingNoMatch}
-              </p>
+              <div style={{ textAlign: "center", padding: "20px 0", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+                <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>
+                  {t.onboardingNoMatch}
+                </p>
+                {(onboardingQuestSearch || categoryFilter !== "ALL") ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onOnboardingQuestSearchChange("");
+                      setCategoryFilter("ALL");
+                    }}
+                    className="cinzel mobile-pressable"
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: "6px 12px",
+                      borderRadius: 999,
+                      border: "1px solid var(--color-primary)",
+                      background: "color-mix(in srgb, var(--color-primary) 14%, transparent)",
+                      color: "var(--color-primary)",
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                      cursor: "pointer"
+                    }}
+                  >
+                    {t.clearFiltersLabel || "Clear filters"}
+                  </button>
+                ) : null}
+              </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {questGroups.map((group) => {

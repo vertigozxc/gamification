@@ -15,6 +15,7 @@ function PinnedReplacementModal({
   replacePinnedSearch,
   onReplacePinnedSearchChange,
   filteredReplacePinnedQuests,
+  allEligibleQuestOptions,
   replacePinnedQuestIds,
   onToggleReplacePinnedQuest,
   replacePinnedError,
@@ -82,8 +83,12 @@ function PinnedReplacementModal({
 
     // Always surface groups that contain any initially-selected quest,
     // even if the search / category filter would otherwise exclude them.
-    // Build a group for each initial ID out of the full non-custom pool.
-    const initialGroupsFromFullPool = groupQuests(nonCustomQuests).filter(
+    // Use the UNFILTERED eligible pool (not the search-filtered pool),
+    // otherwise a search term would drop the initial selection entirely.
+    const fullPool = Array.isArray(allEligibleQuestOptions)
+      ? allEligibleQuestOptions.filter((q) => !q.isCustom)
+      : nonCustomQuests;
+    const initialGroupsFromFullPool = groupQuests(fullPool).filter(
       (g) => g.variants.some((q) => initialSet.has(q.id))
     );
     const filteredKeys = new Set(filteredGroups.map((g) => g.key));
@@ -100,7 +105,7 @@ function PinnedReplacementModal({
       const bSelected = b.variants.some((q) => initialSet.has(q.id)) ? 0 : 1;
       return aSelected - bSelected;
     });
-  }, [filteredByCategory, nonCustomQuests, initialSelectedIds]);
+  }, [filteredByCategory, nonCustomQuests, initialSelectedIds, allEligibleQuestOptions]);
 
   const selectedCount = Array.isArray(replacePinnedQuestIds) ? replacePinnedQuestIds.length : 0;
   const selectionComplete = selectedCount === SELECTION_LIMIT;
@@ -310,9 +315,35 @@ function PinnedReplacementModal({
               />
             </div>
             {questGroups.length === 0 ? (
-              <p style={{ fontSize: 12, color: "#64748b", textAlign: "center", padding: "16px 0" }}>
-                {t.onboardingNoMatch}
-              </p>
+              <div style={{ textAlign: "center", padding: "20px 0", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+                <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>
+                  {t.onboardingNoMatch}
+                </p>
+                {(replacePinnedSearch || categoryFilter !== "ALL") ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onReplacePinnedSearchChange("");
+                      setCategoryFilter("ALL");
+                    }}
+                    className="cinzel mobile-pressable"
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: "6px 12px",
+                      borderRadius: 999,
+                      border: "1px solid var(--color-primary)",
+                      background: "color-mix(in srgb, var(--color-primary) 14%, transparent)",
+                      color: "var(--color-primary)",
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                      cursor: "pointer"
+                    }}
+                  >
+                    {t.clearFiltersLabel || "Clear filters"}
+                  </button>
+                ) : null}
+              </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {questGroups.map((group) => {

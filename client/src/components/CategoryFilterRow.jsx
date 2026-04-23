@@ -61,11 +61,12 @@ export default function CategoryFilterRow({ value = "ALL", onChange, categories 
 
   return (
     <div
+      className="no-scrollbar"
       style={{
         display: "flex",
         gap: 6,
         overflowX: "auto",
-        paddingBottom: 2,
+        paddingBottom: 0,
         WebkitOverflowScrolling: "touch"
       }}
     >

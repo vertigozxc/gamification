@@ -280,12 +280,13 @@ export default function NotesHistoryModal({ open, username, onClose }) {
           </div>
 
           <div
+            className="no-scrollbar"
             style={{
               display: "flex",
               gap: 8,
               marginTop: 10,
               overflowX: "auto",
-              paddingBottom: 2,
+              paddingBottom: 0,
               WebkitOverflowScrolling: "touch"
             }}
           >
