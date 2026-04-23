@@ -124,22 +124,44 @@ function TokenVault({
                 <p className="cinzel font-bold text-base tracking-wide" style={{ color: "var(--color-text)" }}>{t.pinnedQuestRerollTitle}</p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.pinnedQuestRerollDesc}</p>
               </div>
-              <div className="flex items-center gap-1 rounded-full px-3 py-1 self-start" style={costChipStyle}>
-                <span className="text-base">{t.tokenIcon}</span>
-                <span className="cinzel font-bold text-sm" style={{ color: "#d97706" }}>7</span>
+              <div
+                className="flex items-center gap-1 rounded-full px-3 py-1 self-start"
+                style={isFreePinnedReroll
+                  ? { background: "linear-gradient(90deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))", border: "1px solid rgba(16,185,129,0.35)" }
+                  : costChipStyle}
+              >
+                {isFreePinnedReroll ? (
+                  <>
+                    <span className="text-base">🎁</span>
+                    <span className="cinzel font-bold text-xs" style={{ color: "#6ee7b7", letterSpacing: "0.06em" }}>
+                      {t.freeLabel || "FREE"}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-base">{t.tokenIcon}</span>
+                    <span className="cinzel font-bold text-sm" style={{ color: "#d97706" }}>7</span>
+                  </>
+                )}
               </div>
             </div>
             <button
               onClick={onOpenPinnedReplacement}
-              disabled={!canRerollPinned || tokens < 7}
+              disabled={!canRerollPinned}
               className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 ${
-                canRerollPinned && tokens >= 7
-                  ? "bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:from-fuchsia-700 hover:to-violet-700 shadow-md"
+                canRerollPinned
+                  ? (isFreePinnedReroll
+                      ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 shadow-md"
+                      : "bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:from-fuchsia-700 hover:to-violet-700 shadow-md")
                   : "bg-slate-800/80 text-slate-500 cursor-not-allowed"
               }`}
             >
               <span>⟳</span>
-              {tokens < 7 ? t.notEnough : `${t.buyPrefix} 7 ${getPluralizedToken(7)}`}
+              {isFreePinnedReroll
+                ? (t.pinnedRerollFreeUse || t.freeLabel || "Free use")
+                : (tokens < 7
+                    ? t.notEnough
+                    : `${t.buyPrefix} 7 ${getPluralizedToken(7)}`)}
             </button>
             <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
               {isFreePinnedReroll

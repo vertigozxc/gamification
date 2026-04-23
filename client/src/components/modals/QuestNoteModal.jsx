@@ -99,6 +99,7 @@ export default function QuestNoteModal({ open, quest, onClose, onSubmit, submitt
         {/* Header */}
         <div
           style={{
+            flexShrink: 0,
             padding: "calc(var(--mobile-safe-top, env(safe-area-inset-top, 0px)) + 14px) 16px 12px",
             borderBottom: "1px solid var(--card-border-idle)"
           }}
@@ -192,7 +193,8 @@ export default function QuestNoteModal({ open, quest, onClose, onSubmit, submitt
         {/* Scrollable body */}
         <div
           style={{
-            flex: 1,
+            flex: "1 1 auto",
+            minHeight: 0,
             overflowY: "auto",
             padding: "14px 18px 12px",
             WebkitOverflowScrolling: "touch"
@@ -326,6 +328,7 @@ export default function QuestNoteModal({ open, quest, onClose, onSubmit, submitt
         {/* Sticky submit bar */}
         <div
           style={{
+            flexShrink: 0,
             padding: "10px 18px 14px",
             borderTop: "1px solid var(--card-border-idle)",
             background: "var(--panel-bg)",
