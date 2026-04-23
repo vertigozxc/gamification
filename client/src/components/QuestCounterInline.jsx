@@ -30,7 +30,12 @@ export default function QuestCounterInline({
   const windowOpen = windowStartMs > 0 && now < windowEndsMs;
   const windowFull = windowOpen && Number(windowTicks) >= Number(maxInWindow);
   const cooldownActive = windowFull && !isDone;
-  const remainingMs = cooldownActive ? Math.max(0, windowEndsMs - now) : 0;
+  // Cap the display at the nominal window length. The server and the
+  // client clocks can drift by a few seconds; without the cap the timer
+  // briefly reads "15:03" at cooldown start and then jerks down to 15:00
+  // once the client catches up. Clamping guarantees a clean 15:00 start
+  // and a monotonic countdown.
+  const remainingMs = cooldownActive ? Math.min(windowMs, Math.max(0, windowEndsMs - now)) : 0;
 
   useEffect(() => {
     if (!cooldownActive) return undefined;
