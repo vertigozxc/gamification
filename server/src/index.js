@@ -24,6 +24,22 @@ import {
   getWeekKey,
   summarizeTodayProgress
 } from "./productivity.js";
+import {
+  ACHIEVEMENT_CODES,
+  evaluateAchievements,
+  fetchUserAchievements
+} from "./achievements.js";
+
+// Fire-and-forget achievement evaluation. Never lets a failure break the
+// triggering action — every caller should await this at the end of a
+// handler and swallow errors.
+function trackAchievements(userId) {
+  if (!userId) return Promise.resolve([]);
+  return evaluateAchievements(prisma, userId).catch((err) => {
+    try { console.warn("[achievements] evaluation failed", err?.message); } catch {}
+    return [];
+  });
+}
 const app = express();
 const port = Number(process.env.PORT || 4000);
 const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
@@ -2932,6 +2948,23 @@ async function awardQuestCompletion({ user, quest, dayKey, availableQuests, cust
   const productivityState = await updateAndReadProductivity(updatedUser, now);
   const finalUser = productivityState.user;
 
+  // Fire-and-forget achievement evaluation (streak-based unlocks + mentor
+  // chain via inviter). Swallow any failure — must never block the reply.
+  trackAchievements(finalUser.id);
+  try {
+    const invitesAsInvited = await prisma.invite.findMany({
+      where: { invitedUserId: finalUser.id, status: "ACCEPTED" },
+      select: { inviterId: true }
+    });
+    const seen = new Set();
+    for (const row of invitesAsInvited) {
+      if (row.inviterId && !seen.has(row.inviterId)) {
+        seen.add(row.inviterId);
+        trackAchievements(row.inviterId);
+      }
+    }
+  } catch {}
+
   return {
     ok: true,
     streak: finalUser.streak,
@@ -4737,14 +4770,14 @@ app.post("/api/shop/freeze-streak", async (req, res) => {
     }
 
     // Streak Freeze adds a charge to the pool (redeem via profile).
-    const updated = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        tokens: { decrement: freezeCost },
-        streakFreezeCharges: { increment: 1 },
-        lastFreezePurchaseWeekKey: weekKey
-      }
-    });
+    const freezeData = {
+      tokens: { decrement: freezeCost },
+      streakFreezeCharges: { increment: 1 },
+      lastFreezePurchaseWeekKey: weekKey
+    };
+    if (freezeCost > 0) freezeData.tokensSpentTotal = { increment: freezeCost };
+    const updated = await prisma.user.update({ where: { id: user.id }, data: freezeData });
+    trackAchievements(user.id);
     res.json({
       ok: true,
       tokens: updated.tokens,
@@ -4782,8 +4815,15 @@ app.post("/api/shop/extra-reroll", async (req, res) => {
       return res.status(400).json({ error: "Not enough tokens" });
     }
     const updatedUser = rerollCost > 0
-      ? await prisma.user.update({ where: { id: user.id }, data: { tokens: { decrement: rerollCost } } })
+      ? await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            tokens: { decrement: rerollCost },
+            tokensSpentTotal: { increment: rerollCost }
+          }
+        })
       : user;
+    if (rerollCost > 0) trackAchievements(user.id);
     res.json({ ok: true, tokens: updatedUser.tokens, cost: rerollCost, discount });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
@@ -4818,13 +4858,13 @@ app.post("/api/shop/buy-xp-boost", async (req, res) => {
       ? new Date(user.xpBoostExpiresAt)
       : now;
     const newExpiry = new Date(base.getTime() + XP_BOOST_DURATION_MS);
-    const updated = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        tokens: { decrement: cost },
-        xpBoostExpiresAt: newExpiry
-      }
-    });
+    const xpBoostData = {
+      tokens: { decrement: cost },
+      xpBoostExpiresAt: newExpiry
+    };
+    if (cost > 0) xpBoostData.tokensSpentTotal = { increment: cost };
+    const updated = await prisma.user.update({ where: { id: user.id }, data: xpBoostData });
+    if (cost > 0) trackAchievements(user.id);
     res.json({
       ok: true,
       tokens: updated.tokens,
@@ -4882,19 +4922,22 @@ app.post("/api/shop/reset-city", async (req, res) => {
     // negative (cost wins, e.g. you reset an empty city).
     const netDelta = refund - cost;
 
+    const resetData = {
+      tokens: Math.max(0, (Number(user.tokens) || 0) + netDelta),
+      districtLevels: "0,0,0,0,0",
+      cityResetsPaid: { increment: 1 }
+    };
+    if (cost > 0) resetData.tokensSpentTotal = { increment: cost };
     const updated = await prisma.user.update({
       where: { id: user.id },
-      data: {
-        tokens: Math.max(0, (Number(user.tokens) || 0) + netDelta),
-        districtLevels: "0,0,0,0,0",
-        cityResetsPaid: { increment: 1 }
-      },
+      data: resetData,
       select: {
         tokens: true,
         districtLevels: true,
         cityResetsPaid: true
       }
     });
+    trackAchievements(user.id);
 
     res.json({
       ok: true,
@@ -4972,6 +5015,7 @@ app.post("/api/quests/reroll-pinned", async (req, res) => {
     };
     if (shouldUseTokens) {
       updateData.tokens = { decrement: rerollCost };
+      if (rerollCost > 0) updateData.tokensSpentTotal = { increment: rerollCost };
     } else {
       updateData.lastFreeTaskRerollAt = now;
     }
@@ -4980,6 +5024,7 @@ app.post("/api/quests/reroll-pinned", async (req, res) => {
       where: { id: user.id },
       data: updateData
     });
+    if (shouldUseTokens && rerollCost > 0) trackAchievements(user.id);
 
     const dayKey = getDateKey(now);
     const completions = await prisma.questCompletion.findMany({
@@ -5123,6 +5168,7 @@ app.post("/api/shop/replace-pinned-quests", async (req, res) => {
     };
     if (shouldUseTokens) {
       updateData.tokens = { decrement: pinnedRerollCost };
+      if (pinnedRerollCost > 0) updateData.tokensSpentTotal = { increment: pinnedRerollCost };
     } else {
       updateData.lastFreeTaskRerollAt = now;
     }
@@ -5131,6 +5177,7 @@ app.post("/api/shop/replace-pinned-quests", async (req, res) => {
       where: { id: user.id },
       data: updateData
     });
+    if (shouldUseTokens && pinnedRerollCost > 0) trackAchievements(user.id);
 
     const dayKey = getDateKey(new Date());
     const completions = await prisma.questCompletion.findMany({
@@ -5291,6 +5338,9 @@ app.post("/api/invites/accept", async (req, res) => {
         update: {}
       })
     ]);
+
+    // Mentor achievement lives on the inviter — re-evaluate on accept.
+    trackAchievements(inviter.id);
 
     res.json({ ok: true });
   } catch (error) {
@@ -5525,6 +5575,56 @@ app.delete("/api/profiles/:userId", async (req, res) => {
     res.json({ ok: true });
   } catch (error) {
     res.status(500).json({ error: "Failed to delete profile", detail: error.message });
+  }
+});
+
+// Persist the user's chosen UI language on the server so achievements
+// like `polyglot` can unlock (and so we remember across devices).
+app.post("/api/profiles/language", async (req, res) => {
+  const schema = z.object({
+    username: z.string().min(2).max(64),
+    language: z.string().min(1).max(8)
+  });
+  try {
+    const parsed = schema.parse(req.body);
+    const username = slugifyUsername(parsed.username);
+    if (!username) return res.status(400).json({ error: "Invalid username" });
+    const lang = String(parsed.language || "").toLowerCase().slice(0, 8);
+    const user = await prisma.user.update({
+      where: { username },
+      data: { preferredLanguage: lang }
+    });
+    trackAchievements(user.id);
+    res.json({ ok: true, preferredLanguage: user.preferredLanguage });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// GET achievements for a user (public). Runs a retroactive evaluation
+// first so any milestone the user has already earned but never had the
+// chance to claim (pre-release activity, cross-device desync) is unlocked
+// on first view.
+app.get("/api/users/:username/achievements", async (req, res) => {
+  try {
+    const username = slugifyUsername(req.params.username);
+    if (!username) return res.status(400).json({ error: "Invalid username" });
+    const user = await prisma.user.findUnique({
+      where: { username },
+      select: { id: true }
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+    await evaluateAchievements(prisma, user.id).catch(() => {});
+    const achievements = await fetchUserAchievements(prisma, user.id);
+    const unlockedCount = achievements.filter((a) => a.unlocked).length;
+    res.json({
+      codes: ACHIEVEMENT_CODES,
+      total: ACHIEVEMENT_CODES.length,
+      unlockedCount,
+      achievements
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch achievements", detail: error.message });
   }
 });
 
@@ -6375,6 +6475,7 @@ app.post("/api/challenges/:id/join", async (req, res) => {
         data: { challengeId: challenge.id, userId: me.id, type: "joined" }
       })
     ]);
+    trackAchievements(me.id);
     res.json({ ok: true });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
@@ -6538,6 +6639,16 @@ app.post("/api/challenges/:id/complete", async (req, res) => {
 
       return { groupDayAwardedUsernames };
     });
+
+    // Re-evaluate achievements for all active participants when the
+    // challenge just finished (unlocks `champion` for qualifying durations).
+    if (challengeFinished) {
+      for (const p of activeAccepted) {
+        trackAchievements(p.userId);
+      }
+    } else {
+      trackAchievements(me.id);
+    }
 
     res.json({
       ok: true,

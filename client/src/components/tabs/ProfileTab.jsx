@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import themes from "../../themeConfig";
+import AchievementsSection from "../achievements/AchievementsSection";
 
 export default function ProfileTab({
   characterName, editingName, nameDraft, portraitData,
@@ -214,6 +215,10 @@ export default function ProfileTab({
           </div>
         </div>
       </div>
+
+      {/* Achievements — lives between stats and settings so it's a
+          first-class feature, not buried deep. */}
+      <AchievementsSection username={username} t={t} languageId={languageId} />
 
       {/* Settings — iOS-style grouped table: rows share a card, separated
           by hairline dividers; the card keeps its rounded corners. */}

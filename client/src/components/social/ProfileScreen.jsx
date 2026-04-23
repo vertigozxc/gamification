@@ -14,6 +14,7 @@ import Avatar from "./Avatar";
 import StreakFrame, { getStreakTier } from "./StreakFrame";
 import Screen from "./Screen";
 import Alert from "./Alert";
+import AchievementsSection from "../achievements/AchievementsSection";
 
 const DISTRICT_MAX_LEVEL = 5;
 
@@ -123,6 +124,7 @@ export default function ProfileScreen({ targetUsername, meUsername, t, languageI
             <Hero profile={profile} t={t} />
             <StatGrid profile={profile} t={t} languageId={languageId} />
             {inlineAction}
+            <AchievementsSection username={targetUsername} t={t} languageId={languageId} />
             <CityCard profile={profile} t={t} />
             {error && <p style={{ fontSize: 14, color: "#ff6a63", textAlign: "center" }}>{error}</p>}
           </div>

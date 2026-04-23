@@ -559,6 +559,17 @@ export function updateTheme(username, theme) {
   });
 }
 
+export function updatePreferredLanguage(username, language) {
+  return request("/api/profiles/language", {
+    method: "POST",
+    body: JSON.stringify({ username, language })
+  });
+}
+
+export function fetchAchievements(username) {
+  return request(`/api/users/${encodeURIComponent(username)}/achievements`);
+}
+
 export function deleteProfile(userId) {
   return request(`/api/profiles/${encodeURIComponent(userId)}`, { method: "DELETE" });
 }
