@@ -52,7 +52,20 @@ export function normalizeQuest(quest, translateQuest, translateCategory) {
     effortScore: Number.isFinite(effortScore) && effortScore > 0 ? effortScore : 0,
     timeEstimateMin: Number.isFinite(timeEstimateMin) && timeEstimateMin > 0 ? timeEstimateMin : 0,
     minStreak: Number.isFinite(minStreak) && minStreak > 0 ? minStreak : 0,
-    minLevel: Number.isFinite(minLevel) && minLevel > 0 ? minLevel : 1
+    minLevel: Number.isFinite(minLevel) && minLevel > 0 ? minLevel : 1,
+    // Mechanic metadata — without these the client would silently fall back
+    // to /api/quests/complete for counter/note/words quests, which the
+    // server now rejects as counter_required / note_required.
+    mechanic: String(quest?.mechanic || (quest?.needsTimer || quest?.needs_timer ? "timer" : "simple")),
+    targetCount: Number(quest?.targetCount ?? quest?.target_count) || 0,
+    counterUnit: String(quest?.counterUnit ?? quest?.counter_unit ?? ""),
+    counterCooldownMin: Number(quest?.counterCooldownMin ?? quest?.counter_cooldown_min) || 0,
+    counterMaxPerTick: Number(quest?.counterMaxPerTick ?? quest?.counter_max_per_tick) || 0,
+    minItems: Number(quest?.minItems ?? quest?.min_items) || 0,
+    noteKinds: Array.isArray(quest?.noteKinds)
+      ? quest.noteKinds
+      : (Array.isArray(quest?.note_kinds) ? quest.note_kinds : []),
+    noteMinLength: Number(quest?.noteMinLength ?? quest?.note_min_length) || 0
   };
 }
 
