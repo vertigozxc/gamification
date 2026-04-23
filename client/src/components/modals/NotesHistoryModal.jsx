@@ -636,13 +636,23 @@ export default function NotesHistoryModal({ open, username, onClose }) {
         <div
           className="logout-confirm-overlay"
           onClick={(event) => { if (event.target === event.currentTarget) closeCompose(); }}
-          style={{ zIndex: 90, background: "rgba(0,0,0,0.72)", padding: 16 }}
+          style={{
+            zIndex: 90,
+            background: "rgba(0,0,0,0.72)",
+            // Anchor the compose card near the top so the mobile keyboard,
+            // when it slides up, eats empty space instead of the Save
+            // button. Centered alignment would push the whole modal up
+            // under the keyboard on shorter textareas.
+            alignItems: "flex-start",
+            padding: "calc(var(--mobile-safe-top, env(safe-area-inset-top, 0px)) + 16px) 16px 16px"
+          }}
         >
           <div
             onClick={(event) => event.stopPropagation()}
             style={{
               width: "100%",
               maxWidth: 520,
+              margin: "0 auto",
               background: "var(--panel-bg)",
               border: "1px solid var(--card-border-idle)",
               borderRadius: 18,
@@ -677,10 +687,10 @@ export default function NotesHistoryModal({ open, username, onClose }) {
               onChange={(e) => setComposeText(e.target.value)}
               placeholder={t.notesHistoryPersonalPlaceholder || "What's on your mind?"}
               maxLength={4000}
-              rows={6}
+              rows={5}
               style={{
                 width: "100%",
-                minHeight: 140,
+                minHeight: 110,
                 background: "rgba(0,0,0,0.28)",
                 border: "1px solid var(--card-border-idle)",
                 borderRadius: 12,
