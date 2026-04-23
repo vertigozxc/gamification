@@ -40,11 +40,28 @@ const EFFORT_5_MIN_STREAK = 14;
 const TARGET_EFFORT_BASE = { 2: 6, 3: 9, 4: 12 };
 const TARGET_EFFORT_STREAK14 = { 2: 7, 3: 11, 4: 14 };
 
+// Minimum total effort for a random-quest group. For the level-1 tier
+// (slot=2) we intentionally widen the range so new users see a mix like
+// 10+20 / 20+30 / 30+30 / 10+30 instead of a fixed 30+30 pair every day.
+// Other tiers stay on exact-match (min == max) to preserve daily XP
+// targets for progression.
+const MIN_EFFORT_BASE = { 2: 3 };
+const MIN_EFFORT_STREAK14 = {};
+
 export function getTargetEffort(slotCount = 0, streak = 0) {
   const safeCount = Math.max(0, Math.floor(Number(slotCount) || 0));
   const safeStreak = Math.max(0, Number(streak) || 0);
   const table = safeStreak >= EFFORT_5_MIN_STREAK ? TARGET_EFFORT_STREAK14 : TARGET_EFFORT_BASE;
   return Number.isFinite(table[safeCount]) ? table[safeCount] : safeCount * 3;
+}
+
+export function getEffortRange(slotCount = 0, streak = 0) {
+  const max = getTargetEffort(slotCount, streak);
+  const safeCount = Math.max(0, Math.floor(Number(slotCount) || 0));
+  const safeStreak = Math.max(0, Number(streak) || 0);
+  const minTable = safeStreak >= EFFORT_5_MIN_STREAK ? MIN_EFFORT_STREAK14 : MIN_EFFORT_BASE;
+  const explicitMin = Number.isFinite(minTable[safeCount]) ? minTable[safeCount] : max;
+  return { min: Math.min(explicitMin, max), max };
 }
 
 export function getQuestSlotsForLevel(level = 1, streak = 0) {
@@ -317,18 +334,22 @@ function pickTemplateQuests(quests, count, excludeCategories = new Set()) {
   return selected.slice(0, count);
 }
 
-function buildEffortBalancedCategoryUniqueQuests(quests, count, targetEffort, excludeCategories = new Set(), seed = 0) {
+function buildEffortBalancedCategoryUniqueQuests(quests, count, targetEffort, excludeCategories = new Set(), seed = 0, minEffort = null) {
   if (!Array.isArray(quests) || count <= 0) {
     return [];
   }
 
+  // When minEffort isn't explicitly provided keep the historical behaviour
+  // of an exact match (min === target). Pass a lower min to widen the band
+  // — see getEffortRange for the level-1 new-user relaxation.
+  const effortFloor = Number.isFinite(minEffort) ? Math.max(0, Number(minEffort)) : targetEffort;
   const normalizedExclude = new Set([...excludeCategories].map((item) => normalizeCategory(item)));
   const eligible = quests.filter((quest) => !normalizedExclude.has(normalizeCategory(quest?.category)));
   const combinations = [];
 
   function dfs(startIndex, selected, usedCategories, effortSum) {
     if (selected.length === count) {
-      if (effortSum === targetEffort) {
+      if (effortSum >= effortFloor && effortSum <= targetEffort) {
         combinations.push([...selected]);
       }
       return;
@@ -492,14 +513,15 @@ export function getDailyQuests(options = {}) {
 
   let finalOtherQuests = [];
   if (randomCount > 0) {
-    const targetEffort = getTargetEffort(randomCount, currentStreak);
+    const effortRange = getEffortRange(randomCount, currentStreak);
     const combinationSeed = hashString(`${baseSeed}_combo`);
     finalOtherQuests = buildEffortBalancedCategoryUniqueQuests(
       randomQuests,
       randomCount,
-      targetEffort,
+      effortRange.max,
       excludeCategories,
-      combinationSeed
+      combinationSeed,
+      effortRange.min
     );
   }
 

@@ -16,6 +16,7 @@ import {
   getRandomQuestCount,
   getStreakRuleConfig,
   getTargetEffort,
+  getEffortRange,
   normalizeQuestLanguage
 } from "./quests.js";
 import { buildInviteCode, getDateKey, slugifyUsername, xpAfterQuest } from "./utils.js";
@@ -1715,9 +1716,12 @@ function isValidRandomQuestSet(randomQuests, expectedCount, streak = 0) {
     return false;
   }
 
-  const targetEffort = getTargetEffort(expectedCount, streak);
-  if (targetEffort > 0 && sumEffort(randomQuests) !== targetEffort) {
-    return false;
+  const effortRange = getEffortRange(expectedCount, streak);
+  if (effortRange.max > 0) {
+    const actualEffort = sumEffort(randomQuests);
+    if (actualEffort < effortRange.min || actualEffort > effortRange.max) {
+      return false;
+    }
   }
 
   return true;
@@ -1738,12 +1742,14 @@ function findReplacementQuestCombination({
   }
 
   const usedCategories = new Set(keepRandomQuests.map((quest) => normalizeCategory(quest?.category)));
-  const totalTargetEffort = getTargetEffort(expectedRandomCount, streak);
+  const effortRange = getEffortRange(expectedRandomCount, streak);
   // Remaining effort the replacement picks must contribute so the final
-  // group still sums to the streak-aware target (9 / 11 / 12 / 14 etc.).
-  const requiredEffort = totalTargetEffort > 0
-    ? totalTargetEffort - sumEffort(keepRandomQuests)
-    : null;
+  // group still fits inside the streak-aware range. For the level-1 tier
+  // the range is wider (e.g. 3..6) so any sum inside [requiredMin,
+  // requiredMax] is accepted.
+  const keepEffort = sumEffort(keepRandomQuests);
+  const requiredMin = effortRange.max > 0 ? Math.max(0, effortRange.min - keepEffort) : null;
+  const requiredMax = effortRange.max > 0 ? effortRange.max - keepEffort : null;
 
   const candidates = questPool.filter((quest) => {
     if (pinnedSet.has(quest.id) || unavailableQuestIds.has(quest.id)) {
@@ -1770,7 +1776,7 @@ function findReplacementQuestCombination({
     }
 
     if (chosen.length === replacementCount) {
-      if (requiredEffort !== null && chosenEffort !== requiredEffort) {
+      if (requiredMax !== null && (chosenEffort < requiredMin || chosenEffort > requiredMax)) {
         return;
       }
 
@@ -1786,7 +1792,7 @@ function findReplacementQuestCombination({
       }
 
       const nextEffort = chosenEffort + (Number(quest.effortScore) || 0);
-      if (requiredEffort !== null && nextEffort > requiredEffort) {
+      if (requiredMax !== null && nextEffort > requiredMax) {
         continue;
       }
 
