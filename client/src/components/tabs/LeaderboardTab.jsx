@@ -18,7 +18,10 @@ import Alert from "../social/Alert";
 import "../social/ios.css";
 
 let screenIdSeq = 0;
-const MAX_ACTIVE_CHALLENGES = 3;
+// Mirrors server-side MAX_ACTIVE_CHALLENGES_PER_USER (see server/src/index.js).
+// If this ever drifts from the server, create will appear to succeed
+// client-side but POST /api/challenges will 409 on submit.
+const MAX_ACTIVE_CHALLENGES = 2;
 
 export default function LeaderboardTab({ authUser, t: tProp }) {
   const { t: tTheme, languageId } = useTheme();
@@ -357,6 +360,7 @@ function PlayerRow({ entry, isMe, meHighlight, t, onOpenProfile }) {
  * ========================================================================== */
 
 function ChallengesInlineTab({ activeChallenges, endedChallenges, canCreate, t, onOpenChallenge, onOpenCreate }) {
+  const [showLimitAlert, setShowLimitAlert] = useState(false);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div className="cm-intro">
@@ -397,15 +401,28 @@ function ChallengesInlineTab({ activeChallenges, endedChallenges, canCreate, t, 
 
       <button
         type="button"
-        disabled={!canCreate}
-        onClick={onOpenCreate}
+        onClick={() => {
+          if (canCreate) {
+            onOpenCreate?.();
+          } else {
+            setShowLimitAlert(true);
+          }
+        }}
         className="cm-primary-btn press"
-        style={{ marginTop: 4 }}
+        style={{ marginTop: 4, opacity: canCreate ? 1 : 0.9 }}
       >
-        ＋ {canCreate
-          ? (t.communityCreateChallenge || "Create challenge")
-          : (t.communityChallengesFull || "3 active · limit reached")}
+        ＋ {t.communityCreateChallenge || "Create challenge"}
       </button>
+
+      {showLimitAlert && (
+        <Alert
+          icon="🚧"
+          title={t.arenaPactLimitTitle || "Max challenges reached"}
+          message={(t.arenaPactLimitBody || "You can run up to {max} group challenges at once. Finish or leave one to start a new pact.").replace("{max}", String(MAX_ACTIVE_CHALLENGES))}
+          confirmLabel={t.arenaPactLimitConfirm || "Got it"}
+          onConfirm={() => setShowLimitAlert(false)}
+        />
+      )}
     </div>
   );
 }
