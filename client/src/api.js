@@ -181,6 +181,20 @@ export function fetchNotesHistory(username, limit = 60) {
   return request(`/api/notes/history/${encodeURIComponent(username)}?${qs}`);
 }
 
+export function createPersonalNote(username, text) {
+  return request("/api/notes/personal/create", {
+    method: "POST",
+    body: JSON.stringify({ username, text })
+  });
+}
+
+export function deletePersonalNote(username, id) {
+  const qs = new URLSearchParams({ username }).toString();
+  return request(`/api/notes/personal/${encodeURIComponent(id)}?${qs}`, {
+    method: "DELETE"
+  });
+}
+
 export function resetDaily(username, isReroll = false, excludeCategories = [], targetQuestIds = [], keepQuestIds = [], force = false) {
   return request("/api/reset-daily", {
     method: "POST",

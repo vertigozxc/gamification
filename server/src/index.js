@@ -3534,6 +3534,72 @@ app.post("/api/quests/note/submit", async (req, res) => {
   }
 });
 
+// Personal notes — free-form journal entries not tied to any quest.
+// Stored in QuestNote with questId=0 + kind="personal" so history queries
+// pick them up alongside quest-generated notes without a schema change.
+app.post("/api/notes/personal/create", async (req, res) => {
+  try {
+    const parsed = z.object({
+      username: z.string().min(2).max(64),
+      text: z.string().min(1).max(4000)
+    }).parse(req.body);
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const text = parsed.text.trim();
+    if (!text) return res.status(400).json({ error: "Text required", code: "text_required" });
+
+    const now = new Date();
+    const dayKey = getDateKey(now);
+    const note = await prisma.questNote.create({
+      data: {
+        userId: user.id,
+        questId: 0,
+        dayKey,
+        kind: "personal",
+        payload: JSON.stringify({ kind: "personal", items: [{ text }] })
+      }
+    });
+    res.json({
+      ok: true,
+      entry: {
+        id: note.id,
+        questId: 0,
+        dayKey,
+        kind: "personal",
+        items: [{ text }],
+        createdAt: note.createdAt
+      }
+    });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+app.delete("/api/notes/personal/:id", async (req, res) => {
+  try {
+    const parsed = z.object({ username: z.string().min(2).max(64) }).parse(req.query);
+    const id = String(req.params.id || "").trim();
+    if (!id) return res.status(400).json({ error: "id required" });
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const note = await prisma.questNote.findUnique({ where: { id } });
+    if (!note || note.userId !== user.id) {
+      return res.status(404).json({ error: "Note not found" });
+    }
+    if (note.kind !== "personal") {
+      return res.status(403).json({ error: "Only personal notes can be deleted", code: "forbidden_kind" });
+    }
+    await prisma.questNote.delete({ where: { id } });
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
 app.get("/api/notes/history/:username", async (req, res) => {
   try {
     const username = slugifyUsername(req.params.username);
