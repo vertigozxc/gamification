@@ -424,13 +424,11 @@ function OnboardingModal({
               position: "sticky",
               top: 0,
               zIndex: 2,
-              marginTop: 22,
-              marginBottom: 12,
-              paddingTop: 14,
-              paddingBottom: 10,
-              borderTop: "1px solid var(--card-border-idle)",
-              background: "var(--card-bg, #0f172a)",
-              boxShadow: "0 6px 10px -8px rgba(0,0,0,0.45)"
+              marginTop: 14,
+              marginBottom: 8,
+              paddingTop: 8,
+              paddingBottom: 8,
+              background: "var(--card-bg, #0f172a)"
             }}
           >
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
