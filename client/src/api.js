@@ -158,6 +158,29 @@ export function completeQuest(username, questId) {
   });
 }
 
+export function tickQuestCounter(username, questId, delta = 1) {
+  return request("/api/quests/counter/tick", {
+    method: "POST",
+    body: JSON.stringify({ username, questId, delta })
+  });
+}
+
+export function fetchQuestCounter(username, questId) {
+  return request(`/api/quests/counter/${encodeURIComponent(username)}/${questId}`);
+}
+
+export function submitQuestNote(username, questId, kind, items) {
+  return request("/api/quests/note/submit", {
+    method: "POST",
+    body: JSON.stringify({ username, questId, kind, items })
+  });
+}
+
+export function fetchNotesHistory(username, limit = 60) {
+  const qs = new URLSearchParams({ limit: String(limit) }).toString();
+  return request(`/api/notes/history/${encodeURIComponent(username)}?${qs}`);
+}
+
 export function resetDaily(username, isReroll = false, excludeCategories = [], targetQuestIds = [], keepQuestIds = [], force = false) {
   return request("/api/reset-daily", {
     method: "POST",

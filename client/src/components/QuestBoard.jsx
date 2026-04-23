@@ -59,6 +59,7 @@ function QuestBoard({
   rerollingPinned = false,
   compact = false,
   renderQuestTimer = null,
+  renderQuestMechanic = null,
   emptyPinnedSlotCount = 0,
   emptyOtherSlotCount = 0,
   onOpenHabitPicker = null,
@@ -209,6 +210,7 @@ function QuestBoard({
                 const progressPercent = Math.max(0, Math.min(100, (pinnedProgress.daysCompleted / pinnedProgress.totalDays) * 100));
 
                 const timerNode = renderQuestTimer && quest.needsTimer && !isDone ? renderQuestTimer(quest) : null;
+                const mechanicNode = !timerNode && renderQuestMechanic && !isDone ? renderQuestMechanic(quest) : null;
                 return (
                   <QuestItem
                     key={`pinned-${quest.id}`}
@@ -222,6 +224,7 @@ function QuestBoard({
                     isLongTapOnly={true}
                     isRerolling={rerollingPinned}
                     timerActive={Boolean(timerNode)}
+                    mechanicActive={Boolean(mechanicNode)}
                   >
                     <div className="mt-2.5 pl-9 pointer-events-none">
                       <div className="flex items-center gap-2 mb-1">
@@ -233,6 +236,7 @@ function QuestBoard({
                       </div>
                     </div>
                     {timerNode ? <div className="pointer-events-auto">{timerNode}</div> : null}
+                    {mechanicNode}
                   </QuestItem>
                 );
               })}
@@ -258,6 +262,7 @@ function QuestBoard({
                 const isDone = completedIds.includes(quest.id);
                 const isPending = pendingSet.has(quest.id);
                 const timerNode = renderQuestTimer && quest.needsTimer && !isDone ? renderQuestTimer(quest) : null;
+                const mechanicNode = !timerNode && renderQuestMechanic && !isDone ? renderQuestMechanic(quest) : null;
                 return (
                   <QuestItem
                     key={quest.id}
@@ -271,8 +276,10 @@ function QuestBoard({
                     isLongTapOnly={true}
                     isRerolling={quest.id === rerollingQuestId}
                     timerActive={Boolean(timerNode)}
+                    mechanicActive={Boolean(mechanicNode)}
                   >
                     {timerNode ? <div className="pointer-events-auto">{timerNode}</div> : null}
+                    {mechanicNode}
                   </QuestItem>
                 );
               })}
@@ -313,6 +320,7 @@ function QuestBoard({
                 const isDone = completedIds.includes(quest.id);
                 const isPending = pendingSet.has(quest.id);
                 const timerNode = renderQuestTimer && quest.needsTimer && !isDone ? renderQuestTimer(quest) : null;
+                const mechanicNode = !timerNode && renderQuestMechanic && !isDone ? renderQuestMechanic(quest) : null;
                 return (
                   <QuestItem
                     key={quest.id}
@@ -326,8 +334,10 @@ function QuestBoard({
                     isLongTapOnly={true}
                     isRerolling={quest.id === rerollingQuestId}
                     timerActive={Boolean(timerNode)}
+                    mechanicActive={Boolean(mechanicNode)}
                   >
                     {timerNode ? <div className="pointer-events-auto">{timerNode}</div> : null}
+                    {mechanicNode}
                   </QuestItem>
                 );
               })}

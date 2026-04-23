@@ -1,6 +1,7 @@
 import { useRef, useCallback, useEffect, useState } from "react";
 
-export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, onCompleteQuest, children, isLongTapOnly, isRerolling, timerActive = false }) {
+export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, onCompleteQuest, children, isLongTapOnly, isRerolling, timerActive = false, mechanicActive = false }) {
+  const completionLocked = timerActive || mechanicActive;
   const longPressTimer = useRef(null);
   const hintTimer = useRef(null);
   const longPressTriggered = useRef(false);
@@ -26,7 +27,7 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
   const isPending = Boolean(quest?.isPending);
 
   const handlePointerDown = useCallback((e) => {
-    if (isDone || isPending || !isLongTapOnly || timerActive) return;
+    if (isDone || isPending || !isLongTapOnly || completionLocked) return;
     longPressTriggered.current = false;
     longPressTimer.current = setTimeout(() => {
       if ('vibrate' in navigator) navigator.vibrate(100);
@@ -34,7 +35,7 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
       setShowTapHint(false);
       onCompleteQuest(quest, e);
     }, 500); // 500ms long tap
-  }, [quest, isDone, isPending, onCompleteQuest, isLongTapOnly, timerActive]);
+  }, [quest, isDone, isPending, onCompleteQuest, isLongTapOnly, completionLocked]);
 
   const handlePointerUp = useCallback((e) => {
     if (longPressTimer.current) {
@@ -43,7 +44,7 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
   }, []);
 
   const handleClick = useCallback((e) => {
-    if (isDone || isPending || timerActive) return;
+    if (isDone || isPending || completionLocked) return;
     if (!isLongTapOnly) {
       onCompleteQuest(quest, e);
       return;
@@ -53,7 +54,7 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
       return;
     }
     showHintPopup();
-  }, [quest, isDone, isPending, onCompleteQuest, isLongTapOnly, showHintPopup, timerActive]);
+  }, [quest, isDone, isPending, onCompleteQuest, isLongTapOnly, showHintPopup, completionLocked]);
 
   if (isRerolling) {
     return (

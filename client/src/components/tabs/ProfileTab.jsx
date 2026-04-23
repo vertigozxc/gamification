@@ -12,6 +12,7 @@ export default function ProfileTab({
   onOpenThemePicker, onOpenLanguagePicker, onLogout, onDeleteProfile,
   username, onFreezeUsed,
   onOpenAbout,
+  onOpenNotesHistory,
   onDeleteConfirmStateChange
 }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -229,6 +230,16 @@ export default function ProfileTab({
           </div>
           <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
         </button>
+        {onOpenNotesHistory ? (
+          <button className="flex items-center gap-3 w-full rounded-xl px-3 py-3 transition-all hover:bg-[var(--card-hover)] active:scale-[0.98]" onClick={onOpenNotesHistory}>
+            <span className="text-xl w-8 text-center">📚</span>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.notesHistoryLabel || "My notes"}</p>
+              <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{t.notesHistoryHint || "Reflections, gratitude, vocabulary"}</p>
+            </div>
+            <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
+          </button>
+        ) : null}
         {onOpenAbout ? (
           <button className="flex items-center gap-3 w-full rounded-xl px-3 py-3 transition-all hover:bg-[var(--card-hover)] active:scale-[0.98]" onClick={onOpenAbout}>
             <span className="text-xl w-8 text-center">📖</span>

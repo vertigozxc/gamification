@@ -1629,7 +1629,14 @@
         "reflection"
       ],
       "id": "quest_46",
-      "needs_timer": false
+      "needs_timer": false,
+      "quest_mechanic": "note",
+      "min_items": 1,
+      "note_kinds": [
+        "reflection",
+        "gratitude"
+      ],
+      "note_min_length": 10
     },
     {
       "title": "Learning Notes",
@@ -1659,7 +1666,14 @@
         "reflection"
       ],
       "id": "quest_47",
-      "needs_timer": false
+      "needs_timer": false,
+      "quest_mechanic": "note",
+      "min_items": 2,
+      "note_kinds": [
+        "reflection",
+        "gratitude"
+      ],
+      "note_min_length": 10
     },
     {
       "title": "Learning Notes",
@@ -1689,7 +1703,14 @@
         "reflection"
       ],
       "id": "quest_48",
-      "needs_timer": false
+      "needs_timer": false,
+      "quest_mechanic": "note",
+      "min_items": 3,
+      "note_kinds": [
+        "reflection",
+        "gratitude"
+      ],
+      "note_min_length": 10
     },
     {
       "title": "Learning Notes",
@@ -1719,7 +1740,14 @@
         "reflection"
       ],
       "id": "quest_49",
-      "needs_timer": false
+      "needs_timer": false,
+      "quest_mechanic": "note",
+      "min_items": 4,
+      "note_kinds": [
+        "reflection",
+        "gratitude"
+      ],
+      "note_min_length": 10
     },
     {
       "title": "Learning Notes",
@@ -1749,7 +1777,14 @@
         "reflection"
       ],
       "id": "quest_50",
-      "needs_timer": false
+      "needs_timer": false,
+      "quest_mechanic": "note",
+      "min_items": 5,
+      "note_kinds": [
+        "reflection",
+        "gratitude"
+      ],
+      "note_min_length": 10
     },
     {
       "title": "Inbox Cleanup",
@@ -2649,7 +2684,12 @@
         "health"
       ],
       "id": "quest_81",
-      "needs_timer": false
+      "needs_timer": false,
+      "quest_mechanic": "counter",
+      "target_count": 1,
+      "counter_unit": "glass",
+      "counter_cooldown_min": 15,
+      "counter_max_per_tick": 3
     },
     {
       "title": "Hydration Goal",
@@ -2679,7 +2719,12 @@
         "health"
       ],
       "id": "quest_82",
-      "needs_timer": false
+      "needs_timer": false,
+      "quest_mechanic": "counter",
+      "target_count": 3,
+      "counter_unit": "glass",
+      "counter_cooldown_min": 15,
+      "counter_max_per_tick": 3
     },
     {
       "title": "Hydration Goal",
@@ -2709,7 +2754,12 @@
         "health"
       ],
       "id": "quest_83",
-      "needs_timer": false
+      "needs_timer": false,
+      "quest_mechanic": "counter",
+      "target_count": 5,
+      "counter_unit": "glass",
+      "counter_cooldown_min": 15,
+      "counter_max_per_tick": 3
     },
     {
       "title": "Hydration Goal",
@@ -2739,7 +2789,12 @@
         "health"
       ],
       "id": "quest_84",
-      "needs_timer": false
+      "needs_timer": false,
+      "quest_mechanic": "counter",
+      "target_count": 7,
+      "counter_unit": "glass",
+      "counter_cooldown_min": 15,
+      "counter_max_per_tick": 3
     },
     {
       "title": "Hydration Goal",
@@ -2769,7 +2824,12 @@
         "health"
       ],
       "id": "quest_85",
-      "needs_timer": false
+      "needs_timer": false,
+      "quest_mechanic": "counter",
+      "target_count": 8,
+      "counter_unit": "glass",
+      "counter_cooldown_min": 15,
+      "counter_max_per_tick": 3
     },
     {
       "title": "Screen-Free Before Sleep",
@@ -3344,6 +3404,105 @@
       ],
       "id": "quest_109",
       "needs_timer": false
+    },
+    {
+      "title": "English Vocabulary",
+      "description": "Learn 5 new English words with translation",
+      "title_ru": "Английские слова",
+      "description_ru": "Выучи 5 новых английских слов с переводом",
+      "category": "MIND",
+      "base_xp": 20,
+      "effort_score": 2,
+      "time_estimate_min": 10,
+      "min_level": 1,
+      "min_str": 0,
+      "min_int": 0,
+      "min_sta": 0,
+      "min_streak": 0,
+      "weight": 1.2,
+      "cooldown_days": 1,
+      "max_per_week": 5,
+      "anti_repeat_group": "mind_english_words",
+      "completion_type": "manual",
+      "physical_load": 0,
+      "mental_load": 2,
+      "social_pressure": 0,
+      "unlock_type": "base",
+      "tags": [
+        "english",
+        "vocab",
+        "language"
+      ],
+      "id": "quest_110",
+      "needs_timer": false,
+      "quest_mechanic": "words",
+      "target_count": 5
+    },
+    {
+      "title": "English Vocabulary",
+      "description": "Learn 10 new English words with translation",
+      "title_ru": "Английские слова",
+      "description_ru": "Выучи 10 новых английских слов с переводом",
+      "category": "MIND",
+      "base_xp": 35,
+      "effort_score": 3,
+      "time_estimate_min": 15,
+      "min_level": 1,
+      "min_str": 0,
+      "min_int": 0,
+      "min_sta": 0,
+      "min_streak": 0,
+      "weight": 1,
+      "cooldown_days": 1,
+      "max_per_week": 5,
+      "anti_repeat_group": "mind_english_words",
+      "completion_type": "manual",
+      "physical_load": 0,
+      "mental_load": 2,
+      "social_pressure": 0,
+      "unlock_type": "base",
+      "tags": [
+        "english",
+        "vocab",
+        "language"
+      ],
+      "id": "quest_111",
+      "needs_timer": false,
+      "quest_mechanic": "words",
+      "target_count": 10
+    },
+    {
+      "title": "English Vocabulary",
+      "description": "Learn 15 new English words with translation",
+      "title_ru": "Английские слова",
+      "description_ru": "Выучи 15 новых английских слов с переводом",
+      "category": "MIND",
+      "base_xp": 50,
+      "effort_score": 4,
+      "time_estimate_min": 20,
+      "min_level": 1,
+      "min_str": 0,
+      "min_int": 0,
+      "min_sta": 0,
+      "min_streak": 0,
+      "weight": 0.7999999999999999,
+      "cooldown_days": 1,
+      "max_per_week": 5,
+      "anti_repeat_group": "mind_english_words",
+      "completion_type": "manual",
+      "physical_load": 0,
+      "mental_load": 2,
+      "social_pressure": 0,
+      "unlock_type": "base",
+      "tags": [
+        "english",
+        "vocab",
+        "language"
+      ],
+      "id": "quest_112",
+      "needs_timer": false,
+      "quest_mechanic": "words",
+      "target_count": 15
     }
   ]
 }

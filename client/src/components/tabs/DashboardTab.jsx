@@ -17,6 +17,7 @@ export default function DashboardTab({
   rerollButtonLabel, rerollButtonTitle,
   rerollingQuestId, rerollingPinned,
   renderQuestTimer,
+  renderQuestMechanic,
   emptyPinnedSlotCount,
   emptyOtherSlotCount,
   onOpenHabitPicker,
@@ -143,6 +144,7 @@ export default function DashboardTab({
           rerollingQuestId={rerollingQuestId}
           rerollingPinned={rerollingPinned}
           renderQuestTimer={renderQuestTimer}
+          renderQuestMechanic={renderQuestMechanic}
           emptyPinnedSlotCount={emptyPinnedSlotCount}
           emptyOtherSlotCount={emptyOtherSlotCount}
           onOpenHabitPicker={onOpenHabitPicker}

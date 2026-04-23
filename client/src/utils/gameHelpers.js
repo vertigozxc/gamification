@@ -128,6 +128,7 @@ export function createDefaultState() {
     },
     questSlots: { pinned: 2, random: 2, dailyTotal: 4, maxEffort: 3 },
     activeTimers: [],
+    activeCounters: [],
     isDevTester: false
   };
 }

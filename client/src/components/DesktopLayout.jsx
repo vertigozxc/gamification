@@ -21,6 +21,7 @@ export default function DesktopLayout({
   onOpenPinnedReplacement, onFreezeStreak, onBuyExtraReroll,
   onBuyXpBoost, xpBoostExpiresAt,
   renderQuestTimer,
+  renderQuestMechanic,
   emptyPinnedSlotCount,
   emptyOtherSlotCount,
   onOpenHabitPicker,
@@ -81,6 +82,7 @@ export default function DesktopLayout({
           rerollingQuestId={rerollingQuestId}
           rerollingPinned={rerollingPinned}
           renderQuestTimer={renderQuestTimer}
+          renderQuestMechanic={renderQuestMechanic}
           emptyPinnedSlotCount={emptyPinnedSlotCount}
           emptyOtherSlotCount={emptyOtherSlotCount}
           onOpenHabitPicker={onOpenHabitPicker}

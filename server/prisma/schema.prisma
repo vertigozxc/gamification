@@ -56,6 +56,8 @@ model User {
   challengeLogs             ChallengeLogEntry[]
   completions               QuestCompletion[]
   timerSessions             QuestTimerSession[]
+  questCounters             QuestCounter[]
+  questNotes                QuestNote[]
 }
 
 model CustomQuest {
@@ -120,6 +122,36 @@ model QuestTimerSession {
 
   @@index([userId, questId, dayKey])
   @@index([userId, status])
+}
+
+model QuestCounter {
+  id          String   @id @default(cuid())
+  userId      String
+  questId     Int
+  dayKey      String
+  count       Int      @default(0)
+  target      Int
+  lastTickAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questId, dayKey])
+  @@index([userId, dayKey])
+}
+
+model QuestNote {
+  id        String   @id @default(cuid())
+  userId    String
+  questId   Int
+  dayKey    String
+  kind      String   @default("note")
+  payload   String   @default("")
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, kind])
 }
 
 model Invite {

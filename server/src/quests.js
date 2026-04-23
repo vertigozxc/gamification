@@ -218,7 +218,23 @@ function buildQuestPool(language) {
     mentalLoad: Number(quest.mental_load) || 0,
     socialPressure: Number(quest.social_pressure) || 0,
     unlockType: String(quest.unlock_type || "base").trim(),
-    tags: Array.isArray(quest.tags) ? quest.tags : []
+    tags: Array.isArray(quest.tags) ? quest.tags : [],
+    // Quest mechanic gates which completion endpoint the client must use.
+    // "timer" uses /api/quests/timer/*; "counter" uses /api/quests/counter/tick;
+    // "note"/"words" use /api/quests/note/submit. "simple" falls through to
+    // the direct /api/quests/complete path.
+    mechanic: (() => {
+      const explicit = String(quest.quest_mechanic || "").trim().toLowerCase();
+      if (explicit) return explicit;
+      return Boolean(quest.needs_timer) ? "timer" : "simple";
+    })(),
+    targetCount: Number(quest.target_count) || 0,
+    counterUnit: String(quest.counter_unit || "").trim(),
+    counterCooldownMin: Number(quest.counter_cooldown_min) || 0,
+    counterMaxPerTick: Number(quest.counter_max_per_tick) || 0,
+    minItems: Number(quest.min_items) || 0,
+    noteKinds: Array.isArray(quest.note_kinds) ? quest.note_kinds : [],
+    noteMinLength: Number(quest.note_min_length) || 0
   }));
 }
 

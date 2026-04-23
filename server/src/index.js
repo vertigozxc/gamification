@@ -2560,6 +2560,20 @@ app.get("/api/game-state/:username", async (req, res) => {
   } catch (completionsErr) {
     console.error(`[game-state] completion metadata read failed: ${completionsErr?.message || completionsErr}`);
   }
+  let activeCounters = [];
+  try {
+    const counterRows = await prisma.questCounter.findMany({
+      where: { userId: user.id, dayKey: dateKey }
+    });
+    activeCounters = counterRows.map((row) => ({
+      questId: row.questId,
+      count: Number(row.count || 0),
+      target: Number(row.target || 0),
+      lastTickAt: row.lastTickAt ?? null
+    }));
+  } catch (counterErr) {
+    console.error(`[game-state] counter read failed: ${counterErr?.message || counterErr}`);
+  }
   res.json({
     user,
     dateKey,
@@ -2580,6 +2594,7 @@ app.get("/api/game-state/:username", async (req, res) => {
     productivity,
     questSlots,
     activeTimers,
+    activeCounters,
     isDevTester: Boolean(user.isDevTester) || user.username === LEGACY_DEV_TEST_USER_ID,
     ...buildServerTimeMeta(now)
   });
@@ -2907,6 +2922,19 @@ app.post("/api/quests/complete", async (req, res) => {
       return res.status(400).json({ error: "This quest requires a timer. Use /api/quests/timer/start.", code: "timer_required" });
     }
 
+    // Counter/note/words quests must go through their dedicated endpoints so
+    // we can enforce anti-cheat (hydration cooldown, note text submission,
+    // vocab pair submission). The /complete endpoint only handles "simple"
+    // and (implicitly) custom quests.
+    if (!isCustomQuestVirtualId(quest.id)) {
+      if (quest.mechanic === "counter") {
+        return res.status(400).json({ error: "This quest uses a counter.", code: "counter_required" });
+      }
+      if (quest.mechanic === "note" || quest.mechanic === "words") {
+        return res.status(400).json({ error: "This quest requires a note submission.", code: "note_required" });
+      }
+    }
+
     const existing = await prisma.questCompletion.findUnique({
       where: {
         userId_questId_dayKey: { userId: user.id, questId: quest.id, dayKey }
@@ -3188,6 +3216,296 @@ function serializeTimerSession(session, now = new Date()) {
       : computeTimerElapsedMs(session, now)
   };
 }
+
+// ─────────────────────────────────────────────────────────────
+// Counter-mechanic quests (hydration). Each "tick" increments
+// count by delta (1..counterMaxPerTick) with a cooldown window
+// between ticks to block spam-taps. When count >= target the
+// quest is finalized via awardQuestCompletion.
+// ─────────────────────────────────────────────────────────────
+
+function serializeCounter(counter, quest, now = new Date()) {
+  const cooldownMin = Number(quest?.counterCooldownMin || 0);
+  const nextAllowedAt = counter?.lastTickAt
+    ? new Date(new Date(counter.lastTickAt).getTime() + cooldownMin * 60_000)
+    : now;
+  return {
+    count: Number(counter?.count || 0),
+    target: Number(quest?.targetCount || counter?.target || 0),
+    lastTickAt: counter?.lastTickAt ?? null,
+    nextAllowedAt: nextAllowedAt.toISOString(),
+    cooldownMin,
+    maxPerTick: Number(quest?.counterMaxPerTick || 1),
+    unit: String(quest?.counterUnit || "")
+  };
+}
+
+app.get("/api/quests/counter/:username/:questId", async (req, res) => {
+  try {
+    const language = getRequestLanguage(req);
+    const username = slugifyUsername(req.params.username);
+    const questId = Number(req.params.questId);
+    if (!Number.isInteger(questId) || questId < 1) {
+      return res.status(400).json({ error: "Invalid questId" });
+    }
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const now = new Date();
+    const dayKey = getDateKey(now);
+    const todayCompletions = await prisma.questCompletion.findMany({
+      where: { userId: user.id, dayKey },
+      select: { questId: true }
+    });
+    const customQuests = await fetchUserCustomQuests(user.id);
+    const available = composeDailyQuests(user, todayCompletions.map((t) => t.questId), now, [], language, customQuests);
+    const quest = available.find((q) => q.id === questId);
+    if (!quest) return res.status(404).json({ error: "Quest not on today's board" });
+    if (quest.mechanic !== "counter") return res.status(400).json({ error: "Quest is not a counter" });
+
+    const counter = await prisma.questCounter.findUnique({
+      where: { userId_questId_dayKey: { userId: user.id, questId, dayKey } }
+    });
+    res.json({ ok: true, counter: serializeCounter(counter, quest, now) });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+app.post("/api/quests/counter/tick", async (req, res) => {
+  try {
+    const language = getRequestLanguage(req);
+    const parsed = z.object({
+      username: z.string().min(2).max(64),
+      questId: z.number().int().min(1),
+      delta: z.number().int().min(1).max(10)
+    }).parse(req.body);
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const now = new Date();
+    const dayKey = getDateKey(now);
+    const todayCompletions = await prisma.questCompletion.findMany({
+      where: { userId: user.id, dayKey },
+      orderBy: { completedAt: "asc" },
+      select: { questId: true }
+    });
+    const customQuests = await fetchUserCustomQuests(user.id);
+    const availableQuests = composeDailyQuests(user, todayCompletions.map((t) => t.questId), now, [], language, customQuests);
+    const quest = availableQuests.find((q) => q.id === parsed.questId);
+    if (!quest) return res.status(404).json({ error: "Quest not on today's board" });
+    if (quest.mechanic !== "counter") return res.status(400).json({ error: "Quest is not a counter" });
+
+    const target = Math.max(1, Number(quest.targetCount) || 1);
+    const maxPerTick = Math.max(1, Number(quest.counterMaxPerTick) || 1);
+    const cooldownMs = Math.max(0, Number(quest.counterCooldownMin) || 0) * 60_000;
+    const delta = Math.min(parsed.delta, maxPerTick);
+
+    const already = await prisma.questCompletion.findUnique({
+      where: { userId_questId_dayKey: { userId: user.id, questId: quest.id, dayKey } }
+    });
+    if (already) {
+      return res.status(409).json({ error: "Quest already completed today", code: "already_complete" });
+    }
+
+    const existing = await prisma.questCounter.findUnique({
+      where: { userId_questId_dayKey: { userId: user.id, questId: quest.id, dayKey } }
+    });
+    if (existing?.lastTickAt && cooldownMs > 0) {
+      const nextAt = new Date(existing.lastTickAt).getTime() + cooldownMs;
+      if (now.getTime() < nextAt) {
+        return res.status(429).json({
+          error: "Cooldown active",
+          code: "counter_cooldown",
+          nextAllowedAt: new Date(nextAt).toISOString(),
+          counter: serializeCounter(existing, quest, now)
+        });
+      }
+    }
+
+    const prevCount = Number(existing?.count || 0);
+    const newCount = Math.min(target, prevCount + delta);
+
+    const saved = await prisma.questCounter.upsert({
+      where: { userId_questId_dayKey: { userId: user.id, questId: quest.id, dayKey } },
+      create: {
+        userId: user.id,
+        questId: quest.id,
+        dayKey,
+        count: newCount,
+        target,
+        lastTickAt: now
+      },
+      update: {
+        count: newCount,
+        target,
+        lastTickAt: now
+      }
+    });
+
+    if (newCount >= target) {
+      const payload = await awardQuestCompletion({
+        user,
+        quest,
+        dayKey,
+        availableQuests,
+        customQuests,
+        completionPercent: 100,
+        elapsedMs: 0,
+        now
+      });
+      return res.json({ ok: true, completed: true, counter: serializeCounter(saved, quest, now), ...payload });
+    }
+
+    res.json({ ok: true, completed: false, counter: serializeCounter(saved, quest, now) });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// Note-mechanic quests (reflection/gratitude) and words-mechanic
+// (English vocab pairs). Submission validates the payload and
+// finalizes the completion in one shot. Notes persist in
+// QuestNote so users can review history in the profile.
+// ─────────────────────────────────────────────────────────────
+
+app.post("/api/quests/note/submit", async (req, res) => {
+  try {
+    const language = getRequestLanguage(req);
+    const parsed = z.object({
+      username: z.string().min(2).max(64),
+      questId: z.number().int().min(1),
+      kind: z.enum(["reflection", "gratitude", "words"]).default("reflection"),
+      items: z.array(z.object({
+        text: z.string().max(2000).optional(),
+        word: z.string().max(120).optional(),
+        translation: z.string().max(240).optional()
+      })).min(1).max(50)
+    }).parse(req.body);
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const now = new Date();
+    const dayKey = getDateKey(now);
+    const todayCompletions = await prisma.questCompletion.findMany({
+      where: { userId: user.id, dayKey },
+      orderBy: { completedAt: "asc" },
+      select: { questId: true }
+    });
+    const customQuests = await fetchUserCustomQuests(user.id);
+    const availableQuests = composeDailyQuests(user, todayCompletions.map((t) => t.questId), now, [], language, customQuests);
+    const quest = availableQuests.find((q) => q.id === parsed.questId);
+    if (!quest) return res.status(404).json({ error: "Quest not on today's board" });
+
+    const already = await prisma.questCompletion.findUnique({
+      where: { userId_questId_dayKey: { userId: user.id, questId: quest.id, dayKey } }
+    });
+    if (already) return res.status(409).json({ error: "Quest already completed today", code: "already_complete" });
+
+    // Validate payload shape against the quest mechanic.
+    if (quest.mechanic === "note") {
+      const requiredItems = Math.max(1, Number(quest.minItems) || 1);
+      const minLength = Math.max(1, Number(quest.noteMinLength) || 10);
+      const cleaned = parsed.items
+        .map((item) => ({ text: String(item?.text || "").trim() }))
+        .filter((item) => item.text.length >= minLength);
+      if (cleaned.length < requiredItems) {
+        return res.status(400).json({
+          error: "Not enough notes",
+          code: "note_too_short",
+          required: requiredItems,
+          minLength,
+          received: cleaned.length
+        });
+      }
+      await prisma.questNote.create({
+        data: {
+          userId: user.id,
+          questId: quest.id,
+          dayKey,
+          kind: parsed.kind === "words" ? "reflection" : parsed.kind,
+          payload: JSON.stringify({ kind: parsed.kind, items: cleaned })
+        }
+      });
+    } else if (quest.mechanic === "words") {
+      const required = Math.max(1, Number(quest.targetCount) || 1);
+      const cleaned = parsed.items
+        .map((item) => ({
+          word: String(item?.word || "").trim(),
+          translation: String(item?.translation || "").trim()
+        }))
+        .filter((pair) => pair.word.length >= 1 && pair.translation.length >= 1);
+      if (cleaned.length < required) {
+        return res.status(400).json({
+          error: "Not enough word pairs",
+          code: "words_incomplete",
+          required,
+          received: cleaned.length
+        });
+      }
+      await prisma.questNote.create({
+        data: {
+          userId: user.id,
+          questId: quest.id,
+          dayKey,
+          kind: "words",
+          payload: JSON.stringify({ kind: "words", items: cleaned.slice(0, required) })
+        }
+      });
+    } else {
+      return res.status(400).json({ error: "Quest does not accept notes" });
+    }
+
+    const payload = await awardQuestCompletion({
+      user,
+      quest,
+      dayKey,
+      availableQuests,
+      customQuests,
+      completionPercent: 100,
+      elapsedMs: 0,
+      now
+    });
+    res.json({ ok: true, ...payload });
+  } catch (error) {
+    console.error(`[Note Submit Error] ${error?.message || error}`, error);
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+app.get("/api/notes/history/:username", async (req, res) => {
+  try {
+    const username = slugifyUsername(req.params.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 60));
+    const notes = await prisma.questNote.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      take: limit
+    });
+
+    const entries = notes.map((note) => {
+      let parsed = {};
+      try { parsed = JSON.parse(note.payload || "{}"); } catch { parsed = {}; }
+      return {
+        id: note.id,
+        questId: note.questId,
+        dayKey: note.dayKey,
+        kind: String(parsed.kind || note.kind || "reflection"),
+        items: Array.isArray(parsed.items) ? parsed.items : [],
+        createdAt: note.createdAt
+      };
+    });
+    res.json({ ok: true, entries });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
 
 const CITY_SPIN_REWARDS = [
   { id: 1,  type: "xp",    amount: 25,  weight: 25 },

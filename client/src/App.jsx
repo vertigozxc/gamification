@@ -8,6 +8,8 @@ import {
   fetchAllQuests,
   completeOnboarding,
   completeQuest as completeQuestOnServer,
+  tickQuestCounter,
+  submitQuestNote,
   resetDaily,
   resetHard,
   freezeStreak,
@@ -61,6 +63,9 @@ const DesktopLayout = lazy(() => import("./components/DesktopLayout"));
 const DevTestPanel = lazy(() => import("./components/DevTestPanel"));
 const AboutAppModal = lazy(() => import("./components/modals/AboutAppModal"));
 const QuestTimerControls = lazy(() => import("./components/QuestTimerControls"));
+const QuestCounterInline = lazy(() => import("./components/QuestCounterInline"));
+const QuestNoteModal = lazy(() => import("./components/modals/QuestNoteModal"));
+const NotesHistoryModal = lazy(() => import("./components/modals/NotesHistoryModal"));
 const QuestCompletePopup = lazy(() => import("./components/QuestCompletePopup"));
 const SingleHabitPickerModal = lazy(() => import("./components/modals/SingleHabitPickerModal"));
 const CityTab = lazy(() => import("./components/tabs/CityTab"));
@@ -533,6 +538,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             preferredQuestIds,
             questSlots: gameStateResponse?.questSlots ?? prev.questSlots,
             activeTimers: Array.isArray(gameStateResponse?.activeTimers) ? gameStateResponse.activeTimers : [],
+            activeCounters: Array.isArray(gameStateResponse?.activeCounters) ? gameStateResponse.activeCounters : [],
             isDevTester: Boolean(gameStateResponse?.isDevTester)
           }));
         }
@@ -740,6 +746,157 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     questRenderCountRef,
     vocab: t
   });
+
+  const [noteQuest, setNoteQuest] = useState(null);
+  const [noteSubmitting, setNoteSubmitting] = useState(false);
+  const [noteError, setNoteError] = useState("");
+  const [counterPendingId, setCounterPendingId] = useState(null);
+  const [showNotesHistory, setShowNotesHistory] = useState(false);
+
+  const mergeCounterIntoState = (questId, counter) => {
+    setState((prev) => {
+      const existing = Array.isArray(prev.activeCounters) ? prev.activeCounters : [];
+      const filtered = existing.filter((entry) => entry.questId !== questId);
+      filtered.push({
+        questId,
+        count: Number(counter.count || 0),
+        target: Number(counter.target || 0),
+        lastTickAt: counter.lastTickAt ?? null
+      });
+      return { ...prev, activeCounters: filtered };
+    });
+  };
+
+  const refreshStateAfterCompletion = async () => {
+    try {
+      const latest = await fetchGameState(username);
+      applyServerTimeSync(latest);
+      setState((prev) => ({
+        ...prev,
+        completed: Array.isArray(latest?.completedQuestIds) ? latest.completedQuestIds : prev.completed,
+        xp: latest?.user?.xp ?? prev.xp,
+        lvl: latest?.user?.level ?? prev.lvl,
+        xpNext: latest?.user?.xpNext ?? prev.xpNext,
+        tokens: latest?.user?.tokens ?? prev.tokens,
+        streak: Number(latest?.streak ?? prev.streak),
+        productivity: latest?.productivity ?? prev.productivity,
+        questSlots: latest?.questSlots ?? prev.questSlots,
+        pinnedQuestProgress21d: normalizePinnedQuestProgress(latest?.pinnedQuestProgress21d),
+        activeCounters: Array.isArray(latest?.activeCounters) ? latest.activeCounters : prev.activeCounters
+      }));
+    } catch {
+      // Non-fatal; user can refresh.
+    }
+  };
+
+  const handleCounterTick = async (quest, delta) => {
+    if (!username || counterPendingId) return;
+    setCounterPendingId(quest.id);
+    try {
+      const resp = await tickQuestCounter(username, quest.id, delta);
+      if (resp?.counter) {
+        mergeCounterIntoState(quest.id, resp.counter);
+      }
+      if (resp?.completed) {
+        await refreshStateAfterCompletion();
+        addLog(
+          (t.counterCompleteLog || "💧 {title} completed!").replace("{title}", quest.title),
+          "text-cyan-300 font-bold cinzel"
+        );
+      }
+    } catch (err) {
+      const msg = String(err?.message || "");
+      if (/cooldown/i.test(msg)) {
+        addLog(t.counterCooldownWarn || "Hold on — wait for the cooldown.", "text-amber-300 font-bold");
+      } else if (/already/i.test(msg)) {
+        await refreshStateAfterCompletion();
+      } else {
+        addLog(t.counterTickFailed || "Could not record sip.", "text-red-400 font-bold");
+      }
+    } finally {
+      setCounterPendingId(null);
+    }
+  };
+
+  const renderQuestMechanicNode = (quest) => {
+    if (!quest) return null;
+    if (quest.mechanic === "counter") {
+      const entry = (state.activeCounters || []).find((c) => Number(c.questId) === Number(quest.id)) || null;
+      return (
+        <Suspense fallback={null}>
+          <QuestCounterInline
+            quest={quest}
+            count={entry?.count || 0}
+            target={Number(quest.targetCount) || 1}
+            lastTickAt={entry?.lastTickAt || null}
+            cooldownMin={Number(quest.counterCooldownMin) || 15}
+            maxPerTick={Number(quest.counterMaxPerTick) || 3}
+            pending={counterPendingId === quest.id}
+            onTick={(delta) => handleCounterTick(quest, delta)}
+            unitLabel={t.counterGlassUnit}
+          />
+        </Suspense>
+      );
+    }
+    if (quest.mechanic === "note" || quest.mechanic === "words") {
+      return (
+        <div
+          className="mt-3 pl-9 pointer-events-auto"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={() => { setNoteError(""); setNoteQuest(quest); }}
+            className="mobile-pressable cinzel"
+            style={{
+              width: "100%",
+              fontSize: 12,
+              fontWeight: 700,
+              padding: "8px 12px",
+              borderRadius: 10,
+              border: "1px solid var(--color-primary)",
+              background: "rgba(250, 204, 21, 0.12)",
+              color: "var(--color-accent)",
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+              cursor: "pointer"
+            }}
+          >
+            {quest.mechanic === "words"
+              ? (t.wordsOpenCta || "📝 Enter words")
+              : (t.noteOpenCta || "📝 Write notes")}
+          </button>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const handleNoteSubmit = async ({ kind, items }) => {
+    if (!username || !noteQuest) return;
+    setNoteSubmitting(true);
+    setNoteError("");
+    try {
+      const cleanedItems = noteQuest.mechanic === "words"
+        ? items.map((pair) => ({
+            word: String(pair.word || "").trim(),
+            translation: String(pair.translation || "").trim()
+          }))
+        : items.map((item) => ({ text: String(item.text || "").trim() }));
+      await submitQuestNote(username, noteQuest.id, kind, cleanedItems);
+      setNoteQuest(null);
+      await refreshStateAfterCompletion();
+      addLog(
+        (t.noteCompleteLog || "📝 {title} saved.").replace("{title}", noteQuest.title),
+        "text-cyan-300 font-bold cinzel"
+      );
+    } catch (err) {
+      setNoteError(String(err?.message || (t.noteSubmitFailed || "Submission failed.")));
+    } finally {
+      setNoteSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     if (typeof window === "undefined" || !import.meta.env.DEV) {
@@ -1091,7 +1248,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         preferredQuestIds: Array.isArray(gameStateResponse?.preferredQuestIds)
           ? gameStateResponse.preferredQuestIds
           : prev.preferredQuestIds,
-        activeTimers: Array.isArray(gameStateResponse?.activeTimers) ? gameStateResponse.activeTimers : []
+        activeTimers: Array.isArray(gameStateResponse?.activeTimers) ? gameStateResponse.activeTimers : [],
+        activeCounters: Array.isArray(gameStateResponse?.activeCounters) ? gameStateResponse.activeCounters : []
       }));
     } catch {
       // Ignore — failures surface via network logs.
@@ -1314,6 +1472,22 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         onSave={handleSaveNotes}
       />
 
+      <Suspense fallback={null}>
+        <QuestNoteModal
+          open={Boolean(noteQuest)}
+          quest={noteQuest}
+          submitting={noteSubmitting}
+          errorMessage={noteError}
+          onClose={() => { if (!noteSubmitting) { setNoteQuest(null); setNoteError(""); } }}
+          onSubmit={handleNoteSubmit}
+        />
+        <NotesHistoryModal
+          open={showNotesHistory}
+          username={username}
+          onClose={() => setShowNotesHistory(false)}
+        />
+      </Suspense>
+
       <LevelUpPopup
         show={showLevelUp}
         onClose={() => setShowLevelUp(false)}
@@ -1422,6 +1596,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                     />
                   </Suspense>
                 )}
+                renderQuestMechanic={(quest) => renderQuestMechanicNode(quest)}
                 emptyPinnedSlotCount={emptyPinnedSlotCount}
                 emptyOtherSlotCount={emptyOtherSlotCount}
                 onOpenHabitPicker={() => setSingleHabitPickerOpen(true)}
@@ -1536,6 +1711,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 onOpenThemePicker={() => setShowThemePicker(true)}
                 onOpenLanguagePicker={() => setShowLanguagePicker(true)}
                 onOpenAbout={() => setShowAbout(true)}
+                onOpenNotesHistory={() => setShowNotesHistory(true)}
                 onLogout={() => setShowLogoutConfirm(true)}
                 onDeleteProfile={handleDeleteProfile}
                 onDeleteConfirmStateChange={setDeleteProfileOpen}
@@ -1583,6 +1759,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 />
               </Suspense>
             )}
+            renderQuestMechanic={(quest) => renderQuestMechanicNode(quest)}
             emptyPinnedSlotCount={emptyPinnedSlotCount}
             emptyOtherSlotCount={emptyOtherSlotCount}
             onOpenHabitPicker={() => setSingleHabitPickerOpen(true)}
