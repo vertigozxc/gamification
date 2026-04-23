@@ -19,7 +19,8 @@ import {
   rerollPinned,
   fetchProfileStats,
   deleteProfile,
-  addPinnedQuest
+  addPinnedQuest,
+  updatePreferredLanguage
 } from "./api";
 import useGameplayActions from "./hooks/useGameplayActions";
 import useAuthSession from "./hooks/useAuthSession";
@@ -1095,6 +1096,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   function handleLanguageChange(id) {
     setLanguageId(id);
     setShowLanguagePicker(false);
+    // Persist language on the server so the `polyglot` achievement can
+    // unlock and the preference survives across devices.
+    if (authUser?.uid) updatePreferredLanguage(authUser.uid, id).catch(() => {});
   }
 
   function handlePortraitUpload(event) {

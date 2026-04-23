@@ -40,6 +40,8 @@ model User {
   lastFreezePurchaseWeekKey String                 @default("")
   xpBoostExpiresAt          DateTime?
   cityResetsPaid            Int                    @default(0)
+  tokensSpentTotal          Int                    @default(0)
+  preferredLanguage         String                 @default("")
   isDevTester               Boolean                @default(false)
   maxStreak                 Int                    @default(0)
   createdAt                 DateTime               @default(now())
@@ -59,6 +61,18 @@ model User {
   timerSessions             QuestTimerSession[]
   questCounters             QuestCounter[]
   questNotes                QuestNote[]
+  achievements              UserAchievement[]
+}
+
+model UserAchievement {
+  id          String   @id @default(cuid())
+  userId      String
+  code        String
+  unlockedAt  DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, code])
+  @@index([userId])
 }
 
 model CustomQuest {
