@@ -207,7 +207,7 @@ function CustomHabitManager({
             type="button"
             onClick={startCreate}
             disabled={atLimit}
-            className="w-full rounded-lg border p-3 cinzel text-sm"
+            className="w-full rounded-lg border p-3 cinzel text-sm mobile-pressable"
             style={{
               borderStyle: "dashed",
               borderColor: atLimit ? "var(--card-border-idle)" : accentBorder,
@@ -311,7 +311,7 @@ function CustomHabitManager({
             <button
               type="button"
               onClick={resetForm}
-              className="flex-1 rounded-md py-2 cinzel text-xs"
+              className="flex-1 rounded-md py-2 cinzel text-xs mobile-pressable"
               style={{
                 background: "transparent",
                 border: "1px solid var(--card-border-idle)",
@@ -326,7 +326,7 @@ function CustomHabitManager({
               type="button"
               onClick={handleSave}
               disabled={customSaving || !title.trim()}
-              className="flex-1 rounded-md py-2 cinzel text-xs font-bold"
+              className="flex-1 rounded-md py-2 cinzel text-xs font-bold mobile-pressable"
               style={{
                 background: `var(${accentVar})`,
                 color: "#0f172a",
@@ -359,7 +359,7 @@ function CustomHabitManager({
               <button
                 type="button"
                 onClick={() => setConfirmDeleteId(null)}
-                className="flex-1 rounded-md py-2 cinzel text-xs"
+                className="flex-1 rounded-md py-2 cinzel text-xs mobile-pressable"
                 style={{ background: "transparent", border: "1px solid var(--card-border-idle)", color: "#cbd5e1", cursor: "pointer", minHeight: 44 }}
                     >
                       {t.cancelLabel}
@@ -368,7 +368,7 @@ function CustomHabitManager({
                 type="button"
                 onClick={() => handleDelete(confirmDeleteId)}
                 disabled={customSaving}
-                className="flex-1 rounded-md py-2 cinzel text-xs font-bold"
+                className="flex-1 rounded-md py-2 cinzel text-xs font-bold mobile-pressable"
                 style={{ background: "#dc2626", color: "#fff", border: "none", cursor: customSaving ? "not-allowed" : "pointer", opacity: customSaving ? 0.6 : 1, minHeight: 44 }}
               >
                 {customSaving

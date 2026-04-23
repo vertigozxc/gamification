@@ -349,7 +349,7 @@ function OnboardingModal({
             <button
               type="button"
               onClick={handleCloseClick}
-              className="cinzel"
+              className="cinzel mobile-pressable"
               style={{
                 flex: 1,
                 minHeight: 48,
@@ -369,7 +369,7 @@ function OnboardingModal({
               type="button"
               onClick={handleStartRequest}
               disabled={primaryDisabled}
-              className="cinzel"
+              className="cinzel mobile-pressable"
               style={{
                 flex: 2,
                 minHeight: 48,

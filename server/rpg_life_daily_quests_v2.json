@@ -1174,7 +1174,9 @@
         "vocabulary"
       ],
       "id": "quest_36",
-      "needs_timer": false
+      "needs_timer": false,
+      "quest_mechanic": "words",
+      "target_count": 3
     },
     {
       "title": "Language Practice",
@@ -1204,7 +1206,9 @@
         "vocabulary"
       ],
       "id": "quest_37",
-      "needs_timer": false
+      "needs_timer": false,
+      "quest_mechanic": "words",
+      "target_count": 5
     },
     {
       "title": "Language Practice",
@@ -1234,7 +1238,9 @@
         "vocabulary"
       ],
       "id": "quest_38",
-      "needs_timer": false
+      "needs_timer": false,
+      "quest_mechanic": "words",
+      "target_count": 7
     },
     {
       "title": "Language Practice",
@@ -1264,7 +1270,9 @@
         "vocabulary"
       ],
       "id": "quest_39",
-      "needs_timer": false
+      "needs_timer": false,
+      "quest_mechanic": "words",
+      "target_count": 10
     },
     {
       "title": "Language Practice",
@@ -1294,7 +1302,9 @@
         "vocabulary"
       ],
       "id": "quest_40",
-      "needs_timer": false
+      "needs_timer": false,
+      "quest_mechanic": "words",
+      "target_count": 12
     },
     {
       "title": "Language Session",
@@ -3404,105 +3414,6 @@
       ],
       "id": "quest_109",
       "needs_timer": false
-    },
-    {
-      "title": "English Vocabulary",
-      "description": "Learn 5 new English words with translation",
-      "title_ru": "Английские слова",
-      "description_ru": "Выучи 5 новых английских слов с переводом",
-      "category": "MIND",
-      "base_xp": 20,
-      "effort_score": 2,
-      "time_estimate_min": 10,
-      "min_level": 1,
-      "min_str": 0,
-      "min_int": 0,
-      "min_sta": 0,
-      "min_streak": 0,
-      "weight": 1.2,
-      "cooldown_days": 1,
-      "max_per_week": 5,
-      "anti_repeat_group": "mind_english_words",
-      "completion_type": "manual",
-      "physical_load": 0,
-      "mental_load": 2,
-      "social_pressure": 0,
-      "unlock_type": "base",
-      "tags": [
-        "english",
-        "vocab",
-        "language"
-      ],
-      "id": "quest_110",
-      "needs_timer": false,
-      "quest_mechanic": "words",
-      "target_count": 5
-    },
-    {
-      "title": "English Vocabulary",
-      "description": "Learn 10 new English words with translation",
-      "title_ru": "Английские слова",
-      "description_ru": "Выучи 10 новых английских слов с переводом",
-      "category": "MIND",
-      "base_xp": 35,
-      "effort_score": 3,
-      "time_estimate_min": 15,
-      "min_level": 1,
-      "min_str": 0,
-      "min_int": 0,
-      "min_sta": 0,
-      "min_streak": 0,
-      "weight": 1,
-      "cooldown_days": 1,
-      "max_per_week": 5,
-      "anti_repeat_group": "mind_english_words",
-      "completion_type": "manual",
-      "physical_load": 0,
-      "mental_load": 2,
-      "social_pressure": 0,
-      "unlock_type": "base",
-      "tags": [
-        "english",
-        "vocab",
-        "language"
-      ],
-      "id": "quest_111",
-      "needs_timer": false,
-      "quest_mechanic": "words",
-      "target_count": 10
-    },
-    {
-      "title": "English Vocabulary",
-      "description": "Learn 15 new English words with translation",
-      "title_ru": "Английские слова",
-      "description_ru": "Выучи 15 новых английских слов с переводом",
-      "category": "MIND",
-      "base_xp": 50,
-      "effort_score": 4,
-      "time_estimate_min": 20,
-      "min_level": 1,
-      "min_str": 0,
-      "min_int": 0,
-      "min_sta": 0,
-      "min_streak": 0,
-      "weight": 0.7999999999999999,
-      "cooldown_days": 1,
-      "max_per_week": 5,
-      "anti_repeat_group": "mind_english_words",
-      "completion_type": "manual",
-      "physical_load": 0,
-      "mental_load": 2,
-      "social_pressure": 0,
-      "unlock_type": "base",
-      "tags": [
-        "english",
-        "vocab",
-        "language"
-      ],
-      "id": "quest_112",
-      "needs_timer": false,
-      "quest_mechanic": "words",
-      "target_count": 15
     }
   ]
 }

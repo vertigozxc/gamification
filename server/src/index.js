@@ -533,6 +533,8 @@ app.post("/api/dev/reset-me", async (req, res) => {
       prisma.questCompletion.deleteMany({ where: { userId: user.id } }),
       prisma.dailyScore.deleteMany({ where: { userId: user.id } }),
       prisma.questTimerSession.deleteMany({ where: { userId: user.id } }),
+      prisma.questCounter.deleteMany({ where: { userId: user.id } }),
+      prisma.questNote.deleteMany({ where: { userId: user.id } }),
       prisma.customQuest.deleteMany({ where: { userId: user.id } }),
       prisma.questFeedback.deleteMany({ where: { userId: user.id } }),
       prisma.user.update({
@@ -542,10 +544,12 @@ app.post("/api/dev/reset-me", async (req, res) => {
           photoUrl: "",
           preferredQuestIds: "",
           randomQuestIds: "",
+          previousRandomQuestIds: "",
           level: 1,
           xp: 0,
           xpNext: 250,
           streak: 0,
+          maxStreak: 0,
           tokens: 0,
           theme: "adventure",
           lastStreakIncreaseAt: null,
@@ -564,7 +568,8 @@ app.post("/api/dev/reset-me", async (req, res) => {
           vacationEndsAt: null,
           lastVacationAt: null,
           streakFreezeCharges: 0,
-          lastFreezePurchaseWeekKey: ""
+          lastFreezePurchaseWeekKey: "",
+          xpBoostExpiresAt: null
         }
       })
     ]);
@@ -698,9 +703,12 @@ app.post("/api/admin/users/:userId/reset-hard", requireAdmin, async (req, res) =
     }
 
     const now = new Date();
-    const [, , updatedUser] = await prisma.$transaction([
+    const [, , , , , updatedUser] = await prisma.$transaction([
       prisma.questCompletion.deleteMany({ where: { userId: user.id } }),
       prisma.dailyScore.deleteMany({ where: { userId: user.id } }),
+      prisma.questTimerSession.deleteMany({ where: { userId: user.id } }),
+      prisma.questCounter.deleteMany({ where: { userId: user.id } }),
+      prisma.questNote.deleteMany({ where: { userId: user.id } }),
       prisma.user.update({
         where: { id: user.id },
         data: {
@@ -708,13 +716,18 @@ app.post("/api/admin/users/:userId/reset-hard", requireAdmin, async (req, res) =
           xp: 0,
           xpNext: 250,
           streak: 0,
+          maxStreak: 0,
           tokens: 0,
           randomQuestIds: "",
+          previousRandomQuestIds: "",
           lastStreakIncreaseAt: null,
           streakFreezeExpiresAt: null,
           lastDailyRerollAt: null,
           extraRerollsToday: 0,
-          lastDailyResetAt: now
+          lastDailyResetAt: now,
+          streakFreezeCharges: 0,
+          lastFreezePurchaseWeekKey: "",
+          xpBoostExpiresAt: null
         },
         select: {
           id: true,
@@ -755,9 +768,12 @@ app.post("/api/admin/users/:userId/reset-full", requireAdmin, async (req, res) =
     }
 
     const now = new Date();
-    const [, , , , , , updatedUser] = await prisma.$transaction([
+    const [, , , , , , , , , updatedUser] = await prisma.$transaction([
       prisma.questCompletion.deleteMany({ where: { userId: user.id } }),
       prisma.dailyScore.deleteMany({ where: { userId: user.id } }),
+      prisma.questTimerSession.deleteMany({ where: { userId: user.id } }),
+      prisma.questCounter.deleteMany({ where: { userId: user.id } }),
+      prisma.questNote.deleteMany({ where: { userId: user.id } }),
       prisma.customQuest.deleteMany({ where: { userId: user.id } }),
       prisma.questFeedback.deleteMany({ where: { userId: user.id } }),
       prisma.friendship.deleteMany({ where: { OR: [{ userAId: user.id }, { userBId: user.id }] } }),
@@ -769,10 +785,12 @@ app.post("/api/admin/users/:userId/reset-full", requireAdmin, async (req, res) =
           photoUrl: "",
           preferredQuestIds: "",
           randomQuestIds: "",
+          previousRandomQuestIds: "",
           level: 1,
           xp: 0,
           xpNext: 250,
           streak: 0,
+          maxStreak: 0,
           tokens: 0,
           theme: "adventure",
           lastStreakIncreaseAt: null,
@@ -780,7 +798,10 @@ app.post("/api/admin/users/:userId/reset-full", requireAdmin, async (req, res) =
           lastFreeTaskRerollAt: null,
           lastDailyRerollAt: null,
           extraRerollsToday: 0,
-          lastDailyResetAt: now
+          lastDailyResetAt: now,
+          streakFreezeCharges: 0,
+          lastFreezePurchaseWeekKey: "",
+          xpBoostExpiresAt: null
         },
         select: {
           id: true,
@@ -4940,6 +4961,10 @@ app.post("/api/reset-hard", async (req, res) => {
       where: { userId: user.id }
     });
 
+    await prisma.questTimerSession.deleteMany({ where: { userId: user.id } });
+    await prisma.questCounter.deleteMany({ where: { userId: user.id } });
+    await prisma.questNote.deleteMany({ where: { userId: user.id } });
+
     const customQuests = await fetchUserCustomQuests(user.id);
     const customVirtualIds = customQuests.map((cq) => toCustomVirtualId(cq.id));
 
@@ -4950,13 +4975,18 @@ app.post("/api/reset-hard", async (req, res) => {
         xp: 0,
         xpNext: 250,
         streak: 0,
+        maxStreak: 0,
         tokens: 0,
         randomQuestIds: "",
+        previousRandomQuestIds: "",
         lastStreakIncreaseAt: null,
         streakFreezeExpiresAt: null,
         lastDailyRerollAt: null,
         extraRerollsToday: 0,
-        lastDailyResetAt: now
+        lastDailyResetAt: now,
+        streakFreezeCharges: 0,
+        lastFreezePurchaseWeekKey: "",
+        xpBoostExpiresAt: null
       }
     });
 
