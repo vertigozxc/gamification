@@ -426,6 +426,13 @@ export function inviteToChallenge(challengeId, inviterUsername, inviteeUsernames
   }));
 }
 
+export function resetCity(username) {
+  return request("/api/shop/reset-city", {
+    method: "POST",
+    body: JSON.stringify({ username })
+  });
+}
+
 export function removeChallengeParticipant(challengeId, requesterUsername, username) {
   return withCommunityInvalidation(request(`/api/challenges/${encodeURIComponent(challengeId)}/remove-participant`, {
     method: "POST",

@@ -7,7 +7,8 @@ export default function StoreTab({
   freezeStreakPending,
   canRerollPinned, isFreePinnedReroll, daysUntilFreePinnedReroll,
   xpBoostCost = 15, xpBoostExpiresAt = null,
-  onOpenPinnedReplacement, onFreezeStreak, onBuyExtraReroll, onBuyXpBoost, t
+  cityResetCost = 10, cityResetRefund = 0,
+  onOpenPinnedReplacement, onFreezeStreak, onBuyExtraReroll, onBuyXpBoost, onResetCity, t
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -85,6 +86,9 @@ export default function StoreTab({
         xpBoostCost={xpBoostCost}
         xpBoostExpiresAt={xpBoostExpiresAt}
         onBuyXpBoost={onBuyXpBoost}
+        cityResetCost={cityResetCost}
+        cityResetRefund={cityResetRefund}
+        onResetCity={onResetCity}
         compact
       />
     </div>

@@ -1,4 +1,4 @@
-import { Suspense, lazy, startTransition, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { auth, googleProvider, firebaseInitError } from "./firebaseAuth";
 import {
   upsertProfile,
@@ -47,7 +47,7 @@ import {
 import PortalPreloader from "./components/PortalPreloader";
 import NetworkRetryBanner from "./components/NetworkRetryBanner";
 import PullToRefresh from "./components/PullToRefresh";
-import { evictCommunityCache } from "./api";
+import { evictCommunityCache, resetCity } from "./api";
 
 const FreezeSuccessModal = lazy(() => import("./components/modals/FreezeSuccessModal"));
 const RerollConfirmModal = lazy(() => import("./components/modals/RerollConfirmModal"));
@@ -765,6 +765,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const [noteError, setNoteError] = useState("");
   const [counterPendingId, setCounterPendingId] = useState(null);
   const [showNotesHistory, setShowNotesHistory] = useState(false);
+  const [cityResetConfirmOpen, setCityResetConfirmOpen] = useState(false);
+  const [cityResetBusy, setCityResetBusy] = useState(false);
 
   const mergeCounterIntoState = (questId, counter) => {
     setState((prev) => {
@@ -1274,6 +1276,50 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     }
   }
 
+  // ─── City reset (shop) — escalating cost + full refund of district spend ───
+  const DISTRICT_UPGRADE_COSTS_CLIENT = [5, 15, 25, 50, 100];
+  const cityResetCost = useMemo(() => {
+    const paid = Math.max(0, Number(state.user?.cityResetsPaid) || 0);
+    return Math.min(50, 10 * (paid + 1));
+  }, [state.user?.cityResetsPaid]);
+  const cityResetRefund = useMemo(() => {
+    const levels = Array.isArray(state.districtLevels) ? state.districtLevels : [0, 0, 0, 0, 0];
+    return levels.reduce((sum, lvl) => {
+      const safe = Math.max(0, Math.min(5, Math.floor(Number(lvl) || 0)));
+      let tokens = 0;
+      for (let i = 0; i < safe; i += 1) tokens += DISTRICT_UPGRADE_COSTS_CLIENT[i] || 0;
+      return sum + tokens;
+    }, 0);
+  }, [state.districtLevels]);
+
+  async function handleResetCity() {
+    if (!username || cityResetBusy) return;
+    setCityResetBusy(true);
+    try {
+      const resp = await resetCity(username);
+      setCityResetConfirmOpen(false);
+      setState((prev) => ({
+        ...prev,
+        tokens: typeof resp?.tokens === "number" ? resp.tokens : prev.tokens,
+        districtLevels: Array.isArray(resp?.districtLevels) ? resp.districtLevels : [0, 0, 0, 0, 0],
+        user: {
+          ...prev.user,
+          cityResetsPaid: Number(resp?.cityResetsPaid) || ((Number(prev.user?.cityResetsPaid) || 0) + 1)
+        }
+      }));
+      addLog(
+        (t.cityResetLogPaid || "🏙 City reset · -{cost} · +{refund} refunded")
+          .replace("{cost}", String(resp?.cost || cityResetCost))
+          .replace("{refund}", String(resp?.refund || cityResetRefund)),
+        "text-cyan-300 font-bold cinzel"
+      );
+    } catch (err) {
+      addLog(err?.message || t.cityResetFailed || "City reset failed", "text-red-400 font-bold");
+    } finally {
+      setCityResetBusy(false);
+    }
+  }
+
   // Pull-to-refresh handler bound to every major mobile tab. Drops the
   // community cache so challenges / leaderboard / friends refetch, then
   // pulls a fresh game-state and leaderboard in parallel.
@@ -1368,6 +1414,73 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         onCancel={() => setShowLogoutConfirm(false)}
         onConfirm={handleLogoutConfirm}
       />
+
+      {cityResetConfirmOpen ? (
+        <div
+          className="logout-confirm-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget && !cityResetBusy) setCityResetConfirmOpen(false); }}
+          style={{ zIndex: 95 }}
+        >
+          <div className="logout-confirm-card" style={{ maxWidth: 420 }}>
+            <div className="text-4xl mb-2">🏙</div>
+            <h2 className="cinzel logout-confirm-title" style={{ color: "var(--color-accent)" }}>
+              {t.cityResetConfirmTitle || "Reset your city?"}
+            </h2>
+            <p className="logout-confirm-msg" style={{ marginBottom: 10 }}>
+              {t.cityResetConfirmBody || "All districts drop back to level 0. Every token you spent upgrading them comes back to your balance."}
+            </p>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+                padding: 12,
+                borderRadius: 12,
+                background: "rgba(0,0,0,0.28)",
+                border: "1px solid var(--card-border-idle)",
+                marginBottom: 10
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--color-text)", fontWeight: 600 }}>
+                <span>{t.cityResetPricePaidLabel || "Price"}</span>
+                <span>🪙 {cityResetCost}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--color-text)", fontWeight: 600 }}>
+                <span>{t.cityResetRefundLabel || "Refund"}</span>
+                <span style={{ color: "#6ee7b7" }}>+ 🪙 {cityResetRefund}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--color-accent)", fontWeight: 800, borderTop: "1px solid var(--card-border-idle)", paddingTop: 6, marginTop: 2 }}>
+                <span>{t.cityResetNetLabel || "Net to balance"}</span>
+                <span>{cityResetRefund - cityResetCost >= 0 ? "+" : ""}{cityResetRefund - cityResetCost}</span>
+              </div>
+            </div>
+            <p style={{ fontSize: 11, color: "var(--color-muted)", margin: "0 0 4px", lineHeight: 1.45 }}>
+              ⚠ {t.cityResetStreakWarning || "High-tier districts (levels 3–5) also need an active streak — tokens alone won't unlock them. Keep your streak alive before paying to rebuild."}
+            </p>
+            <p style={{ fontSize: 11, color: "var(--color-muted)", margin: "0 0 12px", lineHeight: 1.45 }}>
+              {t.cityResetEscalationHint || "Each future reset costs 10 more tokens than the previous one (up to 50)."}
+            </p>
+            <div className="logout-confirm-actions">
+              <button
+                className="logout-confirm-cancel cinzel mobile-pressable"
+                onClick={() => { if (!cityResetBusy) setCityResetConfirmOpen(false); }}
+                disabled={cityResetBusy}
+              >
+                {t.cancelLabel || "Cancel"}
+              </button>
+              <button
+                className="logout-confirm-proceed cinzel mobile-pressable"
+                onClick={handleResetCity}
+                disabled={cityResetBusy || state.tokens < cityResetCost}
+              >
+                {cityResetBusy
+                  ? (t.submittingLabel || "Submitting...")
+                  : (t.cityResetConfirmCta || "Reset · {cost} 🪙").replace("{cost}", String(cityResetCost))}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <ThemePickerModal
         open={showThemePicker}
@@ -1729,6 +1842,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 })()}
                 xpBoostExpiresAt={state.user?.xpBoostExpiresAt ?? null}
                 onBuyXpBoost={handleBuyXpBoost}
+                cityResetCost={cityResetCost}
+                cityResetRefund={cityResetRefund}
+                onResetCity={() => setCityResetConfirmOpen(true)}
                 t={t}
               />
             ) : null}

@@ -15,10 +15,13 @@ function TokenVault({
   daysUntilFreePinnedReroll,
   xpBoostCost = 15,
   xpBoostExpiresAt = null,
+  cityResetCost = 10,
+  cityResetRefund = 0,
   onOpenPinnedReplacement,
   onFreezeStreak,
   onBuyExtraReroll,
   onBuyXpBoost,
+  onResetCity,
   compact = false
 }) {
   const { t, tf } = useTheme();
@@ -202,6 +205,41 @@ function TokenVault({
                     dayLabel: xpBoostDaysLeft === 1 ? t.daySingular : t.dayPlural
                   })
                 : t.xpBoostInactiveHint}
+            </p>
+          </div>
+
+          {/* Reset city — refunds every token sunk into districts, wipes
+              them all back to level 0. Cost escalates by 10/reset up to
+              a 50-token cap. */}
+          <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
+            <div className="flex items-start gap-3">
+              <span className="text-3xl">🏙</span>
+              <div className="flex-1">
+                <p className="cinzel font-bold text-base tracking-wide" style={{ color: "var(--color-text)" }}>{t.cityResetTitle || "Reset city"}</p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.cityResetDesc || "Wipe all districts and refund every token spent on them."}</p>
+              </div>
+              <div className="flex items-center gap-1 rounded-full px-3 py-1 self-start" style={costChipStyle}>
+                <span className="text-base">{t.tokenIcon}</span>
+                <span className="cinzel font-bold text-sm" style={{ color: costValueColor }}>{cityResetCost}</span>
+              </div>
+            </div>
+            <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
+              {t.cityResetRefundHint || "Every token you spent upgrading districts comes back to your balance."}
+            </p>
+            <button
+              onClick={onResetCity}
+              disabled={tokens < cityResetCost}
+              className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 ${
+                tokens >= cityResetCost
+                  ? "bg-gradient-to-r from-rose-600 to-orange-600 text-white hover:from-rose-700 hover:to-orange-700 shadow-md"
+                  : "bg-slate-800/80 text-slate-500 cursor-not-allowed"
+              }`}
+            >
+              <span>{t.tokenIcon}</span>
+              {tokens < cityResetCost ? t.notEnough : `${t.buyPrefix} ${cityResetCost} ${getPluralizedToken(cityResetCost)}`}
+            </button>
+            <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
+              {t.cityResetCostHint || "Each reset costs +10 tokens more (max 50)."}
             </p>
           </div>
 

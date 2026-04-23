@@ -4824,6 +4824,79 @@ app.post("/api/shop/buy-xp-boost", async (req, res) => {
   }
 });
 
+// Escalating cost per reset: 10, 20, 30, 40, 50, 50, 50…
+// (caps at 50 tokens for the 5th reset and every subsequent one).
+function computeCityResetCost(resetsPaidSoFar) {
+  const idx = Math.max(0, Number(resetsPaidSoFar) || 0) + 1;
+  return Math.min(50, 10 * idx);
+}
+
+// Sum of all upgrade-step costs for a district currently at level L.
+// DISTRICT_UPGRADE_REQS[i] is the cost to reach level i+1 from i, so
+// a district at level L has paid costs[0..L-1].
+function computeDistrictRefundForLevel(level) {
+  let total = 0;
+  for (let i = 0; i < Math.max(0, Math.min(DISTRICT_MAX_LEVEL, level)); i += 1) {
+    total += Number(DISTRICT_UPGRADE_REQS[i]?.tokens) || 0;
+  }
+  return total;
+}
+
+function computeCityRefund(districtLevelsStr) {
+  const levels = parseDistrictLevels(districtLevelsStr);
+  return levels.reduce((sum, lvl) => sum + computeDistrictRefundForLevel(lvl), 0);
+}
+
+app.post("/api/shop/reset-city", async (req, res) => {
+  try {
+    const parsed = usernameBody.parse(req.body);
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const cost = computeCityResetCost(user.cityResetsPaid);
+    if ((Number(user.tokens) || 0) < cost) {
+      return res.status(400).json({
+        error: "Not enough tokens",
+        code: "not_enough_tokens",
+        required: cost,
+        current: Number(user.tokens) || 0
+      });
+    }
+
+    const refund = computeCityRefund(user.districtLevels);
+    // Net delta = refund − cost. Could be positive (refund wins) or
+    // negative (cost wins, e.g. you reset an empty city).
+    const netDelta = refund - cost;
+
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        tokens: Math.max(0, (Number(user.tokens) || 0) + netDelta),
+        districtLevels: "0,0,0,0,0",
+        cityResetsPaid: { increment: 1 }
+      },
+      select: {
+        tokens: true,
+        districtLevels: true,
+        cityResetsPaid: true
+      }
+    });
+
+    res.json({
+      ok: true,
+      cost,
+      refund,
+      tokens: updated.tokens,
+      districtLevels: parseDistrictLevels(updated.districtLevels),
+      cityResetsPaid: updated.cityResetsPaid,
+      nextResetCost: computeCityResetCost(updated.cityResetsPaid)
+    });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
 app.post("/api/quests/reroll-pinned", async (req, res) => {
   try {
     const language = getRequestLanguage(req);

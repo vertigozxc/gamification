@@ -39,6 +39,7 @@ model User {
   streakFreezeCharges       Int                    @default(0)
   lastFreezePurchaseWeekKey String                 @default("")
   xpBoostExpiresAt          DateTime?
+  cityResetsPaid            Int                    @default(0)
   isDevTester               Boolean                @default(false)
   maxStreak                 Int                    @default(0)
   createdAt                 DateTime               @default(now())
