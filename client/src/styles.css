@@ -80,9 +80,12 @@ body[data-theme="adventure"] {
     --border-radius-card: 0.75rem;
     --border-radius-panel: 1.5rem;
     --mobile-tab-bg: rgba(8, 15, 30, 0.97);
-    --mobile-tab-active: var(--color-primary);
+    /* Literal values (not var()) so getComputedStyle().getPropertyValue()
+       returns a resolvable color for the RN shell — custom-property
+       getters don't substitute nested var() references. */
+    --mobile-tab-active: #fbbf24;
     --mobile-tab-inactive: #94a3b8;
-    --mobile-tab-orb: var(--color-primary);
+    --mobile-tab-orb: #fbbf24;
     --mobile-tab-orb-text: #111827;
     --mobile-page-bg: #0a0e14;
 }
@@ -165,9 +168,10 @@ body[data-theme="balance"] {
     --border-radius-card: 1rem;
     --border-radius-panel: 1.5rem;
     --mobile-tab-bg: rgba(10, 22, 18, 0.98);
-    --mobile-tab-active: var(--color-primary);
+    /* Literal values (not var()) — see adventure block for why. */
+    --mobile-tab-active: #86efac;
     --mobile-tab-inactive: #9ca3af;
-    --mobile-tab-orb: var(--color-primary);
+    --mobile-tab-orb: #86efac;
     --mobile-tab-orb-text: #111827;
     --mobile-page-bg: #0a1612;
 }
@@ -1650,7 +1654,12 @@ body[data-theme="light"] .delete-profile-confirm-cancel {
 .qb-tab-fresh{pointer-events:none;position:absolute;top:-12px;right:-8px;z-index:8;display:inline-flex;align-items:center;gap:.2rem;padding:.14rem .4rem .12rem;border-radius:999px;background:linear-gradient(135deg,#ffe28a,#ffc947);border:1px solid rgba(255,221,112,.68);box-shadow:0 12px 20px -12px rgba(255,190,11,.95),0 0 0 1px rgba(255,255,255,.35) inset;transform:rotate(-4deg);animation:qbFreshBadgeFloat 2.2s ease-in-out infinite}
 .qb-tab-fresh__spark{font-size:.5rem;line-height:1;color:#7c2d12;opacity:.9}
 .qb-tab-fresh__label{font-family:"Caveat",var(--font-heading);font-size:.8rem;line-height:1;color:#111827;font-weight:700;letter-spacing:.03em;text-transform:none}
-.qb-quest-item{-webkit-backdrop-filter:blur(16px);cursor:pointer;background:var(--quest-item-bg);border:1.5px solid var(--quest-item-border);border-radius:1.25rem;padding:1.15rem;transition:all .22s;animation:.35s cubic-bezier(.22,1,.36,1) both qbItemIn;position:relative;box-shadow:0 4px 16px #0006,inset 0 1px #ffffff0d}
+/* -webkit-backdrop-filter removed: on iOS Safari it combined with
+   border-radius + opacity transitions to leave ~1px dark halo pixels
+   at the rounded corners whenever a quest card flipped into the done
+   state. Backgrounds are already 85–95% opaque gradients, so the blur
+   was doing almost no visible work anyway. */
+.qb-quest-item{cursor:pointer;background:var(--quest-item-bg);border:1.5px solid var(--quest-item-border);border-radius:1.25rem;padding:1.15rem;transition:all .22s;animation:.35s cubic-bezier(.22,1,.36,1) both qbItemIn;position:relative;box-shadow:0 4px 16px #0006,inset 0 1px #ffffff0d}
 /* Quest cards manage pressed visual via JS (see QuestItem.jsx) — a short
    hold without drag flips `.qb-quest-pressing`. Using :active would flash
    every card the finger touches while scrolling. */
