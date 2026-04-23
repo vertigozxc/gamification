@@ -158,10 +158,10 @@ export function completeQuest(username, questId) {
   });
 }
 
-export function tickQuestCounter(username, questId, delta = 1) {
+export function tickQuestCounter(username, questId) {
   return request("/api/quests/counter/tick", {
     method: "POST",
-    body: JSON.stringify({ username, questId, delta })
+    body: JSON.stringify({ username, questId })
   });
 }
 

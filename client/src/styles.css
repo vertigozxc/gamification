@@ -1613,8 +1613,10 @@ body[data-theme="light"] .delete-profile-confirm-cancel {
 .mobile-chip{-webkit-backdrop-filter:blur(12px);background:#02061766;border:.5px solid #ffffff14;border-radius:999px;padding:.5rem .85rem}
 .mobile-chip-label{font-family:var(--font-heading);letter-spacing:.08em;color:#94a3b8;font-size:.62rem}
 .mobile-section-kicker{font-family:var(--font-heading);letter-spacing:.08em;color:var(--color-primary-dim);font-size:.68rem}
-.mobile-pressable{transition:transform .15s cubic-bezier(.2,.8,.2,1),opacity .15s}
-.mobile-pressable:active{opacity:.8;transform:scale(.97)}
+.mobile-pressable{-webkit-tap-highlight-color:transparent;transition:transform .15s cubic-bezier(.2,.8,.2,1),opacity .15s,filter .15s,box-shadow .15s}
+.mobile-pressable:active:not(:disabled){opacity:.9;transform:scale(.96);filter:brightness(1.18)}
+.counter-tick-btn:active:not(:disabled){background:linear-gradient(90deg,rgba(34,211,238,.45),rgba(96,165,250,.45))!important;box-shadow:0 0 18px rgba(34,211,238,.4)!important;border-color:rgba(34,211,238,.95)!important}
+.quest-note-cta:active:not(:disabled){background:linear-gradient(90deg,rgba(250,204,21,.3),rgba(250,204,21,.18))!important;box-shadow:0 0 18px rgba(250,204,21,.35)!important}
 .qt-btn{-webkit-tap-highlight-color:transparent}
 .qt-btn:active:not(:disabled){transform:scale(.94);filter:brightness(1.35);box-shadow:0 0 14px rgba(250,204,21,.35)}
 .qt-btn:disabled{opacity:.55;cursor:not-allowed}

@@ -2596,7 +2596,9 @@ app.get("/api/game-state/:username", async (req, res) => {
       questId: row.questId,
       count: Number(row.count || 0),
       target: Number(row.target || 0),
-      lastTickAt: row.lastTickAt ?? null
+      lastTickAt: row.lastTickAt ?? null,
+      windowStartAt: row.windowStartAt ?? null,
+      windowTicks: Number(row.windowTicks || 0)
     }));
   } catch (counterErr) {
     console.error(`[game-state] counter read failed: ${counterErr?.message || counterErr}`);
@@ -3252,17 +3254,30 @@ function serializeTimerSession(session, now = new Date()) {
 // ─────────────────────────────────────────────────────────────
 
 function serializeCounter(counter, quest, now = new Date()) {
-  const cooldownMin = Number(quest?.counterCooldownMin || 0);
-  const nextAllowedAt = counter?.lastTickAt
-    ? new Date(new Date(counter.lastTickAt).getTime() + cooldownMin * 60_000)
-    : now;
+  // Rolling-window model: user may tick up to counterMaxPerTick times
+  // within a counterCooldownMin-minute window; once the window is full
+  // they must wait until the window's start + cooldown elapses.
+  const windowMs = Math.max(0, Number(quest?.counterCooldownMin || 0)) * 60_000;
+  const maxInWindow = Math.max(1, Number(quest?.counterMaxPerTick || 1));
+  const windowStartMs = counter?.windowStartAt ? new Date(counter.windowStartAt).getTime() : 0;
+  const windowTicks = Number(counter?.windowTicks || 0);
+  const windowEndsMs = windowStartMs ? windowStartMs + windowMs : 0;
+  const windowActive = windowStartMs > 0 && now.getTime() < windowEndsMs;
+  const cooldownActive = windowActive && windowTicks >= maxInWindow;
+  const nextAllowedAt = cooldownActive ? new Date(windowEndsMs) : now;
+  const ticksLeftInWindow = windowActive ? Math.max(0, maxInWindow - windowTicks) : maxInWindow;
   return {
     count: Number(counter?.count || 0),
     target: Number(quest?.targetCount || counter?.target || 0),
     lastTickAt: counter?.lastTickAt ?? null,
+    windowStartAt: counter?.windowStartAt ?? null,
+    windowTicks,
+    windowEndsAt: windowActive ? new Date(windowEndsMs).toISOString() : null,
     nextAllowedAt: nextAllowedAt.toISOString(),
-    cooldownMin,
-    maxPerTick: Number(quest?.counterMaxPerTick || 1),
+    cooldownMin: Math.max(0, Number(quest?.counterCooldownMin || 0)),
+    maxPerTick: 1,
+    maxInWindow,
+    ticksLeftInWindow,
     unit: String(quest?.counterUnit || "")
   };
 }
@@ -3304,8 +3319,7 @@ app.post("/api/quests/counter/tick", async (req, res) => {
     const language = getRequestLanguage(req);
     const parsed = z.object({
       username: z.string().min(2).max(64),
-      questId: z.number().int().min(1),
-      delta: z.number().int().min(1).max(10)
+      questId: z.number().int().min(1)
     }).parse(req.body);
     const username = slugifyUsername(parsed.username);
     const user = await prisma.user.findUnique({ where: { username } });
@@ -3325,9 +3339,11 @@ app.post("/api/quests/counter/tick", async (req, res) => {
     if (quest.mechanic !== "counter") return res.status(400).json({ error: "Quest is not a counter" });
 
     const target = Math.max(1, Number(quest.targetCount) || 1);
-    const maxPerTick = Math.max(1, Number(quest.counterMaxPerTick) || 1);
-    const cooldownMs = Math.max(0, Number(quest.counterCooldownMin) || 0) * 60_000;
-    const delta = Math.min(parsed.delta, maxPerTick);
+    // Each tick is always +1. Rolling window: up to counterMaxPerTick
+    // (default 3) ticks per counterCooldownMin-minute window; the window
+    // starts on the first tick and resets once the window expires.
+    const maxInWindow = Math.max(1, Number(quest.counterMaxPerTick) || 1);
+    const windowMs = Math.max(0, Number(quest.counterCooldownMin) || 0) * 60_000;
 
     const already = await prisma.questCompletion.findUnique({
       where: { userId_questId_dayKey: { userId: user.id, questId: quest.id, dayKey } }
@@ -3339,20 +3355,31 @@ app.post("/api/quests/counter/tick", async (req, res) => {
     const existing = await prisma.questCounter.findUnique({
       where: { userId_questId_dayKey: { userId: user.id, questId: quest.id, dayKey } }
     });
-    if (existing?.lastTickAt && cooldownMs > 0) {
-      const nextAt = new Date(existing.lastTickAt).getTime() + cooldownMs;
-      if (now.getTime() < nextAt) {
-        return res.status(429).json({
-          error: "Cooldown active",
-          code: "counter_cooldown",
-          nextAllowedAt: new Date(nextAt).toISOString(),
-          counter: serializeCounter(existing, quest, now)
-        });
-      }
+
+    const windowStartMs = existing?.windowStartAt ? new Date(existing.windowStartAt).getTime() : 0;
+    const windowTicks = Number(existing?.windowTicks || 0);
+    const windowOpen = windowStartMs > 0 && now.getTime() < windowStartMs + windowMs;
+
+    let nextWindowStartAt;
+    let nextWindowTicks;
+    if (!windowOpen) {
+      nextWindowStartAt = now;
+      nextWindowTicks = 1;
+    } else if (windowTicks < maxInWindow) {
+      nextWindowStartAt = new Date(windowStartMs);
+      nextWindowTicks = windowTicks + 1;
+    } else {
+      const nextAt = new Date(windowStartMs + windowMs);
+      return res.status(429).json({
+        error: "Cooldown active",
+        code: "counter_cooldown",
+        nextAllowedAt: nextAt.toISOString(),
+        counter: serializeCounter(existing, quest, now)
+      });
     }
 
     const prevCount = Number(existing?.count || 0);
-    const newCount = Math.min(target, prevCount + delta);
+    const newCount = Math.min(target, prevCount + 1);
 
     const saved = await prisma.questCounter.upsert({
       where: { userId_questId_dayKey: { userId: user.id, questId: quest.id, dayKey } },
@@ -3362,12 +3389,16 @@ app.post("/api/quests/counter/tick", async (req, res) => {
         dayKey,
         count: newCount,
         target,
-        lastTickAt: now
+        lastTickAt: now,
+        windowStartAt: nextWindowStartAt,
+        windowTicks: nextWindowTicks
       },
       update: {
         count: newCount,
         target,
-        lastTickAt: now
+        lastTickAt: now,
+        windowStartAt: nextWindowStartAt,
+        windowTicks: nextWindowTicks
       }
     });
 

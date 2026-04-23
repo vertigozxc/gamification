@@ -125,16 +125,18 @@ model QuestTimerSession {
 }
 
 model QuestCounter {
-  id          String   @id @default(cuid())
-  userId      String
-  questId     Int
-  dayKey      String
-  count       Int      @default(0)
-  target      Int
-  lastTickAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String    @id @default(cuid())
+  userId         String
+  questId        Int
+  dayKey         String
+  count          Int       @default(0)
+  target         Int
+  lastTickAt     DateTime?
+  windowStartAt  DateTime?
+  windowTicks    Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, questId, dayKey])
   @@index([userId, dayKey])

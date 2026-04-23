@@ -761,7 +761,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         questId,
         count: Number(counter.count || 0),
         target: Number(counter.target || 0),
-        lastTickAt: counter.lastTickAt ?? null
+        lastTickAt: counter.lastTickAt ?? null,
+        windowStartAt: counter.windowStartAt ?? null,
+        windowTicks: Number(counter.windowTicks || 0)
       });
       return { ...prev, activeCounters: filtered };
     });
@@ -789,11 +791,11 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     }
   };
 
-  const handleCounterTick = async (quest, delta) => {
+  const handleCounterTick = async (quest) => {
     if (!username || counterPendingId) return;
     setCounterPendingId(quest.id);
     try {
-      const resp = await tickQuestCounter(username, quest.id, delta);
+      const resp = await tickQuestCounter(username, quest.id);
       if (resp?.counter) {
         mergeCounterIntoState(quest.id, resp.counter);
       }
@@ -828,11 +830,12 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             quest={quest}
             count={entry?.count || 0}
             target={Number(quest.targetCount) || 1}
-            lastTickAt={entry?.lastTickAt || null}
+            windowStartAt={entry?.windowStartAt || null}
+            windowTicks={Number(entry?.windowTicks || 0)}
             cooldownMin={Number(quest.counterCooldownMin) || 15}
-            maxPerTick={Number(quest.counterMaxPerTick) || 3}
+            maxInWindow={Number(quest.counterMaxPerTick) || 3}
             pending={counterPendingId === quest.id}
-            onTick={(delta) => handleCounterTick(quest, delta)}
+            onTick={() => handleCounterTick(quest)}
             unitLabel={t.counterGlassUnit}
           />
         </Suspense>
@@ -848,19 +851,21 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           <button
             type="button"
             onClick={() => { setNoteError(""); setNoteQuest(quest); }}
-            className="mobile-pressable cinzel"
+            className="mobile-pressable cinzel quest-note-cta"
             style={{
               width: "100%",
+              minHeight: 44,
               fontSize: 12,
               fontWeight: 700,
-              padding: "8px 12px",
-              borderRadius: 10,
+              padding: "10px 14px",
+              borderRadius: 12,
               border: "1px solid var(--color-primary)",
-              background: "rgba(250, 204, 21, 0.12)",
+              background: "linear-gradient(90deg, rgba(250,204,21,0.14), rgba(250,204,21,0.08))",
               color: "var(--color-accent)",
-              letterSpacing: "0.05em",
+              letterSpacing: "0.06em",
               textTransform: "uppercase",
-              cursor: "pointer"
+              cursor: "pointer",
+              boxShadow: "0 4px 14px rgba(250,204,21,0.12)"
             }}
           >
             {quest.mechanic === "words"
