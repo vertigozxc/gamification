@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "../../ThemeContext";
 import { fetchNotesHistory, createPersonalNote, deletePersonalNote } from "../../api";
+import { fuzzyMatch } from "../../utils/fuzzySearch";
 
 function formatDate(dayKey, languageId) {
   if (!dayKey) return "";
@@ -102,17 +103,14 @@ export default function NotesHistoryModal({ open, username, onClose }) {
   };
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = query.trim();
     return entries.filter((entry) => {
       if (filter !== "all" && entry.kind !== filter) return false;
       if (!q) return true;
-      if (entry.kind === "words") {
-        return (entry.items || []).some((pair) =>
-          String(pair.word || "").toLowerCase().includes(q)
-          || String(pair.translation || "").toLowerCase().includes(q)
-        );
-      }
-      return (entry.items || []).some((item) => String(item.text || "").toLowerCase().includes(q));
+      const haystack = entry.kind === "words"
+        ? (entry.items || []).map((p) => `${p.word || ""} ${p.translation || ""}`).join(" ")
+        : (entry.items || []).map((item) => item.text || "").join(" ");
+      return fuzzyMatch(q, haystack);
     });
   }, [entries, filter, query]);
 

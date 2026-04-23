@@ -7,6 +7,7 @@ import {
   deleteCustomQuest as apiDeleteCustomQuest,
   fetchGameState as apiFetchGameState
 } from "../api";
+import { fuzzyMatch } from "../utils/fuzzySearch";
 
 // Fallback used before /api/game-state returns the user's questSlots.
 // Replaced at runtime by state.questSlots.pinned inside the hook.
@@ -81,26 +82,24 @@ function useOnboardingPinned({
   }, [allQuestOptions, customQuests, state?.questSlots?.maxEffort, state?.streak]);
 
   const filteredOnboardingQuests = useMemo(() => {
-    const normalizedQuestSearch = onboardingQuestSearch.trim().toLowerCase();
+    const trimmed = onboardingQuestSearch.trim();
+    if (!trimmed) return combinedQuestOptions;
     return combinedQuestOptions.filter((quest) => {
-      if (!normalizedQuestSearch) return true;
-
-      const searchableText = [
-        String(quest?.title || "").toLowerCase(),
-        String(quest?.desc || "").toLowerCase(),
+      const haystack = [
+        quest?.title || "",
+        quest?.desc || "",
         quest?.isCustom ? "custom мои own personal" : ""
       ].join(" ");
-
-      return searchableText.includes(normalizedQuestSearch);
+      return fuzzyMatch(trimmed, haystack);
     });
   }, [combinedQuestOptions, onboardingQuestSearch]);
 
   const filteredReplacePinnedQuests = useMemo(() => {
-    const normalizedPinnedSearch = replacePinnedSearch.trim().toLowerCase();
+    const trimmed = replacePinnedSearch.trim();
+    if (!trimmed) return combinedQuestOptions;
     return combinedQuestOptions.filter((quest) => {
-      if (!normalizedPinnedSearch) return true;
-      const searchableText = `${String(quest?.title || "").toLowerCase()} ${String(quest?.desc || "").toLowerCase()}`;
-      return searchableText.includes(normalizedPinnedSearch);
+      const haystack = `${quest?.title || ""} ${quest?.desc || ""}`;
+      return fuzzyMatch(trimmed, haystack);
     });
   }, [combinedQuestOptions, replacePinnedSearch]);
 

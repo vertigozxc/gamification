@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTheme } from "../../ThemeContext";
 import useEdgeSwipeBack from "../../hooks/useEdgeSwipeBack";
+import { fuzzyMatch } from "../../utils/fuzzySearch";
 
 // Dedicated screen for filling ONE unlocked habit slot (triggered from the
 // "New Habit Unlocked" card). Distinct from PinnedReplacementModal which
@@ -66,11 +67,11 @@ export default function SingleHabitPickerModal({
   }, [open, onClose]);
 
   const filteredQuests = useMemo(() => {
-    const term = search.trim().toLowerCase();
+    const term = search.trim();
     if (!term) return availableQuests;
     return availableQuests.filter((quest) => {
-      const hay = `${String(quest?.title || "").toLowerCase()} ${String(quest?.desc || quest?.description || "").toLowerCase()}`;
-      return hay.includes(term);
+      const hay = `${quest?.title || ""} ${quest?.desc || quest?.description || ""}`;
+      return fuzzyMatch(term, hay);
     });
   }, [availableQuests, search]);
 
