@@ -199,7 +199,7 @@ export default function QuestNoteModal({ open, quest, onClose, onSubmit, submitt
             flex: "1 1 auto",
             minHeight: 0,
             overflowY: "auto",
-            padding: "14px 18px calc(28px + env(safe-area-inset-bottom, 0px) + var(--mobile-safe-bottom, 80px))",
+            padding: "14px 18px calc(140px + env(safe-area-inset-bottom, 0px))",
             WebkitOverflowScrolling: "touch"
           }}
           className="flex flex-col gap-3"

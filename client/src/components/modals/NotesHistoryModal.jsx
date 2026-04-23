@@ -258,7 +258,7 @@ export default function NotesHistoryModal({ open, username, onClose }) {
             flex: "1 1 auto",
             minHeight: 0,
             overflowY: "auto",
-            padding: "14px 16px calc(28px + env(safe-area-inset-bottom, 0px) + var(--mobile-safe-bottom, 80px))",
+            padding: "14px 16px calc(140px + env(safe-area-inset-bottom, 0px))",
             WebkitOverflowScrolling: "touch"
           }}
         >
