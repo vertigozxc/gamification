@@ -414,16 +414,14 @@ function PinnedReplacementModal({
                 borderRadius: 12,
                 background: primaryDisabled
                   ? "rgba(255,255,255,0.08)"
-                  : isFreePinnedReroll
-                    ? "linear-gradient(90deg, #10b981, #059669)"
-                    : "linear-gradient(90deg, var(--color-accent), #f97316)",
+                  : "linear-gradient(90deg, var(--color-primary), var(--color-accent))",
                 border: "none",
                 color: primaryDisabled ? "#64748b" : "#0b1120",
                 fontSize: 13,
                 fontWeight: 800,
                 cursor: primaryDisabled ? "not-allowed" : "pointer",
                 letterSpacing: "0.05em",
-                boxShadow: primaryDisabled ? "none" : "0 8px 20px rgba(249,115,22,0.25)"
+                boxShadow: primaryDisabled ? "none" : "0 8px 20px rgba(56,189,248,0.2)"
               }}
             >
               {replacePinnedSaving

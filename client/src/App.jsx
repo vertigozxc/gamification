@@ -691,18 +691,44 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   // Square district adds tokens on top of the base full-board reward.
   const squareLvlForMilestone = Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[3]) || 0)));
   const fullBoardTokenReward = 1 + squareLvlForMilestone;
-  // Milestone targets scale to the user's daily quest capacity: X-2, X-1, X.
-  // Below a capacity of 3 the lower targets clamp to 1 so cards stay visible.
-  const milestoneTargets = [
-    Math.max(1, maxDailyQuests - 2),
-    Math.max(1, maxDailyQuests - 1),
-    maxDailyQuests
-  ];
-  const milestoneSteps = [
-    { target: milestoneTargets[0], reward: `+20 ${t.xpLabel} / +1 ${t.streakIcon}`, rune: milestoneRunes[0] },
-    { target: milestoneTargets[1], reward: "+25 " + t.xpLabel, rune: milestoneRunes[1] },
-    { target: milestoneTargets[2], reward: `+25 ${t.xpLabel} / +${fullBoardTokenReward} ${t.tokenIcon}`, rune: milestoneRunes[2] }
-  ];
+  // Server-side streak rule: +1 streak is awarded at >=4 completed quests
+  // (see calculateStreak in server/src/index.js). The dashboard milestone
+  // that carries the streak icon must sit at the SAME position — otherwise
+  // low-capacity users (level 1 → 4 slots) see "+1 streak" at the second
+  // card (target=2) even though the server still requires 4 completions.
+  const STREAK_SUCCESS_THRESHOLD = 4;
+  const streakMilestoneTarget = Math.min(STREAK_SUCCESS_THRESHOLD, maxDailyQuests);
+  // Build 3 targets ensuring the streak threshold is represented, and the
+  // final card always lands on the user's full board.
+  let milestoneTargets;
+  if (maxDailyQuests <= STREAK_SUCCESS_THRESHOLD + 1) {
+    // 4- or 5-slot tier: keep the original "last 3" progression.
+    milestoneTargets = [
+      Math.max(1, maxDailyQuests - 2),
+      Math.max(1, maxDailyQuests - 1),
+      maxDailyQuests
+    ];
+  } else {
+    // 6+ slots: lead with the streak threshold so +1 streak is visible,
+    // middle = midway between streak and full, tail = full board.
+    const mid = Math.max(streakMilestoneTarget + 1, Math.round((streakMilestoneTarget + maxDailyQuests) / 2));
+    milestoneTargets = [streakMilestoneTarget, Math.min(maxDailyQuests - 1, mid), maxDailyQuests];
+  }
+  const milestoneSteps = milestoneTargets.map((target, i) => {
+    const isStreak = target === streakMilestoneTarget;
+    const isFullBoard = target === maxDailyQuests;
+    let reward;
+    if (isFullBoard) {
+      reward = `+25 ${t.xpLabel} / +${fullBoardTokenReward} ${t.tokenIcon}`;
+      if (isStreak) reward += ` / +1 ${t.streakIcon}`;
+    } else if (isStreak) {
+      reward = `+20 ${t.xpLabel} / +1 ${t.streakIcon}`;
+    } else {
+      // Mid milestone earns the heavier XP bump so the card isn't empty.
+      reward = `+${i === 1 ? 25 : 20} ${t.xpLabel}`;
+    }
+    return { target, reward, rune: milestoneRunes[i] };
+  });
   // Trust the actual preferredQuestIds length once state has loaded — even
   // if it's 0 (user skipped onboarding). Only fall back to the slot cap
   // when the array hasn't been hydrated yet, so the board can't briefly
@@ -1414,7 +1440,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     <>
       {dataLoading && !isEmbeddedApp ? <PortalPreloader title={t.loadingText} fullscreen /> : null}
       {onboardingSaving ? <PortalPreloader title={t.loadingText} overlay /> : null}
-      {pinnedReplacementOpening ? <PortalPreloader title={t.loadingText} fullscreen /> : null}
+      {pinnedReplacementOpening ? <PortalPreloader title={t.loadingText} overlay /> : null}
+      {replacePinnedSaving ? <PortalPreloader title={t.loadingText} overlay /> : null}
       <NetworkRetryBanner />
 
       <Suspense fallback={null}>
