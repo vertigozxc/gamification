@@ -1,6 +1,5 @@
 import PropTypes from "prop-types";
 import { useTheme } from "../ThemeContext";
-import { pluralizeCharges } from "../i18nConfig";
 
 function TokenVault({
   tokens,
@@ -19,7 +18,7 @@ function TokenVault({
   onBuyExtraReroll,
   compact = false
 }) {
-  const { t, tf, languageId } = useTheme();
+  const { t, tf } = useTheme();
 
   function getPluralizedToken(count, singular = String(t.tokenSingular || "TOKEN").toUpperCase(), plural = String(t.tokenPlural || "TOKENS").toUpperCase()) {
     return count === 1 ? singular : plural;
@@ -44,16 +43,6 @@ function TokenVault({
             <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
               {t.freezeVaultDetail || t.freezeDetail}
             </p>
-            {streakFreezeCharges >= 1 && (
-              <div className="flex items-center gap-2 rounded-xl px-3 py-1.5" style={{ background: "color-mix(in srgb, #5ba0e0 14%, transparent)", border: "1px solid color-mix(in srgb, #5ba0e0 40%, transparent)" }}>
-                <span className="text-base">❄️</span>
-                <span className="cinzel text-xs font-bold tracking-wider" style={{ color: "#5ba0e0" }}>
-                  {(t.vaultChargesLabel || "You have {n} {word} in inventory")
-                    .replace("{n}", streakFreezeCharges)
-                    .replace("{word}", pluralizeCharges(streakFreezeCharges, languageId))}
-                </span>
-              </div>
-            )}
             <button
               onClick={onFreezeStreak}
               disabled={tokens < freezeCost || freezeStreakPending || freezeWeeklyLocked}
@@ -108,8 +97,11 @@ function TokenVault({
               }`}
             >
               <span>{t.tokenIcon}</span>
-              {!hasRerolledToday ? t.rerollFreeFirst : tokens < rerollCost ? t.notEnough : `${t.buyPrefix} ${rerollCost} ${getPluralizedToken(rerollCost)}`}
+              {tokens < rerollCost ? t.notEnough : `${t.buyPrefix} ${rerollCost} ${getPluralizedToken(rerollCost)}`}
             </button>
+            <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
+              {!hasRerolledToday ? t.extraRerollFreeAvailableHint : t.extraRerollFreeUsedHint}
+            </p>
           </div>
 
           <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
@@ -121,29 +113,29 @@ function TokenVault({
               </div>
               <div className="flex items-center gap-1 rounded-full px-3 py-1 self-start" style={{ background: "var(--xp-badge-bg)", border: "1px solid var(--color-primary-dim)" }}>
                 <span className="text-base">{t.tokenIcon}</span>
-                <span className="cinzel font-bold text-sm" style={{ color: "var(--color-text)" }}>{isFreePinnedReroll ? t.freeLabel.toUpperCase() : "7"}</span>
+                <span className="cinzel font-bold text-sm" style={{ color: "var(--color-text)" }}>7</span>
               </div>
             </div>
-            <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
-              {isFreePinnedReroll
-                ? t.freeMonthlyPinnedReroll
-                : tf("nextFreePinnedReroll", {
-                  days: daysUntilFreePinnedReroll,
-                  dayLabel: daysUntilFreePinnedReroll === 1 ? t.daySingular : t.dayPlural
-                })}
-            </p>
             <button
               onClick={onOpenPinnedReplacement}
-              disabled={!canRerollPinned}
+              disabled={!canRerollPinned || tokens < 7}
               className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 ${
-                canRerollPinned
+                canRerollPinned && tokens >= 7
                   ? "bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:from-fuchsia-700 hover:to-violet-700 shadow-md"
                   : "bg-slate-800/80 text-slate-500 cursor-not-allowed"
               }`}
             >
               <span>⟳</span>
-              {isFreePinnedReroll ? t.rerollFree : tokens < 7 ? t.notEnough : `${t.buyPrefix} 7 ${getPluralizedToken(7)}`}
+              {tokens < 7 ? t.notEnough : `${t.buyPrefix} 7 ${getPluralizedToken(7)}`}
             </button>
+            <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
+              {isFreePinnedReroll
+                ? t.pinnedRerollFreeAvailableHint
+                : tf("pinnedRerollNextFreeHint", {
+                  days: daysUntilFreePinnedReroll,
+                  dayLabel: daysUntilFreePinnedReroll === 1 ? t.daySingular : t.dayPlural
+                })}
+            </p>
           </div>
 
         </div>

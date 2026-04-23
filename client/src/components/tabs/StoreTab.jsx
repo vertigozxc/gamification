@@ -10,23 +10,28 @@ export default function StoreTab({
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <div className="relative overflow-hidden mobile-card top-screen-block flex flex-col gap-4 shadow-[0_0_20px_rgba(234,179,8,0.1)]" style={{ background: "var(--card-bg)" }}>
+      <div className="relative overflow-hidden mobile-card top-screen-block shadow-[0_0_20px_rgba(234,179,8,0.08)]" style={{ background: "var(--card-bg)" }}>
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.05]"></div>
-        <div className="flex items-center justify-between relative z-10">
-          <div>
-            <p className="mobile-section-kicker mb-1 leading-none" style={{ color: "var(--color-primary-dim)" }}>{t.storeBalanceTitle}</p>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-4xl drop-shadow-[0_0_15px_rgba(250,204,21,0.4)]">{t.tokenIcon}</span>
-              <h2 className="cinzel text-5xl font-bold tracking-wide" style={{ color: "var(--color-primary)", textShadow: "0 4px 15px rgba(0,0,0,0.6)" }}>{tokens}</h2>
-            </div>
+        <div className="relative z-10 flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] uppercase tracking-[0.2em] mb-1" style={{ color: "var(--color-muted)" }}>
+              {t.storeScreenKicker}
+            </p>
+            <h3 className="cinzel text-[1.15rem] font-bold tracking-wide leading-tight m-0 flex items-center gap-2" style={{ color: "var(--color-primary)" }}>
+              <span>🛍</span>
+              <span className="truncate">{t.storeScreenTitle}</span>
+            </h3>
+            <p className="text-xs leading-relaxed mt-2 mb-0" style={{ color: "var(--color-text)", opacity: 0.88 }}>
+              {t.storeScreenSubtitle}
+            </p>
           </div>
-          <div className="flex flex-col items-center justify-center">
-            <div className="inline-flex flex-col items-center gap-1.5">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase shadow-[0_0_12px_rgba(16,185,129,0.15)]" style={{ background: "color-mix(in srgb, var(--color-success) 14%, transparent)", border: "1px solid color-mix(in srgb, var(--color-success) 32%, transparent)", color: "var(--color-success)" }}>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_5px_#34d399]"></span>
-                {t.storeVaultActive}
-              </div>
-              <p className="text-[9px] tracking-wider uppercase mt-0.5 opacity-80" style={{ color: "var(--color-text)" }}>{t.storeDailyLimits}</p>
+          <div className="text-center shrink-0 min-w-[120px] rounded-xl px-3 py-2" style={{ background: "var(--xp-badge-bg)", border: "1px solid var(--color-primary-dim)" }}>
+            <p className="text-[9px] uppercase tracking-[0.18em] mb-1" style={{ color: "var(--color-muted)" }}>
+              {t.storeBalanceTitle}
+            </p>
+            <div className="flex items-center justify-center gap-1.5">
+              <span className="text-2xl drop-shadow-[0_0_10px_rgba(250,204,21,0.35)]">{t.tokenIcon}</span>
+              <p className="cinzel text-2xl font-bold leading-none m-0" style={{ color: "var(--color-primary)" }}>{tokens}</p>
             </div>
           </div>
         </div>
@@ -34,12 +39,9 @@ export default function StoreTab({
 
       <div className="w-full h-px my-1" style={{ background: "linear-gradient(to right, transparent, var(--card-border-idle), transparent)" }}></div>
 
-      {residentialLevel > 0 && (() => {
+      {residentialLevel >= 1 && (() => {
         const perks = [];
         if (residentialLevel >= 1) perks.push(t.perkResidential1);
-        if (residentialLevel >= 2) perks.push(t.perkResidential2);
-        if (residentialLevel >= 3) perks.push(t.perkResidential3);
-        if (residentialLevel >= 4) perks.push(t.perkResidential4);
         if (residentialLevel >= 5) perks.push(t.perkResidential5);
         return (
           <div className="mobile-card flex flex-col gap-2" style={{ background: "color-mix(in srgb, #b57cd0 10%, var(--panel-bg))", border: "1px solid color-mix(in srgb, #b57cd0 40%, transparent)" }}>
