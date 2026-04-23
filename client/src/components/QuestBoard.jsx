@@ -137,19 +137,35 @@ function QuestBoard({
     }
   }, [activeQTab, showFreshDailyBadge, markDailyTabSeen]);
 
-  useLayoutEffect(() => {
-    if (!tabsRowRef.current || !indicatorRef.current) return;
-    const activeBtn = tabsRowRef.current.querySelector(`[data-qtab="${activeQTab}"]`);
-    if (!activeBtn) return;
-    indicatorRef.current.style.width = `${activeBtn.offsetWidth}px`;
-    indicatorRef.current.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
-  }, [activeQTab, tabs.length]);
-
   const totalQuestCount = pinnedQuests.length + otherQuests.length;
   const totalQuestCap = Math.max(1, Number(maxDailyQuests) || 6);
   const completedTodayCount = Math.min(totalQuestCap, completedIds.length);
   const pinnedDone = pinnedQuests.filter((q) => completedIds.includes(q.id)).length;
   const otherDone = otherQuests.filter((q) => completedIds.includes(q.id)).length;
+
+  // Slide the active-tab underline to match the current button. Recompute
+  // whenever anything that can change the button's width changes — not
+  // just the active tab. Otherwise the first render measures the button
+  // before counts hydrate and the indicator stays too wide.
+  useLayoutEffect(() => {
+    if (!tabsRowRef.current || !indicatorRef.current) return;
+    const activeBtn = tabsRowRef.current.querySelector(`[data-qtab="${activeQTab}"]`);
+    if (!activeBtn) return;
+    const applyIndicatorMetrics = () => {
+      if (!indicatorRef.current) return;
+      indicatorRef.current.style.width = `${activeBtn.offsetWidth}px`;
+      indicatorRef.current.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
+    };
+    applyIndicatorMetrics();
+    // Fonts / images / counter chips can finish laying out a frame later
+    // than React's commit. One deferred recompute catches that case.
+    const raf = requestAnimationFrame(applyIndicatorMetrics);
+    return () => cancelAnimationFrame(raf);
+  }, [
+    activeQTab, tabs.length,
+    pinnedDone, pinnedSlotTotal, otherDone, otherSlotTotal,
+    showFreshDailyBadge, t.pinnedSection, t.otherSection
+  ]);
 
   return (
     <div className={`relative ${compact ? "" : "lg:col-span-2"}`}>

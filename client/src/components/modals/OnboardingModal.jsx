@@ -437,46 +437,41 @@ function OnboardingModal({
             {t.onboardingHandleHint || "3–20 letters / digits / underscore. Others find you by this."}
           </p>
 
-          {/* Clear section-start header for the habit picker. Top border
-              + accent bar + larger title so the transition from "name /
-              username" form into "pick habits" reads as a new section. */}
-          <div
-            style={{
-              marginTop: 22,
-              marginBottom: 10,
-              paddingTop: 16,
-              borderTop: "1px solid var(--card-border-idle)",
-              position: "relative"
-            }}
-          >
-            <span
-              aria-hidden
-              style={{
-                position: "absolute",
-                top: -1,
-                left: 0,
-                width: 44,
-                height: 2,
-                background: "var(--color-primary)",
-                borderRadius: 2
-              }}
-            />
-            <h3
-              className="cinzel"
-              style={{
-                margin: 0,
-                fontSize: 16,
-                fontWeight: 800,
-                letterSpacing: "0.06em",
-                color: "var(--color-primary)",
-                textTransform: "uppercase",
-                lineHeight: 1.25
-              }}
-            >
-              {tf("onboardingPick", { pinned: SELECTION_LIMIT })}
-            </h3>
-            <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--color-muted)", lineHeight: 1.4 }}>
-              {t.onboardingPickSubtitle || "Pick from existing or create your own"}
+          {/* Section-start header for the habit picker. Inline
+              primary-tinted dot + title feels like a category tag
+              without the heavier top-border + accent strip that used
+              to collide with the sticky effect above. */}
+          <div style={{ marginTop: 22, marginBottom: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span
+                aria-hidden
+                style={{
+                  display: "inline-block",
+                  width: 8,
+                  height: 8,
+                  borderRadius: 999,
+                  background: "var(--color-primary)",
+                  boxShadow: "0 0 0 4px color-mix(in srgb, var(--color-primary) 16%, transparent)",
+                  flexShrink: 0
+                }}
+              />
+              <h3
+                className="cinzel"
+                style={{
+                  margin: 0,
+                  fontSize: 16,
+                  fontWeight: 800,
+                  letterSpacing: "0.06em",
+                  color: "var(--color-primary)",
+                  textTransform: "uppercase",
+                  lineHeight: 1.25
+                }}
+              >
+                {tf("onboardingPick", { pinned: SELECTION_LIMIT })}
+              </h3>
+            </div>
+            <p style={{ margin: "6px 0 0 22px", fontSize: 12, color: "var(--color-muted)", lineHeight: 1.4 }}>
+              {t.onboardingPickSubtitle || "Pick from the existing list or create your own"}
             </p>
           </div>
 

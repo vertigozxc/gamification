@@ -1413,7 +1413,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   return (
     <>
       {dataLoading && !isEmbeddedApp ? <PortalPreloader title={t.loadingText} fullscreen /> : null}
-      {onboardingSaving ? <PortalPreloader title={t.loadingText} fullscreen /> : null}
+      {onboardingSaving ? <PortalPreloader title={t.loadingText} overlay /> : null}
       {pinnedReplacementOpening ? <PortalPreloader title={t.loadingText} fullscreen /> : null}
       <NetworkRetryBanner />
 
