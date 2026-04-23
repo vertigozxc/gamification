@@ -14,7 +14,8 @@ export default function ProfileTab({
   username, onFreezeUsed,
   onOpenAbout,
   onOpenNotesHistory,
-  onDeleteConfirmStateChange
+  onDeleteConfirmStateChange,
+  onAchievementModalChange
 }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -218,7 +219,7 @@ export default function ProfileTab({
 
       {/* Achievements — lives between stats and settings so it's a
           first-class feature, not buried deep. */}
-      <AchievementsSection username={username} t={t} languageId={languageId} />
+      <AchievementsSection username={username} t={t} languageId={languageId} onModalOpenChange={onAchievementModalChange} />
 
       {/* Settings — iOS-style grouped table: rows share a card, separated
           by hairline dividers; the card keeps its rounded corners. */}

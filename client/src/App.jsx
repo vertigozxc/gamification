@@ -167,6 +167,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
+  const [achievementModalOpen, setAchievementModalOpen] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [questCompletePopup, setQuestCompletePopup] = useState(null);
   const [deleteProfileOpen, setDeleteProfileOpen] = useState(false);
@@ -398,6 +399,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       || showNotesModal
       || showThemePicker
       || showLanguagePicker
+      || achievementModalOpen
       || deleteProfileOpen
       || questCompletePopup
       || timerLimitPopup
@@ -419,7 +421,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     showOnboarding, mobileTab, cityFullscreen, showPinnedReplaceModal,
     showAbout, showLogoutConfirm, showLevelUp, showHabitMilestone,
     showFreezeSuccess, showRerollConfirm, showNotesModal, showThemePicker,
-    showLanguagePicker, deleteProfileOpen, questCompletePopup, timerLimitPopup,
+    showLanguagePicker, achievementModalOpen, deleteProfileOpen, questCompletePopup, timerLimitPopup,
     singleHabitPickerOpen, languageId
   ]);
 
@@ -1877,6 +1879,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 onCancelEditingName={() => { setNameDraft(characterName); setEditingName(false); }}
                 onOpenThemePicker={() => setShowThemePicker(true)}
                 onOpenLanguagePicker={() => setShowLanguagePicker(true)}
+                onAchievementModalChange={setAchievementModalOpen}
                 onOpenAbout={() => setShowAbout(true)}
                 onOpenNotesHistory={() => setShowNotesHistory(true)}
                 onLogout={() => setShowLogoutConfirm(true)}

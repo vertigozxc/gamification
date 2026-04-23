@@ -9,6 +9,7 @@ import {
   removeFriend,
   respondToFriendRequest,
   sendFriendRequest,
+  fetchAchievements,
 } from "../../api";
 import Avatar from "./Avatar";
 import StreakFrame, { getStreakTier } from "./StreakFrame";
@@ -42,6 +43,7 @@ function formatDate(value, languageId) {
 export default function ProfileScreen({ targetUsername, meUsername, t, languageId, onClose, onChanged }) {
   const [profile, setProfile] = useState(null);
   const [relation, setRelation] = useState(null);
+  const [achievements, setAchievements] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -50,12 +52,17 @@ export default function ProfileScreen({ targetUsername, meUsername, t, languageI
   const refresh = useCallback(async () => {
     setError("");
     try {
-      const [p, r] = await Promise.all([
+      // Hold the spinner until ALL three resolve (profile + relation +
+      // achievements) so the screen paints fully populated — no flash of
+      // achievement skeleton appearing after the hero/stats.
+      const [p, r, a] = await Promise.all([
         fetchPublicProfile(targetUsername),
         meUsername ? fetchFriendRelation(meUsername, targetUsername) : Promise.resolve(null),
+        fetchAchievements(targetUsername).catch(() => null),
       ]);
       setProfile(p?.user || null);
       setRelation(r || null);
+      setAchievements(a || null);
     } catch (e) {
       setError(e?.message || t.arenaLoadError || "Could not load this profile");
     } finally {
@@ -124,7 +131,7 @@ export default function ProfileScreen({ targetUsername, meUsername, t, languageI
             <Hero profile={profile} t={t} />
             <StatGrid profile={profile} t={t} languageId={languageId} />
             {inlineAction}
-            <AchievementsSection username={targetUsername} t={t} languageId={languageId} />
+            <AchievementsSection username={targetUsername} t={t} languageId={languageId} prefetched={achievements} />
             <CityCard profile={profile} t={t} />
             {error && <p style={{ fontSize: 14, color: "#ff6a63", textAlign: "center" }}>{error}</p>}
           </div>

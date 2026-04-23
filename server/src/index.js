@@ -3652,6 +3652,52 @@ app.post("/api/notes/personal/create", async (req, res) => {
   }
 });
 
+// PATCH /api/notes/personal/:id — edit a previously-created personal note.
+// Only the owner can edit, and only notes of kind="personal" (vocabulary
+// and reflection notes belong to completed quests and stay immutable).
+app.patch("/api/notes/personal/:id", async (req, res) => {
+  try {
+    const parsed = z.object({
+      username: z.string().min(2).max(64),
+      text: z.string().min(1).max(4000)
+    }).parse(req.body);
+    const id = String(req.params.id || "").trim();
+    if (!id) return res.status(400).json({ error: "id required" });
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const note = await prisma.questNote.findUnique({ where: { id } });
+    if (!note || note.userId !== user.id) {
+      return res.status(404).json({ error: "Note not found" });
+    }
+    if (note.kind !== "personal") {
+      return res.status(403).json({ error: "Only personal notes can be edited", code: "forbidden_kind" });
+    }
+
+    const text = parsed.text.trim();
+    if (!text) return res.status(400).json({ error: "Text required", code: "text_required" });
+
+    const updated = await prisma.questNote.update({
+      where: { id },
+      data: { payload: JSON.stringify({ kind: "personal", items: [{ text }] }) }
+    });
+    res.json({
+      ok: true,
+      entry: {
+        id: updated.id,
+        questId: 0,
+        dayKey: updated.dayKey,
+        kind: "personal",
+        items: [{ text }],
+        createdAt: updated.createdAt
+      }
+    });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
 app.delete("/api/notes/personal/:id", async (req, res) => {
   try {
     const parsed = z.object({ username: z.string().min(2).max(64) }).parse(req.query);

@@ -1651,7 +1651,11 @@ body[data-theme="light"] .delete-profile-confirm-cancel {
 .qb-tab-fresh__spark{font-size:.5rem;line-height:1;color:#7c2d12;opacity:.9}
 .qb-tab-fresh__label{font-family:"Caveat",var(--font-heading);font-size:.8rem;line-height:1;color:#111827;font-weight:700;letter-spacing:.03em;text-transform:none}
 .qb-quest-item{-webkit-backdrop-filter:blur(16px);cursor:pointer;background:var(--quest-item-bg);border:1.5px solid var(--quest-item-border);border-radius:1.25rem;padding:1.15rem;transition:all .22s;animation:.35s cubic-bezier(.22,1,.36,1) both qbItemIn;position:relative;box-shadow:0 4px 16px #0006,inset 0 1px #ffffff0d}
-.qb-quest-item:active{filter:brightness(1.15);background:var(--quest-item-active-bg);border-color:var(--quest-item-active-border);transform:scale(.96)}
+/* Quest cards manage pressed visual via JS (see QuestItem.jsx) — a short
+   hold without drag flips `.qb-quest-pressing`. Using :active would flash
+   every card the finger touches while scrolling. */
+.qb-quest-item{-webkit-tap-highlight-color:transparent}
+.qb-quest-item.qb-quest-pressing{filter:brightness(1.15);background:var(--quest-item-active-bg);border-color:var(--quest-item-active-border);transform:scale(.96)}
 .qb-quest-done{opacity:.5;box-shadow:none;background:var(--quest-item-done-bg);border-color:var(--quest-item-done-border)!important}
 .qb-quest-pending{cursor:progress;pointer-events:none;filter:saturate(.8);}
 .qb-quest-pending>.flex{filter:blur(2.2px);opacity:.78;transition:filter .18s ease,opacity .18s ease}

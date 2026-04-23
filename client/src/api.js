@@ -64,8 +64,11 @@ function dispatchNetworkEvent(name, detail) {
 async function request(path, options = {}) {
   const selectedLanguage = getSelectedLanguage();
   const method = ((options && options.method) || "GET").toUpperCase();
-  // Only retry idempotent reads — POST/PUT/PATCH/DELETE could double-apply.
-  const canRetry = method === "GET" || method === "HEAD";
+  // Only retry idempotent reads by default — POST/PUT/PATCH/DELETE could
+  // double-apply. Individual callers can opt in via `idempotent: true`
+  // when the server contract is safe to retry (e.g. delete-by-id where
+  // the second attempt harmlessly 404s).
+  const canRetry = method === "GET" || method === "HEAD" || options.idempotent === true;
   const maxAttempts = canRetry ? RETRY_BACKOFFS_MS.length + 1 : 1;
   let notifiedRetry = false;
 
@@ -237,10 +240,26 @@ export function createPersonalNote(username, text) {
   });
 }
 
-export function deletePersonalNote(username, id) {
+export async function deletePersonalNote(username, id) {
   const qs = new URLSearchParams({ username }).toString();
-  return request(`/api/notes/personal/${encodeURIComponent(id)}?${qs}`, {
-    method: "DELETE"
+  try {
+    return await request(`/api/notes/personal/${encodeURIComponent(id)}?${qs}`, {
+      method: "DELETE",
+      // Delete-by-id is idempotent: if a retry hits the server after the
+      // first attempt already succeeded, it will 404. We treat that as
+      // success below — the note is gone either way.
+      idempotent: true
+    });
+  } catch (err) {
+    if (err?.status === 404) return { ok: true, alreadyGone: true };
+    throw err;
+  }
+}
+
+export function updatePersonalNote(username, id, text) {
+  return request(`/api/notes/personal/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ username, text })
   });
 }
 

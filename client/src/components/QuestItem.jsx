@@ -7,6 +7,23 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
   const longPressTriggered = useRef(false);
   const [showTapHint, setShowTapHint] = useState(false);
 
+  // Scroll-safe pressed state: only mark the card as "pressing" after a
+  // short hold *without* finger movement. A quick tap-to-scroll never
+  // enters the pressed state, so scrolling past a list of cards doesn't
+  // make every one of them flash its active color.
+  const [pressing, setPressing] = useState(false);
+  const pressTimer = useRef(null);
+  const pressOrigin = useRef(null);
+
+  const cancelPressing = useCallback(() => {
+    if (pressTimer.current) {
+      clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+    }
+    pressOrigin.current = null;
+    setPressing(false);
+  }, []);
+
   const tapHintText = t.questCompleteGestureHint;
 
   const showHintPopup = useCallback(() => {
@@ -21,12 +38,21 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
     return () => {
       if (longPressTimer.current) clearTimeout(longPressTimer.current);
       if (hintTimer.current) clearTimeout(hintTimer.current);
+      if (pressTimer.current) clearTimeout(pressTimer.current);
     };
   }, []);
 
   const isPending = Boolean(quest?.isPending);
 
   const handlePointerDown = useCallback((e) => {
+    // Arm the scroll-safe press indicator: remember the touch origin, and
+    // flip `pressing` on after a short hold *unless* the user moves first.
+    pressOrigin.current = { x: e.clientX, y: e.clientY };
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    pressTimer.current = setTimeout(() => {
+      setPressing(true);
+    }, 110);
+
     if (isDone || isPending || !isLongTapOnly || completionLocked) return;
     longPressTriggered.current = false;
     longPressTimer.current = setTimeout(() => {
@@ -37,11 +63,29 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
     }, 500); // 500ms long tap
   }, [quest, isDone, isPending, onCompleteQuest, isLongTapOnly, completionLocked]);
 
+  const handlePointerMove = useCallback((e) => {
+    const origin = pressOrigin.current;
+    if (!origin) return;
+    const dx = e.clientX - origin.x;
+    const dy = e.clientY - origin.y;
+    // 6px movement threshold: anything larger means the user is scrolling
+    // or dragging, not holding a deliberate press. Cancel both the
+    // pressing visual AND the long-press completion timer.
+    if (dx * dx + dy * dy > 36) {
+      cancelPressing();
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
+      }
+    }
+  }, [cancelPressing]);
+
   const handlePointerUp = useCallback((e) => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
     }
-  }, []);
+    cancelPressing();
+  }, [cancelPressing]);
 
   const handleClick = useCallback((e) => {
     if (isDone || isPending || completionLocked) return;
@@ -76,11 +120,13 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
 
   return (
     <div
-      className={`qb-quest-item mobile-pressable ${isDone ? "qb-quest-done" : ""} ${isPending ? "qb-quest-pending" : ""}`}
+      className={`qb-quest-item ${pressing ? "qb-quest-pressing" : ""} ${isDone ? "qb-quest-done" : ""} ${isPending ? "qb-quest-pending" : ""}`}
       style={!isDone && questRenderCount === 0 ? { animationDelay: `${index * 0.06}s`, position: "relative" } : { position: "relative" }}
       onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
+      onPointerCancel={handlePointerUp}
       onContextMenu={(e) => { if(isLongTapOnly) e.preventDefault(); }}
       onClick={handleClick}
     >

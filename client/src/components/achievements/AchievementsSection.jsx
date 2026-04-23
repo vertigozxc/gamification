@@ -58,10 +58,19 @@ function formatDate(value, languageId) {
   }
 }
 
-export default function AchievementsSection({ username, t, languageId }) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+export default function AchievementsSection({ username, t, languageId, onModalOpenChange, prefetched }) {
+  const [data, setData] = useState(prefetched || null);
+  const [loading, setLoading] = useState(!prefetched);
   const [focused, setFocused] = useState(null);
+
+  // Report modal open/close upstream so the native shell can hide the
+  // bottom tab bar, matching theme/language picker behavior.
+  useEffect(() => {
+    if (typeof onModalOpenChange === "function") onModalOpenChange(Boolean(focused));
+    return () => {
+      if (typeof onModalOpenChange === "function") onModalOpenChange(false);
+    };
+  }, [focused, onModalOpenChange]);
 
   const load = useCallback(async () => {
     if (!username) return;
@@ -75,7 +84,17 @@ export default function AchievementsSection({ username, t, languageId }) {
     }
   }, [username]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    // If data was prefetched upstream (e.g. ProfileScreen holds the load
+    // until both profile + achievements resolve), skip the internal fetch
+    // and just mirror the incoming value on change.
+    if (prefetched) {
+      setData(prefetched);
+      setLoading(false);
+      return;
+    }
+    load();
+  }, [load, prefetched]);
 
   const byCode = new Map((data?.achievements || []).map((a) => [a.code, a]));
   const ordered = ACHIEVEMENT_ORDER.map((code) => byCode.get(code) || { code, unlocked: false, unlockedAt: null });
