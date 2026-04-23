@@ -4,6 +4,7 @@ import CustomHabitManager from "./CustomHabitManager";
 import useEdgeSwipeBack from "../../hooks/useEdgeSwipeBack";
 import QuestGroupCard from "../QuestGroupCard";
 import CategoryFilterRow from "../CategoryFilterRow";
+import InputWithClear from "../InputWithClear";
 import { groupQuests, availableCategories, matchesCategory } from "../../utils/questGrouping";
 
 const TOKEN_COST = 7;
@@ -253,14 +254,12 @@ function PinnedReplacementModal({
             padding: "12px 16px 16px"
           }}
         >
-          <input
-            type="text"
-            className="pinned-replacement-search"
+          <InputWithClear
             value={replacePinnedSearch}
-            onChange={(e) => onReplacePinnedSearchChange(e.target.value)}
+            onChange={onReplacePinnedSearchChange}
             placeholder={t.replacePinnedSearchPlaceholder || t.onboardingSearch}
-            style={{
-              width: "100%",
+            clearAriaLabel={t.clearLabel || "Clear"}
+            inputStyle={{
               padding: "12px 14px",
               borderRadius: 12,
               background: "rgba(255,255,255,0.07)",
@@ -357,7 +356,7 @@ function PinnedReplacementModal({
             <button
               type="button"
               onClick={onClose}
-              className="cinzel"
+              className="cinzel mobile-pressable"
               style={{
                 flex: 1,
                 minHeight: 48,
@@ -377,7 +376,7 @@ function PinnedReplacementModal({
               type="button"
               onClick={onBuy}
               disabled={primaryDisabled}
-              className="cinzel"
+              className="cinzel mobile-pressable"
               style={{
                 flex: 2,
                 minHeight: 48,

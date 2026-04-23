@@ -3,6 +3,7 @@ import { useTheme } from "../../ThemeContext";
 import CustomHabitManager from "./CustomHabitManager";
 import QuestGroupCard from "../QuestGroupCard";
 import CategoryFilterRow from "../CategoryFilterRow";
+import InputWithClear from "../InputWithClear";
 import { groupQuests, availableCategories, matchesCategory } from "../../utils/questGrouping";
 
 function OnboardingModal({
@@ -240,14 +241,13 @@ function OnboardingModal({
           >
             {t.onboardingNickname}
           </label>
-          <input
-            type="text"
+          <InputWithClear
             value={onboardingName}
-            onChange={(event) => onOnboardingNameChange(event.target.value)}
+            onChange={onOnboardingNameChange}
             maxLength={32}
-            className="cinzel"
-            style={{
-              width: "100%",
+            placeholder={t.onboardingNicknamePlaceholder}
+            clearAriaLabel={t.clearLabel || "Clear"}
+            inputStyle={{
               padding: "12px 14px",
               borderRadius: 12,
               background: "rgba(0,0,0,0.35)",
@@ -255,19 +255,18 @@ function OnboardingModal({
               color: "#e2e8f0",
               fontSize: 16,
               minHeight: 44,
-              outline: "none"
+              outline: "none",
+              fontFamily: "var(--font-heading)"
             }}
-            placeholder={t.onboardingNicknamePlaceholder}
           />
 
           <div style={{ marginTop: 14 }}>
-            <input
-              type="text"
+            <InputWithClear
               value={onboardingQuestSearch}
-              onChange={(event) => onOnboardingQuestSearchChange(event.target.value)}
+              onChange={onOnboardingQuestSearchChange}
               placeholder={t.onboardingSearch}
-              style={{
-                width: "100%",
+              clearAriaLabel={t.clearLabel || "Clear"}
+              inputStyle={{
                 padding: "12px 14px",
                 borderRadius: 12,
                 background: "rgba(0,0,0,0.35)",

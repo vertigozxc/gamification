@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "../../ThemeContext";
 import { fetchNotesHistory, createPersonalNote, deletePersonalNote } from "../../api";
 import { fuzzyMatch } from "../../utils/fuzzySearch";
+import InputWithClear from "../InputWithClear";
 
 function formatDate(dayKey, languageId) {
   if (!dayKey) return "";
@@ -262,20 +263,18 @@ export default function NotesHistoryModal({ open, username, onClose }) {
           </div>
 
           <div style={{ marginTop: 12 }}>
-            <input
-              type="text"
+            <InputWithClear
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={setQuery}
               placeholder={t.notesHistorySearchPlaceholder || "Search your notes..."}
-              style={{
-                width: "100%",
+              clearAriaLabel={t.clearLabel || "Clear"}
+              inputStyle={{
                 padding: "10px 14px",
                 background: "rgba(0,0,0,0.28)",
                 border: "1px solid var(--card-border-idle)",
                 borderRadius: 12,
                 color: "var(--color-text)",
-                fontSize: 14,
-                boxSizing: "border-box"
+                fontSize: 14
               }}
             />
           </div>

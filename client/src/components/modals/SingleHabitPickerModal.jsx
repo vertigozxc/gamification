@@ -5,6 +5,7 @@ import useEdgeSwipeBack from "../../hooks/useEdgeSwipeBack";
 import { fuzzyMatch } from "../../utils/fuzzySearch";
 import QuestGroupCard from "../QuestGroupCard";
 import CategoryFilterRow from "../CategoryFilterRow";
+import InputWithClear from "../InputWithClear";
 import { groupQuests, availableCategories, matchesCategory } from "../../utils/questGrouping";
 
 // Dedicated screen for filling ONE unlocked habit slot (triggered from the
@@ -196,7 +197,7 @@ export default function SingleHabitPickerModal({
               <button
                 type="button"
                 onClick={() => setMode("pick")}
-                className="cinzel"
+                className="cinzel mobile-pressable"
                 style={{
                   flex: 1,
                   padding: "8px 10px",
@@ -215,7 +216,7 @@ export default function SingleHabitPickerModal({
               <button
                 type="button"
                 onClick={() => setMode("create")}
-                className="cinzel"
+                className="cinzel mobile-pressable"
                 style={{
                   flex: 1,
                   padding: "8px 10px",
@@ -236,13 +237,12 @@ export default function SingleHabitPickerModal({
 
           {mode === "pick" ? (
             <div style={{ marginTop: 12 }}>
-              <input
-                type="text"
+              <InputWithClear
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={setSearch}
                 placeholder={placeholder}
-                style={{
-                  width: "100%",
+                clearAriaLabel={t.clearLabel || "Clear"}
+                inputStyle={{
                   padding: "12px 14px",
                   borderRadius: 12,
                   background: "rgba(0,0,0,0.35)",
@@ -397,7 +397,7 @@ export default function SingleHabitPickerModal({
                 onPick?.(selectedId);
               }
             }}
-            className="cinzel"
+            className="cinzel mobile-pressable"
             style={{
               width: "100%",
               padding: "14px",
