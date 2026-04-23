@@ -26,13 +26,16 @@ export default function StoreTab({
               {t.storeScreenSubtitle}
             </p>
           </div>
-          <div className="text-center shrink-0 min-w-[120px] rounded-xl px-3 py-2" style={{ background: "rgba(251, 191, 36, 0.14)", border: "1px solid rgba(217, 119, 6, 0.45)" }}>
-            <p className="text-[9px] uppercase tracking-[0.18em] mb-1" style={{ color: "#b45309" }}>
+          <div
+            className="text-center shrink-0 min-w-[120px] rounded-xl px-3 py-2"
+            style={{ background: "var(--card-bg)", border: "1px solid var(--card-border-idle)" }}
+          >
+            <p className="text-[9px] uppercase tracking-[0.18em] mb-1" style={{ color: "var(--color-muted)" }}>
               {t.storeBalanceTitle}
             </p>
             <div className="flex items-center justify-center gap-1.5">
-              <span className="text-2xl drop-shadow-[0_0_10px_rgba(250,204,21,0.35)]">{t.tokenIcon}</span>
-              <p className="cinzel text-2xl font-bold leading-none m-0" style={{ color: "#d97706" }}>{tokens}</p>
+              <span className="text-2xl">{t.tokenIcon}</span>
+              <p className="cinzel text-2xl font-bold leading-none m-0" style={{ color: "var(--color-accent)" }}>{tokens}</p>
             </div>
           </div>
         </div>
