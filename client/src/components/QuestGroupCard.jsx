@@ -9,8 +9,22 @@ import { variantLabel } from "../utils/questGrouping";
 // A second DifficultyDots row sits next to the title so the user sees the
 // effort level of the currently-picked tier at a glance.
 
+// Colour ramp: easy tier dots are warm yellow, hardest tier tips into
+// red so the difficulty read has an intuitive "heat map" quality at a
+// glance. The colour applies to the OVERALL dot group (based on the
+// active tier's effort) — each filled dot uses the same hue so the
+// higher the tier, the hotter the indicator.
+const DIFFICULTY_RAMP = [
+  "#facc15", // 1 — yellow-400
+  "#fbbf24", // 2 — amber-400
+  "#fb923c", // 3 — orange-400
+  "#f97316", // 4 — orange-500
+  "#ef4444"  // 5 — red-500
+];
+
 function DifficultyDots({ level = 0, max = 5 }) {
   const safeLevel = Math.max(0, Math.min(max, Math.floor(Number(level) || 0)));
+  const heat = safeLevel > 0 ? DIFFICULTY_RAMP[Math.min(DIFFICULTY_RAMP.length - 1, safeLevel - 1)] : "#94a3b8";
   return (
     <span
       aria-label={`Difficulty ${safeLevel} of ${max}`}
@@ -25,7 +39,7 @@ function DifficultyDots({ level = 0, max = 5 }) {
               width: 6,
               height: 6,
               borderRadius: 999,
-              background: filled ? "var(--color-primary)" : "rgba(148,163,184,0.28)",
+              background: filled ? heat : "rgba(148,163,184,0.28)",
               display: "inline-block",
               transition: "background 160ms ease"
             }}

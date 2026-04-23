@@ -272,8 +272,29 @@ export function acceptInvite(code, invitedUsername) {
   });
 }
 
-export function fetchFriends(username) {
-  return request(`/api/friends/list/${encodeURIComponent(username)}`);
+// ─────────────────────────────────────────────────────────────────
+// Cached GETs for hot community screens. Repeated visits within the
+// TTL return the last payload instantly; mutations (send request,
+// accept, leave challenge, …) must call evictCommunityCache() to
+// force the next read.
+// ─────────────────────────────────────────────────────────────────
+import { withCache, evictCachePrefix } from "./utils/apiCache";
+
+const COMMUNITY_TTL = 30_000; // 30s feels snappy without going stale
+
+export function evictCommunityCache() {
+  evictCachePrefix("friends:");
+  evictCachePrefix("challenges:");
+  evictCachePrefix("leaderboard");
+  evictCachePrefix("profile:");
+}
+
+export function fetchFriends(username, { force = false } = {}) {
+  return withCache(
+    `friends:list:${username}`,
+    () => request(`/api/friends/list/${encodeURIComponent(username)}`),
+    { ttlMs: COMMUNITY_TTL, force }
+  );
 }
 
 export function fetchFriendRelation(me, them) {
@@ -281,36 +302,53 @@ export function fetchFriendRelation(me, them) {
   return request(`/api/friends/relation?${qs}`);
 }
 
+// Mutation wrappers invalidate the community cache so the next read
+// picks up fresh server state instead of stale cached lists.
+async function withCommunityInvalidation(promise) {
+  try {
+    const result = await promise;
+    evictCommunityCache();
+    return result;
+  } catch (err) {
+    evictCommunityCache();
+    throw err;
+  }
+}
+
 export function sendFriendRequest(fromUsername, toUsername) {
-  return request("/api/friends/request", {
+  return withCommunityInvalidation(request("/api/friends/request", {
     method: "POST",
     body: JSON.stringify({ fromUsername, toUsername })
-  });
+  }));
 }
 
 export function respondToFriendRequest(username, requestId, response) {
-  return request("/api/friends/respond", {
+  return withCommunityInvalidation(request("/api/friends/respond", {
     method: "POST",
     body: JSON.stringify({ username, requestId, response })
-  });
+  }));
 }
 
 export function cancelFriendRequest(fromUsername, toUsername) {
-  return request("/api/friends/cancel", {
+  return withCommunityInvalidation(request("/api/friends/cancel", {
     method: "POST",
     body: JSON.stringify({ fromUsername, toUsername })
-  });
+  }));
 }
 
 export function removeFriend(myUsername, theirUsername) {
-  return request("/api/friends/remove", {
+  return withCommunityInvalidation(request("/api/friends/remove", {
     method: "DELETE",
     body: JSON.stringify({ myUsername, theirUsername })
-  });
+  }));
 }
 
-export function fetchIncomingFriendRequests(username) {
-  return request(`/api/friends/requests/${encodeURIComponent(username)}`);
+export function fetchIncomingFriendRequests(username, { force = false } = {}) {
+  return withCache(
+    `friends:requests:${username}`,
+    () => request(`/api/friends/requests/${encodeURIComponent(username)}`),
+    { ttlMs: COMMUNITY_TTL, force }
+  );
 }
 
 export function searchUsers(query, limit = 20) {
@@ -318,65 +356,81 @@ export function searchUsers(query, limit = 20) {
   return request(`/api/users/search?${qs}`);
 }
 
-export function fetchPublicProfile(username) {
-  return request(`/api/users/${encodeURIComponent(username)}/public`);
+export function fetchPublicProfile(username, { force = false } = {}) {
+  return withCache(
+    `profile:public:${username}`,
+    () => request(`/api/users/${encodeURIComponent(username)}/public`),
+    { ttlMs: COMMUNITY_TTL, force }
+  );
 }
 
-export function fetchWeeklyLeaderboard(meUsername) {
+export function fetchWeeklyLeaderboard(meUsername, { force = false } = {}) {
   const path = meUsername
     ? `/api/leaderboard/weekly?me=${encodeURIComponent(meUsername)}`
     : "/api/leaderboard/weekly";
-  return request(path);
+  return withCache(
+    `leaderboard:weekly:${meUsername || "anon"}`,
+    () => request(path),
+    { ttlMs: COMMUNITY_TTL, force }
+  );
 }
 
-export function fetchUserChallenges(username) {
-  return request(`/api/challenges/user/${encodeURIComponent(username)}`);
+export function fetchUserChallenges(username, { force = false } = {}) {
+  return withCache(
+    `challenges:user:${username}`,
+    () => request(`/api/challenges/user/${encodeURIComponent(username)}`),
+    { ttlMs: COMMUNITY_TTL, force }
+  );
 }
 
-export function fetchChallenge(challengeId) {
-  return request(`/api/challenges/${encodeURIComponent(challengeId)}`);
+export function fetchChallenge(challengeId, { force = false } = {}) {
+  return withCache(
+    `challenges:detail:${challengeId}`,
+    () => request(`/api/challenges/${encodeURIComponent(challengeId)}`),
+    { ttlMs: COMMUNITY_TTL, force }
+  );
 }
 
 export function createChallenge(payload) {
-  return request("/api/challenges", {
+  return withCommunityInvalidation(request("/api/challenges", {
     method: "POST",
     body: JSON.stringify(payload)
-  });
+  }));
 }
 
 export function joinChallenge(challengeId, username) {
-  return request(`/api/challenges/${encodeURIComponent(challengeId)}/join`, {
+  return withCommunityInvalidation(request(`/api/challenges/${encodeURIComponent(challengeId)}/join`, {
     method: "POST",
     body: JSON.stringify({ username })
-  });
+  }));
 }
 
 export function leaveChallenge(challengeId, username) {
-  return request(`/api/challenges/${encodeURIComponent(challengeId)}/leave`, {
+  return withCommunityInvalidation(request(`/api/challenges/${encodeURIComponent(challengeId)}/leave`, {
     method: "POST",
     body: JSON.stringify({ username })
-  });
+  }));
 }
 
 export function completeChallenge(challengeId, username) {
-  return request(`/api/challenges/${encodeURIComponent(challengeId)}/complete`, {
+  return withCommunityInvalidation(request(`/api/challenges/${encodeURIComponent(challengeId)}/complete`, {
     method: "POST",
     body: JSON.stringify({ username })
-  });
+  }));
 }
 
 export function inviteToChallenge(challengeId, inviterUsername, inviteeUsernames) {
-  return request(`/api/challenges/${encodeURIComponent(challengeId)}/invite`, {
+  return withCommunityInvalidation(request(`/api/challenges/${encodeURIComponent(challengeId)}/invite`, {
     method: "POST",
     body: JSON.stringify({ inviterUsername, inviteeUsernames })
-  });
+  }));
 }
 
 export function removeChallengeParticipant(challengeId, requesterUsername, username) {
-  return request(`/api/challenges/${encodeURIComponent(challengeId)}/remove-participant`, {
+  return withCommunityInvalidation(request(`/api/challenges/${encodeURIComponent(challengeId)}/remove-participant`, {
     method: "POST",
     body: JSON.stringify({ requesterUsername, username })
-  });
+  }));
 }
 
 export function syncState(username, { level, xp, xpNext, tokens }) {
@@ -386,8 +440,12 @@ export function syncState(username, { level, xp, xpNext, tokens }) {
   });
 }
 
-export function fetchLeaderboard() {
-  return request("/api/leaderboard");
+export function fetchLeaderboard({ force = false } = {}) {
+  return withCache(
+    "leaderboard:top",
+    () => request("/api/leaderboard"),
+    { ttlMs: COMMUNITY_TTL, force }
+  );
 }
 
 export function freezeStreak(username) {

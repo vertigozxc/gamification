@@ -46,6 +46,8 @@ import {
 } from "./utils/gameHelpers";
 import PortalPreloader from "./components/PortalPreloader";
 import NetworkRetryBanner from "./components/NetworkRetryBanner";
+import PullToRefresh from "./components/PullToRefresh";
+import { evictCommunityCache } from "./api";
 
 const FreezeSuccessModal = lazy(() => import("./components/modals/FreezeSuccessModal"));
 const RerollConfirmModal = lazy(() => import("./components/modals/RerollConfirmModal"));
@@ -1263,6 +1265,26 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     }
   }
 
+  // Pull-to-refresh handler bound to every major mobile tab. Drops the
+  // community cache so challenges / leaderboard / friends refetch, then
+  // pulls a fresh game-state and leaderboard in parallel.
+  async function handlePullRefresh() {
+    evictCommunityCache();
+    try {
+      await Promise.all([
+        refreshFromServer(),
+        (async () => {
+          try {
+            const resp = await fetchLeaderboard({ force: true });
+            if (resp?.users) setLeaderboard(resp.users);
+          } catch {}
+        })()
+      ]);
+    } catch {
+      // Individual failures already surface — swallow the aggregate.
+    }
+  }
+
   async function handleTimerStart(questId) {
     try {
       const resp = await startQuestTimerAction(questId);
@@ -1539,6 +1561,10 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         </header>
 
         {isEmbeddedApp ? (
+          <PullToRefresh
+            onRefresh={handlePullRefresh}
+            disabled={mobileTab === "city" || Boolean(noteQuest) || showOnboarding}
+          >
           <div className="w-full max-w-3xl mx-auto embedded-content-safe">
             {mobileTab === "city" ? (
               <CityTab
@@ -1739,6 +1765,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
               />
             ) : null}
           </div>
+          </PullToRefresh>
         ) : (
           <DesktopLayout
             showCity={showCity}
