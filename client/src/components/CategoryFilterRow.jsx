@@ -1,0 +1,87 @@
+import { useTheme } from "../ThemeContext";
+
+const DEFAULT_CATEGORIES = ["BODY", "MIND", "DISCIPLINE", "RECOVERY", "SOCIAL", "ADAPTIVE"];
+const CATEGORY_ICONS = {
+  BODY: "💪",
+  MIND: "🧠",
+  DISCIPLINE: "⚔️",
+  RECOVERY: "🌙",
+  SOCIAL: "👥",
+  ADAPTIVE: "⚡"
+};
+
+export default function CategoryFilterRow({ value = "ALL", onChange, categories = DEFAULT_CATEGORIES, counts = null, translateCategory }) {
+  const { t } = useTheme();
+  const available = Array.isArray(categories) && categories.length > 0 ? categories : DEFAULT_CATEGORIES;
+
+  const Pill = ({ key: _k, label, icon, active, onClick, count }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className="cinzel mobile-pressable"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "6px 11px",
+        borderRadius: 999,
+        border: `1px solid ${active ? "var(--color-primary)" : "var(--card-border-idle)"}`,
+        background: active ? "rgba(250, 204, 21, 0.14)" : "rgba(255,255,255,0.03)",
+        color: active ? "var(--color-accent)" : "var(--color-muted)",
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: "0.04em",
+        whiteSpace: "nowrap",
+        flexShrink: 0,
+        cursor: "pointer"
+      }}
+    >
+      <span>{icon}</span>
+      <span>{label}</span>
+      {count != null ? (
+        <span
+          style={{
+            background: active ? "rgba(250,204,21,0.18)" : "rgba(148,163,184,0.14)",
+            padding: "1px 7px",
+            borderRadius: 999,
+            fontSize: 10,
+            fontWeight: 800,
+            color: active ? "var(--color-accent)" : "var(--color-muted)"
+          }}
+        >
+          {count}
+        </span>
+      ) : null}
+    </button>
+  );
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 6,
+        overflowX: "auto",
+        paddingBottom: 2,
+        WebkitOverflowScrolling: "touch"
+      }}
+    >
+      <Pill
+        label={t.categoryFilterAll || "All"}
+        icon="✨"
+        active={value === "ALL"}
+        onClick={() => onChange?.("ALL")}
+        count={counts?.ALL}
+      />
+      {available.map((cat) => (
+        <Pill
+          key={cat}
+          label={translateCategory ? translateCategory(cat) : cat}
+          icon={CATEGORY_ICONS[cat] || "•"}
+          active={value === cat}
+          onClick={() => onChange?.(cat)}
+          count={counts?.[cat]}
+        />
+      ))}
+    </div>
+  );
+}

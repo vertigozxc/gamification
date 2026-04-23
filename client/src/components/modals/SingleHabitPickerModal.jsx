@@ -3,6 +3,9 @@ import { createPortal } from "react-dom";
 import { useTheme } from "../../ThemeContext";
 import useEdgeSwipeBack from "../../hooks/useEdgeSwipeBack";
 import { fuzzyMatch } from "../../utils/fuzzySearch";
+import QuestGroupCard from "../QuestGroupCard";
+import CategoryFilterRow from "../CategoryFilterRow";
+import { groupQuests, availableCategories, matchesCategory } from "../../utils/questGrouping";
 
 // Dedicated screen for filling ONE unlocked habit slot (triggered from the
 // "New Habit Unlocked" card). Distinct from PinnedReplacementModal which
@@ -18,10 +21,11 @@ export default function SingleHabitPickerModal({
   createSaving = false,
   createError = ""
 }) {
-  const { t, themeId } = useTheme();
+  const { t, themeId, translateCategory } = useTheme();
   const isLight = themeId === "light";
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState(null);
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [sheetAnim, setSheetAnim] = useState(false);
   const [mode, setMode] = useState("pick"); // "pick" | "create"
   const [newTitle, setNewTitle] = useState("");
@@ -68,12 +72,29 @@ export default function SingleHabitPickerModal({
 
   const filteredQuests = useMemo(() => {
     const term = search.trim();
-    if (!term) return availableQuests;
-    return availableQuests.filter((quest) => {
-      const hay = `${quest?.title || ""} ${quest?.desc || quest?.description || ""}`;
-      return fuzzyMatch(term, hay);
-    });
-  }, [availableQuests, search]);
+    let pool = availableQuests;
+    if (term) {
+      pool = pool.filter((quest) => {
+        const hay = `${quest?.title || ""} ${quest?.desc || quest?.description || ""}`;
+        return fuzzyMatch(term, hay);
+      });
+    }
+    return pool.filter((q) => matchesCategory(q, categoryFilter));
+  }, [availableQuests, search, categoryFilter]);
+
+  const categoryOptions = useMemo(() => availableCategories(availableQuests), [availableQuests]);
+  const categoryCounts = useMemo(() => {
+    const counts = { ALL: 0 };
+    const groups = groupQuests(availableQuests);
+    for (const group of groups) {
+      const cat = String(group.representative?.category || "").toUpperCase();
+      counts.ALL += 1;
+      counts[cat] = (counts[cat] || 0) + 1;
+    }
+    return counts;
+  }, [availableQuests]);
+
+  const questGroups = useMemo(() => groupQuests(filteredQuests), [filteredQuests]);
 
   const swipeBind = useEdgeSwipeBack(onClose);
 
@@ -315,90 +336,38 @@ export default function SingleHabitPickerModal({
               <p style={{ fontSize: 12, color: "#f87171", margin: 0 }}>{createError}</p>
             ) : null}
           </div>
-        ) : filteredQuests.length === 0 ? (
-          <p style={{ textAlign: "center", color: "var(--color-muted)", fontSize: 13, marginTop: 24 }}>{empty}</p>
         ) : (
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-              {filteredQuests.map((quest) => {
-                const isSelected = selectedId === quest.id;
-                return (
-                  <li key={quest.id}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedId(quest.id)}
-                      className="shp-option mobile-pressable"
-                      data-selected={isSelected ? "true" : "false"}
-                      style={{
-                        width: "100%",
-                        textAlign: "left",
-                        padding: "14px",
-                        borderRadius: 14,
-                        cursor: "pointer",
-                        transition: "border-color 150ms ease, background 150ms ease, transform 120ms ease",
-                        background: isSelected
-                          ? "color-mix(in srgb, #4ade80 15%, var(--panel-bg))"
-                          : "color-mix(in srgb, var(--panel-bg) 88%, rgba(255,255,255,0.03))",
-                        border: `2px solid ${isSelected ? "#4ade80" : "var(--panel-border)"}`,
-                        color: "var(--color-text)",
-                        boxShadow: isSelected ? "0 0 18px rgba(74,222,128,0.25)" : "none"
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                        <span
-                          aria-hidden="true"
-                          style={{
-                            width: 22,
-                            height: 22,
-                            borderRadius: 999,
-                            border: `2px solid ${isSelected ? "#4ade80" : "rgba(148,163,184,0.45)"}`,
-                            background: isSelected ? "#4ade80" : "transparent",
-                            color: isSelected ? "#064e3b" : "transparent",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 13,
-                            fontWeight: 800,
-                            flexShrink: 0,
-                            marginTop: 2,
-                            transition: "all 150ms ease"
-                          }}
-                        >
-                          ✓
-                        </span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 2 }}>
-                            <span
-                              className="cinzel"
-                              style={{
-                                fontSize: 10.5,
-                                letterSpacing: "0.12em",
-                                textTransform: "uppercase",
-                                color: "var(--color-primary)",
-                                fontWeight: 700
-                              }}
-                            >
-                              {String(quest.category || "").toUpperCase()}
-                            </span>
-                            {quest.needsTimer ? (
-                              <span style={{ fontSize: 10, color: "#94a3b8", letterSpacing: "0.04em" }}>
-                                ⏱ {quest.timeEstimateMin} min
-                              </span>
-                            ) : null}
-                          </div>
-                          <h4 className="cinzel" style={{ fontSize: 14, fontWeight: 700, margin: "0 0 4px", color: "var(--color-text)", lineHeight: 1.3 }}>
-                            {quest.title}
-                          </h4>
-                          <p style={{ fontSize: 12.5, margin: 0, color: "var(--color-muted)", lineHeight: 1.4 }}>
-                            {quest.desc || quest.description}
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+          <>
+            <div style={{ marginBottom: 10 }}>
+              <CategoryFilterRow
+                value={categoryFilter}
+                onChange={setCategoryFilter}
+                categories={categoryOptions}
+                counts={categoryCounts}
+                translateCategory={translateCategory}
+              />
+            </div>
+            {questGroups.length === 0 ? (
+              <p style={{ textAlign: "center", color: "var(--color-muted)", fontSize: 13, marginTop: 24 }}>{empty}</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {questGroups.map((group) => {
+                  const selectedInGroup = group.variants.find((q) => Number(q.id) === Number(selectedId));
+                  return (
+                    <QuestGroupCard
+                      key={`single-habit-${group.key}`}
+                      group={group}
+                      selectedVariantId={selectedInGroup?.id ?? null}
+                      onPick={(id) => setSelectedId(id)}
+                      onUnpick={() => setSelectedId(null)}
+                      translateCategory={translateCategory}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
         </div>
 
         <div

@@ -2,6 +2,9 @@
 import { useTheme } from "../../ThemeContext";
 import CustomHabitManager from "./CustomHabitManager";
 import useEdgeSwipeBack from "../../hooks/useEdgeSwipeBack";
+import QuestGroupCard from "../QuestGroupCard";
+import CategoryFilterRow from "../CategoryFilterRow";
+import { groupQuests, availableCategories, matchesCategory } from "../../utils/questGrouping";
 
 const TOKEN_COST = 7;
 
@@ -27,9 +30,10 @@ function PinnedReplacementModal({
   onDeleteCustomQuest,
   selectionLimit = 2
 }) {
-  const { t, tf } = useTheme();
+  const { t, tf, translateCategory } = useTheme();
   const SELECTION_LIMIT = Math.max(1, Number(selectionLimit) || 2);
   const [sheetAnim, setSheetAnim] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
 
   useEffect(() => {
     if (open) {
@@ -47,6 +51,23 @@ function PinnedReplacementModal({
         : [],
     [filteredReplacePinnedQuests]
   );
+
+  const categoryOptions = useMemo(() => availableCategories(nonCustomQuests), [nonCustomQuests]);
+  const categoryCounts = useMemo(() => {
+    const counts = { ALL: 0 };
+    const groups = groupQuests(nonCustomQuests);
+    for (const group of groups) {
+      const cat = String(group.representative?.category || "").toUpperCase();
+      counts.ALL += 1;
+      counts[cat] = (counts[cat] || 0) + 1;
+    }
+    return counts;
+  }, [nonCustomQuests]);
+  const filteredByCategory = useMemo(
+    () => nonCustomQuests.filter((q) => matchesCategory(q, categoryFilter)),
+    [nonCustomQuests, categoryFilter]
+  );
+  const questGroups = useMemo(() => groupQuests(filteredByCategory), [filteredByCategory]);
 
   const selectedCount = Array.isArray(replacePinnedQuestIds) ? replacePinnedQuestIds.length : 0;
   const selectionComplete = selectedCount === SELECTION_LIMIT;
@@ -246,71 +267,36 @@ function PinnedReplacementModal({
               >
                 {t.browseHabitsSection}
               </span>
-              <span style={{ fontSize: 11, color: "#64748b" }}>{nonCustomQuests.length}</span>
+              <span style={{ fontSize: 11, color: "#64748b" }}>{questGroups.length}</span>
             </div>
-            {nonCustomQuests.length === 0 ? (
+            <div style={{ marginBottom: 10 }}>
+              <CategoryFilterRow
+                value={categoryFilter}
+                onChange={setCategoryFilter}
+                categories={categoryOptions}
+                counts={categoryCounts}
+                translateCategory={translateCategory}
+              />
+            </div>
+            {questGroups.length === 0 ? (
               <p style={{ fontSize: 12, color: "#64748b", textAlign: "center", padding: "16px 0" }}>
                 {t.onboardingNoMatch}
               </p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {nonCustomQuests.map((quest) => {
-                  const isSelected = replacePinnedQuestIds.includes(quest.id);
-                  const blocked = !isSelected && selectedCount >= SELECTION_LIMIT;
+                {questGroups.map((group) => {
+                  const selectedInGroup = group.variants.find((q) => replacePinnedQuestIds.includes(q.id));
+                  const blocked = !selectedInGroup && selectedCount >= SELECTION_LIMIT;
                   return (
-                    <button
-                      key={"replace-" + quest.id}
-                      type="button"
-                      onClick={() => onToggleReplacePinnedQuest(quest.id)}
+                    <QuestGroupCard
+                      key={`replace-group-${group.key}`}
+                      group={group}
+                      selectedVariantId={selectedInGroup?.id ?? null}
                       disabled={blocked}
-                      style={{
-                        position: "relative",
-                        textAlign: "left",
-                        padding: "12px 44px 12px 14px",
-                        borderRadius: 12,
-                        minHeight: 56,
-                        border: isSelected ? "1px solid var(--color-accent)" : "1px solid var(--card-border-idle)",
-                        background: isSelected ? "var(--color-accent-dim)" : "rgba(255,255,255,0.03)",
-                        color: "#e2e8f0",
-                        cursor: blocked ? "not-allowed" : "pointer",
-                        opacity: blocked ? 0.55 : 1,
-                        transition: "background 150ms ease, border-color 150ms ease"
-                      }}
-                    >
-                      <p
-                        className="cinzel"
-                        style={{ fontSize: 13, fontWeight: 700, color: "#f1f5f9", margin: 0, lineHeight: 1.3 }}
-                      >
-                        {quest.title}
-                      </p>
-                      {quest.desc ? (
-                        <p style={{ fontSize: 12, color: "#94a3b8", margin: "4px 0 0", lineHeight: 1.35 }}>
-                          {quest.desc}
-                        </p>
-                      ) : null}
-                      <span
-                        aria-hidden
-                        style={{
-                          position: "absolute",
-                          top: "50%",
-                          right: 12,
-                          transform: "translateY(-50%)",
-                          width: 22,
-                          height: 22,
-                          borderRadius: 999,
-                          border: `2px solid ${isSelected ? "var(--color-accent)" : "rgba(255,255,255,0.2)"}`,
-                          background: isSelected ? "var(--color-accent)" : "transparent",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#0f172a",
-                          fontSize: 12,
-                          fontWeight: 900
-                        }}
-                      >
-                        {isSelected ? "✓" : ""}
-                      </span>
-                    </button>
+                      onPick={(id) => onToggleReplacePinnedQuest(id)}
+                      onUnpick={(id) => onToggleReplacePinnedQuest(id)}
+                      translateCategory={translateCategory}
+                    />
                   );
                 })}
               </div>

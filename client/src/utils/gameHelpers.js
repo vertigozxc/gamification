@@ -65,7 +65,10 @@ export function normalizeQuest(quest, translateQuest, translateCategory) {
     noteKinds: Array.isArray(quest?.noteKinds)
       ? quest.noteKinds
       : (Array.isArray(quest?.note_kinds) ? quest.note_kinds : []),
-    noteMinLength: Number(quest?.noteMinLength ?? quest?.note_min_length) || 0
+    noteMinLength: Number(quest?.noteMinLength ?? quest?.note_min_length) || 0,
+    // Kept so the quest-picker grouping can collapse tier variants of
+    // the same family into one card (Step Goal 2k/4k/7k/10k/12k etc.).
+    antiRepeatGroup: String(quest?.antiRepeatGroup ?? quest?.anti_repeat_group ?? "")
   };
 }
 
