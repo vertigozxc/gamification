@@ -4,7 +4,7 @@ import { devGrantXp, devGrantTokens, devResetMe, devGrantStreak } from "../api";
 
 const LEGACY_DEV_TEST_USER_ID = "C0x6GY9LeyVhY12L1yF5QRHp3DP2";
 
-export default function DevTestPanel({ username, onRefresh, xp = 0, xpNext = 250, isDevTester = false }) {
+export default function DevTestPanel({ username, onRefresh, onLogout, xp = 0, xpNext = 250, isDevTester = false }) {
   const [busy, setBusy] = useState(false);
   const [expanded, setExpanded] = useState(true);
 
@@ -89,10 +89,16 @@ export default function DevTestPanel({ username, onRefresh, xp = 0, xpNext = 250
             type="button"
             disabled={busy}
             onClick={async () => {
-              if (!window.confirm("Full reset? (wipes progress, completions, pins, city, timers)")) return;
+              if (!window.confirm("Full reset? (wipes progress, completions, pins, city, timers — then logs you out)")) return;
+              // Wipe account → sign out. Onboarding re-runs on next login
+              // because the server also clears onboardingSkippedAt.
               await run(async () => {
                 await devResetMe(username);
-                if (typeof window !== "undefined") window.location.reload();
+                if (typeof onLogout === "function") {
+                  await onLogout();
+                } else if (typeof window !== "undefined") {
+                  window.location.reload();
+                }
               });
             }}
             style={{ ...buttonStyle, borderColor: "rgba(239,68,68,0.6)", color: "#fecaca", background: "linear-gradient(135deg, rgba(239,68,68,0.25), rgba(2,6,23,0.5))" }}
@@ -145,6 +151,7 @@ const buttonStyle = {
 DevTestPanel.propTypes = {
   username: PropTypes.string,
   onRefresh: PropTypes.func,
+  onLogout: PropTypes.func,
   xp: PropTypes.number,
   xpNext: PropTypes.number,
   isDevTester: PropTypes.bool

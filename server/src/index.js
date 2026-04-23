@@ -553,6 +553,7 @@ app.post("/api/dev/reset-me", async (req, res) => {
       prisma.questNote.deleteMany({ where: { userId: user.id } }),
       prisma.customQuest.deleteMany({ where: { userId: user.id } }),
       prisma.questFeedback.deleteMany({ where: { userId: user.id } }),
+      prisma.userAchievement.deleteMany({ where: { userId: user.id } }),
       prisma.user.update({
         where: { id: user.id },
         data: {
@@ -567,6 +568,7 @@ app.post("/api/dev/reset-me", async (req, res) => {
           streak: 0,
           maxStreak: 0,
           tokens: 0,
+          tokensSpentTotal: 0,
           theme: "adventure",
           lastStreakIncreaseAt: null,
           streakFreezeExpiresAt: null,
@@ -585,7 +587,13 @@ app.post("/api/dev/reset-me", async (req, res) => {
           lastVacationAt: null,
           streakFreezeCharges: 0,
           lastFreezePurchaseWeekKey: "",
-          xpBoostExpiresAt: null
+          xpBoostExpiresAt: null,
+          cityResetsPaid: 0,
+          // Clear the "I'll do it later" flag so onboarding re-runs after a
+          // full reset. Without this, needsOnboarding stays false even
+          // though the account is wiped, and the dev tester lands on a
+          // nameless empty dashboard instead of the onboarding screen.
+          onboardingSkippedAt: null
         }
       })
     ]);

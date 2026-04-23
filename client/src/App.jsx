@@ -1412,6 +1412,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         <DevTestPanel
           username={authUser?.uid}
           onRefresh={refreshFromServer}
+          onLogout={handleLogoutConfirm}
           xp={state.xp}
           xpNext={state.xpNext}
           isDevTester={Boolean(state.isDevTester)}
