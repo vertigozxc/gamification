@@ -15,7 +15,9 @@ export default function ProfileTab({
   onOpenAbout,
   onOpenNotesHistory,
   onDeleteConfirmStateChange,
-  onAchievementModalChange
+  onAchievementModalChange,
+  onStartTour,
+  showStartTour,
 }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -255,6 +257,16 @@ export default function ProfileTab({
               <div className="flex-1 text-left">
                 <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.notesHistoryLabel || "My notes"}</p>
                 <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{t.notesHistoryHint || "Reflections, gratitude, vocabulary"}</p>
+              </div>
+              <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
+            </button>
+          ) : null}
+          {showStartTour && onStartTour ? (
+            <button className="profile-settings-row mobile-pressable" onClick={onStartTour}>
+              <span className="text-xl w-8 text-center">🗺️</span>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-medium" style={{ color: "var(--color-primary)" }}>{t.tourStartButtonLabel || "Start Tour"}</p>
+                <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{t.tourStartButtonHint || "Complete the intro tour to earn a level bonus"}</p>
               </div>
               <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
             </button>
