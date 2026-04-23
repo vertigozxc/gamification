@@ -190,13 +190,16 @@ export default function QuestNoteModal({ open, quest, onClose, onSubmit, submitt
           ) : null}
         </div>
 
-        {/* Scrollable body */}
+        {/* Single scrollable body: inputs + inline submit. The sticky bottom
+            bar was hidden behind the app's mobile tab bar on some devices,
+            so the submit button now flows inline after the last field and
+            the whole panel scrolls as one. */}
         <div
           style={{
             flex: "1 1 auto",
             minHeight: 0,
             overflowY: "auto",
-            padding: "14px 18px 12px",
+            padding: "14px 18px calc(28px + env(safe-area-inset-bottom, 0px) + var(--mobile-safe-bottom, 80px))",
             WebkitOverflowScrolling: "touch"
           }}
           className="flex flex-col gap-3"
@@ -323,18 +326,10 @@ export default function QuestNoteModal({ open, quest, onClose, onSubmit, submitt
           {errorMessage ? (
             <p className="text-[12px]" style={{ color: "#f87171", textAlign: "center" }}>{errorMessage}</p>
           ) : null}
-        </div>
 
-        {/* Sticky submit bar */}
-        <div
-          style={{
-            flexShrink: 0,
-            padding: "10px 18px 14px",
-            borderTop: "1px solid var(--card-border-idle)",
-            background: "var(--panel-bg)",
-            paddingBottom: "calc(14px + env(safe-area-inset-bottom, 0))"
-          }}
-        >
+          {/* Inline submit — lives inside the scroll container so the
+              mobile tab bar can never overlap it. Sits right under the
+              last input, user scrolls naturally to reach it. */}
           <button
             type="button"
             onClick={handleSubmit}
@@ -343,6 +338,7 @@ export default function QuestNoteModal({ open, quest, onClose, onSubmit, submitt
             style={{
               width: "100%",
               minHeight: 52,
+              marginTop: 4,
               borderRadius: 14,
               background: !valid || submitting
                 ? "rgba(255,255,255,0.06)"
