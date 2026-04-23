@@ -34,14 +34,22 @@ function PinnedReplacementModal({
   const SELECTION_LIMIT = Math.max(1, Number(selectionLimit) || 2);
   const [sheetAnim, setSheetAnim] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState("ALL");
+  // Snapshot of which quest IDs were selected when the picker opened.
+  // Sort + filter pin those groups to the top and keep them visible
+  // regardless of search/category — so subsequent taps never cause the
+  // tapped card to "jump" away and the user always sees their prior
+  // picks above the search results.
+  const [initialSelectedIds, setInitialSelectedIds] = useState([]);
 
   useEffect(() => {
     if (open) {
       const id = requestAnimationFrame(() => setSheetAnim(true));
+      setInitialSelectedIds(Array.isArray(replacePinnedQuestIds) ? [...replacePinnedQuestIds] : []);
       return () => cancelAnimationFrame(id);
     }
     setSheetAnim(false);
     return undefined;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const nonCustomQuests = useMemo(
@@ -68,17 +76,30 @@ function PinnedReplacementModal({
     [nonCustomQuests, categoryFilter]
   );
   const questGroups = useMemo(() => {
-    const groups = groupQuests(filteredByCategory);
-    // Keep the user's currently-picked habits pinned to the top so they
-    // never vanish under the scroll — replacing should feel like editing
-    // a known list, not hunting for your own choices.
-    const selectedSet = new Set(Array.isArray(replacePinnedQuestIds) ? replacePinnedQuestIds : []);
-    return groups.slice().sort((a, b) => {
-      const aSelected = a.variants.some((q) => selectedSet.has(q.id)) ? 0 : 1;
-      const bSelected = b.variants.some((q) => selectedSet.has(q.id)) ? 0 : 1;
+    const filteredGroups = groupQuests(filteredByCategory);
+    const initialSet = new Set(initialSelectedIds);
+
+    // Always surface groups that contain any initially-selected quest,
+    // even if the search / category filter would otherwise exclude them.
+    // Build a group for each initial ID out of the full non-custom pool.
+    const initialGroupsFromFullPool = groupQuests(nonCustomQuests).filter(
+      (g) => g.variants.some((q) => initialSet.has(q.id))
+    );
+    const filteredKeys = new Set(filteredGroups.map((g) => g.key));
+    const missingInitialGroups = initialGroupsFromFullPool.filter(
+      (g) => !filteredKeys.has(g.key)
+    );
+    const combined = [...missingInitialGroups, ...filteredGroups];
+
+    // Sort: groups with any initially-selected quest first. Uses the
+    // open-time snapshot, not live selection, so tapping a card during
+    // the session never reorders the list under the user's finger.
+    return combined.slice().sort((a, b) => {
+      const aSelected = a.variants.some((q) => initialSet.has(q.id)) ? 0 : 1;
+      const bSelected = b.variants.some((q) => initialSet.has(q.id)) ? 0 : 1;
       return aSelected - bSelected;
     });
-  }, [filteredByCategory, replacePinnedQuestIds]);
+  }, [filteredByCategory, nonCustomQuests, initialSelectedIds]);
 
   const selectedCount = Array.isArray(replacePinnedQuestIds) ? replacePinnedQuestIds.length : 0;
   const selectionComplete = selectedCount === SELECTION_LIMIT;

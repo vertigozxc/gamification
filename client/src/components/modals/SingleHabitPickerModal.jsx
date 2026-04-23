@@ -94,15 +94,11 @@ export default function SingleHabitPickerModal({
     return counts;
   }, [availableQuests]);
 
-  const questGroups = useMemo(() => {
-    const groups = groupQuests(filteredQuests);
-    if (selectedId == null) return groups;
-    return groups.slice().sort((a, b) => {
-      const aSelected = a.variants.some((q) => Number(q.id) === Number(selectedId)) ? 0 : 1;
-      const bSelected = b.variants.some((q) => Number(q.id) === Number(selectedId)) ? 0 : 1;
-      return aSelected - bSelected;
-    });
-  }, [filteredQuests, selectedId]);
+  // Single picker starts with no selection; the only sort concern is to
+  // keep tapped cards from jumping. Since the first tap snapshots the
+  // order anyway (see groupQuests memo — no resort on selection change),
+  // we don't sort by selectedId here.
+  const questGroups = useMemo(() => groupQuests(filteredQuests), [filteredQuests]);
 
   const swipeBind = useEdgeSwipeBack(onClose);
 

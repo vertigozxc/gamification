@@ -34,14 +34,19 @@ function OnboardingModal({
   const [showWarning, setShowWarning] = useState(false);
   const [sheetAnim, setSheetAnim] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState("ALL");
+  // See PinnedReplacementModal — snapshot at open so tapping doesn't
+  // cause the selected card to jump out from under the user's finger.
+  const [initialSelectedIds, setInitialSelectedIds] = useState([]);
 
   useEffect(() => {
     if (open) {
       const id = requestAnimationFrame(() => setSheetAnim(true));
+      setInitialSelectedIds(Array.isArray(onboardingQuestIds) ? [...onboardingQuestIds] : []);
       return () => cancelAnimationFrame(id);
     }
     setSheetAnim(false);
     return undefined;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const nonCustomQuests = useMemo(
@@ -71,14 +76,22 @@ function OnboardingModal({
   );
 
   const questGroups = useMemo(() => {
-    const groups = groupQuests(filteredByCategory);
-    const selectedSet = new Set(Array.isArray(onboardingQuestIds) ? onboardingQuestIds : []);
-    return groups.slice().sort((a, b) => {
-      const aSelected = a.variants.some((q) => selectedSet.has(q.id)) ? 0 : 1;
-      const bSelected = b.variants.some((q) => selectedSet.has(q.id)) ? 0 : 1;
+    const filteredGroups = groupQuests(filteredByCategory);
+    const initialSet = new Set(initialSelectedIds);
+    const initialGroupsFromFullPool = groupQuests(nonCustomQuests).filter(
+      (g) => g.variants.some((q) => initialSet.has(q.id))
+    );
+    const filteredKeys = new Set(filteredGroups.map((g) => g.key));
+    const missingInitialGroups = initialGroupsFromFullPool.filter(
+      (g) => !filteredKeys.has(g.key)
+    );
+    const combined = [...missingInitialGroups, ...filteredGroups];
+    return combined.slice().sort((a, b) => {
+      const aSelected = a.variants.some((q) => initialSet.has(q.id)) ? 0 : 1;
+      const bSelected = b.variants.some((q) => initialSet.has(q.id)) ? 0 : 1;
       return aSelected - bSelected;
     });
-  }, [filteredByCategory, onboardingQuestIds]);
+  }, [filteredByCategory, nonCustomQuests, initialSelectedIds]);
 
   const selectedCount = Array.isArray(onboardingQuestIds) ? onboardingQuestIds.length : 0;
   const selectionComplete = selectedCount === SELECTION_LIMIT;
