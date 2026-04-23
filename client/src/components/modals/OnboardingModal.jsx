@@ -290,25 +290,6 @@ function OnboardingModal({
                 />
               </div>
             </div>
-            <div
-              style={{
-                padding: "6px 10px",
-                borderRadius: 10,
-                border: "1px solid var(--card-border-idle)",
-                background: "rgba(0,0,0,0.25)",
-                color: "#cbd5e1",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                flexShrink: 0,
-                fontSize: 12
-              }}
-            >
-              <span style={{ fontSize: 14 }}>🧭</span>
-              <span className="cinzel" style={{ fontWeight: 700 }}>
-                {tf("onboardingPick", { pinned: SELECTION_LIMIT })}
-              </span>
-            </div>
           </div>
         </div>
 
@@ -340,13 +321,13 @@ function OnboardingModal({
             placeholder={t.onboardingNicknamePlaceholder}
             clearAriaLabel={t.clearLabel || "Clear"}
             inputStyle={{
-              padding: "12px 14px",
-              borderRadius: 12,
+              padding: "9px 12px",
+              borderRadius: 10,
               background: "rgba(0,0,0,0.35)",
               border: "1px solid var(--card-border-idle)",
               color: "#e2e8f0",
-              fontSize: 16,
-              minHeight: 44,
+              fontSize: 14,
+              minHeight: 38,
               outline: "none",
               fontFamily: "var(--font-heading)"
             }}
@@ -373,8 +354,8 @@ function OnboardingModal({
               position: "relative",
               display: "flex",
               alignItems: "center",
-              padding: "0 14px",
-              borderRadius: 12,
+              padding: "0 12px",
+              borderRadius: 10,
               background: "rgba(0,0,0,0.35)",
               border: `1px solid ${
                 handleStatus === "taken" || handleStatus === "invalid" || handleStatus === "short"
@@ -383,7 +364,7 @@ function OnboardingModal({
                   ? "rgba(16, 185, 129, 0.55)"
                   : "var(--card-border-idle)"
               }`,
-              minHeight: 44,
+              minHeight: 38,
               transition: "border-color 180ms ease"
             }}
           >
@@ -391,7 +372,7 @@ function OnboardingModal({
               aria-hidden
               style={{
                 color: "var(--color-muted)",
-                fontSize: 16,
+                fontSize: 14,
                 fontWeight: 700,
                 marginRight: 4,
                 userSelect: "none",
@@ -415,11 +396,11 @@ function OnboardingModal({
               style={{
                 flex: 1,
                 minWidth: 0,
-                padding: "12px 0",
+                padding: "9px 0",
                 background: "transparent",
                 border: "none",
                 color: "#e2e8f0",
-                fontSize: 16,
+                fontSize: 14,
                 outline: "none",
                 fontFamily: "var(--font-heading)"
               }}
@@ -449,6 +430,27 @@ function OnboardingModal({
           <p style={{ margin: "6px 2px 0", fontSize: 11, color: "var(--color-muted)", lineHeight: 1.4 }}>
             {t.onboardingHandleHint || "3–20 letters / digits / underscore. Others find you by this."}
           </p>
+
+          {/* Section header introducing the habit-picking area below —
+              covers both the custom-habit creator and the browse list. */}
+          <div style={{ marginTop: 20, marginBottom: 10 }}>
+            <h3
+              className="cinzel"
+              style={{
+                margin: 0,
+                fontSize: 15,
+                fontWeight: 800,
+                letterSpacing: "0.04em",
+                color: "var(--color-primary)",
+                lineHeight: 1.25
+              }}
+            >
+              {tf("onboardingPick", { pinned: SELECTION_LIMIT })}
+            </h3>
+            <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--color-muted)", lineHeight: 1.4 }}>
+              {t.onboardingPickSubtitle || "Pick from existing or create your own"}
+            </p>
+          </div>
 
           <CustomHabitManager
             customQuests={customQuests}
@@ -501,13 +503,13 @@ function OnboardingModal({
                 placeholder={t.onboardingSearch}
                 clearAriaLabel={t.clearLabel || "Clear"}
                 inputStyle={{
-                  padding: "12px 14px",
-                  borderRadius: 12,
+                  padding: "9px 12px",
+                  borderRadius: 10,
                   background: "rgba(0,0,0,0.35)",
                   border: "1px solid var(--card-border-idle)",
                   color: "#e2e8f0",
-                  fontSize: 16,
-                  minHeight: 44,
+                  fontSize: 14,
+                  minHeight: 38,
                   outline: "none"
                 }}
               />
