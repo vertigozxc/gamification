@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "../ThemeContext";
 import { variantLabel } from "../utils/questGrouping";
 
-// Single card that represents a quest family (e.g. Step Goal with tiers
-// 2k/4k/7k/10k/12k). User first taps the card to "pick" it, then can
-// switch tiers via chips without having to re-pick. Difficulty dots
-// reflect the currently-active tier.
+// Clean card per quest family. The whole top zone is the select target.
+// The tier row sits inside the card as an iOS-style segmented control —
+// no native dropdown, no chip glitter, just a quiet strip where the
+// active segment has a solid pill behind it.
 
 function DifficultyDots({ level = 0, max = 5 }) {
   const safeLevel = Math.max(0, Math.min(max, Math.floor(Number(level) || 0)));
@@ -20,8 +20,8 @@ function DifficultyDots({ level = 0, max = 5 }) {
           <span
             key={i}
             style={{
-              width: 6,
-              height: 6,
+              width: 5,
+              height: 5,
               borderRadius: 999,
               background: filled ? "var(--color-primary)" : "rgba(148,163,184,0.3)",
               display: "inline-block"
@@ -52,14 +52,12 @@ export default function QuestGroupCard({
 
   const [activeId, setActiveId] = useState(() => {
     if (selectedInGroup) return selectedInGroup.id;
-    // Default to middle tier on first render so the user sees a
-    // meaningful preview of the group without committing to the easiest.
-    const midIdx = Math.min(variants.length - 1, Math.floor(variants.length / 2));
-    return variants[midIdx]?.id || variants[0]?.id;
+    // Default to the easiest tier so the card never previews something
+    // above the user's level cap.
+    return variants[0]?.id || null;
   });
 
   useEffect(() => {
-    // When selection changes externally (parent state), mirror it on the card.
     if (selectedInGroup && Number(activeId) !== Number(selectedInGroup.id)) {
       setActiveId(selectedInGroup.id);
     }
@@ -70,7 +68,7 @@ export default function QuestGroupCard({
 
   const activeQuest = variants.find((q) => Number(q.id) === Number(activeId)) || representative;
   const isSelected = Boolean(selectedInGroup);
-  const showTierChips = variants.length > 1;
+  const showTierStrip = variants.length > 1;
   const categoryLabel = translateCategory ? translateCategory(activeQuest.category) : String(activeQuest.category || "").toUpperCase();
 
   const handleCardToggle = () => {
@@ -86,7 +84,6 @@ export default function QuestGroupCard({
     const target = variants.find((q) => Number(q.id) === Number(variantId));
     if (!target) return;
     setActiveId(target.id);
-    // If the group was already selected, swap to the newly-picked tier.
     if (isSelected && Number(selectedInGroup.id) !== Number(target.id)) {
       onUnpick?.(selectedInGroup.id);
       onPick?.(target.id);
@@ -97,153 +94,166 @@ export default function QuestGroupCard({
     <div
       style={{
         position: "relative",
-        padding: "12px 14px",
-        borderRadius: 14,
+        padding: 0,
+        borderRadius: 16,
         border: `1px solid ${isSelected ? "var(--color-primary)" : "var(--card-border-idle)"}`,
-        background: isSelected ? "var(--color-accent-dim, rgba(250,204,21,0.08))" : "rgba(255,255,255,0.03)",
-        transition: "border-color 160ms ease, background 160ms ease",
-        opacity: disabled && !isSelected ? 0.5 : 1
+        background: isSelected ? "var(--color-accent-dim, rgba(250,204,21,0.06))" : "rgba(255,255,255,0.03)",
+        transition: "border-color 180ms ease, background 180ms ease, box-shadow 180ms ease",
+        opacity: disabled && !isSelected ? 0.5 : 1,
+        overflow: "hidden",
+        boxShadow: isSelected ? "0 0 18px rgba(250,204,21,0.08)" : "none"
       }}
     >
+      {/* Top tap zone — picks/unpicks the whole family */}
       <button
         type="button"
         onClick={handleCardToggle}
         disabled={disabled && !isSelected}
         className="mobile-pressable"
         style={{
-          position: "absolute",
-          inset: 0,
+          width: "100%",
+          padding: "14px 14px 12px",
           background: "transparent",
           border: "none",
-          borderRadius: 14,
+          color: "inherit",
+          textAlign: "left",
           cursor: (disabled && !isSelected) ? "not-allowed" : "pointer",
-          zIndex: 0
+          display: "block"
         }}
-        aria-label={representative.title}
-      />
+      >
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h4
+              className="cinzel"
+              style={{
+                fontSize: 15,
+                fontWeight: 700,
+                color: "var(--color-text)",
+                margin: 0,
+                lineHeight: 1.25,
+                letterSpacing: "0.02em"
+              }}
+            >
+              {representative.title}
+            </h4>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginTop: 6,
+                flexWrap: "wrap"
+              }}
+            >
+              <span
+                className="cinzel"
+                style={{
+                  fontSize: 10,
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "var(--color-primary)",
+                  fontWeight: 700
+                }}
+              >
+                {categoryLabel}
+              </span>
+              <span style={{ color: "var(--card-border-idle)", fontSize: 10 }}>·</span>
+              <DifficultyDots level={activeQuest.effortScore} max={5} />
+            </div>
+            <p
+              style={{
+                fontSize: 12.5,
+                color: "var(--color-muted)",
+                margin: "8px 0 0",
+                lineHeight: 1.4
+              }}
+            >
+              {activeQuest.desc || activeQuest.description || ""}
+            </p>
+          </div>
 
-      <div style={{ position: "relative", zIndex: 1, pointerEvents: "none" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-          <span
-            className="cinzel"
-            style={{
-              fontSize: 9,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              color: "var(--color-muted)",
-              padding: "2px 6px",
-              borderRadius: 999,
-              border: "1px solid var(--card-border-idle)"
-            }}
-          >
-            {categoryLabel}
-          </span>
-          <DifficultyDots level={activeQuest.effortScore} max={5} />
           <span
             aria-hidden
             style={{
-              marginLeft: "auto",
-              width: 22,
-              height: 22,
+              flexShrink: 0,
+              width: 26,
+              height: 26,
               borderRadius: 999,
-              border: `2px solid ${isSelected ? "var(--color-primary)" : "rgba(255,255,255,0.2)"}`,
+              border: `2px solid ${isSelected ? "var(--color-primary)" : "rgba(148,163,184,0.35)"}`,
               background: isSelected ? "var(--color-primary)" : "transparent",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               color: "#0f172a",
-              fontSize: 12,
-              fontWeight: 900
+              fontSize: 13,
+              fontWeight: 900,
+              marginTop: 1
             }}
           >
             {isSelected ? "✓" : ""}
           </span>
         </div>
+      </button>
 
-        <p className="cinzel" style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text)", margin: 0, lineHeight: 1.3 }}>
-          {representative.title}
-        </p>
-        <p style={{ fontSize: 12, color: "var(--color-muted)", margin: "4px 0 0", lineHeight: 1.35 }}>
-          {activeQuest.desc || activeQuest.description || ""}
-        </p>
-      </div>
-
-      {showTierChips ? (
+      {/* Segmented tier control */}
+      {showTierStrip ? (
         <div
           style={{
+            padding: "0 10px 10px",
             position: "relative",
-            zIndex: 2,
-            marginTop: 10,
-            pointerEvents: "auto"
+            zIndex: 1
           }}
-          onClick={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
         >
-          <label
-            className="cinzel"
-            style={{
-              display: "block",
-              fontSize: 10,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              color: "var(--color-muted)",
-              marginBottom: 4
-            }}
-          >
-            {t.tierPickerLabel || "Difficulty"}
-          </label>
           <div
+            role="tablist"
+            aria-label={t.tierPickerLabel || "Difficulty"}
             style={{
-              position: "relative",
-              display: "flex",
-              alignItems: "center"
+              display: "grid",
+              gridTemplateColumns: `repeat(${variants.length}, minmax(0, 1fr))`,
+              gap: 2,
+              padding: 3,
+              background: "rgba(0,0,0,0.28)",
+              border: "1px solid var(--card-border-idle)",
+              borderRadius: 12
             }}
           >
-            <select
-              value={String(activeId)}
-              onChange={(e) => handleTierPick(Number(e.target.value))}
-              onClick={(e) => e.stopPropagation()}
-              className="cinzel"
-              style={{
-                flex: 1,
-                minHeight: 40,
-                padding: "8px 32px 8px 12px",
-                borderRadius: 10,
-                border: `1px solid ${isSelected ? "var(--color-primary)" : "var(--card-border-idle)"}`,
-                background: "rgba(0,0,0,0.28)",
-                color: "var(--color-text)",
-                fontSize: 13,
-                fontWeight: 700,
-                letterSpacing: "0.02em",
-                appearance: "none",
-                WebkitAppearance: "none",
-                MozAppearance: "none",
-                cursor: "pointer",
-                boxSizing: "border-box"
-              }}
-            >
-              {variants.map((variant) => {
-                const label = variantLabel(variant) || (t.tierPickerFallback || "Tier");
-                const dots = "•".repeat(Math.max(1, Math.min(5, Number(variant.effortScore) || 1)));
-                return (
-                  <option key={variant.id} value={String(variant.id)}>
-                    {label}  {dots}
-                  </option>
-                );
-              })}
-            </select>
-            <span
-              aria-hidden
-              style={{
-                position: "absolute",
-                right: 12,
-                color: "var(--color-muted)",
-                fontSize: 12,
-                pointerEvents: "none"
-              }}
-            >
-              ▾
-            </span>
+            {variants.map((variant) => {
+              const active = Number(variant.id) === Number(activeId);
+              const label = variantLabel(variant) || (t.tierPickerFallback || "Tier");
+              return (
+                <button
+                  key={variant.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleTierPick(variant.id);
+                  }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="cinzel"
+                  style={{
+                    minHeight: 34,
+                    padding: "4px 6px",
+                    borderRadius: 9,
+                    border: "none",
+                    background: active ? "var(--color-primary)" : "transparent",
+                    color: active ? "#0b1120" : "var(--color-muted)",
+                    fontSize: 11,
+                    fontWeight: active ? 800 : 600,
+                    letterSpacing: "0.02em",
+                    cursor: "pointer",
+                    transition: "background 140ms ease, color 140ms ease",
+                    WebkitTapHighlightColor: "transparent",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis"
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
         </div>
       ) : null}

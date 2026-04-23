@@ -94,7 +94,15 @@ export default function SingleHabitPickerModal({
     return counts;
   }, [availableQuests]);
 
-  const questGroups = useMemo(() => groupQuests(filteredQuests), [filteredQuests]);
+  const questGroups = useMemo(() => {
+    const groups = groupQuests(filteredQuests);
+    if (selectedId == null) return groups;
+    return groups.slice().sort((a, b) => {
+      const aSelected = a.variants.some((q) => Number(q.id) === Number(selectedId)) ? 0 : 1;
+      const bSelected = b.variants.some((q) => Number(q.id) === Number(selectedId)) ? 0 : 1;
+      return aSelected - bSelected;
+    });
+  }, [filteredQuests, selectedId]);
 
   const swipeBind = useEdgeSwipeBack(onClose);
 

@@ -70,7 +70,15 @@ function OnboardingModal({
     [nonCustomQuests, categoryFilter]
   );
 
-  const questGroups = useMemo(() => groupQuests(filteredByCategory), [filteredByCategory]);
+  const questGroups = useMemo(() => {
+    const groups = groupQuests(filteredByCategory);
+    const selectedSet = new Set(Array.isArray(onboardingQuestIds) ? onboardingQuestIds : []);
+    return groups.slice().sort((a, b) => {
+      const aSelected = a.variants.some((q) => selectedSet.has(q.id)) ? 0 : 1;
+      const bSelected = b.variants.some((q) => selectedSet.has(q.id)) ? 0 : 1;
+      return aSelected - bSelected;
+    });
+  }, [filteredByCategory, onboardingQuestIds]);
 
   const selectedCount = Array.isArray(onboardingQuestIds) ? onboardingQuestIds.length : 0;
   const selectionComplete = selectedCount === SELECTION_LIMIT;
