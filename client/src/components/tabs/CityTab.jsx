@@ -74,14 +74,14 @@ function residentialFreezeStatus(resLvl, monthlyFreezeClaimsJson, nowMs) {
   return { cap, used, remaining, nextResetInDays, availableNow: remaining > 0 };
 }
 
-// Residential vacation status — 365-day rolling cooldown.
-function residentialVacationStatus(resLvl, lastVacationAt, vacationEndsAt, nowMs) {
+// Residential vacation claim status — 365-day rolling cooldown.
+// Vacation is no longer an active window; it's a one-shot grant of 20
+// streak-freeze charges, so the `active` branch is gone and the button
+// goes straight from cooldown → availableNow.
+// The second arg is kept in the signature for backward-compat with the
+// call sites that pass it; the value is ignored.
+function residentialVacationStatus(resLvl, lastVacationAt, _vacationEndsAt, nowMs) {
   if (resLvl < 3) return { unlocked: false };
-  const active = vacationEndsAt && new Date(vacationEndsAt).getTime() > nowMs;
-  if (active) {
-    const endsInDays = Math.max(0, Math.ceil((new Date(vacationEndsAt).getTime() - nowMs) / (24 * 3600_000)));
-    return { unlocked: true, active: true, endsInDays };
-  }
   if (lastVacationAt) {
     const nextAvailableMs = new Date(lastVacationAt).getTime() + VACATION_COOLDOWN_MS;
     const daysUntil = Math.max(0, Math.ceil((nextAvailableMs - nowMs) / (24 * 3600_000)));
@@ -426,10 +426,14 @@ export default function CityTab({
     if (!username) return;
     try {
       const result = await startVacation(username);
+      // Server no longer starts an active vacation window — it simply
+      // grants 20 freeze charges. Clear any legacy vacation fields that
+      // may still linger on the cached user so the Profile tab's
+      // freeze card stops showing a stale "Freeze period" for them.
       onStatsGranted?.({
         streakFreezeCharges: result.streakFreezeCharges,
-        vacationStartedAt: result.vacationStartedAt ?? null,
-        vacationEndsAt: result.vacationEndsAt ?? null,
+        vacationStartedAt: null,
+        vacationEndsAt: null,
         lastVacationAt: result.lastVacationAt ?? null
       });
       setClaimSuccessPopup("vacation");
@@ -1242,8 +1246,8 @@ export default function CityTab({
             </h3>
             <p className="logout-confirm-msg">
               {claimSuccessPopup === "freeze"
-                ? (t.residentialClaimFreezeBody || "Your Streak Freeze is waiting in your Profile — don't forget to activate it when you need it.")
-                : (t.residentialClaimVacationBody || "Your Vacation charges are waiting in your Profile — don't forget to activate the Vacation mode there.")}
+                ? (t.residentialClaimFreezeBody || "Your Streak Freeze charges are waiting in your Profile.")
+                : (t.residentialVacationClaimed || "20 streak-freeze charges added to your profile.")}
             </p>
             <div className="logout-confirm-actions" style={{ justifyContent: "center" }}>
               <button

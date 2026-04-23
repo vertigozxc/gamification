@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import themes from "../../themeConfig";
-import { useFreeze } from "../../api";
 
 export default function ProfileTab({
   characterName, editingName, nameDraft, portraitData,
@@ -130,14 +129,13 @@ export default function ProfileTab({
         )}
       </div>
 
-      {/* Streak Freeze inventory */}
+      {/* Streak Freeze inventory — read-only: charges auto-consume when a
+          daily miss would otherwise burn the streak. */}
       <StreakFreezeCard
-        username={username}
         t={t}
         charges={Number(state.user?.streakFreezeCharges) || 0}
-        expiresAt={state.user?.streakFreezeExpiresAt || null}
         streak={state.streak}
-        onFreezeUsed={onFreezeUsed}
+        languageId={languageId}
       />
 
       {/* XP Progress */}
@@ -308,57 +306,13 @@ export default function ProfileTab({
   );
 }
 
-function StreakFreezeCard({ username, t, charges, expiresAt, streak, onFreezeUsed }) {
-  const [pending, setPending] = useState(false);
-  const [msg, setMsg] = useState("");
-  const [confirmDays, setConfirmDays] = useState(null);
-
-  const now = Date.now();
-  const expiryMs = expiresAt ? new Date(expiresAt).getTime() : 0;
-  const active = expiryMs > now;
-  const daysLeft = active ? Math.ceil((expiryMs - now) / (24 * 3600_000)) : 0;
-
-  function requestActivate(days) {
-    if (pending || !username || charges < days) return;
-    setConfirmDays(days);
-  }
-
-  async function confirmActivate() {
-    const days = confirmDays;
-    setConfirmDays(null);
-    if (!days || pending || !username || charges < days) return;
-    setPending(true);
-    setMsg("");
-    try {
-      const result = await useFreeze(username, days);
-      onFreezeUsed?.(result);
-      setMsg(`+${days} ${t.streakFreezeDaysSuffix || "d"} ❄️`);
-      setTimeout(() => setMsg(""), 2500);
-    } catch (err) {
-      setMsg(err?.data?.error || err?.message || "Failed");
-      setTimeout(() => setMsg(""), 3000);
-    } finally {
-      setPending(false);
-    }
-  }
-
-  const btnStyle = (disabled) => ({
-    minHeight: 44,
-    padding: "8px 14px",
-    borderRadius: 10,
-    border: `1.5px solid ${disabled ? "var(--panel-border)" : "#5ba0e0"}`,
-    background: disabled
-      ? "color-mix(in srgb, var(--panel-bg) 70%, transparent)"
-      : "color-mix(in srgb, #5ba0e0 18%, var(--panel-bg))",
-    color: disabled ? "var(--color-muted)" : "#5ba0e0",
-    fontWeight: 800,
-    fontSize: 13,
-    cursor: disabled ? "not-allowed" : "pointer",
-    letterSpacing: "0.06em",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6
-  });
+// Compact read-only Streak Freeze card. No manual activation — charges
+// auto-consume on missed days. Shows current balance with a localized
+// days suffix ("20 days" / "20 дней") and an explainer of the automatic
+// behavior. No freeze-period card, no activation buttons.
+function StreakFreezeCard({ t, charges, streak, languageId }) {
+  const safeCharges = Math.max(0, Math.floor(Number(charges) || 0));
+  const daysWord = pluralizeDaysLocal(safeCharges, languageId, t);
 
   return (
     <div className="mobile-card" style={{ background: "var(--panel-bg)" }}>
@@ -371,108 +325,59 @@ function StreakFreezeCard({ username, t, charges, expiresAt, streak, onFreezeUse
         </span>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <div style={{
-          display: "flex", flexDirection: "column", gap: 2, minWidth: 110,
-          padding: "8px 12px",
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "10px 14px",
           background: "color-mix(in srgb, #5ba0e0 12%, transparent)",
           border: "1px solid color-mix(in srgb, #5ba0e0 45%, transparent)",
-          borderRadius: 10
-        }}>
+          borderRadius: 12,
+        }}
+      >
+        <span style={{ fontSize: 28, lineHeight: 1, flexShrink: 0 }}>❄️</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 0 }}>
           <span style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-muted)", fontWeight: 700 }}>
             {t.streakFreezeCharges || "Charges"}
           </span>
-          <span style={{ fontSize: 22, fontWeight: 800, color: "#5ba0e0", lineHeight: 1 }}>
-            {charges}
+          <span style={{ fontSize: 22, fontWeight: 800, color: "#5ba0e0", lineHeight: 1, letterSpacing: "-0.02em" }}>
+            {safeCharges}{" "}
+            <span style={{ fontSize: 14, fontWeight: 600, color: "color-mix(in srgb, #5ba0e0 70%, var(--color-text))" }}>
+              {daysWord}
+            </span>
           </span>
-        </div>
-        <div style={{
-          flex: 1, minWidth: 160,
-          padding: "8px 12px",
-          background: active
-            ? "color-mix(in srgb, #4fa85e 12%, transparent)"
-            : "color-mix(in srgb, var(--panel-bg) 60%, transparent)",
-          border: `1px ${active ? "solid color-mix(in srgb, #4fa85e 45%, transparent)" : "dashed var(--panel-border)"}`,
-          borderRadius: 10
-        }}>
-          <span style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-muted)", fontWeight: 700 }}>
-            {t.streakFreezeStatus || "Freeze period"}
-          </span>
-          <div style={{ fontSize: 13, fontWeight: 700, color: active ? "#4fa85e" : "var(--color-muted)", marginTop: 2 }}>
-            {active
-              ? `${(t.streakFreezeActiveRange || "From today to {date}").replace("{date}", new Date(expiryMs).toLocaleDateString())} · ${daysLeft} ${t.streakFreezeDaysSuffix || "d"}`
-              : (t.streakFreezeNotActive || "Not active")}
-          </div>
         </div>
       </div>
 
-      <div className="mt-3" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button onClick={() => requestActivate(1)} disabled={pending || charges < 1} style={btnStyle(pending || charges < 1)}>
-          +1 {t.streakFreezeDaysSuffix || "d"}
-        </button>
-        <button onClick={() => requestActivate(3)} disabled={pending || charges < 3} style={btnStyle(pending || charges < 3)}>
-          +3 {t.streakFreezeDaysSuffix || "d"}
-        </button>
-        <button onClick={() => requestActivate(7)} disabled={pending || charges < 7} style={btnStyle(pending || charges < 7)}>
-          +7 {t.streakFreezeDaysSuffix || "d"}
-        </button>
-        <button onClick={() => requestActivate(Math.max(1, charges))} disabled={pending || charges < 1} style={btnStyle(pending || charges < 1)}>
-          {t.streakFreezeUseAll || "Use all"} ({charges})
-        </button>
-      </div>
-      {msg && (
-        <p className="text-[11px] mt-2 m-0" style={{ color: "var(--color-muted)" }}>{msg}</p>
-      )}
-      <p className="text-[10px] mt-2 m-0 opacity-70" style={{ color: "var(--color-text)" }}>
-        {t.streakFreezeHint || "Charges earned from shop, monthly Residential perk, or vacation (20×)."}
+      <p
+        className="mt-3 mb-0"
+        style={{
+          fontSize: 12,
+          lineHeight: 1.4,
+          color: "var(--color-muted)",
+          padding: "10px 12px",
+          background: "color-mix(in srgb, #5ba0e0 6%, transparent)",
+          borderRadius: 10,
+          borderLeft: "3px solid color-mix(in srgb, #5ba0e0 55%, transparent)",
+        }}
+      >
+        {t.streakFreezeAutoHint
+          || "If you miss a day, 1 charge is spent automatically and your streak survives — no action needed. When charges hit 0, the next miss burns the streak."}
       </p>
-
-      {confirmDays !== null && createPortal(
-        <div
-          className="logout-confirm-overlay"
-          onClick={() => setConfirmDays(null)}
-        >
-          <div
-            className="logout-confirm-card"
-            role="dialog"
-            aria-modal="true"
-            onClick={(event) => event.stopPropagation()}
-            style={{
-              border: "2px solid color-mix(in srgb, #5ba0e0 55%, transparent)",
-              boxShadow: "0 0 40px color-mix(in srgb, #5ba0e0 18%, transparent), 0 25px 50px rgba(0, 0, 0, 0.5)"
-            }}
-          >
-            <div className="logout-confirm-icon">❄️</div>
-            <h3 className="cinzel logout-confirm-title" style={{ color: "#5ba0e0" }}>
-              {t.streakFreezeConfirmTitle || "Activate Streak Freeze?"}
-            </h3>
-            <p className="logout-confirm-msg">
-              {(t.streakFreezeConfirmBody || "This will spend {n} charge(s) and protect your streak for {n} day(s).")
-                .replace(/\{n\}/g, confirmDays)}
-            </p>
-            <div className="logout-confirm-actions">
-              <button
-                className="logout-confirm-cancel cinzel"
-                onClick={() => setConfirmDays(null)}
-              >
-                {t.cancelLabel || "Cancel"}
-              </button>
-              <button
-                className="logout-confirm-proceed cinzel"
-                onClick={confirmActivate}
-                style={{
-                  borderColor: "color-mix(in srgb, #5ba0e0 60%, transparent)",
-                  background: "linear-gradient(120deg, #1e4e78, #2867a4)",
-                  color: "#e6f2ff"
-                }}
-              >
-                {t.streakFreezeConfirmProceed || "Activate"}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
     </div>
   );
+}
+
+// Russian-aware day pluralizer, local to this file — avoids pulling
+// the global pluralize helper into this tab bundle just for one label.
+function pluralizeDaysLocal(n, languageId, t) {
+  if (languageId === "ru") {
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return t.daysFormOne || "день";
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return t.daysFormFew || "дня";
+    return t.daysFormMany || "дней";
+  }
+  return n === 1 ? (t.daysFormOne || "day") : (t.daysFormMany || "days");
 }

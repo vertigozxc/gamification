@@ -3688,8 +3688,13 @@ app.post("/api/city/residential/claim-freeze", async (req, res) => {
   }
 });
 
-// Residential — start 20-day vacation (requires lvl >= 3, 360-day cooldown).
-// During active vacation, streak decay is suspended.
+// Residential — claim the "vacation" reward. Used to suspend streak
+// decay for 20 days on a rolling window; simplified to "grant 20
+// streak-freeze charges to the user's pool". The charges auto-consume
+// whenever the user completes <3 quests on a given UTC day, so the
+// end result (skip ~20 days without burning streak) is equivalent
+// while exposing a single, legible mechanic (charges) to the player.
+// Cooldown retained at 365 days so this remains a yearly bonus.
 app.post("/api/city/residential/start-vacation", async (req, res) => {
   const schema = z.object({ username: z.string().min(2).max(64) });
   try {
@@ -3701,9 +3706,6 @@ app.post("/api/city/residential/start-vacation", async (req, res) => {
       return res.status(400).json({ error: "Residential level too low", code: "not_unlocked", required: 3 });
     }
     const now = new Date();
-    if (user.vacationEndsAt && new Date(user.vacationEndsAt) > now) {
-      return res.status(400).json({ error: "Vacation already active", code: "already_active", vacationEndsAt: user.vacationEndsAt });
-    }
     const VACATION_COOLDOWN_DAYS = 365;
     if (user.lastVacationAt) {
       const diff = now.getTime() - new Date(user.lastVacationAt).getTime();
@@ -3713,23 +3715,19 @@ app.post("/api/city/residential/start-vacation", async (req, res) => {
         return res.status(400).json({ error: "Vacation on cooldown", code: "cooldown", nextAvailableAt: nextAvailableAt.toISOString() });
       }
     }
-    const endsAt = new Date(now);
-    endsAt.setUTCDate(endsAt.getUTCDate() + 20);
-    // Vacation = 20 streak-freeze charges (added to pool).
     const updated = await prisma.user.update({
       where: { id: user.id },
       data: {
-        vacationStartedAt: now,
-        vacationEndsAt: endsAt,
+        // No more active-vacation state — charges live in the pool.
+        vacationStartedAt: null,
+        vacationEndsAt: null,
         lastVacationAt: now,
         streakFreezeCharges: { increment: 20 }
       },
-      select: { vacationStartedAt: true, vacationEndsAt: true, lastVacationAt: true, streakFreezeCharges: true }
+      select: { lastVacationAt: true, streakFreezeCharges: true }
     });
     return res.json({
       ok: true,
-      vacationStartedAt: updated.vacationStartedAt,
-      vacationEndsAt: updated.vacationEndsAt,
       lastVacationAt: updated.lastVacationAt,
       streakFreezeCharges: updated.streakFreezeCharges,
       grantedCharges: 20
@@ -3881,18 +3879,20 @@ app.post("/api/reset-daily", async (req, res) => {
       const freezeActive = user.streakFreezeExpiresAt
         ? getDateKey(new Date(user.streakFreezeExpiresAt)) >= streakEvaluationDayKey
         : false;
-      const vacationActive = user.vacationEndsAt
-        ? new Date(user.vacationEndsAt) > now
-        : false;
       const streakWouldBurn = decayRows.length < 3 && user.streak > 0;
       const charges = Number(user.streakFreezeCharges) || 0;
 
-      if (streakWouldBurn && !freezeActive && !vacationActive && charges > 0) {
+      // Vacation mode was removed — "vacation" is now just a pile of
+      // streakFreezeCharges that auto-consume as needed, same as any
+      // other charge source. The only protections left here are an
+      // already-active freeze window (from a prior auto-consume) and the
+      // charge pool itself.
+      if (streakWouldBurn && !freezeActive && charges > 0) {
         // Auto-consume 1 charge: extend freeze expiry by 1 day from today, decrement pool, keep streak.
         const nextExpiry = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
         streakDecayData.streakFreezeCharges = { decrement: 1 };
         streakDecayData.streakFreezeExpiresAt = nextExpiry;
-      } else if (streakWouldBurn && !freezeActive && !vacationActive) {
+      } else if (streakWouldBurn && !freezeActive) {
         streakDecayData.streak = 0;
       }
 
