@@ -269,28 +269,6 @@ function OnboardingModal({
               ✕
             </button>
           </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#cbd5e1" }}>
-                  {t.onboardingSelected
-                    ? `${selectedCount} / ${SELECTION_LIMIT} ${t.onboardingSelected}`
-                    : `${selectedCount} / ${SELECTION_LIMIT}`}
-                </span>
-              </div>
-              <div style={{ height: 6, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
-                <div
-                  style={{
-                    width: `${progressPct}%`,
-                    height: "100%",
-                    background: selectionComplete ? "var(--color-accent)" : "var(--color-primary)",
-                    transition: "width 200ms ease"
-                  }}
-                />
-              </div>
-            </div>
-          </div>
         </div>
 
         <div
@@ -332,6 +310,9 @@ function OnboardingModal({
               fontFamily: "var(--font-heading)"
             }}
           />
+          <p style={{ margin: "6px 2px 0", fontSize: 11, color: "var(--color-muted)", lineHeight: 1.4 }}>
+            {t.onboardingNameHint || "Your public name that other players see."}
+          </p>
 
           {/* @handle — public, searchable, shown under the display name in
               profiles and leaderboards. Auto-seeded on open; user can edit. */}
@@ -432,24 +413,60 @@ function OnboardingModal({
           </p>
 
           {/* Section header introducing the habit-picking area below —
-              covers both the custom-habit creator and the browse list. */}
-          <div style={{ marginTop: 20, marginBottom: 10 }}>
-            <h3
-              className="cinzel"
-              style={{
-                margin: 0,
-                fontSize: 15,
-                fontWeight: 800,
-                letterSpacing: "0.04em",
-                color: "var(--color-primary)",
-                lineHeight: 1.25
-              }}
-            >
-              {tf("onboardingPick", { pinned: SELECTION_LIMIT })}
-            </h3>
-            <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--color-muted)", lineHeight: 1.4 }}>
+              styled as a clearly-above-the-fold divider so "My custom
+              habits" below can't be mistaken for the section title.
+              Progress pill sits inside the header; the bar underneath
+              tracks N/SELECTION_LIMIT in theme colour. */}
+          <div
+            style={{
+              marginTop: 22,
+              marginBottom: 12,
+              paddingTop: 14,
+              borderTop: "1px solid var(--card-border-idle)"
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+              <h3
+                className="cinzel"
+                style={{
+                  margin: 0,
+                  fontSize: 19,
+                  fontWeight: 800,
+                  letterSpacing: "0.02em",
+                  color: "var(--color-primary)",
+                  lineHeight: 1.2,
+                  textTransform: "uppercase"
+                }}
+              >
+                {tf("onboardingPick", { pinned: SELECTION_LIMIT })}
+              </h3>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: selectionComplete ? "var(--color-accent)" : "var(--color-muted)",
+                  fontVariantNumeric: "tabular-nums",
+                  flexShrink: 0
+                }}
+              >
+                {selectedCount} / {SELECTION_LIMIT}{t.onboardingSelected ? ` ${t.onboardingSelected}` : ""}
+              </span>
+            </div>
+            <p style={{ margin: "6px 0 10px", fontSize: 12, color: "var(--color-muted)", lineHeight: 1.4 }}>
               {t.onboardingPickSubtitle || "Pick from existing or create your own"}
             </p>
+            <div style={{ height: 6, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+              <div
+                style={{
+                  width: `${progressPct}%`,
+                  height: "100%",
+                  background: selectionComplete ? "var(--color-accent)" : "var(--color-primary)",
+                  transition: "width 200ms ease"
+                }}
+              />
+            </div>
           </div>
 
           <CustomHabitManager
