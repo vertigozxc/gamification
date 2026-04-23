@@ -2,36 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "../ThemeContext";
 import { variantLabel } from "../utils/questGrouping";
 
-// Clean card per quest family. The whole top zone is the select target.
-// The tier row sits inside the card as an iOS-style segmented control —
-// no native dropdown, no chip glitter, just a quiet strip where the
-// active segment has a solid pill behind it.
-
-function DifficultyDots({ level = 0, max = 5 }) {
-  const safeLevel = Math.max(0, Math.min(max, Math.floor(Number(level) || 0)));
-  return (
-    <span
-      aria-label={`Difficulty ${safeLevel} of ${max}`}
-      style={{ display: "inline-flex", alignItems: "center", gap: 3 }}
-    >
-      {Array.from({ length: max }).map((_, i) => {
-        const filled = i < safeLevel;
-        return (
-          <span
-            key={i}
-            style={{
-              width: 5,
-              height: 5,
-              borderRadius: 999,
-              background: filled ? "var(--color-primary)" : "rgba(148,163,184,0.3)",
-              display: "inline-block"
-            }}
-          />
-        );
-      })}
-    </span>
-  );
-}
+// Clean card per quest family. Tier picker uses a stepper (◀ / readout / ▶)
+// so it always fits regardless of how many tiers the family has. The dots
+// under the readout double as both a carousel indicator (where you are in
+// the tier list) and the difficulty read (since tiers are effort-sorted).
 
 export default function QuestGroupCard({
   group,
@@ -67,9 +41,11 @@ export default function QuestGroupCard({
   if (!representative) return null;
 
   const activeQuest = variants.find((q) => Number(q.id) === Number(activeId)) || representative;
+  const activeIndex = Math.max(0, variants.findIndex((q) => Number(q.id) === Number(activeQuest.id)));
   const isSelected = Boolean(selectedInGroup);
   const showTierStrip = variants.length > 1;
   const categoryLabel = translateCategory ? translateCategory(activeQuest.category) : String(activeQuest.category || "").toUpperCase();
+  const activeLabel = variantLabel(activeQuest) || representative.title;
 
   const handleCardToggle = () => {
     if (disabled && !isSelected) return;
@@ -88,6 +64,12 @@ export default function QuestGroupCard({
       onUnpick?.(selectedInGroup.id);
       onPick?.(target.id);
     }
+  };
+
+  const stepTier = (delta) => {
+    const nextIndex = Math.max(0, Math.min(variants.length - 1, activeIndex + delta));
+    if (nextIndex === activeIndex) return;
+    handleTierPick(variants[nextIndex].id);
   };
 
   return (
@@ -136,30 +118,20 @@ export default function QuestGroupCard({
             >
               {representative.title}
             </h4>
-            <div
+            <span
+              className="cinzel"
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
+                display: "inline-block",
                 marginTop: 6,
-                flexWrap: "wrap"
+                fontSize: 10,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "var(--color-primary)",
+                fontWeight: 700
               }}
             >
-              <span
-                className="cinzel"
-                style={{
-                  fontSize: 10,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: "var(--color-primary)",
-                  fontWeight: 700
-                }}
-              >
-                {categoryLabel}
-              </span>
-              <span style={{ color: "var(--card-border-idle)", fontSize: 10 }}>·</span>
-              <DifficultyDots level={activeQuest.effortScore} max={5} />
-            </div>
+              {categoryLabel}
+            </span>
             <p
               style={{
                 fontSize: 12.5,
@@ -195,68 +167,127 @@ export default function QuestGroupCard({
         </div>
       </button>
 
-      {/* Segmented tier control */}
+      {/* Tier stepper — always fits, scales to any number of tiers */}
       {showTierStrip ? (
         <div
-          style={{
-            padding: "0 10px 10px",
-            position: "relative",
-            zIndex: 1
-          }}
+          style={{ padding: "0 10px 12px", position: "relative", zIndex: 1 }}
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           <div
-            role="tablist"
-            aria-label={t.tierPickerLabel || "Difficulty"}
             style={{
-              display: "grid",
-              gridTemplateColumns: `repeat(${variants.length}, minmax(0, 1fr))`,
-              gap: 2,
-              padding: 3,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 6px",
               background: "rgba(0,0,0,0.28)",
               border: "1px solid var(--card-border-idle)",
               borderRadius: 12
             }}
           >
-            {variants.map((variant) => {
-              const active = Number(variant.id) === Number(activeId);
-              const label = variantLabel(variant) || (t.tierPickerFallback || "Tier");
-              return (
-                <button
-                  key={variant.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleTierPick(variant.id);
-                  }}
-                  onPointerDown={(e) => e.stopPropagation()}
+            <StepperArrow
+              direction="left"
+              disabled={activeIndex === 0}
+              onClick={() => stepTier(-1)}
+              ariaLabel={t.tierPickerPrev || "Previous difficulty"}
+            />
+            <div style={{ flex: 1, textAlign: "center", minWidth: 0 }}>
+              <p
+                className="cinzel"
+                style={{
+                  margin: 0,
+                  fontSize: 14,
+                  fontWeight: 800,
+                  color: "var(--color-text)",
+                  letterSpacing: "0.02em",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis"
+                }}
+              >
+                {activeLabel}
+              </p>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 4 }}>
+                <span
+                  style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+                  aria-label={`Tier ${activeIndex + 1} of ${variants.length}`}
+                >
+                  {variants.map((variant, i) => {
+                    const active = i === activeIndex;
+                    const effort = Math.max(1, Math.min(5, Number(variant.effortScore) || 1));
+                    // Each dot's size scales with its own difficulty so the
+                    // row doubles as a compact difficulty read — easy tier
+                    // = small dot, hardest = noticeably bigger.
+                    const size = 4 + effort;
+                    return (
+                      <span
+                        key={variant.id}
+                        style={{
+                          width: size,
+                          height: size,
+                          borderRadius: 999,
+                          background: active ? "var(--color-primary)" : "rgba(148,163,184,0.35)",
+                          display: "inline-block",
+                          transition: "background 160ms ease, transform 160ms ease",
+                          transform: active ? "scale(1.15)" : "scale(1)"
+                        }}
+                      />
+                    );
+                  })}
+                </span>
+                <span
                   className="cinzel"
                   style={{
-                    minHeight: 34,
-                    padding: "4px 6px",
-                    borderRadius: 9,
-                    border: "none",
-                    background: active ? "var(--color-primary)" : "transparent",
-                    color: active ? "#0b1120" : "var(--color-muted)",
-                    fontSize: 11,
-                    fontWeight: active ? 800 : 600,
-                    letterSpacing: "0.02em",
-                    cursor: "pointer",
-                    transition: "background 140ms ease, color 140ms ease",
-                    WebkitTapHighlightColor: "transparent",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis"
+                    fontSize: 10,
+                    color: "var(--color-muted)",
+                    letterSpacing: "0.08em",
+                    fontVariantNumeric: "tabular-nums"
                   }}
                 >
-                  {label}
-                </button>
-              );
-            })}
+                  {activeIndex + 1}/{variants.length}
+                </span>
+              </div>
+            </div>
+            <StepperArrow
+              direction="right"
+              disabled={activeIndex === variants.length - 1}
+              onClick={() => stepTier(1)}
+              ariaLabel={t.tierPickerNext || "Next difficulty"}
+            />
           </div>
         </div>
       ) : null}
     </div>
+  );
+}
+
+function StepperArrow({ direction = "left", disabled = false, onClick, ariaLabel }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); if (!disabled) onClick?.(); }}
+      onPointerDown={(e) => e.stopPropagation()}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      className="mobile-pressable"
+      style={{
+        flexShrink: 0,
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        border: "1px solid var(--card-border-idle)",
+        background: disabled ? "transparent" : "rgba(255,255,255,0.05)",
+        color: disabled ? "rgba(148,163,184,0.35)" : "var(--color-text)",
+        fontSize: 14,
+        fontWeight: 800,
+        cursor: disabled ? "not-allowed" : "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        WebkitTapHighlightColor: "transparent"
+      }}
+    >
+      {direction === "left" ? "◀" : "▶"}
+    </button>
   );
 }
