@@ -28,6 +28,13 @@ export default function usePullToRefresh({ target = null, onRefresh, disabled = 
     function onTouchStart(e) {
       if (refreshingRef.current) return;
       if (e.pointerType && e.pointerType !== "touch" && e.pointerType !== "pen") return;
+      // Never start a pull gesture while a full-screen social panel
+      // (profile / challenge detail / search / …) is the active layer.
+      // Screen.jsx sets this data attr for its lifetime.
+      if (document.documentElement.dataset.socialScreenOpen === "1") {
+        active.current = false;
+        return;
+      }
       const scrollTop = el ? el.scrollTop : (window.scrollY || document.documentElement.scrollTop || 0);
       if (scrollTop > 1) { active.current = false; return; }
       active.current = true;

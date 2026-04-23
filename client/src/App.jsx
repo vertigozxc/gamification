@@ -1453,15 +1453,12 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 <span style={{ color: "#6ee7b7" }}>+ 🪙 {cityResetRefund}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--color-accent)", fontWeight: 800, borderTop: "1px solid var(--card-border-idle)", paddingTop: 6, marginTop: 2 }}>
-                <span>{t.cityResetNetLabel || "Net to balance"}</span>
-                <span>{cityResetRefund - cityResetCost >= 0 ? "+" : ""}{cityResetRefund - cityResetCost}</span>
+                <span>{t.cityResetNetLabel || "Total balance after reset"}</span>
+                <span>🪙 {Math.max(0, (Number(state.tokens) || 0) + cityResetRefund - cityResetCost)}</span>
               </div>
             </div>
-            <p style={{ fontSize: 11, color: "var(--color-muted)", margin: "0 0 4px", lineHeight: 1.45 }}>
-              ⚠ {t.cityResetStreakWarning || "High-tier districts (levels 3–5) also need an active streak — tokens alone won't unlock them. Keep your streak alive before paying to rebuild."}
-            </p>
             <p style={{ fontSize: 11, color: "var(--color-muted)", margin: "0 0 12px", lineHeight: 1.45 }}>
-              {t.cityResetEscalationHint || "Each future reset costs 10 more tokens than the previous one (up to 50)."}
+              ⚠ {t.cityResetStreakWarning || "High-tier districts (levels 3–5) also need an active streak — tokens alone won't unlock them. Keep your streak alive before paying to rebuild."}
             </p>
             <div className="logout-confirm-actions">
               <button

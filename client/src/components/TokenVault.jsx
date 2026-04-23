@@ -41,6 +41,17 @@ function TokenVault({
   };
   const costValueColor = "var(--color-accent)";
 
+  // Unified purchase-button styling. All shop CTAs now wear the same
+  // theme-primary gradient so the shop reads as one consistent surface
+  // instead of five different colours competing for attention.
+  const buyButtonClass = "mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2";
+  const buyButtonActiveStyle = {
+    background: "linear-gradient(90deg, var(--color-primary), var(--color-accent))",
+    color: "#0b1120",
+    boxShadow: "0 8px 20px color-mix(in srgb, var(--color-primary) 22%, transparent)"
+  };
+  const buyButtonDisabledClass = "bg-slate-800/80 text-slate-500 cursor-not-allowed";
+
   const xpBoostMs = xpBoostExpiresAt ? new Date(xpBoostExpiresAt).getTime() - Date.now() : 0;
   const xpBoostActive = xpBoostMs > 0;
   const xpBoostDaysLeft = xpBoostActive ? Math.max(1, Math.ceil(xpBoostMs / 86400000)) : 0;
@@ -67,11 +78,8 @@ function TokenVault({
             <button
               onClick={onFreezeStreak}
               disabled={tokens < freezeCost || freezeStreakPending || freezeWeeklyLocked}
-              className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 ${
-                tokens >= freezeCost && !freezeStreakPending && !freezeWeeklyLocked
-                  ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:from-cyan-600 hover:to-blue-600 shadow-md"
-                  : "bg-slate-800/80 text-slate-500 cursor-not-allowed"
-              }`}
+              className={`${buyButtonClass} ${tokens >= freezeCost && !freezeStreakPending && !freezeWeeklyLocked ? "" : buyButtonDisabledClass}`}
+              style={tokens >= freezeCost && !freezeStreakPending && !freezeWeeklyLocked ? buyButtonActiveStyle : undefined}
             >
               <span>{t.tokenIcon}</span>
               {freezeWeeklyLocked
@@ -108,11 +116,8 @@ function TokenVault({
             <button
               onClick={onBuyExtraReroll}
               disabled={tokens < rerollCost || !hasRerolledToday}
-              className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 ${
-                tokens >= rerollCost && hasRerolledToday
-                  ? "bg-gradient-to-r from-violet-500 to-purple-500 text-white hover:from-violet-600 hover:to-purple-600 shadow-md"
-                  : "bg-slate-800/80 text-slate-500 cursor-not-allowed"
-              }`}
+              className={`${buyButtonClass} ${tokens >= rerollCost && hasRerolledToday ? "" : buyButtonDisabledClass}`}
+              style={tokens >= rerollCost && hasRerolledToday ? buyButtonActiveStyle : undefined}
             >
               <span>{t.tokenIcon}</span>
               {tokens < rerollCost ? t.notEnough : `${t.buyPrefix} ${rerollCost} ${getPluralizedToken(rerollCost)}`}
@@ -148,11 +153,8 @@ function TokenVault({
             <button
               onClick={onOpenPinnedReplacement}
               disabled={!canRerollPinned}
-              className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 ${
-                canRerollPinned
-                  ? "bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:from-fuchsia-700 hover:to-violet-700 shadow-md"
-                  : "bg-slate-800/80 text-slate-500 cursor-not-allowed"
-              }`}
+              className={`${buyButtonClass} ${canRerollPinned ? "" : buyButtonDisabledClass}`}
+              style={canRerollPinned ? buyButtonActiveStyle : undefined}
             >
               <span>⟳</span>
               {isFreePinnedReroll
@@ -189,11 +191,8 @@ function TokenVault({
             <button
               onClick={onBuyXpBoost}
               disabled={tokens < xpBoostCost}
-              className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 ${
-                tokens >= xpBoostCost
-                  ? "bg-gradient-to-r from-violet-500 to-purple-500 text-white hover:from-violet-600 hover:to-purple-600 shadow-md"
-                  : "bg-slate-800/80 text-slate-500 cursor-not-allowed"
-              }`}
+              className={`${buyButtonClass} ${tokens >= xpBoostCost ? "" : buyButtonDisabledClass}`}
+              style={tokens >= xpBoostCost ? buyButtonActiveStyle : undefined}
             >
               <span>{t.tokenIcon}</span>
               {tokens < xpBoostCost ? t.notEnough : `${t.buyPrefix} ${xpBoostCost} ${getPluralizedToken(xpBoostCost)}`}
@@ -229,11 +228,8 @@ function TokenVault({
             <button
               onClick={onResetCity}
               disabled={tokens < cityResetCost}
-              className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 ${
-                tokens >= cityResetCost
-                  ? "bg-gradient-to-r from-rose-600 to-orange-600 text-white hover:from-rose-700 hover:to-orange-700 shadow-md"
-                  : "bg-slate-800/80 text-slate-500 cursor-not-allowed"
-              }`}
+              className={`${buyButtonClass} ${tokens >= cityResetCost ? "" : buyButtonDisabledClass}`}
+              style={tokens >= cityResetCost ? buyButtonActiveStyle : undefined}
             >
               <span>{t.tokenIcon}</span>
               {tokens < cityResetCost ? t.notEnough : `${t.buyPrefix} ${cityResetCost} ${getPluralizedToken(cityResetCost)}`}

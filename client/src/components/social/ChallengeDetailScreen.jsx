@@ -632,24 +632,12 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, i
           ) : null}
         </div>
 
-        {top3.length > 0 ? (
-          <Podium
-            top3={top3}
-            meUid={meUid}
-            t={t}
-            onOpenProfile={onOpenProfile}
-            isCreator={isCreator}
-            ended={ended}
-            onRequestRemove={onRequestRemove}
-          />
-        ) : null}
-
-        {rest.length > 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: top3.length > 0 ? 12 : 0 }}>
-            {rest.map((p, i) => (
+        {[...top3, ...rest].length > 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {[...top3, ...rest].map((p, i) => (
               <ParticipantRow
                 key={p.id}
-                rank={i + 4}
+                rank={i + 1}
                 participant={p}
                 meUid={meUid}
                 t={t}

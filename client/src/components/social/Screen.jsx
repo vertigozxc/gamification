@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import useEdgeSwipeBack from "../../hooks/useEdgeSwipeBack";
 
 /**
@@ -15,6 +16,25 @@ import useEdgeSwipeBack from "../../hooks/useEdgeSwipeBack";
  */
 export default function Screen({ title, subtitle, headerExtra, onClose, children, footer }) {
   const swipeBind = useEdgeSwipeBack(onClose);
+
+  // Mark the document while a social Screen is open so PullToRefresh
+  // (which listens at document level) pauses — otherwise swiping
+  // vertically inside the challenge / profile / search panels would
+  // nudge the background a few pixels up-and-down through PTR's
+  // rubber-band.
+  useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+    const el = document.documentElement;
+    const prev = Number(el.dataset.socialScreenCount || 0);
+    el.dataset.socialScreenCount = String(prev + 1);
+    el.dataset.socialScreenOpen = "1";
+    return () => {
+      const now = Math.max(0, Number(el.dataset.socialScreenCount || 1) - 1);
+      el.dataset.socialScreenCount = String(now);
+      if (now === 0) delete el.dataset.socialScreenOpen;
+    };
+  }, []);
+
   return (
     <div className="sb-page" {...swipeBind}>
       <div className="sb-page-header">
