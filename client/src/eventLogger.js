@@ -103,8 +103,22 @@ async function flushEvents() {
   }
 }
 
+// Allowlist of event levels that are actually worth shipping to the
+// admin dashboard. Anything below "warn" (info, debug, analytics,
+// …) is dropped at the client BEFORE it touches the batch queue so
+// we don't burn CPU, bandwidth, or server cycles on non-actionable
+// telemetry. To add a new admin-visible event, pass `level: "warn"`
+// or higher.
+const ADMIN_LEVELS = new Set(["warn", "warning", "error", "critical", "problem"]);
+
 export function logEvent(type, data = {}) {
   if (typeof window === "undefined") return;
+
+  const level = String(data.level || "info").toLowerCase();
+  if (!ADMIN_LEVELS.has(level)) {
+    return; // filtered out — info / debug / analytics never leave the client
+  }
+
   if (!apiBase) apiBase = resolveDefaultApiBase();
 
   let meta;
@@ -172,12 +186,12 @@ export function installGlobalEventLogger({ platform: plat = "web", apiBase: base
   });
 
   if (typeof document !== "undefined") {
+    // Flush any pending error/warn events when the tab goes to the
+    // background — but don't LOG the visibility change itself; it's
+    // analytics-level noise that the allowlist drops anyway.
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "hidden") {
-        logEvent("session_visibility_hidden");
         flushEvents();
-      } else if (document.visibilityState === "visible") {
-        logEvent("session_visibility_visible");
       }
     });
   }

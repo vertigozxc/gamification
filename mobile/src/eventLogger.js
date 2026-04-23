@@ -59,10 +59,18 @@ export function setMobileEventContext(next = {}) {
   };
 }
 
+// Only ship actionable-level events to admin (see web eventLogger for
+// the same allowlist). Everything else (info analytics, app-state
+// pings, …) is dropped client-side to save server cycles.
+const ADMIN_LEVELS = new Set(["warn", "warning", "error", "fatal", "critical", "problem"]);
+
 export function logMobileEvent(type, data = {}) {
+  const level = String(data.level || "info").toLowerCase();
+  if (!ADMIN_LEVELS.has(level)) return;
+
   const evt = {
     type: String(type || "unknown").slice(0, 120),
-    level: String(data.level || "info").slice(0, 40),
+    level: level.slice(0, 40),
     message: typeof data.message === "string" ? data.message.slice(0, 2000) : "",
     stack: typeof data.stack === "string" ? data.stack.slice(0, 4000) : "",
     meta: data.meta || null
@@ -110,20 +118,13 @@ export function installMobileEventLogger() {
     }
   }
 
+  // Flush on background but don't log the app-state change itself —
+  // that's analytics noise the allowlist would drop anyway.
   try {
     AppState.addEventListener("change", (next) => {
-      logMobileEvent("mobile_app_state", { meta: { state: next } });
       if (next !== "active") flushEvents();
     });
   } catch {
     // ignore
   }
-
-  logMobileEvent("mobile_app_start", {
-    meta: {
-      os: Platform.OS,
-      version: Platform.Version,
-      apiBase: ensureApiBase()
-    }
-  });
 }
