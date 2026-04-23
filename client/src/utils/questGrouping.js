@@ -46,29 +46,65 @@ export function groupQuests(quests) {
   });
 }
 
-// Extract a short label for a tier chip. Priority:
-//   1. explicit targetCount (+ unit) — hydration / words
-//   2. first number in description (steps, minutes, pages…) with inferred unit
-//   3. timeEstimateMin
-//   4. effort dots fallback handled by caller
-export function variantLabel(quest) {
-  if (!quest) return "";
-  const target = Number(quest.targetCount) || 0;
-  if (target > 0) {
-    const unit = String(quest.counterUnit || "").trim();
-    return unit ? `${target} ${unit}` : String(target);
-  }
-  const desc = String(quest.desc || quest.description || "");
+// Filler words that should NOT be used as a unit label when we extract
+// the unit from a quest description. "Write 5 short notes" → we want
+// "5 notes", not "5 short".
+const FILLER_UNIT_WORDS = new Set([
+  "short", "long", "new", "fresh", "quick",
+  "at", "least", "minimum", "max", "up", "to",
+  "of", "a", "an",
+  "коротких", "короткий", "новых", "новый", "минимум", "максимум", "не", "менее", "более"
+]);
+
+function extractUnitFromDescription(desc) {
   const numberMatch = desc.match(/([\d]{1,3}(?:[.,\s][\d]{3})+|\d+)/);
-  if (numberMatch) {
-    const numberStr = numberMatch[1].replace(/\s/g, "");
-    const rest = desc.slice(numberMatch.index + numberMatch[0].length).trim();
-    const wordMatch = rest.match(/^[^\s.,;:!?()]+/);
-    const unit = wordMatch ? wordMatch[0] : "";
-    return unit ? `${numberStr} ${unit}` : numberStr;
+  if (!numberMatch) return null;
+  const numberStr = numberMatch[1].replace(/\s/g, "");
+  const rest = desc.slice(numberMatch.index + numberMatch[0].length).trim();
+  const words = rest.split(/[\s.,;:!?()/]+/).filter(Boolean);
+  // Walk forward, skipping fillers, until we find something real.
+  const unit = words.find((w) => !FILLER_UNIT_WORDS.has(w.toLowerCase())) || words[0] || "";
+  return { number: numberStr, unit };
+}
+
+// Extract a short label for a tier chip. Mechanic-aware so "X words" and
+// "X notes" come out cleanly even when the localised description dresses
+// the number in adjectives (Write 5 short notes → "5 notes").
+export function variantLabel(quest, t) {
+  if (!quest) return "";
+  const mechanic = String(quest.mechanic || "").toLowerCase();
+  const words = t?.variantUnitWords || "words";
+  const notes = t?.variantUnitNotes || "notes";
+  const glasses = t?.variantUnitGlasses || "glasses";
+  const mins = t?.variantUnitMinutes || "min";
+
+  if (mechanic === "words") {
+    const n = Number(quest.targetCount) || 0;
+    if (n > 0) return `${n} ${words}`;
   }
-  const mins = Number(quest.timeEstimateMin) || 0;
-  if (mins > 0) return `${mins} min`;
+  if (mechanic === "note") {
+    const n = Number(quest.minItems) || 0;
+    if (n > 0) return `${n} ${notes}`;
+  }
+  if (mechanic === "counter") {
+    const n = Number(quest.targetCount) || 0;
+    if (n > 0) {
+      const unit = String(quest.counterUnit || "").trim();
+      return unit ? `${n} ${unit}` : `${n} ${glasses}`;
+    }
+  }
+
+  const desc = String(quest.desc || quest.description || "");
+  const extracted = extractUnitFromDescription(desc);
+  if (extracted) {
+    const cleanUnit = extracted.unit && !FILLER_UNIT_WORDS.has(extracted.unit.toLowerCase())
+      ? extracted.unit
+      : "";
+    return cleanUnit ? `${extracted.number} ${cleanUnit}` : extracted.number;
+  }
+
+  const minutes = Number(quest.timeEstimateMin) || 0;
+  if (minutes > 0) return `${minutes} ${mins}`;
   const effort = Number(quest.effortScore) || 0;
   return effort > 0 ? `T${effort}` : "";
 }

@@ -45,7 +45,7 @@ export default function QuestGroupCard({
   const isSelected = Boolean(selectedInGroup);
   const showTierStrip = variants.length > 1;
   const categoryLabel = translateCategory ? translateCategory(activeQuest.category) : String(activeQuest.category || "").toUpperCase();
-  const activeLabel = variantLabel(activeQuest) || representative.title;
+  const activeLabel = variantLabel(activeQuest, t) || representative.title;
 
   const handleCardToggle = () => {
     if (disabled && !isSelected) return;
