@@ -177,6 +177,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   // handler functions where they're used.
   const [timerLimitPopup, setTimerLimitPopup] = useState(false);
   const [singleHabitPickerOpen, setSingleHabitPickerOpen] = useState(false);
+  const [showNotesHistory, setShowNotesHistory] = useState(false);
+  const [cityResetConfirmOpen, setCityResetConfirmOpen] = useState(false);
+  const [cityResetBusy, setCityResetBusy] = useState(false);
   const [singleHabitPickerSaving, setSingleHabitPickerSaving] = useState(false);
   const [singleHabitPickerError, setSingleHabitPickerError] = useState("");
   const [profileStats, setProfileStats] = useState(null);
@@ -768,9 +771,10 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const [noteSubmitting, setNoteSubmitting] = useState(false);
   const [noteError, setNoteError] = useState("");
   const [counterPendingId, setCounterPendingId] = useState(null);
-  const [showNotesHistory, setShowNotesHistory] = useState(false);
-  const [cityResetConfirmOpen, setCityResetConfirmOpen] = useState(false);
-  const [cityResetBusy, setCityResetBusy] = useState(false);
+  // NOTE: showNotesHistory, cityResetConfirmOpen, cityResetBusy are now
+  // declared up near the other overlay-state flags so the earlier
+  // mobile-shell-state useEffect can reference them without hitting a
+  // TDZ. Don't redeclare them here.
 
   // City-reset memos must live above any early returns below (authLoading
   // / LoginScreen) — otherwise React sees more hooks after the user logs
