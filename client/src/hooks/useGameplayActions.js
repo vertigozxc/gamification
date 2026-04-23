@@ -23,6 +23,7 @@ function useGameplayActions({
   resetDaily,
   resetHard,
   buyExtraReroll,
+  buyXpBoost,
   freezeStreak,
   rerollPinned,
   onServerTimeSync,
@@ -627,6 +628,46 @@ function useGameplayActions({
     }
   }
 
+  async function handleBuyXpBoost() {
+    if (typeof buyXpBoost !== "function") return;
+    const resLvl = Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[4]) || 0)));
+    const discount = resLvl >= 5 ? 2 : resLvl >= 1 ? 1 : 0;
+    const cost = Math.max(0, 15 - discount);
+    const prevTokens = state.tokens;
+    const prevExpiry = state.user?.xpBoostExpiresAt ?? null;
+    setState((prev) => ({
+      ...prev,
+      tokens: Math.max(0, prev.tokens - cost)
+    }));
+    try {
+      const result = await buyXpBoost(resolvedUsername);
+      trackEvent("xp_boost_purchased", { tokens: result.tokens, xpBoostExpiresAt: result.xpBoostExpiresAt });
+      setState((prev) => ({
+        ...prev,
+        tokens: result.tokens,
+        user: {
+          ...(prev.user || {}),
+          xpBoostExpiresAt: result.xpBoostExpiresAt ?? prev.user?.xpBoostExpiresAt ?? null
+        },
+        logs: [
+          ...prev.logs,
+          {
+            msg: vocab?.xpBoostPurchasedLog || "⚡ XP Boost active for 7 days",
+            classes: "text-amber-300 font-bold cinzel",
+            timestamp: getTimestamp()
+          }
+        ]
+      }));
+    } catch (err) {
+      setState((prev) => ({
+        ...prev,
+        tokens: prevTokens,
+        user: { ...(prev.user || {}), xpBoostExpiresAt: prevExpiry }
+      }));
+      addLog(err?.message || vocab?.purchaseFailed || "Purchase failed. Please try again.", "text-red-400 font-bold");
+    }
+  }
+
   return {
     floatingTexts,
     pendingQuestIds,
@@ -637,6 +678,7 @@ function useGameplayActions({
     handleHardReset,
     handleRerollPinned,
     handleBuyExtraReroll,
+    handleBuyXpBoost,
     handleFreezeStreak,
     freezeStreakPending,
     rerollingQuestId,

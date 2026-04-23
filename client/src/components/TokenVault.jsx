@@ -13,9 +13,12 @@ function TokenVault({
   canRerollPinned,
   isFreePinnedReroll,
   daysUntilFreePinnedReroll,
+  xpBoostCost = 15,
+  xpBoostExpiresAt = null,
   onOpenPinnedReplacement,
   onFreezeStreak,
   onBuyExtraReroll,
+  onBuyXpBoost,
   compact = false
 }) {
   const { t, tf } = useTheme();
@@ -23,6 +26,19 @@ function TokenVault({
   function getPluralizedToken(count, singular = String(t.tokenSingular || "TOKEN").toUpperCase(), plural = String(t.tokenPlural || "TOKENS").toUpperCase()) {
     return count === 1 ? singular : plural;
   }
+
+  // Amber/gold chip style for token costs — readable across all themes
+  // (dark bg vs. light bg), replaces the theme-tinted pill that rendered
+  // invisible on the light theme.
+  const costChipStyle = {
+    background: "rgba(251, 191, 36, 0.14)",
+    border: "1px solid rgba(217, 119, 6, 0.45)",
+    color: "#d97706"
+  };
+
+  const xpBoostMs = xpBoostExpiresAt ? new Date(xpBoostExpiresAt).getTime() - Date.now() : 0;
+  const xpBoostActive = xpBoostMs > 0;
+  const xpBoostDaysLeft = xpBoostActive ? Math.max(1, Math.ceil(xpBoostMs / 86400000)) : 0;
 
   return (
     <>
@@ -35,9 +51,9 @@ function TokenVault({
                 <p className="cinzel font-bold text-base tracking-wide" style={{ color: "var(--color-text)" }}>{t.freezeTitle}</p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.freezeDesc}</p>
               </div>
-              <div className="flex items-center gap-1 rounded-full px-3 py-1" style={{ background: "var(--xp-badge-bg)", border: "1px solid var(--color-primary-dim)" }}>
+              <div className="flex items-center gap-1 rounded-full px-3 py-1" style={costChipStyle}>
                 <span className="text-base">{t.tokenIcon}</span>
-                <span className="cinzel font-bold text-sm" style={{ color: "var(--color-text)" }}>{freezeCost}</span>
+                <span className="cinzel font-bold text-sm" style={{ color: "#d97706" }}>{freezeCost}</span>
               </div>
             </div>
             <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
@@ -73,9 +89,9 @@ function TokenVault({
                 <p className="cinzel font-bold text-base tracking-wide" style={{ color: "var(--color-text)" }}>{t.rerollShopTitle}</p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.rerollShopDesc}</p>
               </div>
-              <div className="flex items-center gap-1 rounded-full px-3 py-1" style={{ background: "var(--xp-badge-bg)", border: "1px solid var(--color-primary-dim)" }}>
+              <div className="flex items-center gap-1 rounded-full px-3 py-1" style={costChipStyle}>
                 <span className="text-base">{t.tokenIcon}</span>
-                <span className="cinzel font-bold text-sm" style={{ color: "var(--color-text)" }}>{rerollCost}</span>
+                <span className="cinzel font-bold text-sm" style={{ color: "#d97706" }}>{rerollCost}</span>
               </div>
             </div>
             <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
@@ -111,9 +127,9 @@ function TokenVault({
                 <p className="cinzel font-bold text-base tracking-wide" style={{ color: "var(--color-text)" }}>{t.pinnedQuestRerollTitle}</p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.pinnedQuestRerollDesc}</p>
               </div>
-              <div className="flex items-center gap-1 rounded-full px-3 py-1 self-start" style={{ background: "var(--xp-badge-bg)", border: "1px solid var(--color-primary-dim)" }}>
+              <div className="flex items-center gap-1 rounded-full px-3 py-1 self-start" style={costChipStyle}>
                 <span className="text-base">{t.tokenIcon}</span>
-                <span className="cinzel font-bold text-sm" style={{ color: "var(--color-text)" }}>7</span>
+                <span className="cinzel font-bold text-sm" style={{ color: "#d97706" }}>7</span>
               </div>
             </div>
             <button
@@ -135,6 +151,43 @@ function TokenVault({
                   days: daysUntilFreePinnedReroll,
                   dayLabel: daysUntilFreePinnedReroll === 1 ? t.daySingular : t.dayPlural
                 })}
+            </p>
+          </div>
+
+          <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">⚡</span>
+              <div className="flex-1">
+                <p className="cinzel font-bold text-base tracking-wide" style={{ color: "var(--color-text)" }}>{t.xpBoostTitle}</p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.xpBoostDesc}</p>
+              </div>
+              <div className="flex items-center gap-1 rounded-full px-3 py-1 self-start" style={costChipStyle}>
+                <span className="text-base">{t.tokenIcon}</span>
+                <span className="cinzel font-bold text-sm" style={{ color: "#d97706" }}>{xpBoostCost}</span>
+              </div>
+            </div>
+            <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
+              {t.xpBoostDetail}
+            </p>
+            <button
+              onClick={onBuyXpBoost}
+              disabled={tokens < xpBoostCost}
+              className={`mobile-pressable mt-auto cinzel font-bold px-4 py-2 rounded-xl border border-white/5 transition-all text-sm flex items-center justify-center gap-2 ${
+                tokens >= xpBoostCost
+                  ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-white hover:from-amber-600 hover:to-yellow-600 shadow-md"
+                  : "bg-slate-800/80 text-slate-500 cursor-not-allowed"
+              }`}
+            >
+              <span>{t.tokenIcon}</span>
+              {tokens < xpBoostCost ? t.notEnough : `${t.buyPrefix} ${xpBoostCost} ${getPluralizedToken(xpBoostCost)}`}
+            </button>
+            <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
+              {xpBoostActive
+                ? tf("xpBoostActiveHint", {
+                    days: xpBoostDaysLeft,
+                    dayLabel: xpBoostDaysLeft === 1 ? t.daySingular : t.dayPlural
+                  })
+                : t.xpBoostInactiveHint}
             </p>
           </div>
 

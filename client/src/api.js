@@ -304,6 +304,13 @@ export function buyExtraReroll(username) {
   });
 }
 
+export function buyXpBoost(username) {
+  return request("/api/shop/buy-xp-boost", {
+    method: "POST",
+    body: JSON.stringify({ username })
+  });
+}
+
 export function replacePinnedQuests(username, preferredQuestIds, useTokens = true) {
   return request("/api/shop/replace-pinned-quests", {
     method: "POST",

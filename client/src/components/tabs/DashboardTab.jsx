@@ -6,6 +6,7 @@ export default function DashboardTab({
   state, characterName, t,
   xpPercent, completedToday, milestoneSteps,
   streakBonusPercent = 0,
+  xpBoostExpiresAt = null,
   maxDailyQuests = 6,
   pinnedQuests, otherQuests, pinnedQuestProgressById,
   dailyQuestFreshDayKey, dailyQuestFreshStorageId,
@@ -43,6 +44,17 @@ export default function DashboardTab({
               <p className="text-xs cinzel font-bold" style={{ color: "var(--streak-text)" }}>{state.streak}</p>
             </div>
             <p className="text-[10px] opacity-70 cinzel tracking-wider" style={{ color: "var(--color-muted)" }}>+{streakBonusPercent}% {t.xpMultiplier}</p>
+            {(() => {
+              const ms = xpBoostExpiresAt ? new Date(xpBoostExpiresAt).getTime() - Date.now() : 0;
+              if (ms <= 0) return null;
+              const daysLeft = Math.max(1, Math.ceil(ms / 86400000));
+              const dayLabel = daysLeft === 1 ? t.daySingular : t.dayPlural;
+              return (
+                <p className="text-[10px] opacity-80 cinzel tracking-wider" style={{ color: "#d97706" }}>
+                  +15% {t.xpBoostDashLabel || "XP Boost"} · {daysLeft} {dayLabel}
+                </p>
+              );
+            })()}
             {(() => {
               const sportLvl = Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[0]) || 0)));
               const sportBonusPct = sportLvl * 5;

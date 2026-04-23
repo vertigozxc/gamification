@@ -38,6 +38,7 @@ model User {
   lastVacationAt            DateTime?
   streakFreezeCharges       Int                    @default(0)
   lastFreezePurchaseWeekKey String                 @default("")
+  xpBoostExpiresAt          DateTime?
   isDevTester               Boolean                @default(false)
   maxStreak                 Int                    @default(0)
   createdAt                 DateTime               @default(now())

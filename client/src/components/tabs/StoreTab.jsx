@@ -6,7 +6,8 @@ export default function StoreTab({
   extraRerollsToday, hasRerolledToday,
   freezeStreakPending,
   canRerollPinned, isFreePinnedReroll, daysUntilFreePinnedReroll,
-  onOpenPinnedReplacement, onFreezeStreak, onBuyExtraReroll, t
+  xpBoostCost = 15, xpBoostExpiresAt = null,
+  onOpenPinnedReplacement, onFreezeStreak, onBuyExtraReroll, onBuyXpBoost, t
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -25,13 +26,13 @@ export default function StoreTab({
               {t.storeScreenSubtitle}
             </p>
           </div>
-          <div className="text-center shrink-0 min-w-[120px] rounded-xl px-3 py-2" style={{ background: "var(--xp-badge-bg)", border: "1px solid var(--color-primary-dim)" }}>
-            <p className="text-[9px] uppercase tracking-[0.18em] mb-1" style={{ color: "var(--color-muted)" }}>
+          <div className="text-center shrink-0 min-w-[120px] rounded-xl px-3 py-2" style={{ background: "rgba(251, 191, 36, 0.14)", border: "1px solid rgba(217, 119, 6, 0.45)" }}>
+            <p className="text-[9px] uppercase tracking-[0.18em] mb-1" style={{ color: "#b45309" }}>
               {t.storeBalanceTitle}
             </p>
             <div className="flex items-center justify-center gap-1.5">
               <span className="text-2xl drop-shadow-[0_0_10px_rgba(250,204,21,0.35)]">{t.tokenIcon}</span>
-              <p className="cinzel text-2xl font-bold leading-none m-0" style={{ color: "var(--color-primary)" }}>{tokens}</p>
+              <p className="cinzel text-2xl font-bold leading-none m-0" style={{ color: "#d97706" }}>{tokens}</p>
             </div>
           </div>
         </div>
@@ -78,6 +79,9 @@ export default function StoreTab({
         onOpenPinnedReplacement={onOpenPinnedReplacement}
         onFreezeStreak={onFreezeStreak}
         onBuyExtraReroll={onBuyExtraReroll}
+        xpBoostCost={xpBoostCost}
+        xpBoostExpiresAt={xpBoostExpiresAt}
+        onBuyXpBoost={onBuyXpBoost}
         compact
       />
     </div>

@@ -19,6 +19,7 @@ export default function DesktopLayout({
   resetTimer, leaderboard, authUser, logs,
   canRerollPinned, isFreePinnedReroll, daysUntilFreePinnedReroll,
   onOpenPinnedReplacement, onFreezeStreak, onBuyExtraReroll,
+  onBuyXpBoost, xpBoostExpiresAt,
   renderQuestTimer,
   emptyPinnedSlotCount,
   emptyOtherSlotCount,
@@ -99,6 +100,8 @@ export default function DesktopLayout({
         onOpenPinnedReplacement={onOpenPinnedReplacement}
         onFreezeStreak={onFreezeStreak}
         onBuyExtraReroll={onBuyExtraReroll}
+        onBuyXpBoost={onBuyXpBoost}
+        xpBoostExpiresAt={xpBoostExpiresAt}
       />
     </>
   );

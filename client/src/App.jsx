@@ -12,6 +12,7 @@ import {
   resetHard,
   freezeStreak,
   buyExtraReroll,
+  buyXpBoost,
   replacePinnedQuests,
   rerollPinned,
   fetchProfileStats,
@@ -524,7 +525,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
               monthlyFreezeClaims: userData.monthlyFreezeClaims ?? "",
               streakFreezeCharges: Number(userData.streakFreezeCharges) || 0,
               streakFreezeExpiresAt: userData.streakFreezeExpiresAt ?? null,
-              lastFreezePurchaseWeekKey: userData.lastFreezePurchaseWeekKey ?? ""
+              lastFreezePurchaseWeekKey: userData.lastFreezePurchaseWeekKey ?? "",
+              xpBoostExpiresAt: userData.xpBoostExpiresAt ?? null
             },
             productivity: gameStateResponse?.productivity ?? prev.productivity,
             pinnedQuestProgress21d: normalizePinnedQuestProgress(gameStateResponse?.pinnedQuestProgress21d),
@@ -701,6 +703,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     handleResetDaily,
     handleHardReset,
     handleBuyExtraReroll,
+    handleBuyXpBoost,
     handleRerollPinned,
     handleFreezeStreak,
     freezeStreakPending,
@@ -720,6 +723,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     resetDaily,
     resetHard,
     buyExtraReroll,
+    buyXpBoost,
     freezeStreak,
     rerollPinned,
     onServerTimeSync: applyServerTimeSync,
@@ -1401,6 +1405,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 completedToday={completedToday}
                 milestoneSteps={milestoneSteps}
                 streakBonusPercent={streakBonusPercent}
+                xpBoostExpiresAt={state.user?.xpBoostExpiresAt ?? null}
                 maxDailyQuests={maxDailyQuests}
                 renderQuestTimer={(quest) => (
                   <Suspense fallback={null}>
@@ -1493,6 +1498,13 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 onFreezeStreak={handleFreezeStreak}
                 freezeStreakPending={freezeStreakPending}
                 onBuyExtraReroll={handleBuyExtraReroll}
+                xpBoostCost={(() => {
+                  const resLvl = Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[4]) || 0)));
+                  const discount = resLvl >= 5 ? 2 : resLvl >= 1 ? 1 : 0;
+                  return Math.max(0, 15 - discount);
+                })()}
+                xpBoostExpiresAt={state.user?.xpBoostExpiresAt ?? null}
+                onBuyXpBoost={handleBuyXpBoost}
                 t={t}
               />
             ) : null}
@@ -1596,6 +1608,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             onOpenPinnedReplacement={openPinnedReplacementModal}
             onFreezeStreak={handleFreezeStreak}
             onBuyExtraReroll={handleBuyExtraReroll}
+            onBuyXpBoost={handleBuyXpBoost}
+            xpBoostExpiresAt={state.user?.xpBoostExpiresAt ?? null}
             t={t}
           />
         )}

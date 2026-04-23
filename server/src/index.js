@@ -2771,9 +2771,14 @@ async function awardQuestCompletion({ user, quest, dayKey, availableQuests, cust
     const sportMultiplier = sportXpBonus(sportLvl);
     const sportBonusXpInner = Math.max(0, Math.round(freshXpState.awardedXp * (sportMultiplier - 1)));
 
+    const xpBoostActiveInner = xpBoostActiveFor(freshUser, now);
+    const xpBoostBonusXpInner = xpBoostActiveInner
+      ? Math.max(0, Math.round(freshXpState.awardedXp * (XP_BOOST_MULTIPLIER - 1)))
+      : 0;
+
     const freshXpStateWithMilestone = applyBonusXpProgress(
       freshXpState,
-      milestoneReward.bonusXp + sportBonusXpInner
+      milestoneReward.bonusXp + sportBonusXpInner + xpBoostBonusXpInner
     );
 
     let freshTokenIncrement = baseTokenIncrement;
@@ -3261,15 +3266,23 @@ function isAlreadySpunToday(user, todayKey) {
   return alreadySpunByField || alreadySpunByFallback;
 }
 
-// Returns next allowed spin time based on Park district level. If no
-// lastCitySpinAt, uses legacy midnight cooldown.
+// Returns next allowed spin time based on Park district level.
 function computeNextSpinAt(user, now = new Date()) {
   const parkLvl = districtLevelOf(user?.districtLevels, "park");
   const hours = PARK_SPIN_COOLDOWN_HOURS[Math.max(0, Math.min(5, parkLvl))];
   if (user?.lastCitySpinAt) {
     return new Date(new Date(user.lastCitySpinAt).getTime() + hours * 3600_000);
   }
-  return nextMidnightUTC(now);
+  // Legacy path: timestamp not stamped yet. If the day-key marks today as spun,
+  // approximate cooldown from start-of-today + perk hours so the Park perk
+  // still takes effect. Otherwise the user hasn't spun — no cooldown.
+  const todayKey = getDateKey(now);
+  const legacyDone = user?.lastCitySpinDayKey === todayKey
+    || (user?.id && citySpinFallbackDayByUserId.get(user.id) === todayKey);
+  if (!legacyDone) return now;
+  const startOfToday = new Date(now);
+  startOfToday.setUTCHours(0, 0, 0, 0);
+  return new Date(startOfToday.getTime() + hours * 3600_000);
 }
 function isSpinOnCooldown(user, now = new Date()) {
   const next = computeNextSpinAt(user, now);
@@ -4191,6 +4204,53 @@ app.post("/api/shop/extra-reroll", async (req, res) => {
       ? await prisma.user.update({ where: { id: user.id }, data: { tokens: { decrement: rerollCost } } })
       : user;
     res.json({ ok: true, tokens: updatedUser.tokens, cost: rerollCost, discount });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// XP Boost: 15 tokens → +15% XP on every quest completion for 7 days.
+// Buying while active extends expiry by +7 days from current expiry (not now).
+const XP_BOOST_COST = 15;
+const XP_BOOST_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+const XP_BOOST_MULTIPLIER = 1.15;
+
+function xpBoostActiveFor(user, now = new Date()) {
+  return Boolean(user?.xpBoostExpiresAt && new Date(user.xpBoostExpiresAt).getTime() > now.getTime());
+}
+
+app.post("/api/shop/buy-xp-boost", async (req, res) => {
+  try {
+    const parsed = usernameBody.parse(req.body);
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const now = new Date();
+    const resLvl = districtLevelOf(user.districtLevels, "residential");
+    const discount = residentialShopDiscount(resLvl);
+    const cost = Math.max(0, XP_BOOST_COST - discount);
+    if (user.tokens < cost) {
+      return res.status(400).json({ error: "Not enough tokens", code: "not_enough_tokens" });
+    }
+    const base = user.xpBoostExpiresAt && new Date(user.xpBoostExpiresAt).getTime() > now.getTime()
+      ? new Date(user.xpBoostExpiresAt)
+      : now;
+    const newExpiry = new Date(base.getTime() + XP_BOOST_DURATION_MS);
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        tokens: { decrement: cost },
+        xpBoostExpiresAt: newExpiry
+      }
+    });
+    res.json({
+      ok: true,
+      tokens: updated.tokens,
+      cost,
+      discount,
+      xpBoostExpiresAt: updated.xpBoostExpiresAt
+    });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
   }
