@@ -19,7 +19,7 @@ function CustomHabitManager({
   customError,
   onClearCustomError
 }) {
-  const { t } = useTheme();
+  const { t, tf } = useTheme();
   const [mode, setMode] = useState("list"); // "list" | "create" | "edit"
   const [editingId, setEditingId] = useState(null);
   const [title, setTitle] = useState("");
@@ -133,7 +133,7 @@ function CustomHabitManager({
                         border: "none",
                         padding: 0,
                         cursor: blocked ? "not-allowed" : "pointer",
-                        paddingRight: 92
+                        paddingRight: 100
                       }}
                     >
                       <p className="cinzel text-sm text-slate-100 font-bold">
@@ -161,9 +161,9 @@ function CustomHabitManager({
                         aria-label={t.customHabitEdit}
                         className="mobile-pressable"
                         style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 10,
+                          width: 40,
+                          height: 40,
+                          borderRadius: 11,
                           background: "rgba(15, 23, 42, 0.7)",
                           border: "1px solid var(--card-border-idle)",
                           color: "#e2e8f0",
@@ -174,7 +174,7 @@ function CustomHabitManager({
                           padding: 0
                         }}
                       >
-                        <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                         </svg>
@@ -187,9 +187,9 @@ function CustomHabitManager({
                           aria-label={t.customHabitDelete}
                           className="mobile-pressable"
                           style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: 10,
+                            width: 40,
+                            height: 40,
+                            borderRadius: 11,
                             background: "rgba(239, 68, 68, 0.14)",
                             border: "1px solid rgba(239, 68, 68, 0.45)",
                             color: "#fca5a5",
@@ -200,7 +200,7 @@ function CustomHabitManager({
                             padding: 0
                           }}
                         >
-                          <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <polyline points="3 6 5 6 21 6"/>
                             <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
                             <path d="M10 11v6M14 11v6"/>
@@ -360,7 +360,10 @@ function CustomHabitManager({
         </div>
       )}
 
-      {allowDelete && confirmDeleteId != null && (
+      {allowDelete && confirmDeleteId != null && (() => {
+        const victim = Array.isArray(customQuests) ? customQuests.find((cq) => cq.id === confirmDeleteId) : null;
+        const victimName = victim?.title || "";
+        return (
         <div
           className="logout-confirm-overlay"
           style={{ zIndex: 120 }}
@@ -368,8 +371,8 @@ function CustomHabitManager({
         >
           <div className="logout-confirm-card" style={{ maxWidth: 360 }}>
             <div className="text-3xl mb-2 text-center">🗑</div>
-            <p className="text-slate-100 text-center mb-4">
-                  {t.customHabitDeleteConfirm}
+            <p className="text-slate-100 text-center mb-4" style={{ lineHeight: 1.45 }}>
+              {tf("customHabitDeleteConfirm", { name: victimName })}
             </p>
             <div className="flex gap-2">
               <button
@@ -394,7 +397,8 @@ function CustomHabitManager({
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

@@ -437,24 +437,45 @@ function OnboardingModal({
             {t.onboardingHandleHint || "3–20 letters / digits / underscore. Others find you by this."}
           </p>
 
-          {/* Plain section header introducing the habit-picking area.
-              No pill, no progress bar, no sticky — those live in the
-              fixed modal top header and don't need to duplicate here. */}
-          <div style={{ marginTop: 14, marginBottom: 8 }}>
+          {/* Clear section-start header for the habit picker. Top border
+              + accent bar + larger title so the transition from "name /
+              username" form into "pick habits" reads as a new section. */}
+          <div
+            style={{
+              marginTop: 22,
+              marginBottom: 10,
+              paddingTop: 16,
+              borderTop: "1px solid var(--card-border-idle)",
+              position: "relative"
+            }}
+          >
+            <span
+              aria-hidden
+              style={{
+                position: "absolute",
+                top: -1,
+                left: 0,
+                width: 44,
+                height: 2,
+                background: "var(--color-primary)",
+                borderRadius: 2
+              }}
+            />
             <h3
               className="cinzel"
               style={{
                 margin: 0,
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: "0.12em",
+                fontSize: 16,
+                fontWeight: 800,
+                letterSpacing: "0.06em",
                 color: "var(--color-primary)",
-                textTransform: "uppercase"
+                textTransform: "uppercase",
+                lineHeight: 1.25
               }}
             >
               {tf("onboardingPick", { pinned: SELECTION_LIMIT })}
             </h3>
-            <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--color-muted)", lineHeight: 1.4 }}>
+            <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--color-muted)", lineHeight: 1.4 }}>
               {t.onboardingPickSubtitle || "Pick from existing or create your own"}
             </p>
           </div>
