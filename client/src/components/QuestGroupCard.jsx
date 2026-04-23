@@ -6,6 +6,35 @@ import { variantLabel } from "../utils/questGrouping";
 // so it always fits regardless of how many tiers the family has. The dots
 // under the readout double as both a carousel indicator (where you are in
 // the tier list) and the difficulty read (since tiers are effort-sorted).
+// A second DifficultyDots row sits next to the title so the user sees the
+// effort level of the currently-picked tier at a glance.
+
+function DifficultyDots({ level = 0, max = 5 }) {
+  const safeLevel = Math.max(0, Math.min(max, Math.floor(Number(level) || 0)));
+  return (
+    <span
+      aria-label={`Difficulty ${safeLevel} of ${max}`}
+      style={{ display: "inline-flex", alignItems: "center", gap: 3 }}
+    >
+      {Array.from({ length: max }).map((_, i) => {
+        const filled = i < safeLevel;
+        return (
+          <span
+            key={i}
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 999,
+              background: filled ? "var(--color-primary)" : "rgba(148,163,184,0.28)",
+              display: "inline-block",
+              transition: "background 160ms ease"
+            }}
+          />
+        );
+      })}
+    </span>
+  );
+}
 
 export default function QuestGroupCard({
   group,
@@ -109,19 +138,22 @@ export default function QuestGroupCard({
       >
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h4
-              className="cinzel"
-              style={{
-                fontSize: 15,
-                fontWeight: 700,
-                color: "var(--color-text)",
-                margin: 0,
-                lineHeight: 1.25,
-                letterSpacing: "0.02em"
-              }}
-            >
-              {representative.title}
-            </h4>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <h4
+                className="cinzel"
+                style={{
+                  fontSize: 15,
+                  fontWeight: 700,
+                  color: "var(--color-text)",
+                  margin: 0,
+                  lineHeight: 1.25,
+                  letterSpacing: "0.02em"
+                }}
+              >
+                {representative.title}
+              </h4>
+              <DifficultyDots level={activeQuest.effortScore} max={5} />
+            </div>
             <span
               className="cinzel"
               style={{
