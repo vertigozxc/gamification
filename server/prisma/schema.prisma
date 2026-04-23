@@ -45,6 +45,7 @@ model User {
   isDevTester               Boolean                @default(false)
   maxStreak                 Int                    @default(0)
   onboardingSkippedAt       DateTime?
+  handle                    String?                @unique
   createdAt                 DateTime               @default(now())
   updatedAt                 DateTime               @updatedAt
   customQuests              CustomQuest[]

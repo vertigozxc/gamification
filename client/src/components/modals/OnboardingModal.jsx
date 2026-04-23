@@ -1,10 +1,23 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "../../ThemeContext";
 import CustomHabitManager from "./CustomHabitManager";
 import QuestGroupCard from "../QuestGroupCard";
 import CategoryFilterRow from "../CategoryFilterRow";
 import InputWithClear from "../InputWithClear";
 import { groupQuests, availableCategories, matchesCategory } from "../../utils/questGrouping";
+import { suggestHandle as apiSuggestHandle, checkHandle as apiCheckHandle } from "../../api";
+
+const HANDLE_MIN_LENGTH = 3;
+const HANDLE_MAX_LENGTH = 20;
+
+function normalizeHandleLocal(raw) {
+  return String(raw || "")
+    .trim()
+    .replace(/^@+/, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "")
+    .slice(0, HANDLE_MAX_LENGTH);
+}
 
 function OnboardingModal({
   open,
@@ -29,7 +42,8 @@ function OnboardingModal({
   onUpdateCustomQuest,
   onDeleteCustomQuest,
   selectionLimit = 2,
-  randomQuestCount = 2
+  randomQuestCount = 2,
+  authUsername = ""
 }) {
   const SELECTION_LIMIT = Math.max(1, Number(selectionLimit) || 2);
   const RANDOM_COUNT = Math.max(1, Number(randomQuestCount) || 2);
@@ -40,6 +54,14 @@ function OnboardingModal({
   // See PinnedReplacementModal — snapshot at open so tapping doesn't
   // cause the selected card to jump out from under the user's finger.
   const [initialSelectedIds, setInitialSelectedIds] = useState([]);
+  // @handle: local state. Server is the source of truth for uniqueness —
+  // we just mirror it here for typing + an availability badge. On modal
+  // open we seed an initial value from /api/handle/suggest so the user
+  // can tap Skip/Begin in one step without touching this input.
+  const [handleInput, setHandleInput] = useState("");
+  const [handleStatus, setHandleStatus] = useState("idle"); // idle | checking | available | taken | invalid | short
+  const [handleTouched, setHandleTouched] = useState(false);
+  const checkReqRef = useRef(0);
 
   useEffect(() => {
     if (open) {
@@ -51,6 +73,67 @@ function OnboardingModal({
     return undefined;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Seed the @handle input once per modal opening. Uses the name we
+  // already have (Google displayName, typically) as the server-side
+  // suggestion seed so the initial value is likely to read nicely.
+  useEffect(() => {
+    if (!open) return undefined;
+    setHandleTouched(false);
+    setHandleStatus("idle");
+    let cancelled = false;
+    const seedName = (onboardingName || "").trim();
+    apiSuggestHandle(seedName)
+      .then((resp) => {
+        if (cancelled) return;
+        const suggested = normalizeHandleLocal(resp?.handle || "");
+        if (suggested) {
+          setHandleInput(suggested);
+          setHandleStatus("available"); // server guarantees it was free at this moment
+        } else {
+          setHandleInput("");
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // Offline / slow — fall back to a local slug of the name. The
+        // server will still uniqueness-check on submit.
+        setHandleInput(normalizeHandleLocal(seedName) || "");
+      });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Debounced availability check whenever the user edits the handle.
+  useEffect(() => {
+    if (!open) return undefined;
+    if (!handleTouched) return undefined;
+    const value = normalizeHandleLocal(handleInput);
+    if (value.length < HANDLE_MIN_LENGTH) {
+      setHandleStatus("short");
+      return undefined;
+    }
+    setHandleStatus("checking");
+    const req = ++checkReqRef.current;
+    const timer = setTimeout(() => {
+      apiCheckHandle(value, authUsername || undefined)
+        .then((resp) => {
+          // Only apply result if this is still the latest request.
+          if (req !== checkReqRef.current) return;
+          if (!resp) return;
+          if (resp.available) setHandleStatus("available");
+          else if (resp.reason === "too_short") setHandleStatus("short");
+          else if (resp.reason === "invalid") setHandleStatus("invalid");
+          else setHandleStatus("taken");
+        })
+        .catch(() => {
+          if (req !== checkReqRef.current) return;
+          // Network error — let the user submit anyway; server revalidates.
+          setHandleStatus("idle");
+        });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [handleInput, handleTouched, open, authUsername]);
 
   const nonCustomQuests = useMemo(
     () => (Array.isArray(filteredOnboardingQuests) ? filteredOnboardingQuests.filter((q) => !q.isCustom) : []),
@@ -101,12 +184,16 @@ function OnboardingModal({
 
   const selectedCount = Array.isArray(onboardingQuestIds) ? onboardingQuestIds.length : 0;
   const selectionComplete = selectedCount === SELECTION_LIMIT;
-  const primaryDisabled = onboardingSaving || !onboardingName.trim() || !selectionComplete;
+  // Block submit on handle states the server will reject. "checking" is
+  // allowed through — the server revalidates on the mutation call.
+  const handleBlocksSubmit = handleStatus === "taken" || handleStatus === "invalid" || handleStatus === "short";
+  const primaryDisabled = onboardingSaving || !onboardingName.trim() || !selectionComplete || handleBlocksSubmit;
   const progressPct = Math.min(100, Math.round((selectedCount / SELECTION_LIMIT) * 100));
+  const normalizedHandle = normalizeHandleLocal(handleInput);
 
   const handleStartRequest = () => {
     if (onboardingName.trim() === "" || selectedCount !== SELECTION_LIMIT) {
-      onComplete(); // let parent show error
+      onComplete(normalizedHandle); // let parent show error
     } else {
       setShowWarning(true);
     }
@@ -265,6 +352,104 @@ function OnboardingModal({
             }}
           />
 
+          {/* @handle — public, searchable, shown under the display name in
+              profiles and leaderboards. Auto-seeded on open; user can edit. */}
+          <label
+            className="cinzel"
+            style={{
+              display: "block",
+              marginTop: 14,
+              marginBottom: 6,
+              fontSize: 11,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "var(--color-primary)"
+            }}
+          >
+            {t.onboardingHandleLabel || "Username"}
+          </label>
+          <div
+            style={{
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              padding: "0 14px",
+              borderRadius: 12,
+              background: "rgba(0,0,0,0.35)",
+              border: `1px solid ${
+                handleStatus === "taken" || handleStatus === "invalid" || handleStatus === "short"
+                  ? "rgba(239, 68, 68, 0.55)"
+                  : handleStatus === "available"
+                  ? "rgba(16, 185, 129, 0.55)"
+                  : "var(--card-border-idle)"
+              }`,
+              minHeight: 44,
+              transition: "border-color 180ms ease"
+            }}
+          >
+            <span
+              aria-hidden
+              style={{
+                color: "var(--color-muted)",
+                fontSize: 16,
+                fontWeight: 700,
+                marginRight: 4,
+                userSelect: "none",
+                pointerEvents: "none"
+              }}
+            >@</span>
+            <input
+              type="text"
+              value={handleInput}
+              onChange={(e) => {
+                setHandleTouched(true);
+                setHandleInput(normalizeHandleLocal(e.target.value));
+              }}
+              maxLength={HANDLE_MAX_LENGTH}
+              autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder={t.onboardingHandlePlaceholder || "username"}
+              aria-label={t.onboardingHandleLabel || "Username"}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                padding: "12px 0",
+                background: "transparent",
+                border: "none",
+                color: "#e2e8f0",
+                fontSize: 16,
+                outline: "none",
+                fontFamily: "var(--font-heading)"
+              }}
+            />
+            <span
+              style={{
+                marginLeft: 8,
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                minWidth: 56,
+                textAlign: "right",
+                color:
+                  handleStatus === "available" ? "#10b981"
+                  : handleStatus === "taken" || handleStatus === "invalid" || handleStatus === "short" ? "#ef4444"
+                  : "var(--color-muted)"
+              }}
+            >
+              {handleStatus === "checking" && (t.onboardingHandleChecking || "…")}
+              {handleStatus === "available" && "✓"}
+              {handleStatus === "taken" && (t.onboardingHandleTaken || "taken")}
+              {handleStatus === "invalid" && (t.onboardingHandleInvalid || "invalid")}
+              {handleStatus === "short" && (t.onboardingHandleShort || `${HANDLE_MIN_LENGTH}+`)}
+            </span>
+          </div>
+          <p style={{ margin: "6px 2px 0", fontSize: 11, color: "var(--color-muted)", lineHeight: 1.4 }}>
+            {t.onboardingHandleHint || "3–20 letters / digits / underscore. Others find you by this."}
+          </p>
+
           <div style={{ marginTop: 14 }}>
             <InputWithClear
               value={onboardingQuestSearch}
@@ -393,10 +578,10 @@ function OnboardingModal({
             <button
               type="button"
               onClick={() => {
-                if (!onboardingName.trim() || onboardingSaving) return;
-                onSkip?.();
+                if (!onboardingName.trim() || onboardingSaving || handleBlocksSubmit) return;
+                onSkip?.(normalizedHandle);
               }}
-              disabled={onboardingSaving || !onboardingName.trim() || !onSkip}
+              disabled={onboardingSaving || !onboardingName.trim() || !onSkip || handleBlocksSubmit}
               className="cinzel mobile-pressable"
               title={!onboardingName.trim() ? t.nicknameRequired : undefined}
               style={{
@@ -408,9 +593,9 @@ function OnboardingModal({
                 color: !onboardingName.trim() ? "#64748b" : "#cbd5e1",
                 fontSize: 13,
                 fontWeight: 600,
-                cursor: (!onboardingName.trim() || onboardingSaving) ? "not-allowed" : "pointer",
+                cursor: (!onboardingName.trim() || onboardingSaving || handleBlocksSubmit) ? "not-allowed" : "pointer",
                 letterSpacing: "0.05em",
-                opacity: (!onboardingName.trim() || onboardingSaving) ? 0.7 : 1
+                opacity: (!onboardingName.trim() || onboardingSaving || handleBlocksSubmit) ? 0.7 : 1
               }}
             >
               {t.onboardingSkipLater || "I'll do it later"}
@@ -485,7 +670,7 @@ function OnboardingModal({
                 }}
                 onClick={() => {
                   setShowWarning(false);
-                  onComplete();
+                  onComplete(normalizedHandle);
                 }}
               >
                 {t.continueLabel}

@@ -168,18 +168,33 @@ export function fetchAllQuests({ level, streak } = {}) {
   return request(`/api/quests/all${qs ? `?${qs}` : ""}`);
 }
 
-export function completeOnboarding(username, displayName, preferredQuestIds, photoUrl) {
+export function completeOnboarding(username, displayName, preferredQuestIds, photoUrl, handle) {
   return request("/api/onboarding/complete", {
     method: "POST",
-    body: JSON.stringify({ username, displayName, preferredQuestIds, photoUrl })
+    body: JSON.stringify({ username, displayName, preferredQuestIds, photoUrl, handle })
   });
 }
 
-export function skipOnboarding(username, displayName, photoUrl) {
+export function skipOnboarding(username, displayName, photoUrl, handle) {
   return request("/api/onboarding/skip", {
     method: "POST",
-    body: JSON.stringify({ username, displayName, photoUrl })
+    body: JSON.stringify({ username, displayName, photoUrl, handle })
   });
+}
+
+// Server suggests an unclaimed @handle seeded from the displayName the
+// user just typed. Used to pre-fill the onboarding @handle input.
+export function suggestHandle(displayName) {
+  const qs = new URLSearchParams({ displayName: String(displayName || "") }).toString();
+  return request(`/api/handle/suggest?${qs}`);
+}
+
+// Debounced availability check for the @handle input. Passing `username`
+// (Firebase UID) lets the server exclude the caller's own current handle.
+export function checkHandle(value, username) {
+  const params = new URLSearchParams({ value: String(value || "") });
+  if (username) params.set("username", String(username));
+  return request(`/api/handle/check?${params.toString()}`);
 }
 
 export function startQuestTimer(username, questId) {

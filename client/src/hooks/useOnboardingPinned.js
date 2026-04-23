@@ -416,17 +416,18 @@ function useOnboardingPinned({
   // required to address the user), but does NOT require any habits picked.
   // Server stamps onboardingSkippedAt so the gate won't come back. Empty
   // habit slots will render as add-habit placeholders on the daily board.
-  async function handleSkipOnboarding() {
+  async function handleSkipOnboarding(handle) {
     const trimmedName = onboardingName.trim();
     if (!trimmedName) {
       setOnboardingError(t.nicknameRequired);
       return;
     }
+    const trimmedHandle = typeof handle === "string" ? handle.trim() : "";
 
     setOnboardingSaving(true);
     setOnboardingError("");
     try {
-      const result = await apiSkipOnboarding(resolvedUsername, trimmedName, portraitData || undefined);
+      const result = await apiSkipOnboarding(resolvedUsername, trimmedName, portraitData || undefined, trimmedHandle || undefined);
       if (typeof onServerTimeSync === "function") {
         onServerTimeSync(result);
       }
@@ -467,7 +468,7 @@ function useOnboardingPinned({
     }
   }
 
-  async function handleCompleteOnboarding() {
+  async function handleCompleteOnboarding(handle) {
     const trimmedName = onboardingName.trim();
     if (!trimmedName) {
       setOnboardingError(t.nicknameRequired);
@@ -477,11 +478,12 @@ function useOnboardingPinned({
       setOnboardingError(tf("pickExactly4PreferredQuests", { n: preferredQuestLimit }));
       return;
     }
+    const trimmedHandle = typeof handle === "string" ? handle.trim() : "";
 
     setOnboardingSaving(true);
     setOnboardingError("");
     try {
-      const result = await completeOnboarding(resolvedUsername, trimmedName, onboardingQuestIds, portraitData || undefined);
+      const result = await completeOnboarding(resolvedUsername, trimmedName, onboardingQuestIds, portraitData || undefined, trimmedHandle || undefined);
       if (typeof onServerTimeSync === "function") {
         onServerTimeSync(result);
       }

@@ -164,6 +164,19 @@ function Hero({ profile, t }) {
       <StreakFrame streak={profile.streak} size={96} ringWidth={5}>
         <Avatar photoUrl={profile.photoUrl} displayName={profile.displayName} size={96} />
       </StreakFrame>
+      {profile.handle ? (
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 700,
+            letterSpacing: "0.04em",
+            color: "var(--color-muted)",
+            marginTop: -4
+          }}
+        >
+          @{profile.handle}
+        </div>
+      ) : null}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
         <span className="sb-pill sb-pill-accent">⭐ {t.arenaLvlFull || "Level"} {profile.level}</span>
         {tier.label && (

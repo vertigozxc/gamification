@@ -19,7 +19,18 @@ import {
   getEffortRange,
   normalizeQuestLanguage
 } from "./quests.js";
-import { buildInviteCode, getDateKey, slugifyUsername, xpAfterQuest } from "./utils.js";
+import {
+  buildInviteCode,
+  getDateKey,
+  slugifyUsername,
+  xpAfterQuest,
+  normalizeHandle,
+  isValidHandleShape,
+  seedHandleFromDisplayName,
+  appendHandleSuffix,
+  HANDLE_MIN_LENGTH,
+  HANDLE_MAX_LENGTH
+} from "./utils.js";
 import {
   getWeekKey,
   summarizeTodayProgress
@@ -593,7 +604,9 @@ app.post("/api/dev/reset-me", async (req, res) => {
           // full reset. Without this, needsOnboarding stays false even
           // though the account is wiped, and the dev tester lands on a
           // nameless empty dashboard instead of the onboarding screen.
-          onboardingSkippedAt: null
+          onboardingSkippedAt: null,
+          // Drop the public @handle too — onboarding will reassign it.
+          handle: null
         }
       })
     ]);
@@ -1757,6 +1770,55 @@ function onboardingStatus(user, customQuests = []) {
   };
 }
 
+// Find an unused @handle starting from `seed`. If taken, append a random
+// numeric suffix and retry. `excludeUserId` lets self-check pass during an
+// onboarding edit where the user's own handle is already claimed by them.
+async function ensureUniqueHandle(seed, { excludeUserId = null, maxTries = 12 } = {}) {
+  const safeSeed = normalizeHandle(seed);
+  const base = safeSeed.length >= HANDLE_MIN_LENGTH ? safeSeed : seedHandleFromDisplayName(safeSeed);
+  const whereForCandidate = (value) => excludeUserId
+    ? { handle: value, NOT: { id: excludeUserId } }
+    : { handle: value };
+
+  const first = normalizeHandle(base);
+  if (isValidHandleShape(first)) {
+    const clash = await prisma.user.findFirst({ where: whereForCandidate(first), select: { id: true } });
+    if (!clash) return first;
+  }
+
+  for (let i = 0; i < maxTries; i += 1) {
+    const candidate = normalizeHandle(appendHandleSuffix(base));
+    if (!isValidHandleShape(candidate)) continue;
+    const clash = await prisma.user.findFirst({ where: whereForCandidate(candidate), select: { id: true } });
+    if (!clash) return candidate;
+  }
+  // Extremely unlikely fallback — every attempt collided. Use timestamp.
+  const stamp = Date.now().toString(36).slice(-6);
+  return normalizeHandle((base + stamp).slice(0, HANDLE_MAX_LENGTH)) || `user${stamp}`;
+}
+
+// Idempotent: returns existing handle if set, otherwise generates + saves
+// one for this user. Safe to call from hot paths like /game-state.
+async function ensureUserHandle(user) {
+  if (user?.handle) return user.handle;
+  const seed = seedHandleFromDisplayName(user?.displayName || user?.username || "user");
+  const handle = await ensureUniqueHandle(seed, { excludeUserId: user?.id });
+  try {
+    await prisma.user.update({ where: { id: user.id }, data: { handle } });
+    user.handle = handle;
+  } catch (err) {
+    // If a concurrent request raced us and set a different handle first,
+    // re-read what stuck. Either way, return something non-empty.
+    const fresh = await prisma.user.findUnique({ where: { id: user.id }, select: { handle: true } });
+    if (fresh?.handle) {
+      user.handle = fresh.handle;
+      return fresh.handle;
+    }
+    console.error(`[handle] ensureUserHandle failed for ${user?.username}: ${err?.message || err}`);
+  }
+  return user.handle || handle;
+}
+
 function hasUsedDailyRerollToday(user, now = new Date()) {
   if (!user?.lastDailyRerollAt) {
     return false;
@@ -2585,6 +2647,17 @@ app.get("/api/game-state/:username", async (req, res) => {
     user.xpNext = correctXpNext;
   }
 
+  // Lazy-backfill the public @handle for accounts created before the
+  // feature existed. Onboarding-path already assigns one, but legacy
+  // users hit this path on their first login after the deploy.
+  if (!user.handle) {
+    try {
+      await ensureUserHandle(user);
+    } catch (handleErr) {
+      console.error(`[game-state] ensureUserHandle failed: ${handleErr?.message || handleErr}`);
+    }
+  }
+
   const dateKey = getDateKey(now);
   const [completions, customQuests] = await Promise.all([
     prisma.questCompletion.findMany({
@@ -2708,7 +2781,10 @@ app.post("/api/onboarding/complete", async (req, res) => {
     displayName: z.string().min(1).max(64),
     // See /api/profiles/upsert for rationale on the 150 KB cap.
     photoUrl: z.string().max(150_000).optional(),
-    preferredQuestIds: z.array(z.number().int().min(1)).length(onboardingPinnedCount)
+    preferredQuestIds: z.array(z.number().int().min(1)).length(onboardingPinnedCount),
+    // Optional public @handle. If the client sent one, validate + reserve
+    // it; otherwise we auto-generate a unique fallback from displayName.
+    handle: z.string().max(HANDLE_MAX_LENGTH + 4).optional()
   });
 
   try {
@@ -2749,12 +2825,30 @@ app.post("/api/onboarding/complete", async (req, res) => {
     }
 
     const displayName = parsed.displayName.trim().slice(0, 64);
+    // Resolve the @handle: prefer the client's submitted value (normalized
+    // + uniqueness-enforced), fall back to a displayName-seeded generator.
+    // If the user already has a handle, only overwrite when the client
+    // explicitly submitted a new one. Race-safe: ensureUniqueHandle
+    // re-checks the DB under a suffix loop.
+    let resolvedHandle = user.handle || null;
+    if (parsed.handle !== undefined) {
+      const requested = normalizeHandle(parsed.handle);
+      if (requested.length > 0 && !isValidHandleShape(requested)) {
+        return res.status(400).json({ error: "Invalid handle", detail: "Use 3..20 letters/digits/underscore" });
+      }
+      const seed = requested.length > 0 ? requested : seedHandleFromDisplayName(displayName);
+      resolvedHandle = await ensureUniqueHandle(seed, { excludeUserId: user.id });
+    } else if (!resolvedHandle) {
+      resolvedHandle = await ensureUniqueHandle(seedHandleFromDisplayName(displayName), { excludeUserId: user.id });
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         displayName,
         photoUrl: parsed.photoUrl ?? user.photoUrl,
-        preferredQuestIds: serializePreferredQuestIds(uniquePreferredQuestIds)
+        preferredQuestIds: serializePreferredQuestIds(uniquePreferredQuestIds),
+        handle: resolvedHandle
       }
     });
 
@@ -2802,7 +2896,8 @@ app.post("/api/onboarding/skip", async (req, res) => {
   const schema = z.object({
     username: z.string().min(2).max(64),
     displayName: z.string().min(1).max(64),
-    photoUrl: z.string().max(150_000).optional()
+    photoUrl: z.string().max(150_000).optional(),
+    handle: z.string().max(HANDLE_MAX_LENGTH + 4).optional()
   });
 
   try {
@@ -2815,12 +2910,26 @@ app.post("/api/onboarding/skip", async (req, res) => {
     }
 
     const displayName = parsed.displayName.trim().slice(0, 64);
+    // Resolve @handle same way as /complete (see that handler for detail).
+    let resolvedHandle = user.handle || null;
+    if (parsed.handle !== undefined) {
+      const requested = normalizeHandle(parsed.handle);
+      if (requested.length > 0 && !isValidHandleShape(requested)) {
+        return res.status(400).json({ error: "Invalid handle", detail: "Use 3..20 letters/digits/underscore" });
+      }
+      const seed = requested.length > 0 ? requested : seedHandleFromDisplayName(displayName);
+      resolvedHandle = await ensureUniqueHandle(seed, { excludeUserId: user.id });
+    } else if (!resolvedHandle) {
+      resolvedHandle = await ensureUniqueHandle(seedHandleFromDisplayName(displayName), { excludeUserId: user.id });
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         displayName,
         photoUrl: parsed.photoUrl ?? user.photoUrl,
-        onboardingSkippedAt: new Date()
+        onboardingSkippedAt: new Date(),
+        handle: resolvedHandle
       }
     });
 
@@ -5543,6 +5652,7 @@ app.get("/api/leaderboard", async (_req, res) => {
       select: {
         username: true,
         displayName: true,
+        handle: true,
         photoUrl: true,
         level: true,
         xp: true,
@@ -5842,6 +5952,7 @@ app.get("/api/leaderboard/weekly", async (req, res) => {
         id: true,
         username: true,
         displayName: true,
+        handle: true,
         photoUrl: true,
         level: true,
         streak: true,
@@ -5857,6 +5968,7 @@ app.get("/api/leaderboard/weekly", async (req, res) => {
         rank,
         username: u.username,
         displayName: u.displayName,
+        handle: u.handle,
         photoUrl: u.photoUrl,
         level: u.level,
         streak: u.streak,
@@ -5900,11 +6012,16 @@ app.get("/api/leaderboard/weekly", async (req, res) => {
   }
 });
 
-// GET /api/users/search?q=nick&limit=20 — username / displayName fuzzy search
+// GET /api/users/search?q=nick&limit=20 — username / displayName / handle fuzzy search
 app.get("/api/users/search", async (req, res) => {
   try {
-    const q = String(req.query.q || "").trim().slice(0, 64);
-    if (q.length < 2) return res.json({ users: [] });
+    const rawQ = String(req.query.q || "").trim().slice(0, 64);
+    if (rawQ.length < 2) return res.json({ users: [] });
+    // Strip a leading "@" so `@alice` still matches handle="alice".
+    const q = rawQ.replace(/^@+/, "");
+    // Handles are stored lowercase; match against a lowercased variant too
+    // to support `@Alice` inputs.
+    const handleQ = q.toLowerCase();
     const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 50);
     // Prisma `mode: "insensitive"` is postgres-only. To keep SQLite-dev compatibility,
     // we match case-sensitively here and rely on the client to lowercase display text if needed.
@@ -5914,7 +6031,8 @@ app.get("/api/users/search", async (req, res) => {
           {
             OR: [
               { username: { contains: q } },
-              { displayName: { contains: q } }
+              { displayName: { contains: q } },
+              { handle: { contains: handleQ } }
             ]
           },
           { username: { not: { startsWith: LEADERBOARD_TEST_USERNAME_PREFIX } } },
@@ -5924,6 +6042,7 @@ app.get("/api/users/search", async (req, res) => {
       select: {
         username: true,
         displayName: true,
+        handle: true,
         photoUrl: true,
         level: true,
         streak: true,
@@ -5938,6 +6057,51 @@ app.get("/api/users/search", async (req, res) => {
   }
 });
 
+// GET /api/handle/suggest?displayName=John → { handle: "john" | "john4821" }
+// Returns an unclaimed handle seeded from displayName. Used by the
+// onboarding screen as the default value for the @handle input.
+app.get("/api/handle/suggest", async (req, res) => {
+  try {
+    const displayName = String(req.query.displayName || "").trim().slice(0, 64);
+    const seed = seedHandleFromDisplayName(displayName);
+    const handle = await ensureUniqueHandle(seed);
+    res.json({ handle });
+  } catch (error) {
+    res.status(400).json({ error: "Failed to suggest handle", detail: error.message });
+  }
+});
+
+// GET /api/handle/check?value=foo&username=me → { available, reason? }
+// Client-side availability check for the onboarding @handle input.
+// Passing `username` (Firebase UID) excludes the user's own current
+// handle from the collision check, so re-confirming their own handle
+// doesn't report "taken".
+app.get("/api/handle/check", async (req, res) => {
+  try {
+    const raw = String(req.query.value || "");
+    const candidate = normalizeHandle(raw);
+    if (candidate.length < HANDLE_MIN_LENGTH) {
+      return res.json({ available: false, reason: "too_short", normalized: candidate });
+    }
+    if (!isValidHandleShape(candidate)) {
+      return res.json({ available: false, reason: "invalid", normalized: candidate });
+    }
+    let excludeUserId = null;
+    const callerUsername = slugifyUsername(req.query.username || "");
+    if (callerUsername) {
+      const caller = await prisma.user.findUnique({ where: { username: callerUsername }, select: { id: true } });
+      excludeUserId = caller?.id || null;
+    }
+    const clash = await prisma.user.findFirst({
+      where: excludeUserId ? { handle: candidate, NOT: { id: excludeUserId } } : { handle: candidate },
+      select: { id: true }
+    });
+    res.json({ available: !clash, normalized: candidate });
+  } catch (error) {
+    res.status(400).json({ error: "Handle check failed", detail: error.message });
+  }
+});
+
 // GET /api/users/:username/public — read-only profile card for the leaderboard/search
 app.get("/api/users/:username/public", async (req, res) => {
   try {
@@ -5949,6 +6113,7 @@ app.get("/api/users/:username/public", async (req, res) => {
         id: true,
         username: true,
         displayName: true,
+        handle: true,
         photoUrl: true,
         level: true,
         xp: true,

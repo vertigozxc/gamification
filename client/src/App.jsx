@@ -1618,6 +1618,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         onDeleteCustomQuest={handleDeleteCustomQuest}
         selectionLimit={Number(state.questSlots?.pinned) || 2}
         randomQuestCount={Number(state.questSlots?.random) || 2}
+        authUsername={authUser?.uid || ""}
       />
 
       <PinnedReplacementModal

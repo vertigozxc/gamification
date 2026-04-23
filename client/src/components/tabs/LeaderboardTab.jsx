@@ -360,6 +360,7 @@ function PlayerRow({ entry, isMe, meHighlight, t, onOpenProfile }) {
           {isMe && <span style={{ color: "var(--color-primary)", fontWeight: 600 }}> · {t.communityYou || "you"}</span>}
         </p>
         <p className="cm-row-meta">
+          {entry.handle ? <span style={{ color: "var(--color-muted)" }}>@{entry.handle}</span> : null}
           <span>{t.communityLvl || "Lv"} {entry.level}</span>
           <span>🔥 {entry.streak}</span>
         </p>
