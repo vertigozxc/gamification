@@ -68,44 +68,62 @@ export default function QuestNoteModal({ open, quest, onClose, onSubmit, submitt
 
   return (
     <div
-      className="logout-confirm-overlay quest-note-overlay"
-      onClick={onClose}
-      style={{ alignItems: "flex-end", padding: 0 }}
+      className="logout-confirm-overlay"
+      onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
+      style={{
+        zIndex: 85,
+        alignItems: "stretch",
+        justifyContent: "stretch",
+        padding: 0,
+        background: "rgba(0,0,0,0.72)"
+      }}
     >
       <div
-        className="quest-note-sheet"
         onClick={(event) => event.stopPropagation()}
         style={{
-          width: "100%",
-          maxWidth: 560,
-          maxHeight: "92vh",
-          margin: "0 auto",
+          position: "fixed",
+          inset: 0,
+          width: "100vw",
+          height: "100dvh",
+          maxWidth: "100vw",
+          maxHeight: "100dvh",
+          background: "var(--panel-bg, #0f172a)",
+          border: "none",
+          borderRadius: 0,
+          boxShadow: "none",
           display: "flex",
           flexDirection: "column",
-          background: "var(--panel-bg)",
-          borderTopLeftRadius: 22,
-          borderTopRightRadius: 22,
-          borderTop: "1px solid var(--card-border-idle)",
-          boxShadow: "0 -12px 40px rgba(0,0,0,0.4)",
           overflow: "hidden"
         }}
       >
-        {/* Grab handle — iOS-style sheet hint */}
-        <div style={{ display: "flex", justifyContent: "center", padding: "8px 0 2px" }}>
-          <div style={{ width: 40, height: 4, borderRadius: 999, background: "rgba(148,163,184,0.35)" }} />
-        </div>
-
         {/* Header */}
-        <div style={{ padding: "8px 18px 10px", borderBottom: "1px solid var(--card-border-idle)" }}>
-          <div className="flex items-center justify-between gap-2">
+        <div
+          style={{
+            padding: "calc(var(--mobile-safe-top, env(safe-area-inset-top, 0px)) + 14px) 16px 12px",
+            borderBottom: "1px solid var(--card-border-idle)"
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div className="flex items-center gap-2">
                 <span style={{ fontSize: 20 }}>{mechanic === "words" ? "🔤" : "📝"}</span>
-                <h2 className="cinzel" style={{ color: "var(--color-accent)", fontSize: 16, fontWeight: 800, margin: 0, letterSpacing: "0.03em" }}>
+                <h2
+                  className="cinzel"
+                  style={{
+                    color: "var(--color-accent)",
+                    fontSize: 18,
+                    fontWeight: 700,
+                    margin: 0,
+                    lineHeight: 1.2,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap"
+                  }}
+                >
                   {title}
                 </h2>
               </div>
-              <p className="truncate" style={{ color: "var(--color-muted)", fontSize: 12, marginTop: 2 }}>
+              <p className="truncate" style={{ color: "#94a3b8", fontSize: 12, marginTop: 4 }}>
                 {quest.title}
               </p>
             </div>
@@ -114,24 +132,9 @@ export default function QuestNoteModal({ open, quest, onClose, onSubmit, submitt
               onClick={onClose}
               disabled={submitting}
               aria-label={t.closeLabel || "Close"}
-              className="mobile-pressable"
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 999,
-                border: "1px solid var(--card-border-idle)",
-                background: "transparent",
-                color: "var(--color-muted)",
-                fontSize: 18,
-                lineHeight: 1,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                flexShrink: 0
-              }}
+              className="ui-close-x"
             >
-              ×
+              ✕
             </button>
           </div>
           {/* Progress */}
@@ -204,7 +207,7 @@ export default function QuestNoteModal({ open, quest, onClose, onSubmit, submitt
                 <div
                   key={index}
                   style={{
-                    background: "var(--card-bg)",
+                    background: "rgba(255,255,255,0.03)",
                     border: `1px solid ${filled ? "var(--color-primary-dim, var(--card-border-idle))" : "var(--card-border-idle)"}`,
                     borderRadius: 14,
                     padding: 12,
@@ -230,7 +233,7 @@ export default function QuestNoteModal({ open, quest, onClose, onSubmit, submitt
                     spellCheck={false}
                     style={{
                       width: "100%",
-                      background: "var(--panel-bg)",
+                      background: "rgba(0,0,0,0.28)",
                       border: "1px solid var(--card-border-idle)",
                       borderRadius: 10,
                       padding: "12px 14px",
@@ -255,7 +258,7 @@ export default function QuestNoteModal({ open, quest, onClose, onSubmit, submitt
                     maxLength={240}
                     style={{
                       width: "100%",
-                      background: "var(--panel-bg)",
+                      background: "rgba(0,0,0,0.28)",
                       border: "1px solid var(--card-border-idle)",
                       borderRadius: 10,
                       padding: "12px 14px",
@@ -275,7 +278,7 @@ export default function QuestNoteModal({ open, quest, onClose, onSubmit, submitt
               <div
                 key={index}
                 style={{
-                  background: "var(--card-bg)",
+                  background: "rgba(255,255,255,0.03)",
                   border: `1px solid ${done ? "var(--color-primary-dim, var(--card-border-idle))" : "var(--card-border-idle)"}`,
                   borderRadius: 14,
                   padding: 12,
@@ -299,7 +302,7 @@ export default function QuestNoteModal({ open, quest, onClose, onSubmit, submitt
                   rows={isLast ? 4 : 3}
                   style={{
                     width: "100%",
-                    background: "var(--panel-bg)",
+                    background: "rgba(0,0,0,0.28)",
                     border: "1px solid var(--card-border-idle)",
                     borderRadius: 10,
                     padding: "10px 12px",
