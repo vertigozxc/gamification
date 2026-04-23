@@ -581,6 +581,35 @@ app.post("/api/dev/reset-me", async (req, res) => {
   }
 });
 
+// Dev-only. Backdates all challenges the user created since UTC
+// midnight today so the MAX_CHALLENGES_CREATED_PER_DAY cap no longer
+// blocks them. Lets a tester iterate on challenge flows without having
+// to wait for the next day boundary.
+app.post("/api/dev/reset-challenge-daily-count", async (req, res) => {
+  try {
+    const parsed = z.object({ username: z.string().min(2).max(64) }).parse(req.body || {});
+    if (!(await assertDevTester(parsed.username))) {
+      return res.status(403).json({ error: "Dev test grants are restricted" });
+    }
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const now = new Date();
+    const startUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    // Push createdAt back 25 hours so the "createdAt >= startUtc" filter
+    // in challengesCreatedTodayCount() excludes these rows.
+    const backdated = new Date(now.getTime() - 25 * 60 * 60 * 1000);
+    const { count } = await prisma.groupChallenge.updateMany({
+      where: { creatorId: user.id, createdAt: { gte: startUtc } },
+      data: { createdAt: backdated }
+    });
+    res.json({ ok: true, reset: count, limit: MAX_CHALLENGES_CREATED_PER_DAY });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
 app.post("/api/dev/grant-streak", async (req, res) => {
   try {
     const schema = z.object({
@@ -6414,7 +6443,14 @@ app.get("/api/challenges/user/:username", async (req, res) => {
         };
       })
       .filter((c) => new Date(c.endsAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)); // show ended-within-week too
-    res.json({ challenges, serverNowMs: Date.now() });
+    const createdToday = await challengesCreatedTodayCount(me.id);
+    res.json({
+      challenges,
+      createdToday,
+      dailyCreateLimit: MAX_CHALLENGES_CREATED_PER_DAY,
+      activeChallengeLimit: MAX_ACTIVE_CHALLENGES_PER_USER,
+      serverNowMs: Date.now()
+    });
   } catch (error) {
     res.status(500).json({ error: "Failed to list challenges", detail: error.message });
   }

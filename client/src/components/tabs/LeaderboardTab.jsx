@@ -33,6 +33,8 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
   const [leaderboard, setLeaderboard] = useState(null);
   const [friends, setFriends] = useState([]);
   const [challenges, setChallenges] = useState([]);
+  const [createdToday, setCreatedToday] = useState(0);
+  const [dailyCreateLimit, setDailyCreateLimit] = useState(2);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -67,6 +69,10 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
       setLeaderboard(lb || null);
       setFriends(fr?.friends || []);
       setChallenges(ch?.challenges || []);
+      if (ch) {
+        setCreatedToday(Number(ch.createdToday || 0));
+        setDailyCreateLimit(Number(ch.dailyCreateLimit || 2));
+      }
       setRequests(req?.requests || []);
     } finally {
       setLoading(false);
@@ -120,7 +126,11 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
   const now = Date.now();
   const activeChallenges = challenges.filter((c) => new Date(c.endsAt).getTime() > now);
   const endedChallenges = challenges.filter((c) => new Date(c.endsAt).getTime() <= now);
-  const canCreate = activeChallenges.length < MAX_ACTIVE_CHALLENGES;
+  const hitDailyCreate = createdToday >= dailyCreateLimit;
+  const hitActiveCap = activeChallenges.length >= MAX_ACTIVE_CHALLENGES;
+  const canCreate = !hitActiveCap && !hitDailyCreate;
+  // Reason the Create button would block — drives the popup copy.
+  const blockReason = hitActiveCap ? "active" : hitDailyCreate ? "daily" : null;
 
   async function handleRespond(requestId, response) {
     setBusy(true);
@@ -237,6 +247,8 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
                 activeChallenges={activeChallenges}
                 endedChallenges={endedChallenges}
                 canCreate={canCreate}
+                blockReason={blockReason}
+                dailyCreateLimit={dailyCreateLimit}
                 t={t}
                 onOpenChallenge={pushChallenge}
                 onOpenCreate={pushCreate}
@@ -359,7 +371,7 @@ function PlayerRow({ entry, isMe, meHighlight, t, onOpenProfile }) {
  * Challenges tab
  * ========================================================================== */
 
-function ChallengesInlineTab({ activeChallenges, endedChallenges, canCreate, t, onOpenChallenge, onOpenCreate }) {
+function ChallengesInlineTab({ activeChallenges, endedChallenges, canCreate, blockReason, dailyCreateLimit = 2, t, onOpenChallenge, onOpenCreate }) {
   const [showLimitAlert, setShowLimitAlert] = useState(false);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -416,9 +428,13 @@ function ChallengesInlineTab({ activeChallenges, endedChallenges, canCreate, t, 
 
       {showLimitAlert && (
         <Alert
-          icon="🚧"
-          title={t.arenaPactLimitTitle || "Max challenges reached"}
-          message={(t.arenaPactLimitBody || "You can run up to {max} group challenges at once. Finish or leave one to start a new pact.").replace("{max}", String(MAX_ACTIVE_CHALLENGES))}
+          icon={blockReason === "daily" ? "⏳" : "🚧"}
+          title={blockReason === "daily"
+            ? (t.arenaPactDailyLimitTitle || "Daily limit reached")
+            : (t.arenaPactLimitTitle || "Max challenges reached")}
+          message={blockReason === "daily"
+            ? (t.arenaPactDailyLimitBody || "You can start up to {max} group challenges per day. Come back tomorrow — the counter resets at midnight UTC.").replace("{max}", String(dailyCreateLimit))
+            : (t.arenaPactLimitBody || "You can run up to {max} group challenges at once. Finish or leave one to start a new pact.").replace("{max}", String(MAX_ACTIVE_CHALLENGES))}
           confirmLabel={t.arenaPactLimitConfirm || "Got it"}
           onConfirm={() => setShowLimitAlert(false)}
         />
