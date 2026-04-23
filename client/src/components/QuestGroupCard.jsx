@@ -79,11 +79,15 @@ export default function QuestGroupCard({
         padding: 0,
         borderRadius: 16,
         border: `1px solid ${isSelected ? "var(--color-primary)" : "var(--card-border-idle)"}`,
-        background: isSelected ? "var(--color-accent-dim, rgba(250,204,21,0.06))" : "rgba(255,255,255,0.03)",
+        background: isSelected
+          ? "color-mix(in srgb, var(--color-primary) 12%, transparent)"
+          : "rgba(255,255,255,0.03)",
         transition: "border-color 180ms ease, background 180ms ease, box-shadow 180ms ease",
         opacity: disabled && !isSelected ? 0.5 : 1,
         overflow: "hidden",
-        boxShadow: isSelected ? "0 0 18px rgba(250,204,21,0.08)" : "none"
+        boxShadow: isSelected
+          ? "0 0 18px color-mix(in srgb, var(--color-primary) 25%, transparent)"
+          : "none"
       }}
     >
       {/* Top tap zone — picks/unpicks the whole family */}
@@ -215,7 +219,7 @@ function TierStepper({ variants, activeIndex, activeLabel, onStep, onPickIndex, 
           onPointerDown={(e) => e.stopPropagation()}
           disabled={prevDisabled}
           aria-label={prevLabel}
-          className="mobile-pressable"
+          className="mobile-pressable tier-stepper-arrow"
           style={{
             flexShrink: 0,
             width: 56,
@@ -286,6 +290,7 @@ function TierStepper({ variants, activeIndex, activeLabel, onStep, onPickIndex, 
                   onClick={(e) => { e.stopPropagation(); onPickIndex?.(i); }}
                   onPointerDown={(e) => e.stopPropagation()}
                   aria-label={`Tier ${i + 1}`}
+                  className="tier-stepper-dot"
                   style={{
                     width: active ? 22 : 6,
                     height: 6,
@@ -309,7 +314,7 @@ function TierStepper({ variants, activeIndex, activeLabel, onStep, onPickIndex, 
           onPointerDown={(e) => e.stopPropagation()}
           disabled={nextDisabled}
           aria-label={nextLabel}
-          className="mobile-pressable"
+          className="mobile-pressable tier-stepper-arrow"
           style={{
             flexShrink: 0,
             width: 56,

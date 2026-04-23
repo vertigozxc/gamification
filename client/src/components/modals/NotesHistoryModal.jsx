@@ -161,8 +161,10 @@ export default function NotesHistoryModal({ open, username, onClose }) {
           padding: "7px 12px",
           borderRadius: 999,
           border: `1px solid ${active ? "var(--color-primary)" : "var(--card-border-idle)"}`,
-          background: active ? "rgba(250, 204, 21, 0.14)" : "rgba(255,255,255,0.03)",
-          color: active ? "var(--color-accent)" : "var(--color-muted)",
+          background: active
+            ? "color-mix(in srgb, var(--color-primary) 14%, transparent)"
+            : "rgba(255,255,255,0.03)",
+          color: active ? "var(--color-primary)" : "var(--color-muted)",
           fontSize: 12,
           fontWeight: 700,
           letterSpacing: "0.04em",
@@ -174,12 +176,14 @@ export default function NotesHistoryModal({ open, username, onClose }) {
         <span>{label}</span>
         <span
           style={{
-            background: active ? "rgba(250,204,21,0.18)" : "rgba(148,163,184,0.14)",
+            background: active
+              ? "color-mix(in srgb, var(--color-primary) 22%, transparent)"
+              : "rgba(148,163,184,0.14)",
             padding: "1px 7px",
             borderRadius: 999,
             fontSize: 10,
             fontWeight: 800,
-            color: active ? "var(--color-accent)" : "var(--color-muted)"
+            color: active ? "var(--color-primary)" : "var(--color-muted)"
           }}
         >
           {count}
