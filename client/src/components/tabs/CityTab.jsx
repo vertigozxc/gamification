@@ -297,6 +297,110 @@ function PerkRow({ lvl, levelShort = "LVL", text, unlocked, isCurrent }) {
   );
 }
 
+// Visual before→after reveal used inside the district upgrade popup.
+// Layers two <DistrictView> snapshots and crossfades the "before" into
+// the "after" over ~1.1 s after a short initial hold, so the user sees
+// the procedural illustration literally grow when they upgrade.
+function DistrictUpgradeReveal({ districtId, previousLevel, newLevel }) {
+  const shouldAnimate = Number.isFinite(previousLevel) && Number.isFinite(newLevel) && newLevel > previousLevel;
+  const [crossfaded, setCrossfaded] = useState(!shouldAnimate);
+
+  useEffect(() => {
+    if (!shouldAnimate) return undefined;
+    // Hold the "before" visible briefly so the change registers as an
+    // event rather than a jump — mirrors how CityIsometricOverview reads.
+    const id = setTimeout(() => setCrossfaded(true), 500);
+    return () => clearTimeout(id);
+  }, [shouldAnimate, districtId]);
+
+  const fromLevel = Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(Number(previousLevel) || 0)));
+  const toLevel = Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(Number(newLevel) || 0)));
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        aspectRatio: "16 / 9",
+        borderRadius: 14,
+        overflow: "hidden",
+        border: "1px solid color-mix(in srgb, var(--color-primary) 40%, transparent)",
+        background: "rgba(2, 6, 23, 0.45)",
+        boxShadow: "inset 0 0 22px rgba(0,0,0,0.28)"
+      }}
+    >
+      {/* Before snapshot — fades + shrinks out */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          opacity: crossfaded ? 0 : 1,
+          transform: crossfaded ? "scale(0.96)" : "scale(1)",
+          transition: "opacity 1100ms cubic-bezier(0.4, 0, 0.2, 1), transform 1100ms cubic-bezier(0.4, 0, 0.2, 1)",
+          pointerEvents: "none"
+        }}
+        aria-hidden={crossfaded ? "true" : undefined}
+      >
+        <DistrictView districtId={districtId} level={fromLevel} />
+      </div>
+
+      {/* After snapshot — fades + settles in from a subtle scale-up */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          opacity: crossfaded ? 1 : 0,
+          transform: crossfaded ? "scale(1)" : "scale(1.05)",
+          transition: "opacity 1100ms cubic-bezier(0.4, 0, 0.2, 1), transform 1100ms cubic-bezier(0.4, 0, 0.2, 1)",
+          pointerEvents: "none"
+        }}
+        aria-hidden={crossfaded ? undefined : "true"}
+      >
+        <DistrictView districtId={districtId} level={toLevel} />
+      </div>
+
+      {/* Level pill — LVL X → Y with the Y popping on crossfade */}
+      <div
+        style={{
+          position: "absolute",
+          left: 10,
+          bottom: 10,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "6px 12px",
+          borderRadius: 999,
+          background: "rgba(0, 0, 0, 0.62)",
+          border: "1px solid color-mix(in srgb, var(--color-primary) 55%, transparent)",
+          color: "var(--color-text)",
+          fontSize: 12,
+          fontWeight: 800,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          pointerEvents: "none",
+          fontVariantNumeric: "tabular-nums"
+        }}
+      >
+        <span style={{ opacity: 0.75 }}>LVL {fromLevel}</span>
+        <span aria-hidden style={{ color: "var(--color-primary)" }}>→</span>
+        <span
+          style={{
+            color: "var(--color-primary)",
+            display: "inline-block",
+            transform: crossfaded ? "scale(1.22)" : "scale(1)",
+            textShadow: crossfaded
+              ? "0 0 10px color-mix(in srgb, var(--color-primary) 80%, transparent)"
+              : "none",
+            transition: "transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1), text-shadow 700ms ease"
+          }}
+        >
+          {toLevel}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function CityTab({
   stage,
   t,
@@ -341,18 +445,26 @@ export default function CityTab({
 
   const handleQuickUpgrade = useCallback(async (districtId) => {
     if (!username) return;
+    // Snapshot the pre-upgrade level BEFORE the API call so the popup can
+    // animate before → after. `districtLevels` is the prop-sourced array;
+    // DISTRICTS defines the canonical index order (sport, business, park,
+    // square, residential).
+    const idx = DISTRICTS.findIndex((d) => d.id === districtId);
+    const previousLevel = idx >= 0
+      ? Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(Number(districtLevels?.[idx]) || 0)))
+      : 0;
     try {
       const result = await upgradeDistrict(username, districtId);
       onDistrictUpgraded?.(result);
       const newLevel = Number(result?.level) || 0;
       const localizedName = t?.[`district${districtId.charAt(0).toUpperCase() + districtId.slice(1)}`] || districtId;
       const perk = t?.[perkKey(districtId, newLevel)] || "";
-      setUpgradePopup({ districtId, level: newLevel, name: localizedName, perk });
+      setUpgradePopup({ districtId, level: newLevel, previousLevel, name: localizedName, perk });
       setFireworksActive(true);
     } catch (err) {
       console.warn("[district quick upgrade]", err?.message || err);
     }
-  }, [username, onDistrictUpgraded, t]);
+  }, [username, onDistrictUpgraded, t, districtLevels]);
 
   const handleQuickDowngrade = useCallback(async (districtId) => {
     if (!username) return;
@@ -1167,6 +1279,11 @@ export default function CityTab({
             <h3 className="cinzel logout-confirm-title" style={{ color: "var(--color-primary)", marginBottom: 0 }}>
               {t.districtUpgradePopupTitle || "District Upgraded!"}
             </h3>
+            <DistrictUpgradeReveal
+              districtId={upgradePopup.districtId}
+              previousLevel={upgradePopup.previousLevel}
+              newLevel={upgradePopup.level}
+            />
             <p className="logout-confirm-msg" style={{ marginBottom: 0 }}>
               {tpl(t.districtUpgradePopupBody, { name: upgradePopup.name, level: upgradePopup.level })}
             </p>
