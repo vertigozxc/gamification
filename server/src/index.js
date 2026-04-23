@@ -3190,11 +3190,11 @@ function serializeTimerSession(session, now = new Date()) {
 }
 
 const CITY_SPIN_REWARDS = [
-  { id: 1,  type: "xp",    amount: 10,  weight: 25 },
+  { id: 1,  type: "xp",    amount: 25,  weight: 25 },
   { id: 2,  type: "token", amount: 1,   weight: 25 },
   { id: 3,  type: "token", amount: 3,   weight: 15 },
-  { id: 4,  type: "xp",    amount: 20,  weight: 15 },
-  { id: 5,  type: "xp",    amount: 50,  weight: 5  },
+  { id: 4,  type: "xp",    amount: 50,  weight: 15 },
+  { id: 5,  type: "xp",    amount: 75,  weight: 5  },
   { id: 6,  type: "xp",    amount: 100, weight: 5  },
   { id: 7,  type: "token", amount: 5,   weight: 3  },
   { id: 8,  type: "token", amount: 10,  weight: 3  },

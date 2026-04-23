@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { citySpin } from "../api";
 
 const REWARDS = [
-  { id: 1,  type: "xp",    amount: 10,  emoji: "✨", darkText: false },
+  { id: 1,  type: "xp",    amount: 25,  emoji: "✨", darkText: false },
   { id: 2,  type: "token", amount: 1,   emoji: "🪙", darkText: true  },
   { id: 3,  type: "token", amount: 3,   emoji: "🪙", darkText: false },
-  { id: 4,  type: "xp",    amount: 20,  emoji: "⭐", darkText: false },
-  { id: 5,  type: "xp",    amount: 50,  emoji: "💫", darkText: false },
+  { id: 4,  type: "xp",    amount: 50,  emoji: "⭐", darkText: false },
+  { id: 5,  type: "xp",    amount: 75,  emoji: "💫", darkText: false },
   { id: 6,  type: "xp",    amount: 100, emoji: "💎", darkText: false },
   { id: 7,  type: "token", amount: 5,   emoji: "🪙", darkText: false },
   { id: 8,  type: "token", amount: 10,  emoji: "🪙", darkText: false },
@@ -22,7 +23,8 @@ const SEG_COLORS = [
 
 const SEG_COUNT = REWARDS.length;
 const SEG_DEG = 360 / SEG_COUNT; // 36°
-const WHEEL_SIZE = 340;
+// SVG viewBox is 340×340; the wheel element itself scales responsively
+// inside the modal card via CSS aspect-ratio.
 const CX = 170, CY = 170, R = 158, R_TEXT = 115;
 
 function toRad(deg) { return (deg * Math.PI) / 180; }
@@ -138,8 +140,14 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
 
   const wonReward = spinResult?.reward ? REWARDS.find(r => r.id === spinResult.reward.id) : null;
 
-  return (
-    <div className="logout-confirm-overlay" onClick={onClose} style={{ zIndex: 300 }}>
+  return createPortal(
+    <div
+      className="logout-confirm-overlay"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t.spinTitle || "CITY FORTUNE"}
+    >
       <div
         className="logout-confirm-card"
         onClick={(event) => event.stopPropagation()}
@@ -182,12 +190,13 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
           </p>
         </div>
 
-        {/* Wheel stage: a fixed-size container so clicking the Spin button
-            never causes layout shift of the wheel. */}
+        {/* Wheel stage: fixed aspect ratio so clicking the Spin button
+            never causes layout shift, responsive so the wheel never
+            overflows the card on narrow phones. */}
         <div style={{
           position: "relative",
-          width: WHEEL_SIZE,
-          height: WHEEL_SIZE,
+          width: "min(100%, 340px)",
+          aspectRatio: "1 / 1",
           margin: "0 auto 16px"
         }}>
           {/* Pointer arrow at top */}
@@ -205,7 +214,7 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
           {/* Spinning wheel */}
           <div
             style={{
-              width: WHEEL_SIZE, height: WHEEL_SIZE,
+              width: "100%", height: "100%",
               transform: `rotate(${rotation}deg)`,
               transition: phase === "spinning"
                 ? `transform ${SPIN_DURATION_MS}ms cubic-bezier(0.17, 0.67, 0.12, 0.99)`
@@ -213,7 +222,7 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
               willChange: "transform"
             }}
           >
-            <svg viewBox="0 0 340 340" width={WHEEL_SIZE} height={WHEEL_SIZE}>
+            <svg viewBox="0 0 340 340" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
               {REWARDS.map((r, i) => {
                 const { x, y, rotate } = textPos(i);
                 return (
@@ -396,6 +405,7 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
           </p>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
