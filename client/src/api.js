@@ -175,6 +175,13 @@ export function completeOnboarding(username, displayName, preferredQuestIds, pho
   });
 }
 
+export function skipOnboarding(username, displayName, photoUrl) {
+  return request("/api/onboarding/skip", {
+    method: "POST",
+    body: JSON.stringify({ username, displayName, photoUrl })
+  });
+}
+
 export function startQuestTimer(username, questId) {
   return request("/api/quests/timer/start", {
     method: "POST",

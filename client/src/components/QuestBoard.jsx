@@ -67,8 +67,14 @@ function QuestBoard({
   maxDailyQuests = 6
 }) {
   const { t } = useTheme();
-  const hasPinned = pinnedQuests.length > 0;
-  const hasOther = otherQuests.length > 0;
+  // Total slots per tab = filled + empty placeholders. The user wants the
+  // habits counter to read X/<cap> (done / max slots), not X/<picked>, and
+  // the board to render the habits tab even when the user skipped habit
+  // selection — the empty slots still live there as add-habit placeholders.
+  const pinnedSlotTotal = pinnedQuests.length + Math.max(0, Number(emptyPinnedSlotCount) || 0);
+  const otherSlotTotal = otherQuests.length + Math.max(0, Number(emptyOtherSlotCount) || 0);
+  const hasPinned = pinnedSlotTotal > 0;
+  const hasOther = otherSlotTotal > 0;
   const tabs = [];
   if (hasPinned) tabs.push("habits");
   if (hasOther) tabs.push("daily");
@@ -173,7 +179,7 @@ function QuestBoard({
             className={`qb-tab-btn ${activeQTab === "habits" ? "qb-tab-active" : ""}`}
             onClick={() => setActiveQTab("habits")}
           >
-            <span>📌</span> {t.pinnedSection} <span className="qb-tab-count">{pinnedDone}/{pinnedQuests.length}</span>
+            <span>📌</span> {t.pinnedSection} <span className="qb-tab-count">{pinnedDone}/{pinnedSlotTotal}</span>
           </button>
           <button
             type="button"
@@ -186,7 +192,7 @@ function QuestBoard({
               }
             }}
           >
-            <span>🎲</span> {t.otherSection} <span className="qb-tab-count">{otherDone}/{otherQuests.length}</span>
+            <span>🎲</span> {t.otherSection} <span className="qb-tab-count">{otherDone}/{otherSlotTotal}</span>
             {showFreshDailyBadge ? (
               <span className="qb-tab-fresh" aria-label={t.dailyQuestFreshBadge || "NEW"}>
                 <span className="qb-tab-fresh__spark">✦</span>

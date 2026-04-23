@@ -5,7 +5,8 @@ import {
   createCustomQuest as apiCreateCustomQuest,
   updateCustomQuest as apiUpdateCustomQuest,
   deleteCustomQuest as apiDeleteCustomQuest,
-  fetchGameState as apiFetchGameState
+  fetchGameState as apiFetchGameState,
+  skipOnboarding as apiSkipOnboarding
 } from "../api";
 import { fuzzyMatch } from "../utils/fuzzySearch";
 
@@ -403,6 +404,61 @@ function useOnboardingPinned({
     }
   }
 
+  // "I'll do it later" handler. Still saves the displayName (nickname is
+  // required to address the user), but does NOT require any habits picked.
+  // Server stamps onboardingSkippedAt so the gate won't come back. Empty
+  // habit slots will render as add-habit placeholders on the daily board.
+  async function handleSkipOnboarding() {
+    const trimmedName = onboardingName.trim();
+    if (!trimmedName) {
+      setOnboardingError(t.nicknameRequired);
+      return;
+    }
+
+    setOnboardingSaving(true);
+    setOnboardingError("");
+    try {
+      const result = await apiSkipOnboarding(resolvedUsername, trimmedName, portraitData || undefined);
+      if (typeof onServerTimeSync === "function") {
+        onServerTimeSync(result);
+      }
+      const nextQuests = Array.isArray(result?.quests) ? result.quests.map(normalizeQuest) : [];
+      applyCustomQuestsFromResponse(result);
+      setQuests(nextQuests);
+      setCharacterName(result?.user?.displayName || trimmedName);
+      setNameDraft(result?.user?.displayName || trimmedName);
+      const nextPortrait = result?.user?.photoUrl || portraitData || "";
+      setPortraitData(nextPortrait);
+      setState((prev) => ({
+        ...prev,
+        completed: Array.isArray(result?.completedQuestIds) ? result.completedQuestIds : prev.completed,
+        streak: Number(result?.streak ?? prev.streak),
+        streakFreezeActive: result?.streakFreezeActive ?? prev.streakFreezeActive,
+        hasRerolledToday: result?.hasRerolledToday ?? prev.hasRerolledToday,
+        extraRerollsToday: Number(result?.extraRerollsToday ?? result?.user?.extraRerollsToday ?? prev.extraRerollsToday),
+        lvl: result?.user?.level ?? prev.lvl,
+        xp: result?.user?.xp ?? prev.xp,
+        xpNext: result?.user?.xpNext ?? prev.xpNext,
+        tokens: result?.user?.tokens ?? prev.tokens,
+        user: {
+          ...prev.user,
+          lastFreeTaskRerollAt: result?.user?.lastFreeTaskRerollAt ?? null
+        },
+        productivity: result?.productivity ?? prev.productivity,
+        questSlots: result?.questSlots ?? prev.questSlots,
+        preferredQuestIds: Array.isArray(result?.preferredQuestIds) ? result.preferredQuestIds : [],
+        pinnedQuestProgress21d: normalizePinnedQuestProgress(result?.pinnedQuestProgress21d)
+      }));
+      const { users } = await fetchLeaderboard();
+      setLeaderboard(users || []);
+      setShowOnboarding(false);
+    } catch (error) {
+      setOnboardingError(error?.message || t.setupFailed);
+    } finally {
+      setOnboardingSaving(false);
+    }
+  }
+
   async function handleCompleteOnboarding() {
     const trimmedName = onboardingName.trim();
     if (!trimmedName) {
@@ -506,7 +562,8 @@ function useOnboardingPinned({
     openPinnedReplacementModal,
     pinnedReplacementOpening,
     handleBuyPinnedReplacement,
-    handleCompleteOnboarding
+    handleCompleteOnboarding,
+    handleSkipOnboarding
   };
 }
 

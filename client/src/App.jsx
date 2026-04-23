@@ -286,6 +286,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     pinnedReplacementOpening,
     handleBuyPinnedReplacement,
     handleCompleteOnboarding,
+    handleSkipOnboarding,
     seedAllQuestOptions,
     applyServerBootstrap,
     customQuests,
@@ -693,10 +694,14 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     { target: milestoneTargets[1], reward: "+25 " + t.xpLabel, rune: milestoneRunes[1] },
     { target: milestoneTargets[2], reward: `+25 ${t.xpLabel} / +${fullBoardTokenReward} ${t.tokenIcon}`, rune: milestoneRunes[2] }
   ];
-  const preferredQuestCount = Array.isArray(state.preferredQuestIds) && state.preferredQuestIds.length > 0
+  // Trust the actual preferredQuestIds length once state has loaded — even
+  // if it's 0 (user skipped onboarding). Only fall back to the slot cap
+  // when the array hasn't been hydrated yet, so the board can't briefly
+  // mis-split random quests into the pinned region.
+  const preferredQuestCount = Array.isArray(state.preferredQuestIds)
     ? state.preferredQuestIds.length
     : (Number(state.questSlots?.pinned) || 3);
-  const maxPinnedForLevel = Number(state.questSlots?.pinned) || preferredQuestCount;
+  const maxPinnedForLevel = Number(state.questSlots?.pinned) || Math.max(preferredQuestCount, 2);
   const maxRandomForLevel = Number(state.questSlots?.random) || 3;
   const emptyPinnedSlotCount = Math.max(0, maxPinnedForLevel - (Array.isArray(state.preferredQuestIds) ? state.preferredQuestIds.length : 0));
   const pinnedQuests = quests.slice(0, preferredQuestCount).map((q) => ({ ...q, xp: 30 }));
@@ -1596,6 +1601,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         onboardingError={onboardingError}
         onboardingSaving={onboardingSaving}
         onComplete={handleCompleteOnboarding}
+        onSkip={handleSkipOnboarding}
         customQuests={customQuests}
         customSaving={customSaving}
         customError={customError}

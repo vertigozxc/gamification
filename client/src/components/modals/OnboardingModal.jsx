@@ -20,6 +20,7 @@ function OnboardingModal({
   onboardingError,
   onboardingSaving,
   onComplete,
+  onSkip,
   customQuests,
   customSaving,
   customError,
@@ -391,22 +392,28 @@ function OnboardingModal({
           <div style={{ display: "flex", gap: 10 }}>
             <button
               type="button"
-              onClick={handleCloseClick}
+              onClick={() => {
+                if (!onboardingName.trim() || onboardingSaving) return;
+                onSkip?.();
+              }}
+              disabled={onboardingSaving || !onboardingName.trim() || !onSkip}
               className="cinzel mobile-pressable"
+              title={!onboardingName.trim() ? t.nicknameRequired : undefined}
               style={{
                 flex: 1,
                 minHeight: 48,
                 borderRadius: 12,
                 background: "transparent",
                 border: "1px solid var(--card-border-idle)",
-                color: "#cbd5e1",
+                color: !onboardingName.trim() ? "#64748b" : "#cbd5e1",
                 fontSize: 13,
                 fontWeight: 600,
-                cursor: "pointer",
-                letterSpacing: "0.05em"
+                cursor: (!onboardingName.trim() || onboardingSaving) ? "not-allowed" : "pointer",
+                letterSpacing: "0.05em",
+                opacity: (!onboardingName.trim() || onboardingSaving) ? 0.7 : 1
               }}
             >
-              {t.logOutAndCancel || t.cancelLabel}
+              {t.onboardingSkipLater || "I'll do it later"}
             </button>
             <button
               type="button"

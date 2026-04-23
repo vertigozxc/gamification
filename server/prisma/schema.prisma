@@ -44,6 +44,7 @@ model User {
   preferredLanguage         String                 @default("")
   isDevTester               Boolean                @default(false)
   maxStreak                 Int                    @default(0)
+  onboardingSkippedAt       DateTime?
   createdAt                 DateTime               @default(now())
   updatedAt                 DateTime               @updatedAt
   customQuests              CustomQuest[]

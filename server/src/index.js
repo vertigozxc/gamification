@@ -1738,9 +1738,14 @@ function onboardingStatus(user, customQuests = []) {
   // the user's current per-level cap is hidden but retained in DB.
   const preferredQuestIds = allPreferred.slice(0, maxPinned);
   const onboardingMinimum = getPreferredQuestCount(1, 0);
+  // "I'll do it later" escape hatch: once the user has taped skip and set
+  // their displayName, stop forcing the onboarding gate even if they never
+  // come back to pick habits. Empty habit slots will render as add-habit
+  // placeholders in the main UI.
+  const hasSkipped = Boolean(user.onboardingSkippedAt);
   return {
     preferredQuestIds,
-    needsOnboarding: allPreferred.length < onboardingMinimum
+    needsOnboarding: !hasSkipped && allPreferred.length < onboardingMinimum
   };
 }
 
@@ -2769,6 +2774,74 @@ app.post("/api/onboarding/complete", async (req, res) => {
       quests: composeDailyQuests(updatedUser, completions.map((item) => item.questId), now, [], language, customQuests),
       streakFreezeActive,
       preferredQuestIds: uniquePreferredQuestIds,
+      pinnedQuestProgress21d,
+      needsOnboarding: false,
+      customQuests: customQuests.map(buildCustomQuestEntry),
+      productivity,
+      questSlots: getQuestSlotsForLevel(updatedUser.level || 1, updatedUser.streak || 0),
+      ...buildServerTimeMeta(now)
+    });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// "I'll do it later" path from the onboarding screen. Saves the displayName
+// (still required — it's their nickname) and stamps onboardingSkippedAt so
+// the gate doesn't come back. Habit slots remain empty and will render as
+// + add-habit placeholders in the daily board.
+app.post("/api/onboarding/skip", async (req, res) => {
+  const schema = z.object({
+    username: z.string().min(2).max(64),
+    displayName: z.string().min(1).max(64),
+    photoUrl: z.string().max(150_000).optional()
+  });
+
+  try {
+    const language = getRequestLanguage(req);
+    const parsed = schema.parse(req.body);
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const displayName = parsed.displayName.trim().slice(0, 64);
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        displayName,
+        photoUrl: parsed.photoUrl ?? user.photoUrl,
+        onboardingSkippedAt: new Date()
+      }
+    });
+
+    const customQuests = await fetchUserCustomQuests(user.id);
+    const customVirtualIds = customQuests.map((cq) => toCustomVirtualId(cq.id));
+    const parsedPreferred = parsePreferredQuestIds(updatedUser.preferredQuestIds, customVirtualIds);
+    const now = new Date();
+    const dayKey = getDateKey(now);
+    const completions = await prisma.questCompletion.findMany({
+      where: { userId: user.id, dayKey },
+      select: { questId: true }
+    });
+    const completedIds = completions.map((item) => item.questId);
+    const streakFreezeActive = updatedUser.streakFreezeExpiresAt
+      ? getDateKey(new Date(updatedUser.streakFreezeExpiresAt)) >= dayKey
+      : false;
+    const pinnedQuestProgress21d = await getPinnedQuestProgress21d(updatedUser, parsedPreferred, now);
+    const { productivity } = await updateAndReadProductivity(updatedUser, now);
+
+    res.json({
+      ok: true,
+      user: updatedUser,
+      completedQuestIds: completedIds,
+      streak: updatedUser.streak,
+      hasRerolledToday: hasUsedDailyRerollToday(updatedUser, now),
+      extraRerollsToday: Number(updatedUser.extraRerollsToday || 0),
+      quests: composeDailyQuests(updatedUser, completedIds, now, [], language, customQuests),
+      streakFreezeActive,
+      preferredQuestIds: parsedPreferred,
       pinnedQuestProgress21d,
       needsOnboarding: false,
       customQuests: customQuests.map(buildCustomQuestEntry),
