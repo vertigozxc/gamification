@@ -1613,6 +1613,11 @@ body[data-theme="light"] .delete-profile-confirm-cancel {
 .mobile-chip{-webkit-backdrop-filter:blur(12px);background:#02061766;border:.5px solid #ffffff14;border-radius:999px;padding:.5rem .85rem}
 .mobile-chip-label{font-family:var(--font-heading);letter-spacing:.08em;color:#94a3b8;font-size:.62rem}
 .mobile-section-kicker{font-family:var(--font-heading);letter-spacing:.08em;color:var(--color-primary-dim);font-size:.68rem}
+.profile-settings-list{display:flex;flex-direction:column}
+.profile-settings-row{display:flex;align-items:center;gap:.75rem;width:100%;padding:12px 16px;background:transparent;border:none;color:inherit;cursor:pointer;text-align:left;transition:background 120ms ease;-webkit-tap-highlight-color:transparent;position:relative}
+.profile-settings-row:not(:last-child)::after{content:"";position:absolute;left:60px;right:16px;bottom:0;height:1px;background:var(--card-border-idle);opacity:.55}
+.profile-settings-row:active{background:var(--card-hover,rgba(255,255,255,.04))}
+.profile-settings-row:hover{background:var(--card-hover,rgba(255,255,255,.03))}
 .mobile-pressable{-webkit-tap-highlight-color:transparent;transition:transform .15s cubic-bezier(.2,.8,.2,1),opacity .15s,filter .15s,box-shadow .15s}
 .mobile-pressable:active:not(:disabled){opacity:.9;transform:scale(.96);filter:brightness(1.18)}
 .counter-tick-btn:active:not(:disabled){background:linear-gradient(90deg,rgba(34,211,238,.45),rgba(96,165,250,.45))!important;box-shadow:0 0 18px rgba(34,211,238,.4)!important;border-color:rgba(34,211,238,.95)!important}

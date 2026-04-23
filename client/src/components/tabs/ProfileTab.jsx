@@ -211,45 +211,48 @@ export default function ProfileTab({
         </div>
       </div>
 
-      {/* Settings */}
-      <div className="mobile-card flex flex-col gap-1" style={{ background: "var(--panel-bg)" }}>
-        <p className="cinzel text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "var(--color-primary)" }}>{t.profileSettingsTitle}</p>
-        <button className="flex items-center gap-3 w-full rounded-xl px-3 py-3 transition-all hover:bg-[var(--card-hover)] active:scale-[0.98]" onClick={onOpenThemePicker}>
-          <span className="text-xl w-8 text-center">{themes[themeId].icon}</span>
-          <div className="flex-1 text-left">
-            <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.themeLabel}</p>
-            <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{getThemeMeta(themeId).label}</p>
-          </div>
-          <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
-        </button>
-        <button className="flex items-center gap-3 w-full rounded-xl px-3 py-3 transition-all hover:bg-[var(--card-hover)] active:scale-[0.98]" onClick={onOpenLanguagePicker}>
-          <span className="text-xl w-8 text-center">🌐</span>
-          <div className="flex-1 text-left">
-            <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.languageLabel}</p>
-            <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{getLanguageMeta(languageId).nativeLabel}</p>
-          </div>
-          <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
-        </button>
-        {onOpenNotesHistory ? (
-          <button className="flex items-center gap-3 w-full rounded-xl px-3 py-3 transition-all hover:bg-[var(--card-hover)] active:scale-[0.98]" onClick={onOpenNotesHistory}>
-            <span className="text-xl w-8 text-center">📚</span>
+      {/* Settings — iOS-style grouped table: rows share a card, separated
+          by hairline dividers; the card keeps its rounded corners. */}
+      <div className="mobile-card flex flex-col" style={{ background: "var(--panel-bg)", padding: "12px 0" }}>
+        <p className="cinzel text-xs font-bold tracking-widest uppercase mb-1" style={{ color: "var(--color-primary)", padding: "0 16px 8px" }}>{t.profileSettingsTitle}</p>
+        <div className="profile-settings-list">
+          <button className="profile-settings-row" onClick={onOpenThemePicker}>
+            <span className="text-xl w-8 text-center">{themes[themeId].icon}</span>
             <div className="flex-1 text-left">
-              <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.notesHistoryLabel || "My notes"}</p>
-              <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{t.notesHistoryHint || "Reflections, gratitude, vocabulary"}</p>
+              <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.themeLabel}</p>
+              <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{getThemeMeta(themeId).label}</p>
             </div>
             <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
           </button>
-        ) : null}
-        {onOpenAbout ? (
-          <button className="flex items-center gap-3 w-full rounded-xl px-3 py-3 transition-all hover:bg-[var(--card-hover)] active:scale-[0.98]" onClick={onOpenAbout}>
-            <span className="text-xl w-8 text-center">📖</span>
+          <button className="profile-settings-row" onClick={onOpenLanguagePicker}>
+            <span className="text-xl w-8 text-center">🌐</span>
             <div className="flex-1 text-left">
-              <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.aboutAppLabel || "About the app"}</p>
-              <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{t.aboutAppHint || "Rules, mechanics, formulas"}</p>
+              <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.languageLabel}</p>
+              <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{getLanguageMeta(languageId).nativeLabel}</p>
             </div>
             <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
           </button>
-        ) : null}
+          {onOpenNotesHistory ? (
+            <button className="profile-settings-row" onClick={onOpenNotesHistory}>
+              <span className="text-xl w-8 text-center">📚</span>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.notesHistoryLabel || "My notes"}</p>
+                <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{t.notesHistoryHint || "Reflections, gratitude, vocabulary"}</p>
+              </div>
+              <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
+            </button>
+          ) : null}
+          {onOpenAbout ? (
+            <button className="profile-settings-row" onClick={onOpenAbout}>
+              <span className="text-xl w-8 text-center">📖</span>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.aboutAppLabel || "About the app"}</p>
+                <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{t.aboutAppHint || "Rules, mechanics, formulas"}</p>
+              </div>
+              <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {/* Logout */}
