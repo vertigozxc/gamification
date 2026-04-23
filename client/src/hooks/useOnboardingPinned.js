@@ -451,6 +451,7 @@ function useOnboardingPinned({
         tokens: result?.user?.tokens ?? prev.tokens,
         user: {
           ...prev.user,
+          handle: result?.user?.handle ?? prev.user?.handle ?? null,
           lastFreeTaskRerollAt: result?.user?.lastFreeTaskRerollAt ?? null
         },
         productivity: result?.productivity ?? prev.productivity,
@@ -507,6 +508,7 @@ function useOnboardingPinned({
         tokens: result?.user?.tokens ?? prev.tokens,
         user: {
           ...prev.user,
+          handle: result?.user?.handle ?? prev.user?.handle ?? null,
           lastFreeTaskRerollAt: result?.user?.lastFreeTaskRerollAt ?? null
         },
         productivity: result?.productivity ?? prev.productivity,

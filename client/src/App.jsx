@@ -550,6 +550,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             })(),
             user: {
               ...prev.user,
+              handle: userData.handle ?? prev.user?.handle ?? null,
               lastFreeTaskRerollAt: userData.lastFreeTaskRerollAt ?? null,
               lastBusinessClaimDayKey: userData.lastBusinessClaimDayKey ?? "",
               vacationEndsAt: userData.vacationEndsAt ?? null,
@@ -623,6 +624,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           })(),
           user: {
             ...prev.user,
+            handle: userData.handle ?? prev.user?.handle ?? null,
             lastFreeTaskRerollAt: userData.lastFreeTaskRerollAt ?? null
           },
           productivity: gameStateResponse?.productivity ?? prev.productivity,
