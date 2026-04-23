@@ -234,7 +234,15 @@ app.get("/api/admin/users", requireAdmin, async (req, res) => {
         xp: true,
         xpNext: true,
         streak: true,
+        maxStreak: true,
         isDevTester: true,
+        // Streak-protection diagnostic fields — let admins see at a glance
+        // why a user's streak survived (or didn't) after a daily reset.
+        streakFreezeCharges: true,
+        streakFreezeExpiresAt: true,
+        vacationEndsAt: true,
+        lastDailyResetAt: true,
+        lastStreakIncreaseAt: true,
         updatedAt: true,
         createdAt: true
       },
@@ -285,7 +293,13 @@ app.get("/api/admin/users", requireAdmin, async (req, res) => {
         xpNext: user.xpNext,
         totalXp: getTotalXp(user.level, user.xp),
         streak: user.streak,
+        maxStreak: user.maxStreak,
         isDevTester: Boolean(user.isDevTester),
+        streakFreezeCharges: user.streakFreezeCharges ?? 0,
+        streakFreezeExpiresAt: user.streakFreezeExpiresAt,
+        vacationEndsAt: user.vacationEndsAt,
+        lastDailyResetAt: user.lastDailyResetAt,
+        lastStreakIncreaseAt: user.lastStreakIncreaseAt,
         updatedAt: user.updatedAt,
         createdAt: user.createdAt
       }))
@@ -297,6 +311,83 @@ app.get("/api/admin/users", requireAdmin, async (req, res) => {
 
 // Admin: toggle the DEV panel (floating +1 LVL / +S / +5 🪙 / RESET
 // buttons) for a specific user. Flip this from the /admin UI.
+// Admin: streak-burn diagnostic for a single user.
+// Returns the 4 protections that can save a streak after a daily reset
+// plus the user's completion count for yesterday (the day the decay
+// logic evaluates against on the first reset of a new UTC day).
+app.get("/api/admin/users/:userId/streak-diag", requireAdmin, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.params.userId },
+      select: {
+        username: true,
+        displayName: true,
+        streak: true,
+        maxStreak: true,
+        streakFreezeCharges: true,
+        streakFreezeExpiresAt: true,
+        vacationEndsAt: true,
+        lastDailyResetAt: true,
+        lastStreakIncreaseAt: true
+      }
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const now = new Date();
+    const yesterday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+    const yesterdayKey = getDateKey(yesterday);
+    const todayKey = getDateKey(now);
+
+    const [yesterdayRows, todayRows] = await Promise.all([
+      prisma.questCompletion.findMany({
+        where: { userId: req.params.userId, dayKey: yesterdayKey },
+        select: { questId: true, completedAt: true }
+      }),
+      prisma.questCompletion.findMany({
+        where: { userId: req.params.userId, dayKey: todayKey },
+        select: { questId: true, completedAt: true }
+      })
+    ]);
+
+    const lastResetKey = user.lastDailyResetAt ? getDateKey(new Date(user.lastDailyResetAt)) : null;
+    const freezeActive = user.streakFreezeExpiresAt
+      ? getDateKey(new Date(user.streakFreezeExpiresAt)) >= yesterdayKey
+      : false;
+    const vacationActive = user.vacationEndsAt ? new Date(user.vacationEndsAt) > now : false;
+    const isFirstResetForUtcDay = lastResetKey !== todayKey;
+    const streakWouldBurn = yesterdayRows.length < 3 && user.streak > 0;
+
+    const protectedBy =
+      !streakWouldBurn ? "not_at_risk (≥3 completions yesterday, or streak already 0)"
+        : freezeActive ? "active_freeze"
+        : vacationActive ? "vacation"
+        : (Number(user.streakFreezeCharges) || 0) > 0 ? "freeze_charge_would_auto_consume"
+        : "no_protection";
+
+    res.json({
+      user,
+      yesterday: { dayKey: yesterdayKey, completions: yesterdayRows.length, rows: yesterdayRows },
+      today: { dayKey: todayKey, completions: todayRows.length, rows: todayRows },
+      protections: {
+        lastDailyResetAt: user.lastDailyResetAt,
+        lastDailyResetDayKey: lastResetKey,
+        isFirstResetForUtcDay,
+        freezeActive,
+        vacationActive,
+        streakFreezeCharges: Number(user.streakFreezeCharges) || 0,
+        streakFreezeExpiresAt: user.streakFreezeExpiresAt,
+        vacationEndsAt: user.vacationEndsAt,
+        streakWouldBurn,
+        protectedBy
+      },
+      serverNow: now.toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Failed streak diag", detail: error?.message || String(error) });
+  }
+});
+
 app.post("/api/admin/users/:userId/set-dev-tester", requireAdmin, async (req, res) => {
   try {
     const parsed = z.object({ enabled: z.boolean() }).parse(req.body || {});
