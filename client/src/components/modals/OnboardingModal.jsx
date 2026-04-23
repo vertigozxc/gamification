@@ -269,6 +269,31 @@ function OnboardingModal({
               ✕
             </button>
           </div>
+
+          {/* Progress bar lives in the fixed top header — always visible
+              regardless of scroll position, same layout as the Reroll
+              Habits modal so the two screens feel consistent. */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#cbd5e1" }}>
+                  {t.onboardingSelected
+                    ? `${selectedCount} / ${SELECTION_LIMIT} ${t.onboardingSelected}`
+                    : `${selectedCount} / ${SELECTION_LIMIT}`}
+                </span>
+              </div>
+              <div style={{ height: 6, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+                <div
+                  style={{
+                    width: `${progressPct}%`,
+                    height: "100%",
+                    background: selectionComplete ? "var(--color-accent)" : "var(--color-primary)",
+                    transition: "width 200ms ease"
+                  }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
         <div
@@ -412,67 +437,26 @@ function OnboardingModal({
             {t.onboardingHandleHint || "3–20 letters / digits / underscore. Others find you by this."}
           </p>
 
-          {/* Section header introducing the habit-picking area below —
-              styled as a clearly-above-the-fold divider so "My custom
-              habits" below can't be mistaken for the section title.
-              Progress pill sits inside the header; the bar underneath
-              tracks N/SELECTION_LIMIT in theme colour. position:sticky
-              keeps it glued to the top of the scroll container once the
-              user scrolls past it, so the progress is always visible. */}
-          <div
-            style={{
-              position: "sticky",
-              top: 0,
-              zIndex: 2,
-              marginTop: 14,
-              marginBottom: 8,
-              paddingTop: 8,
-              paddingBottom: 8,
-              background: "var(--card-bg, #0f172a)"
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
-              <h3
-                className="cinzel"
-                style={{
-                  margin: 0,
-                  fontSize: 19,
-                  fontWeight: 800,
-                  letterSpacing: "0.02em",
-                  color: "var(--color-primary)",
-                  lineHeight: 1.2,
-                  textTransform: "uppercase"
-                }}
-              >
-                {tf("onboardingPick", { pinned: SELECTION_LIMIT })}
-              </h3>
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  color: selectionComplete ? "var(--color-accent)" : "var(--color-muted)",
-                  fontVariantNumeric: "tabular-nums",
-                  flexShrink: 0
-                }}
-              >
-                {selectedCount} / {SELECTION_LIMIT}{t.onboardingSelected ? ` ${t.onboardingSelected}` : ""}
-              </span>
-            </div>
-            <p style={{ margin: "6px 0 10px", fontSize: 12, color: "var(--color-muted)", lineHeight: 1.4 }}>
+          {/* Plain section header introducing the habit-picking area.
+              No pill, no progress bar, no sticky — those live in the
+              fixed modal top header and don't need to duplicate here. */}
+          <div style={{ marginTop: 14, marginBottom: 8 }}>
+            <h3
+              className="cinzel"
+              style={{
+                margin: 0,
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: "0.12em",
+                color: "var(--color-primary)",
+                textTransform: "uppercase"
+              }}
+            >
+              {tf("onboardingPick", { pinned: SELECTION_LIMIT })}
+            </h3>
+            <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--color-muted)", lineHeight: 1.4 }}>
               {t.onboardingPickSubtitle || "Pick from existing or create your own"}
             </p>
-            <div style={{ height: 6, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
-              <div
-                style={{
-                  width: `${progressPct}%`,
-                  height: "100%",
-                  background: selectionComplete ? "var(--color-accent)" : "var(--color-primary)",
-                  transition: "width 200ms ease"
-                }}
-              />
-            </div>
           </div>
 
           <CustomHabitManager

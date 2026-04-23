@@ -1294,7 +1294,7 @@ export const languagePacks = {
       onboardingAvatarHint: "Аватар необязателен. Его можно изменить позже, нажав на портрет.",
       onboardingNickname: "Имя",
       onboardingNicknamePlaceholder: "Ваше имя",
-      onboardingPick: "Выберите привычки",
+      onboardingPick: "Выберите ежедневные привычки",
       onboardingPickSubtitle: "Выберите из существующих или создайте свою",
       onboardingSelected: "выбрано",
       onboardingBegin: "Начать",
