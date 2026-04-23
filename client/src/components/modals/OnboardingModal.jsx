@@ -416,13 +416,21 @@ function OnboardingModal({
               styled as a clearly-above-the-fold divider so "My custom
               habits" below can't be mistaken for the section title.
               Progress pill sits inside the header; the bar underneath
-              tracks N/SELECTION_LIMIT in theme colour. */}
+              tracks N/SELECTION_LIMIT in theme colour. position:sticky
+              keeps it glued to the top of the scroll container once the
+              user scrolls past it, so the progress is always visible. */}
           <div
             style={{
+              position: "sticky",
+              top: 0,
+              zIndex: 2,
               marginTop: 22,
               marginBottom: 12,
               paddingTop: 14,
-              borderTop: "1px solid var(--card-border-idle)"
+              paddingBottom: 10,
+              borderTop: "1px solid var(--card-border-idle)",
+              background: "var(--card-bg, #0f172a)",
+              boxShadow: "0 6px 10px -8px rgba(0,0,0,0.45)"
             }}
           >
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>

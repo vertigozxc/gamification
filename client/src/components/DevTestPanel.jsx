@@ -90,16 +90,28 @@ export default function DevTestPanel({ username, onRefresh, onLogout, xp = 0, xp
             disabled={busy}
             onClick={async () => {
               if (!window.confirm("Full reset? (wipes progress, completions, pins, city, timers — then logs you out)")) return;
-              // Wipe account → sign out. Onboarding re-runs on next login
-              // because the server also clears onboardingSkippedAt.
-              await run(async () => {
+              if (busy) return;
+              setBusy(true);
+              try {
+                // Wipe account → sign out. Onboarding re-runs on next login
+                // because the server also clears onboardingSkippedAt. We
+                // intentionally bypass the `run()` wrapper so onRefresh
+                // doesn't fire a /game-state fetch in the middle of the
+                // auth state flipping to null — that race can strand the
+                // shell on the loading screen.
                 await devResetMe(username);
+              } catch {
+                /* silent — log out anyway so the tester isn't stranded */
+              }
+              try {
                 if (typeof onLogout === "function") {
                   await onLogout();
                 } else if (typeof window !== "undefined") {
                   window.location.reload();
                 }
-              });
+              } finally {
+                setBusy(false);
+              }
             }}
             style={{ ...buttonStyle, borderColor: "rgba(239,68,68,0.6)", color: "#fecaca", background: "linear-gradient(135deg, rgba(239,68,68,0.25), rgba(2,6,23,0.5))" }}
           >

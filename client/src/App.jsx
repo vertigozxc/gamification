@@ -394,6 +394,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       showOnboarding
       || cityFullscreen
       || showPinnedReplaceModal
+      || pinnedReplacementOpening
       || showAbout
       || showLogoutConfirm
       || showLevelUp
@@ -423,7 +424,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     } catch { /* bridge missing — WebView tearing down */ }
   }, [
     isEmbeddedApp, authUser, authLoading, dataLoading, initialDataResolved,
-    showOnboarding, mobileTab, cityFullscreen, showPinnedReplaceModal,
+    showOnboarding, mobileTab, cityFullscreen, showPinnedReplaceModal, pinnedReplacementOpening,
     showAbout, showLogoutConfirm, showLevelUp, showHabitMilestone,
     showFreezeSuccess, showRerollConfirm, showNotesModal, showThemePicker,
     showLanguagePicker, achievementModalOpen, showNotesHistory, deleteProfileOpen, questCompletePopup, timerLimitPopup,
