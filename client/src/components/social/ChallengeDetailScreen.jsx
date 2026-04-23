@@ -231,20 +231,10 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
         </div>
       );
     } else if (!isActivated) {
-      footer = (
-        <div style={{
-          padding: "12px 14px",
-          borderRadius: 12,
-          border: "1px dashed var(--panel-border)",
-          background: "rgba(120,120,128,0.12)",
-          color: "var(--color-muted)",
-          fontSize: 13,
-          textAlign: "center",
-          width: "100%",
-        }}>
-          ⏳ {t.arenaWaitingForPlayers || "Waiting for at least one more player to accept"}
-        </div>
-      );
+      // Waiting-for-players hint now rides in the hero header, not as a
+      // sticky footer strip — keeps the action area free for a future
+      // real CTA and de-duplicates the status line.
+      footer = null;
     } else if (completedToday) {
       footer = (
         <div className="sb-pill sb-pill-success" style={{ justifyContent: "center", padding: 14, fontSize: 15, width: "100%", display: "flex" }}>
@@ -289,6 +279,7 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
             ended={ended}
             completedToday={completedToday}
             isActive={isActive}
+            isActivated={isActivated}
             isCreator={isCreator}
             t={t}
             error={error}
@@ -457,7 +448,7 @@ function InviteFriendsSheet({ friends, existingUserIds, selected, onToggle, onCa
   );
 }
 
-function Body({ challenge, meUid, me, active, ended, completedToday, isActive, isCreator, t, error, showActivity, onToggleActivity, onOpenProfile, onLeave, onInvite, onRequestRemove, busy }) {
+function Body({ challenge, meUid, me, active, ended, completedToday, isActive, isActivated, isCreator, t, error, showActivity, onToggleActivity, onOpenProfile, onLeave, onInvite, onRequestRemove, busy }) {
   const total = Math.max(1, Number(challenge.durationDays) || 1);
   const start = new Date(challenge.startedAt).getTime();
   const elapsed = ended ? total : Math.min(total, Math.max(0, Math.floor((Date.now() - start) / 86400000)));
@@ -495,21 +486,57 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, i
         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
           <DayRing elapsed={elapsed} total={total} ended={ended} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p
-              style={{
-                fontSize: 10,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "var(--color-muted)",
-                margin: 0,
-                fontWeight: 700
-              }}
-            >
-              {ended ? (t.arenaPactEndedWord || "Ended") : `${daysLeft} ${t.arenaDaysLeftUnit || "days left"}`}
-            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <p
+                style={{
+                  fontSize: 10,
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "var(--color-muted)",
+                  margin: 0,
+                  fontWeight: 700
+                }}
+              >
+                {ended ? (t.arenaPactEndedWord || "Ended") : `${daysLeft} ${t.arenaDaysLeftUnit || "days left"}`}
+              </p>
+              {!ended && !isActivated ? (
+                <span
+                  style={{
+                    fontSize: 9,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    fontWeight: 800,
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    background: "rgba(148,163,184,0.18)",
+                    border: "1px solid rgba(148,163,184,0.35)",
+                    color: "var(--color-muted)"
+                  }}
+                >
+                  ⏳ {t.arenaWaitingForPlayersShort || "Waiting for players"}
+                </span>
+              ) : null}
+            </div>
             <h2 className="cinzel" style={{ fontSize: 18, fontWeight: 800, margin: "4px 0 0", color: "var(--color-text)", lineHeight: 1.25 }}>
               {challenge.title}
             </h2>
+            <p
+              className="cinzel"
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: "var(--color-primary)",
+                margin: "4px 0 0",
+                letterSpacing: "0.04em",
+                fontVariantNumeric: "tabular-nums"
+              }}
+            >
+              {(() => {
+                const maxPossible = Math.max(1, active.length * Math.max(1, elapsed));
+                const pct = Math.min(100, Math.round((totalCompletions / maxPossible) * 100));
+                return `${pct}% ${t.arenaCompletionTotal || "completion"}`;
+              })()}
+            </p>
           </div>
         </div>
         <div style={{ display: "flex", gap: 6, marginTop: 14, flexWrap: "wrap" }}>
@@ -925,81 +952,103 @@ function ParticipantRow({ rank, participant, meUid, t, onOpenProfile, canRemove,
   return (
     <div
       style={{
-        display: "flex",
+        display: "grid",
+        gridTemplateColumns: "28px 28px 1fr auto auto",
         alignItems: "center",
         gap: 10,
-        padding: "10px 12px",
-        borderRadius: 12,
-        border: `1px solid ${isMe ? "color-mix(in srgb, var(--color-primary) 55%, transparent)" : "var(--card-border-idle)"}`,
-        background: isMe ? "color-mix(in srgb, var(--color-primary) 8%, transparent)" : "var(--panel-bg)",
+        padding: "8px 10px",
+        borderRadius: 10,
+        border: `1px solid ${isMe ? "color-mix(in srgb, var(--color-primary) 45%, transparent)" : "var(--card-border-idle)"}`,
+        background: isMe ? "color-mix(in srgb, var(--color-primary) 7%, transparent)" : "rgba(255,255,255,0.02)",
         opacity: left ? 0.5 : 1
       }}
     >
+      <span
+        style={{
+          fontSize: 11,
+          fontWeight: 800,
+          color: "var(--color-muted)",
+          fontVariantNumeric: "tabular-nums",
+          textAlign: "center"
+        }}
+      >
+        {rank != null ? `#${rank}` : "—"}
+      </span>
       <button
         type="button"
         onClick={() => onOpenProfile && onOpenProfile(participant.user.username)}
         className="press"
         style={{
-          flex: 1,
-          minWidth: 0,
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          background: "transparent",
+          width: 28,
+          height: 28,
+          borderRadius: "50%",
+          overflow: "hidden",
+          background: "var(--panel-bg)",
           border: "none",
-          cursor: "pointer",
           padding: 0,
-          textAlign: "left",
-          color: "inherit"
+          cursor: "pointer"
         }}
       >
-        {rank != null ? (
-          <span style={{ flexShrink: 0, width: 24, textAlign: "center", fontSize: 11, fontWeight: 800, color: "var(--color-muted)" }}>
-            #{rank}
+        <Avatar photoUrl={participant.user.photoUrl} displayName={participant.user.displayName} size={28} />
+      </button>
+      <button
+        type="button"
+        onClick={() => onOpenProfile && onOpenProfile(participant.user.username)}
+        className="press"
+        style={{
+          minWidth: 0,
+          background: "transparent",
+          border: "none",
+          padding: 0,
+          cursor: "pointer",
+          textAlign: "left",
+          color: "inherit",
+          display: "flex",
+          flexDirection: "column",
+          gap: 1
+        }}
+      >
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            color: isMe ? "var(--color-primary)" : "var(--color-text)",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis"
+          }}
+        >
+          {participant.user.displayName || participant.user.username}
+        </span>
+        {pending ? (
+          <span
+            style={{
+              fontSize: 9,
+              color: "var(--color-muted)",
+              fontWeight: 700,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase"
+            }}
+          >
+            {t.arenaPactPending || "pending"}
           </span>
         ) : null}
-        <div style={{ width: 32, height: 32, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: "var(--panel-bg)" }}>
-          <Avatar photoUrl={participant.user.photoUrl} displayName={participant.user.displayName} size={32} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: isMe ? "var(--color-primary)" : "var(--color-text)",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                minWidth: 0
-              }}
-            >
-              {participant.user.displayName || participant.user.username}
-            </span>
-            {pending ? (
-              <span
-                style={{
-                  fontSize: 9,
-                  padding: "1px 6px",
-                  borderRadius: 999,
-                  background: "rgba(148,163,184,0.18)",
-                  color: "var(--color-muted)",
-                  fontWeight: 800,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase"
-                }}
-              >
-                {t.arenaPactPending || "pending"}
-              </span>
-            ) : null}
-          </div>
-          <div style={{ display: "flex", gap: 10, fontSize: 11, color: "var(--color-muted)", marginTop: 2, fontWeight: 600 }}>
-            <span>✓ {participant.completions || 0}</span>
-            <span>🔥 {participant.consecutiveDays || 0}</span>
-            <span>🪙 {participant.tokensEarned || 0}</span>
-          </div>
-        </div>
       </button>
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          fontSize: 11,
+          color: "var(--color-muted)",
+          fontWeight: 700,
+          fontVariantNumeric: "tabular-nums",
+          whiteSpace: "nowrap"
+        }}
+      >
+        <span>✓{participant.completions || 0}</span>
+        <span>🔥{participant.consecutiveDays || 0}</span>
+        <span>🪙{participant.tokensEarned || 0}</span>
+      </div>
       {canRemove ? (
         <button
           type="button"
@@ -1007,24 +1056,24 @@ function ParticipantRow({ rank, participant, meUid, t, onOpenProfile, canRemove,
           aria-label={t.arenaPactRemoveShort || "Remove"}
           className="mobile-pressable"
           style={{
-            flexShrink: 0,
-            width: 28,
-            height: 28,
+            width: 34,
+            height: 34,
             borderRadius: 999,
-            border: "1px solid rgba(248,113,113,0.4)",
-            background: "rgba(248,113,113,0.08)",
+            border: "1px solid rgba(248,113,113,0.5)",
+            background: "rgba(248,113,113,0.12)",
             color: "#f87171",
-            fontSize: 12,
+            fontSize: 15,
             fontWeight: 800,
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center"
+            justifyContent: "center",
+            padding: 0
           }}
         >
           ✕
         </button>
-      ) : null}
+      ) : <span style={{ width: 0 }} />}
     </div>
   );
 }
