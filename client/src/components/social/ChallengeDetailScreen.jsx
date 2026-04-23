@@ -995,6 +995,16 @@ function ParticipantRow({ rank, participant, meUid, t, onOpenProfile, canRemove,
   const pending = !participant.acceptedAt && !left;
   const medalTint = rank === 1 ? "#facc15" : rank === 2 ? "#cbd5e1" : rank === 3 ? "#f59e0b" : null;
   const doneToday = participant.lastCompletionDayKey === todayKey();
+  // Only show the today status badge for accepted + still-active players.
+  // Pending invitees and those who left don't have a meaningful "today" state.
+  const showTodayBadge = !pending && !left;
+  // Reserve right-side space so rows don't jitter as the remove button or
+  // today badge comes and goes. Today badge always shows when eligible;
+  // remove button shows only for the creator on other players' rows.
+  const rightPad = canRemove && showTodayBadge ? 92 : 52;
+  const todayLabel = doneToday
+    ? (t.arenaParticipantDoneTitle || "Completed today")
+    : (t.arenaParticipantMissedTitle || "Not done today");
 
   return (
     <div
@@ -1004,10 +1014,7 @@ function ParticipantRow({ rank, participant, meUid, t, onOpenProfile, canRemove,
         alignItems: "center",
         gap: 12,
         padding: "12px 14px",
-        // Reserve right-side space for the remove button on EVERY row
-        // (visible or hidden), so adding/removing a row never shifts the
-        // stats column sideways.
-        paddingRight: 52,
+        paddingRight: rightPad,
         borderRadius: 12,
         border: `1px solid ${isMe ? "color-mix(in srgb, var(--color-primary) 45%, transparent)" : "var(--card-border-idle)"}`,
         background: isMe ? "color-mix(in srgb, var(--color-primary) 7%, transparent)" : "rgba(255,255,255,0.02)",
@@ -1111,37 +1118,51 @@ function ParticipantRow({ rank, participant, meUid, t, onOpenProfile, canRemove,
           ) : null}
         </div>
         <div style={{ display: "flex", gap: 10, fontSize: 12, color: "var(--color-muted)", fontWeight: 600, fontVariantNumeric: "tabular-nums", alignItems: "center", flexWrap: "wrap" }}>
-          <span title={t.arenaStatCompletionsTooltip || "Completions"}>✓ {participant.completions || 0}</span>
+          <span title={t.arenaStatCompletionsTooltip || "Completions"}>🏁 {participant.completions || 0}</span>
           <span style={{ color: "var(--card-border-idle)" }}>·</span>
           <span title={t.arenaStatTokensTooltip || "Tokens earned"}>🪙 {participant.tokensEarned || 0}</span>
-          <span style={{ color: "var(--card-border-idle)" }}>·</span>
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              fontSize: 10,
-              padding: "3px 8px",
-              borderRadius: 999,
-              background: doneToday
-                ? "color-mix(in srgb, #10b981 22%, transparent)"
-                : "rgba(248, 113, 113, 0.12)",
-              border: `1px solid ${doneToday ? "rgba(16,185,129,0.5)" : "rgba(248,113,113,0.4)"}`,
-              color: doneToday ? "#6ee7b7" : "#fca5a5",
-              fontWeight: 800,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase"
-            }}
-          >
-            <span style={{ fontSize: 11 }}>{doneToday ? "✓" : "✕"}</span>
-            {t.arenaToday || "today"}
-          </span>
         </div>
       </button>
 
+      {/* Today status — prominent solid circle: green ✓ when done, red ✕
+          when still pending. Using white glyph on solid fill keeps it
+          readable across all 3 themes and distinct from the outlined
+          remove button that may sit beside it. */}
+      {showTodayBadge ? (
+        <span
+          role="img"
+          aria-label={todayLabel}
+          title={todayLabel}
+          style={{
+            position: "absolute",
+            top: "50%",
+            right: canRemove ? 52 : 12,
+            transform: "translateY(-50%)",
+            width: 32,
+            height: 32,
+            borderRadius: 999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 18,
+            fontWeight: 900,
+            lineHeight: 1,
+            background: doneToday ? "#10b981" : "#ef4444",
+            color: "#ffffff",
+            boxShadow: doneToday
+              ? "0 2px 8px rgba(16, 185, 129, 0.32)"
+              : "0 2px 8px rgba(239, 68, 68, 0.28)",
+            pointerEvents: "none"
+          }}
+        >
+          {doneToday ? "✓" : "✕"}
+        </span>
+      ) : null}
+
       {/* Remove button is absolutely positioned so showing/hiding it
           never shifts the rest of the row. Always centred vertically in
-          the right-side gutter we reserved via paddingRight. */}
+          the right-side gutter we reserved via paddingRight. Outlined
+          style keeps it visually secondary to the solid today badge. */}
       {canRemove ? (
         <button
           type="button"
@@ -1151,7 +1172,7 @@ function ParticipantRow({ rank, participant, meUid, t, onOpenProfile, canRemove,
           style={{
             position: "absolute",
             top: "50%",
-            right: 10,
+            right: 12,
             transform: "translateY(-50%)",
             width: 32,
             height: 32,
