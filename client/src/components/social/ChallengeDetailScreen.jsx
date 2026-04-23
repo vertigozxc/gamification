@@ -11,6 +11,7 @@ import {
 import Avatar from "./Avatar";
 import Screen from "./Screen";
 import Alert from "./Alert";
+import PullToRefresh from "../PullToRefresh";
 
 function todayKey() {
   const d = new Date();
@@ -250,8 +251,16 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
     }
   }
 
+  // PTR on the challenge screen's own scroll body. Ignores the global
+  // social-screen flag because it's mounted with an explicit target ref.
+  const bodyScrollRef = useRef(null);
+  const handleScreenRefresh = useCallback(async () => {
+    try { await refresh(); } catch { /* non-fatal */ }
+  }, [refresh]);
+
   return (
     <>
+      <PullToRefresh target={bodyScrollRef} onRefresh={handleScreenRefresh}>
       <Screen
         title={challenge?.title || (t.arenaPactTitle || "Challenge")}
         subtitle={
@@ -263,6 +272,7 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
         }
         onClose={onClose}
         footer={footer}
+        bodyRef={bodyScrollRef}
       >
         {loading ? (
           <div style={{ display: "flex", justifyContent: "center", padding: "64px 0" }}>
@@ -293,6 +303,7 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
           />
         )}
       </Screen>
+      </PullToRefresh>
 
       {confirmLeave && (
         <Alert

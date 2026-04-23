@@ -14,7 +14,7 @@ import useEdgeSwipeBack from "../../hooks/useEdgeSwipeBack";
  *   │       optional sticky footer     │
  *   └──────────────────────────────────┘
  */
-export default function Screen({ title, subtitle, headerExtra, onClose, children, footer }) {
+export default function Screen({ title, subtitle, headerExtra, onClose, children, footer, bodyRef }) {
   const swipeBind = useEdgeSwipeBack(onClose);
 
   // Mark the document while a social Screen is open so PullToRefresh
@@ -55,7 +55,7 @@ export default function Screen({ title, subtitle, headerExtra, onClose, children
         {headerExtra ? <div style={{ marginTop: 12 }}>{headerExtra}</div> : null}
       </div>
 
-      <div className="sb-page-body">{children}</div>
+      <div className="sb-page-body" ref={bodyRef}>{children}</div>
 
       {footer ? <div className="sb-page-footer">{footer}</div> : null}
     </div>

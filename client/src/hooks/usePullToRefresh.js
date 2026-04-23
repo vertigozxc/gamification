@@ -28,14 +28,22 @@ export default function usePullToRefresh({ target = null, onRefresh, disabled = 
     function onTouchStart(e) {
       if (refreshingRef.current) return;
       if (e.pointerType && e.pointerType !== "touch" && e.pointerType !== "pen") return;
-      // Never start a pull gesture while a full-screen social panel
-      // (profile / challenge detail / search / …) is the active layer.
-      // Screen.jsx sets this data attr for its lifetime.
-      if (document.documentElement.dataset.socialScreenOpen === "1") {
+      // Document-level listener: pause while a full-screen social panel
+      // is the active layer. A PTR mounted with an explicit target ref
+      // (i.e. the social panel's own scroller) is opting in and should
+      // ignore this flag so the pull works inside the panel.
+      if (!el && document.documentElement.dataset.socialScreenOpen === "1") {
         active.current = false;
         return;
       }
-      const scrollTop = el ? el.scrollTop : (window.scrollY || document.documentElement.scrollTop || 0);
+      // PTR only arms when the page is truly at the top. If we were
+      // handed a target ref we check BOTH that element's scroll and
+      // the document's scroll — otherwise a user scrolled mid-page
+      // could still pull-to-refresh because the inner element didn't
+      // scroll at all.
+      const innerScrollTop = el ? el.scrollTop : 0;
+      const docScrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+      const scrollTop = Math.max(innerScrollTop, docScrollTop);
       if (scrollTop > 1) { active.current = false; return; }
       active.current = true;
       startY.current = e.touches ? e.touches[0].clientY : e.clientY;

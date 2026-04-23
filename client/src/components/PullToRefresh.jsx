@@ -10,9 +10,9 @@ import usePullToRefresh from "../hooks/usePullToRefresh";
 
 const REST_HEIGHT = 56;
 
-export default function PullToRefresh({ onRefresh, disabled = false, children }) {
+export default function PullToRefresh({ onRefresh, disabled = false, target = null, children }) {
   const { state, pullDistance, triggerPx } = usePullToRefresh({
-    target: null,
+    target,
     onRefresh,
     disabled
   });
