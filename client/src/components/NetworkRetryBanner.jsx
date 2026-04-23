@@ -52,23 +52,11 @@ export default function NetworkRetryBanner() {
       ? (t.networkRestored || "Back online")
       : (t.networkFailed || "Connection lost — retrying soon");
 
-  const bg = state === "ok"
-    ? "color-mix(in srgb, #10b981 22%, transparent)"
-    : state === "failed"
-      ? "color-mix(in srgb, #f87171 22%, transparent)"
-      : "color-mix(in srgb, var(--color-primary) 22%, transparent)";
-
-  const border = state === "ok"
-    ? "rgba(16,185,129,0.55)"
-    : state === "failed"
-      ? "rgba(248,113,113,0.55)"
-      : "color-mix(in srgb, var(--color-primary) 55%, transparent)";
-
-  const fg = state === "ok"
-    ? "#6ee7b7"
-    : state === "failed"
-      ? "#fca5a5"
-      : "var(--color-text)";
+  // All three states use theme-primary tint so the banner never reads as
+  // "something broke" — it's just the app telling you it's fetching.
+  const bg = "color-mix(in srgb, var(--color-primary) 22%, transparent)";
+  const border = "color-mix(in srgb, var(--color-primary) 55%, transparent)";
+  const fg = "var(--color-text)";
 
   return (
     <div
@@ -97,7 +85,9 @@ export default function NetworkRetryBanner() {
         pointerEvents: "none"
       }}
     >
-      {state === "reconnecting" ? (
+      {state === "ok" ? (
+        <span aria-hidden style={{ fontSize: 13, color: "var(--color-primary)" }}>✓</span>
+      ) : (
         <span
           aria-hidden
           style={{
@@ -110,10 +100,6 @@ export default function NetworkRetryBanner() {
             display: "inline-block"
           }}
         />
-      ) : (
-        <span aria-hidden style={{ fontSize: 13 }}>
-          {state === "ok" ? "✓" : "⚠"}
-        </span>
       )}
       <span>{label}</span>
     </div>
