@@ -478,13 +478,19 @@ function ChallengesInlineTab({ pendingChallenges = [], activeChallenges, endedCh
 
 function ChallengeCard({ challenge: c, ended, pending, t, onOpen }) {
   const total = Math.max(1, Number(c.durationDays) || 1);
-  const start = new Date(c.startedAt).getTime();
   const end = new Date(c.endsAt).getTime();
-  const elapsed = ended ? total : Math.min(total, Math.max(0, Math.floor((Date.now() - start) / 86400000)));
   const daysLeft = ended ? 0 : Math.max(0, Math.ceil((end - Date.now()) / 86400000));
-  const pct = Math.round((elapsed / total) * 100);
-  const done = c.myLastCompletionDayKey === todayKey();
+  // Progress bar now tracks the GROUP completion counter, not calendar
+  // elapsed days — so a challenge where people kept skipping stays at
+  // a low % even if half the duration has passed.
+  const groupDays = Math.max(0, Math.min(total, Number(c.groupDaysCompleted) || 0));
+  const pct = Math.round((groupDays / total) * 100);
+  const today = todayKey();
+  const doneToday = c.myLastCompletionDayKey === today;
   const participants = (c.participants || []).filter((p) => !p.leftAt);
+  const acceptedParticipants = participants.filter((p) => p.acceptedAt);
+  const allDoneToday = acceptedParticipants.length >= 2
+    && acceptedParticipants.every((p) => p.lastCompletionDayKey === today);
 
   return (
     <button
@@ -515,9 +521,29 @@ function ChallengeCard({ challenge: c, ended, pending, t, onOpen }) {
         )}
       </div>
       <p className="cm-challenge-quest">🎯 {c.questTitle}</p>
-      <div className="cm-progress">
-        <div className={`cm-progress-fill${done ? " done" : ""}`} style={{ width: `${pct}%` }} />
+
+      {/* Completion progress bar (group days / total days) */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 11 }}>
+        <span className="cm-caption">
+          {t.communityCompletion || "Completion"} · {groupDays}/{total}
+        </span>
+        <span
+          style={{
+            fontVariantNumeric: "tabular-nums",
+            fontWeight: 700,
+            color: allDoneToday ? "#6ee7b7" : "var(--color-muted)"
+          }}
+        >
+          {pct}%
+        </span>
       </div>
+      <div className="cm-progress">
+        <div
+          className={`cm-progress-fill${allDoneToday ? " done" : ""}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ display: "flex" }}>
           {participants.slice(0, 5).map((p, i) => (
@@ -527,13 +553,53 @@ function ChallengeCard({ challenge: c, ended, pending, t, onOpen }) {
           ))}
         </div>
         <span className="cm-caption">{participants.length} {t.communityPlayers || "players"}</span>
-        {!ended && (
-          <span className={`cm-pill ${done ? "cm-pill-success" : ""}`} style={{ marginLeft: "auto" }}>
-            {done ? `✓ ${t.communityDone || "today"}` : `🔥 ${c.myConsecutiveDays || 0}`}
-          </span>
-        )}
+        {!ended && !pending ? (
+          <div style={{ marginLeft: "auto", display: "flex", gap: 4, alignItems: "center" }}>
+            <MiniBadge
+              ok={doneToday}
+              okLabel={t.communityYouDone || "you ✓"}
+              nokLabel={t.communityYouPending || "you ·"}
+            />
+            <MiniBadge
+              ok={allDoneToday}
+              okLabel={t.communityAllDone || "all ✓"}
+              nokLabel={t.communityAllPending || "all ·"}
+              green
+            />
+          </div>
+        ) : null}
       </div>
     </button>
+  );
+}
+
+function MiniBadge({ ok, okLabel, nokLabel, green = false }) {
+  const bg = ok
+    ? (green ? "color-mix(in srgb, #10b981 22%, transparent)" : "color-mix(in srgb, var(--color-primary) 22%, transparent)")
+    : "rgba(148,163,184,0.14)";
+  const border = ok
+    ? (green ? "rgba(16,185,129,0.5)" : "color-mix(in srgb, var(--color-primary) 55%, transparent)")
+    : "var(--card-border-idle)";
+  const color = ok
+    ? (green ? "#6ee7b7" : "var(--color-primary)")
+    : "var(--color-muted)";
+  return (
+    <span
+      style={{
+        fontSize: 9,
+        fontWeight: 800,
+        padding: "2px 7px",
+        borderRadius: 999,
+        background: bg,
+        border: `1px solid ${border}`,
+        color,
+        letterSpacing: "0.06em",
+        textTransform: "uppercase",
+        whiteSpace: "nowrap"
+      }}
+    >
+      {ok ? okLabel : nokLabel}
+    </span>
   );
 }
 

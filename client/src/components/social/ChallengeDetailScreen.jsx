@@ -254,11 +254,9 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
       // real CTA and de-duplicates the status line.
       footer = null;
     } else if (completedToday) {
-      footer = (
-        <div className="sb-pill sb-pill-success" style={{ justifyContent: "center", padding: 14, fontSize: 15, width: "100%", display: "flex" }}>
-          ✓ {t.arenaDoneTodayFull || "Done for today"}
-        </div>
-      );
+      // Per UX: no "Done for today" pill — the hero card and the
+      // participant rows already signal today's completion clearly.
+      footer = null;
     } else if (!challenge.needsTimer || targetMs <= 0) {
       footer = (
         <button type="button" disabled={busy} onClick={handleComplete} className="sb-primary-btn press" style={{ width: "100%", padding: 14 }}>
@@ -277,7 +275,7 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
 
   return (
     <>
-      <PullToRefresh target={bodyScrollRef} onRefresh={handleScreenRefresh} variant="overlay">
+      <PullToRefresh target={bodyScrollRef} onRefresh={handleScreenRefresh}>
       <Screen
         title={challenge?.title || (t.arenaPactTitle || "Challenge")}
         subtitle={
@@ -496,9 +494,11 @@ function InviteFriendsSheet({ friends, existingUserIds, selected, onToggle, onCa
 
 function Body({ challenge, meUid, me, active, ended, completedToday, isActive, isActivated, isCreator, t, error, showActivity, onToggleActivity, onOpenProfile, onLeave, onInvite, onRequestRemove, busy }) {
   const total = Math.max(1, Number(challenge.durationDays) || 1);
-  const start = new Date(challenge.startedAt).getTime();
-  const elapsed = ended ? total : Math.min(total, Math.max(0, Math.floor((Date.now() - start) / 86400000)));
-  const pct = Math.round((elapsed / total) * 100);
+  // Hero ring and % reflect GROUP progress — days where every
+  // participant completed, not calendar time. This is the real
+  // "how close is the crew to winning" number.
+  const groupDays = Math.max(0, Math.min(total, Number(challenge.groupDaysCompleted) || 0));
+  const pct = Math.round((groupDays / total) * 100);
   const totalCompletions = (challenge.participants || []).reduce((s, p) => s + (p.completions || 0), 0);
   const todayAward = challenge.lastAwardedDayKey === todayKey();
 
@@ -530,7 +530,7 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, i
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-          <DayRing elapsed={elapsed} total={total} ended={ended} />
+          <DayRing elapsed={groupDays} total={total} ended={ended} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <p
@@ -577,11 +577,7 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, i
                 fontVariantNumeric: "tabular-nums"
               }}
             >
-              {(() => {
-                const maxPossible = Math.max(1, active.length * Math.max(1, elapsed));
-                const pct = Math.min(100, Math.round((totalCompletions / maxPossible) * 100));
-                return `${pct}% ${t.arenaCompletionTotal || "completion"}`;
-              })()}
+              {`${pct}% ${t.arenaCompletionTotal || "completion"}`}
             </p>
           </div>
         </div>
@@ -730,7 +726,18 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, i
           <span className="chal-activity-chev" aria-hidden="true">›</span>
         </button>
         <div className="chal-activity-body" aria-hidden={!showActivity}>
-          <div className="chal-activity-body-inner">
+          <div
+            className="chal-activity-body-inner"
+            style={{
+              // Cap activity feed at ~5 rows and scroll inside. Each
+              // row lands around 48 px (padding + date line), so 5 × 48
+              // + gaps ≈ 260 px feels right.
+              maxHeight: 260,
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch",
+              paddingRight: 2
+            }}
+          >
             {(challenge.logs || []).length === 0 && (
               <p className="sb-caption" style={{ textAlign: "center", padding: "8px 0" }}>{t.arenaActivityEmpty || "No activity yet."}</p>
             )}
@@ -750,8 +757,8 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, i
                 <div style={{ flex: 1, minWidth: 0, fontSize: 13, lineHeight: 1.4 }}>
                   <span style={{ color: "var(--color-primary)", fontWeight: 700 }}>{log.user.displayName || log.user.username}</span>{" "}
                   <span style={{ color: "var(--color-muted)" }}>{logVerb(log.type, t)}</span>
-                  <div style={{ color: "var(--color-muted)", fontSize: 11, marginTop: 2 }}>
-                    {formatRelative(log.createdAt, t)}
+                  <div style={{ color: "var(--color-muted)", fontSize: 11, marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
+                    {formatAbsolute(log.createdAt, t)} · {formatRelative(log.createdAt, t)}
                   </div>
                 </div>
               </div>
@@ -1103,27 +1110,31 @@ function ParticipantRow({ rank, participant, meUid, t, onOpenProfile, canRemove,
             </span>
           ) : null}
         </div>
-        <div style={{ display: "flex", gap: 10, fontSize: 12, color: "var(--color-muted)", fontWeight: 600, fontVariantNumeric: "tabular-nums", alignItems: "center" }}>
-          <span>✓ {participant.completions || 0}</span>
+        <div style={{ display: "flex", gap: 10, fontSize: 12, color: "var(--color-muted)", fontWeight: 600, fontVariantNumeric: "tabular-nums", alignItems: "center", flexWrap: "wrap" }}>
+          <span title={t.arenaStatCompletionsTooltip || "Completions"}>✓ {participant.completions || 0}</span>
           <span style={{ color: "var(--card-border-idle)" }}>·</span>
-          <span>🪙 {participant.tokensEarned || 0}</span>
+          <span title={t.arenaStatTokensTooltip || "Tokens earned"}>🪙 {participant.tokensEarned || 0}</span>
+          <span style={{ color: "var(--card-border-idle)" }}>·</span>
           <span
             style={{
-              marginLeft: 4,
-              fontSize: 9,
-              padding: "2px 7px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 10,
+              padding: "3px 8px",
               borderRadius: 999,
               background: doneToday
                 ? "color-mix(in srgb, #10b981 22%, transparent)"
-                : "rgba(148,163,184,0.14)",
-              border: `1px solid ${doneToday ? "rgba(16,185,129,0.45)" : "var(--card-border-idle)"}`,
-              color: doneToday ? "#6ee7b7" : "var(--color-muted)",
+                : "rgba(248, 113, 113, 0.12)",
+              border: `1px solid ${doneToday ? "rgba(16,185,129,0.5)" : "rgba(248,113,113,0.4)"}`,
+              color: doneToday ? "#6ee7b7" : "#fca5a5",
               fontWeight: 800,
-              letterSpacing: "0.08em",
+              letterSpacing: "0.06em",
               textTransform: "uppercase"
             }}
           >
-            {doneToday ? (t.arenaTodayDoneBadge || "✓ today") : (t.arenaTodayPending || "·—")}
+            <span style={{ fontSize: 11 }}>{doneToday ? "✓" : "✕"}</span>
+            {t.arenaToday || "today"}
           </span>
         </div>
       </button>
@@ -1464,6 +1475,18 @@ function logVerb(type, t) {
   if (type === "left") return t.arenaLogLeft || "left";
   if (type === "completed") return t.arenaLogCompleted || "completed today's task";
   return type;
+}
+
+function formatAbsolute(value) {
+  if (!value) return "";
+  try {
+    const d = new Date(value);
+    const date = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    return `${date} ${time}`;
+  } catch {
+    return "";
+  }
 }
 
 function formatRelative(value, t) {
