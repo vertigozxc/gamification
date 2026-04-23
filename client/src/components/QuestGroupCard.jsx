@@ -173,44 +173,78 @@ export default function QuestGroupCard({
           style={{
             position: "relative",
             zIndex: 2,
-            display: "flex",
-            gap: 6,
-            flexWrap: "wrap",
             marginTop: 10,
             pointerEvents: "auto"
           }}
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
         >
-          {variants.map((variant) => {
-            const active = Number(variant.id) === Number(activeId);
-            const label = variantLabel(variant);
-            return (
-              <button
-                key={variant.id}
-                type="button"
-                onClick={(e) => { e.stopPropagation(); handleTierPick(variant.id); }}
-                className="mobile-pressable"
-                style={{
-                  padding: "5px 10px",
-                  borderRadius: 999,
-                  border: `1px solid ${active ? "var(--color-primary)" : "var(--card-border-idle)"}`,
-                  background: active ? "rgba(250, 204, 21, 0.15)" : "rgba(255,255,255,0.03)",
-                  color: active ? "var(--color-accent)" : "var(--color-muted)",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: "0.04em",
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5
-                }}
-              >
-                <span>{label || (t.tierPickerFallback || "Tier")}</span>
-                <span style={{ opacity: 0.7, fontSize: 9 }}>
-                  {"•".repeat(Math.max(1, Math.min(5, Number(variant.effortScore) || 1)))}
-                </span>
-              </button>
-            );
-          })}
+          <label
+            className="cinzel"
+            style={{
+              display: "block",
+              fontSize: 10,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: "var(--color-muted)",
+              marginBottom: 4
+            }}
+          >
+            {t.tierPickerLabel || "Difficulty"}
+          </label>
+          <div
+            style={{
+              position: "relative",
+              display: "flex",
+              alignItems: "center"
+            }}
+          >
+            <select
+              value={String(activeId)}
+              onChange={(e) => handleTierPick(Number(e.target.value))}
+              onClick={(e) => e.stopPropagation()}
+              className="cinzel"
+              style={{
+                flex: 1,
+                minHeight: 40,
+                padding: "8px 32px 8px 12px",
+                borderRadius: 10,
+                border: `1px solid ${isSelected ? "var(--color-primary)" : "var(--card-border-idle)"}`,
+                background: "rgba(0,0,0,0.28)",
+                color: "var(--color-text)",
+                fontSize: 13,
+                fontWeight: 700,
+                letterSpacing: "0.02em",
+                appearance: "none",
+                WebkitAppearance: "none",
+                MozAppearance: "none",
+                cursor: "pointer",
+                boxSizing: "border-box"
+              }}
+            >
+              {variants.map((variant) => {
+                const label = variantLabel(variant) || (t.tierPickerFallback || "Tier");
+                const dots = "•".repeat(Math.max(1, Math.min(5, Number(variant.effortScore) || 1)));
+                return (
+                  <option key={variant.id} value={String(variant.id)}>
+                    {label}  {dots}
+                  </option>
+                );
+              })}
+            </select>
+            <span
+              aria-hidden
+              style={{
+                position: "absolute",
+                right: 12,
+                color: "var(--color-muted)",
+                fontSize: 12,
+                pointerEvents: "none"
+              }}
+            >
+              ▾
+            </span>
+          </div>
         </div>
       ) : null}
     </div>
