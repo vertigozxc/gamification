@@ -3,7 +3,11 @@ import Avatar from "./Avatar";
 import Alert from "./Alert";
 import Screen from "./Screen";
 
-const MAX_ACTIVE = 3;
+// Must stay in sync with server's MAX_ACTIVE_CHALLENGES_PER_USER. If
+// the client drifted higher the user would be allowed into the create
+// screen, fill out the form, and only discover the cap on submit —
+// exactly the "I hit create and got Load failed" flow reported.
+const MAX_ACTIVE = 2;
 
 export default function ChallengesListScreen({ challenges = [], t, onClose, onOpenChallenge, onOpenCreate }) {
   const now = Date.now();

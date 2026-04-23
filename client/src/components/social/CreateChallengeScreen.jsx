@@ -50,6 +50,10 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
         setError((t.arenaDailyCreateLimit || "You can create up to {n} challenges per day. Try again tomorrow.").replace("{n}", String(limit || 2)));
       } else if (code === "invitee_limit") {
         setError((t.arenaInviteeLimitReached || "Some friends already have their {n} active challenges — remove them from the list.").replace("{n}", String(limit || 2)));
+      } else if (/Max active challenges reached/i.test(String(err?.message || ""))) {
+        setError((t.arenaPactLimitBody || "You can run up to {max} group challenges at once. Finish or leave one to start a new pact.").replace("{max}", String(limit || 2)));
+      } else if (/Load failed|NetworkError|Failed to fetch/i.test(String(err?.message || ""))) {
+        setError(t.arenaCreateErrorNetwork || "Network hiccup — please try again.");
       } else {
         setError(err?.message || t.arenaCreateErrorGeneric || "Could not create the challenge");
       }
