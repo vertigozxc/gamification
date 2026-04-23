@@ -263,8 +263,16 @@ function useOnboardingPinned({
       setOnboardingSaving(false);
       setOnboardingQuestSearch("");
       setOnboardingQuestIds(preferredQuestIds);
-      // Name must be entered explicitly during onboarding.
-      setOnboardingName("");
+      // Pre-fill the nickname from the Google / Firebase displayName so the
+      // tester can tap "I'll setup habits later" in one step without having
+      // to type anything. Falls back to the server's stored displayName (if
+      // any) and finally to an empty string.
+      const seededName = String(
+        authUser?.displayName
+        || gameStateResponse?.user?.displayName
+        || ""
+      ).trim().slice(0, 32);
+      setOnboardingName(seededName);
     }
 
     return preferredQuestIds;
