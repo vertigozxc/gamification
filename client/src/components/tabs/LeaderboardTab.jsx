@@ -124,7 +124,11 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
 
   /* ── Home with 3 tabs ── */
   const now = Date.now();
-  const activeChallenges = challenges.filter((c) => new Date(c.endsAt).getTime() > now);
+  // Invites the user hasn't accepted yet — surfaced as a Pending bucket
+  // so they don't quietly mix into the active list. An invite only
+  // moves to Active once the user taps Accept on the challenge screen.
+  const pendingChallenges = challenges.filter((c) => !c.myAcceptedAt && new Date(c.endsAt).getTime() > now);
+  const activeChallenges = challenges.filter((c) => c.myAcceptedAt && new Date(c.endsAt).getTime() > now);
   const endedChallenges = challenges.filter((c) => new Date(c.endsAt).getTime() <= now);
   const hitDailyCreate = createdToday >= dailyCreateLimit;
   const hitActiveCap = activeChallenges.length >= MAX_ACTIVE_CHALLENGES;
@@ -150,7 +154,7 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
 
   const tabs = [
     { id: "activity", label: t.communityTabActivity || "Activity", icon: "⚡" },
-    { id: "challenges", label: t.communityTabChallenges || "Challenges", icon: "⚔️" },
+    { id: "challenges", label: t.communityTabChallenges || "Challenges", icon: "⚔️", badge: pendingChallenges.length },
     { id: "friends", label: t.communityTabFriends || "Friends", icon: "🤝", badge: requests.length },
   ];
   const selectedIdx = tabs.findIndex((tb) => tb.id === tab);
@@ -244,6 +248,7 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
             )}
             {tab === "challenges" && (
               <ChallengesInlineTab
+                pendingChallenges={pendingChallenges}
                 activeChallenges={activeChallenges}
                 endedChallenges={endedChallenges}
                 canCreate={canCreate}
@@ -371,7 +376,7 @@ function PlayerRow({ entry, isMe, meHighlight, t, onOpenProfile }) {
  * Challenges tab
  * ========================================================================== */
 
-function ChallengesInlineTab({ activeChallenges, endedChallenges, canCreate, blockReason, dailyCreateLimit = 2, t, onOpenChallenge, onOpenCreate }) {
+function ChallengesInlineTab({ pendingChallenges = [], activeChallenges, endedChallenges, canCreate, blockReason, dailyCreateLimit = 2, t, onOpenChallenge, onOpenCreate }) {
   const [showLimitAlert, setShowLimitAlert] = useState(false);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -382,11 +387,39 @@ function ChallengesInlineTab({ activeChallenges, endedChallenges, canCreate, blo
         </p>
       </div>
 
-      {activeChallenges.length === 0 && endedChallenges.length === 0 && (
+      {activeChallenges.length === 0 && endedChallenges.length === 0 && pendingChallenges.length === 0 && (
         <div className="cm-empty">
           <div className="cm-empty-icon">⚔️</div>
           <p className="cm-empty-title">{t.communityChallengesEmptyTitle || "No group challenges yet"}</p>
         </div>
+      )}
+
+      {pendingChallenges.length > 0 && (
+        <>
+          <h3 className="cm-section-label" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ color: "var(--color-primary)" }}>●</span>
+            {t.communityPending || "Pending invites"}
+            <span
+              style={{
+                fontSize: 10,
+                padding: "1px 7px",
+                borderRadius: 999,
+                background: "color-mix(in srgb, var(--color-primary) 22%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--color-primary) 55%, transparent)",
+                color: "var(--color-primary)",
+                fontWeight: 800,
+                letterSpacing: "0.06em"
+              }}
+            >
+              {pendingChallenges.length}
+            </span>
+          </h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {pendingChallenges.map((c) => (
+              <ChallengeCard key={c.id} challenge={c} t={t} onOpen={() => onOpenChallenge(c.id)} pending />
+            ))}
+          </div>
+        </>
       )}
 
       {activeChallenges.length > 0 && (
@@ -443,7 +476,7 @@ function ChallengesInlineTab({ activeChallenges, endedChallenges, canCreate, blo
   );
 }
 
-function ChallengeCard({ challenge: c, ended, t, onOpen }) {
+function ChallengeCard({ challenge: c, ended, pending, t, onOpen }) {
   const total = Math.max(1, Number(c.durationDays) || 1);
   const start = new Date(c.startedAt).getTime();
   const end = new Date(c.endsAt).getTime();
@@ -462,9 +495,24 @@ function ChallengeCard({ challenge: c, ended, t, onOpen }) {
     >
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
         <p className="cm-challenge-title">{c.title}</p>
-        <span className={`cm-pill ${ended ? "" : "cm-pill-accent"}`} style={{ flexShrink: 0 }}>
-          {ended ? (t.communityEnded || "ended") : (t.communityDaysLeft || "{n}d left").replace("{n}", String(daysLeft))}
-        </span>
+        {pending ? (
+          <span
+            className="cm-pill"
+            style={{
+              flexShrink: 0,
+              background: "color-mix(in srgb, var(--color-primary) 22%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--color-primary) 55%, transparent)",
+              color: "var(--color-primary)",
+              fontWeight: 800
+            }}
+          >
+            ✉ {t.communityInviteBadge || "invite"}
+          </span>
+        ) : (
+          <span className={`cm-pill ${ended ? "" : "cm-pill-accent"}`} style={{ flexShrink: 0 }}>
+            {ended ? (t.communityEnded || "ended") : (t.communityDaysLeft || "{n}d left").replace("{n}", String(daysLeft))}
+          </span>
+        )}
       </div>
       <p className="cm-challenge-quest">🎯 {c.questTitle}</p>
       <div className="cm-progress">

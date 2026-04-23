@@ -205,6 +205,10 @@ export default function ProfileTab({
             <span className="cinzel font-bold text-sm" style={{ color: "var(--color-primary)" }}>{profileStats?.builtHabits ?? "—"}</span>
           </div>
           <div className="flex items-center justify-between py-2 border-b border-[var(--panel-border)]">
+            <span className="flex items-center gap-2 text-sm"><span className="text-lg">🤝</span> {t.profileGroupChallengesLabel || "Group challenges completed"}</span>
+            <span className="cinzel font-bold text-sm" style={{ color: "var(--color-primary)" }}>{profileStats?.completedGroupChallenges ?? "—"}</span>
+          </div>
+          <div className="flex items-center justify-between py-2 border-b border-[var(--panel-border)]">
             <span className="flex items-center gap-2 text-sm"><span className="text-lg">📅</span> {t.profileJoinedLabel}</span>
             <span className="cinzel font-bold text-sm" style={{ color: "var(--color-primary)" }}>{profileStats?.joinedAt ? new Date(profileStats.joinedAt).toLocaleDateString(languageId === "ru" ? "ru-RU" : "en-US", { year: "numeric", month: "short", day: "numeric" }) : "—"}</span>
           </div>

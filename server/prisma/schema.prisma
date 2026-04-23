@@ -212,6 +212,8 @@ model GroupChallenge {
   startedAt         DateTime               @default(now())
   endsAt            DateTime
   lastAwardedDayKey String                 @default("")
+  groupDaysCompleted Int                   @default(0)
+  completionAwarded Boolean                @default(false)
   createdAt         DateTime               @default(now())
   creator           User                   @relation("challengeCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   participants      ChallengeParticipant[]

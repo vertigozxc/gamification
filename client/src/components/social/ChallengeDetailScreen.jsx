@@ -46,14 +46,31 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  const [rewardPopup, setRewardPopup] = useState(null);
+
   async function handleComplete() {
     setBusy(true);
     try {
-      await completeChallenge(challengeId, meUid);
+      const resp = await completeChallenge(challengeId, meUid);
       setTimer({ status: "idle", startedAt: 0, totalPausedMs: 0, pausedAt: 0 });
       autoCompleteFired.current = false;
       await refresh();
       onChanged && onChanged();
+      // Reward popups driven by the server response shape introduced
+      // with the group-progress rework.
+      if (resp?.challengeFinished) {
+        setRewardPopup({
+          kind: "finished",
+          xp: Number(resp.finalXpPerUser || 0),
+          days: Number(resp.totalDays || resp.groupDaysCompleted || 0)
+        });
+      } else if (resp?.groupDayComplete) {
+        setRewardPopup({
+          kind: "dayComplete",
+          daysSoFar: Number(resp.groupDaysCompleted || 0),
+          total: Number(resp.totalDays || 0)
+        });
+      }
     } catch (e) {
       setError(e?.message || t.arenaActionError || "Could not update");
     } finally {
@@ -260,7 +277,7 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
 
   return (
     <>
-      <PullToRefresh target={bodyScrollRef} onRefresh={handleScreenRefresh}>
+      <PullToRefresh target={bodyScrollRef} onRefresh={handleScreenRefresh} variant="overlay">
       <Screen
         title={challenge?.title || (t.arenaPactTitle || "Challenge")}
         subtitle={
@@ -330,6 +347,24 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
           onConfirm={() => doRemoveParticipant(confirmRemove.user.username)}
         />
       )}
+
+      {rewardPopup ? (
+        <Alert
+          icon={rewardPopup.kind === "finished" ? "🏆" : "🪙"}
+          title={rewardPopup.kind === "finished"
+            ? (t.arenaRewardFinishedTitle || "Challenge complete!")
+            : (t.arenaRewardDayTitle || "Daily token earned!")}
+          message={rewardPopup.kind === "finished"
+            ? ((t.arenaRewardFinishedBody || "You and your crew finished all {days} days. Every participant earned +{xp} XP. Awesome work.")
+                .replace("{days}", String(rewardPopup.days))
+                .replace("{xp}", String(rewardPopup.xp)))
+            : ((t.arenaRewardDayBody || "Everyone completed today — +1 token for each player. Keep it up and finish the challenge to unlock the final XP reward.")
+                .replace("{done}", String(rewardPopup.daysSoFar))
+                .replace("{total}", String(rewardPopup.total)))}
+          confirmLabel={t.arenaRewardConfirm || "Nice!"}
+          onConfirm={() => setRewardPopup(null)}
+        />
+      ) : null}
 
       {inviteOpen && (
         <InviteFriendsSheet
@@ -553,7 +588,11 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, i
         <div style={{ display: "flex", gap: 6, marginTop: 14, flexWrap: "wrap" }}>
           <HeroChip icon="✓" value={totalCompletions} label={t.arenaTotalDone || "total done"} />
           <HeroChip icon="👥" value={active.length} label={t.arenaPlayers || "players"} />
-          <HeroChip icon="🔥" value={me?.consecutiveDays || 0} label={t.arenaMyStreak || "my streak"} />
+          <HeroChip
+            icon={completedToday ? "✓" : "⚬"}
+            value={completedToday ? (t.arenaDoneTodayShort || "done") : (t.arenaNotYet || "not yet")}
+            label={t.arenaToday || "today"}
+          />
         </div>
       </div>
 
@@ -948,6 +987,7 @@ function ParticipantRow({ rank, participant, meUid, t, onOpenProfile, canRemove,
   const left = !!participant.leftAt;
   const pending = !participant.acceptedAt && !left;
   const medalTint = rank === 1 ? "#facc15" : rank === 2 ? "#cbd5e1" : rank === 3 ? "#f59e0b" : null;
+  const doneToday = participant.lastCompletionDayKey === todayKey();
 
   return (
     <div
@@ -1063,12 +1103,28 @@ function ParticipantRow({ rank, participant, meUid, t, onOpenProfile, canRemove,
             </span>
           ) : null}
         </div>
-        <div style={{ display: "flex", gap: 10, fontSize: 12, color: "var(--color-muted)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+        <div style={{ display: "flex", gap: 10, fontSize: 12, color: "var(--color-muted)", fontWeight: 600, fontVariantNumeric: "tabular-nums", alignItems: "center" }}>
           <span>✓ {participant.completions || 0}</span>
           <span style={{ color: "var(--card-border-idle)" }}>·</span>
-          <span>🔥 {participant.consecutiveDays || 0}</span>
-          <span style={{ color: "var(--card-border-idle)" }}>·</span>
           <span>🪙 {participant.tokensEarned || 0}</span>
+          <span
+            style={{
+              marginLeft: 4,
+              fontSize: 9,
+              padding: "2px 7px",
+              borderRadius: 999,
+              background: doneToday
+                ? "color-mix(in srgb, #10b981 22%, transparent)"
+                : "rgba(148,163,184,0.14)",
+              border: `1px solid ${doneToday ? "rgba(16,185,129,0.45)" : "var(--card-border-idle)"}`,
+              color: doneToday ? "#6ee7b7" : "var(--color-muted)",
+              fontWeight: 800,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase"
+            }}
+          >
+            {doneToday ? (t.arenaTodayDoneBadge || "✓ today") : (t.arenaTodayPending || "·—")}
+          </span>
         </div>
       </button>
 

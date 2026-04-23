@@ -2284,10 +2284,23 @@ app.get("/api/profile-stats/:username", async (req, res) => {
       }
     }
 
+    // How many group challenges has this user seen through to full
+    // group-completion (award fired). Joins on accepted + not-left
+    // participations whose challenge has completionAwarded=true.
+    const completedGroupChallenges = await prisma.challengeParticipant.count({
+      where: {
+        userId: user.id,
+        leftAt: null,
+        acceptedAt: { not: null },
+        challenge: { completionAwarded: true }
+      }
+    });
+
     res.json({
       totalQuestsCompleted,
       maxStreak: Math.max(maxStreak, user.streak),
       builtHabits,
+      completedGroupChallenges,
       joinedAt: user.createdAt
     });
   } catch (err) {
@@ -6055,7 +6068,7 @@ app.post("/api/challenges", async (req, res) => {
     questDescription: z.string().max(300).optional(),
     needsTimer: z.boolean().optional(),
     timeEstimateMin: z.number().int().min(0).max(180).optional(),
-    durationDays: z.number().int().min(1).max(90),
+    durationDays: z.number().int().min(1).max(30),
     inviteeUsernames: z.array(z.string().min(2).max(128)).max(5)
   });
   try {
@@ -6369,6 +6382,10 @@ app.post("/api/challenges/:id/join", async (req, res) => {
 });
 
 // POST /api/challenges/:id/complete { username } — log a completion for today
+// Award 10 XP per day of the challenge when every active participant
+// has successfully completed every single day of its duration.
+const CHALLENGE_XP_PER_DAY = 10;
+
 app.post("/api/challenges/:id/complete", async (req, res) => {
   const schema = z.object({ username: z.string().min(2).max(128) });
   try {
@@ -6390,9 +6407,8 @@ app.post("/api/challenges/:id/complete", async (req, res) => {
     if (!meParticipant.acceptedAt) {
       return res.status(409).json({ error: "Invite not accepted yet", code: "invite_pending" });
     }
-    // Challenge is activated only once at least 2 participants have accepted.
-    const acceptedCount = challenge.participants.filter((p) => p.acceptedAt && !p.leftAt).length;
-    if (acceptedCount < 2) {
+    const activeAccepted = challenge.participants.filter((p) => p.acceptedAt && !p.leftAt);
+    if (activeAccepted.length < 2) {
       return res.status(409).json({ error: "Challenge needs at least 2 players", code: "not_activated" });
     }
 
@@ -6403,46 +6419,136 @@ app.post("/api/challenges/:id/complete", async (req, res) => {
       return res.status(409).json({ error: "Already completed today" });
     }
 
-    // Update this participant's streak within the challenge
+    // ── Missed-day reset ────────────────────────────────────────────
+    // Group progress rule: groupDaysCompleted ticks up ONLY when every
+    // active+accepted participant completes on the same UTC day. If
+    // ANY prior day between lastAwardedDayKey and today was missed, the
+    // counter falls back to 0. We detect this by checking if the last
+    // all-complete day is yesterday (= streak continues) or not
+    // (= at least one day elapsed without a group completion).
     const prevDay = new Date(now);
     prevDay.setUTCDate(prevDay.getUTCDate() - 1);
     const prevDayKey = getDateKey(prevDay);
+    let workingGroupDays = challenge.groupDaysCompleted || 0;
+    if (
+      workingGroupDays > 0
+      && challenge.lastAwardedDayKey
+      && challenge.lastAwardedDayKey !== dayKey
+      && challenge.lastAwardedDayKey !== prevDayKey
+    ) {
+      workingGroupDays = 0;
+    }
+
+    // Per-completer streak update (still tracked for show/history but
+    // rewards no longer hinge on it).
     const nextConsecutive = meParticipant.lastCompletionDayKey === prevDayKey
       ? meParticipant.consecutiveDays + 1
       : 1;
 
-    // Per-completer award: the user who actually completed the task today
-    // gets +1 token. Other participants earn nothing for this user's tick —
-    // they must complete themselves to get their own token.
-    await prisma.$transaction(async (tx) => {
+    // Would today hit the "everyone completed" threshold?
+    const othersDoneToday = activeAccepted
+      .filter((p) => p.userId !== me.id)
+      .every((p) => p.lastCompletionDayKey === dayKey);
+    const groupCompletedToday = othersDoneToday && challenge.lastAwardedDayKey !== dayKey;
+
+    const nextGroupDays = groupCompletedToday ? workingGroupDays + 1 : workingGroupDays;
+    const challengeFinished = groupCompletedToday
+      && !challenge.completionAwarded
+      && nextGroupDays >= (challenge.durationDays || 1);
+    const finalXpPerUser = challengeFinished
+      ? CHALLENGE_XP_PER_DAY * Math.max(1, Number(challenge.durationDays) || 1)
+      : 0;
+
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Mark this participant's completion (no per-user token).
       await tx.challengeParticipant.update({
         where: { id: meParticipant.id },
         data: {
           completions: { increment: 1 },
           consecutiveDays: nextConsecutive,
-          lastCompletionDayKey: dayKey,
-          tokensEarned: { increment: 1 }
+          lastCompletionDayKey: dayKey
         }
       });
       await tx.challengeLogEntry.create({
         data: { challengeId, userId: me.id, type: "completed" }
       });
-      await tx.user.update({
-        where: { id: me.id },
-        data: { tokens: { increment: 1 } }
-      });
-      // Keep lastAwardedDayKey roughly up-to-date for compatibility with
-      // existing challenge cards that surface "today's award happened" — we
-      // set it whenever any completion lands so the UI hint disappears.
-      if (challenge.lastAwardedDayKey !== dayKey) {
+
+      // 2. If this completion closed the group-day, mint tokens for
+      //    every active participant and tick the group counter.
+      let groupDayAwardedUsernames = [];
+      if (groupCompletedToday) {
+        for (const p of activeAccepted) {
+          await tx.challengeParticipant.update({
+            where: { id: p.id },
+            data: { tokensEarned: { increment: 1 } }
+          });
+          await tx.user.update({
+            where: { id: p.userId },
+            data: { tokens: { increment: 1 } }
+          });
+          groupDayAwardedUsernames.push(p.userId);
+        }
         await tx.groupChallenge.update({
           where: { id: challengeId },
-          data: { lastAwardedDayKey: dayKey }
+          data: {
+            lastAwardedDayKey: dayKey,
+            groupDaysCompleted: nextGroupDays
+          }
+        });
+        await tx.challengeLogEntry.create({
+          data: { challengeId, userId: me.id, type: "group_day_complete" }
+        });
+      } else if (workingGroupDays !== (challenge.groupDaysCompleted || 0)) {
+        // Reset was triggered but no award this tick — persist the reset.
+        await tx.groupChallenge.update({
+          where: { id: challengeId },
+          data: { groupDaysCompleted: workingGroupDays }
         });
       }
+
+      // 3. Final payout when the challenge reaches its duration.
+      if (challengeFinished) {
+        for (const p of activeAccepted) {
+          const fresh = await tx.user.findUnique({
+            where: { id: p.userId },
+            select: { xp: true, xpNext: true, level: true }
+          });
+          if (!fresh) continue;
+          let xp = fresh.xp + finalXpPerUser;
+          let level = fresh.level;
+          let xpNext = fresh.xpNext;
+          while (xp >= xpNext) {
+            xp -= xpNext;
+            level += 1;
+            xpNext = Math.floor(xpNext * 1.1);
+          }
+          await tx.user.update({
+            where: { id: p.userId },
+            data: { xp, level, xpNext }
+          });
+        }
+        await tx.groupChallenge.update({
+          where: { id: challengeId },
+          data: { completionAwarded: true }
+        });
+        await tx.challengeLogEntry.create({
+          data: { challengeId, userId: me.id, type: "challenge_complete" }
+        });
+      }
+
+      return { groupDayAwardedUsernames };
     });
 
-    res.json({ ok: true, awardedTokensToday: true });
+    res.json({
+      ok: true,
+      groupDayComplete: groupCompletedToday,
+      tokensAwarded: groupCompletedToday ? 1 : 0,
+      groupDaysCompleted: nextGroupDays,
+      totalDays: challenge.durationDays,
+      challengeFinished,
+      finalXpPerUser,
+      participantsRewarded: groupCompletedToday ? result.groupDayAwardedUsernames.length : 0
+    });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
   }

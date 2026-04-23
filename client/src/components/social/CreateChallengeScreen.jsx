@@ -5,7 +5,8 @@ import Avatar from "./Avatar";
 import Screen from "./Screen";
 
 const MAX_INVITEES = 5;
-const MAX_DURATION_DAYS = 90;
+// Must stay in sync with the server cap on POST /api/challenges.
+const MAX_DURATION_DAYS = 30;
 
 export default function CreateChallengeScreen({ authUser, t, onClose, onCreated }) {
   const meUid = String(authUser?.uid || "").slice(0, 128);
