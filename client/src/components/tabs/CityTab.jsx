@@ -364,7 +364,7 @@ function DistrictUpgradeReveal({ districtId, previousLevel, newLevel }) {
         style={{
           position: "absolute",
           left: 10,
-          bottom: 10,
+          top: 10,
           display: "inline-flex",
           alignItems: "center",
           gap: 6,
