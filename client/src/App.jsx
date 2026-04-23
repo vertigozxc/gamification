@@ -768,6 +768,25 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const [cityResetConfirmOpen, setCityResetConfirmOpen] = useState(false);
   const [cityResetBusy, setCityResetBusy] = useState(false);
 
+  // City-reset memos must live above any early returns below (authLoading
+  // / LoginScreen) — otherwise React sees more hooks after the user logs
+  // in than before (error #310).
+  const DISTRICT_UPGRADE_COSTS_CLIENT = [5, 15, 25, 50, 100];
+  const cityResetCost = useMemo(() => {
+    const paid = Math.max(0, Number(state.user?.cityResetsPaid) || 0);
+    return Math.min(50, 10 * (paid + 1));
+  }, [state.user?.cityResetsPaid]);
+  const cityResetRefund = useMemo(() => {
+    const levels = Array.isArray(state.districtLevels) ? state.districtLevels : [0, 0, 0, 0, 0];
+    return levels.reduce((sum, lvl) => {
+      const safe = Math.max(0, Math.min(5, Math.floor(Number(lvl) || 0)));
+      let tokens = 0;
+      for (let i = 0; i < safe; i += 1) tokens += DISTRICT_UPGRADE_COSTS_CLIENT[i] || 0;
+      return sum + tokens;
+    }, 0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.districtLevels]);
+
   const mergeCounterIntoState = (questId, counter) => {
     setState((prev) => {
       const existing = Array.isArray(prev.activeCounters) ? prev.activeCounters : [];
@@ -1275,22 +1294,6 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       // Ignore — failures surface via network logs.
     }
   }
-
-  // ─── City reset (shop) — escalating cost + full refund of district spend ───
-  const DISTRICT_UPGRADE_COSTS_CLIENT = [5, 15, 25, 50, 100];
-  const cityResetCost = useMemo(() => {
-    const paid = Math.max(0, Number(state.user?.cityResetsPaid) || 0);
-    return Math.min(50, 10 * (paid + 1));
-  }, [state.user?.cityResetsPaid]);
-  const cityResetRefund = useMemo(() => {
-    const levels = Array.isArray(state.districtLevels) ? state.districtLevels : [0, 0, 0, 0, 0];
-    return levels.reduce((sum, lvl) => {
-      const safe = Math.max(0, Math.min(5, Math.floor(Number(lvl) || 0)));
-      let tokens = 0;
-      for (let i = 0; i < safe; i += 1) tokens += DISTRICT_UPGRADE_COSTS_CLIENT[i] || 0;
-      return sum + tokens;
-    }, 0);
-  }, [state.districtLevels]);
 
   async function handleResetCity() {
     if (!username || cityResetBusy) return;
