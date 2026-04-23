@@ -2508,10 +2508,12 @@ app.get("/api/game-state/:username", async (req, res) => {
     updateAndReadProductivity(user, now, { precomputedProgress })
   ]);
 
-  // Persist the random-quest IDs the user will actually see today, and
-  // clear previousRandomQuestIds once they've served as "exclude these".
-  // This makes tomorrow's reset stash TODAY's set as previous, so each
-  // daily rotation is guaranteed not to repeat the one before it.
+  // Persist the random-quest IDs the user will actually see today when the
+  // stored set is out of date (e.g. first fetch after reset-daily cleared
+  // randomQuestIds). We DO NOT touch previousRandomQuestIds here — it is a
+  // server-side memory of "quests the user has already seen or rerolled
+  // today" that reset-daily manages. Clearing it mid-day would let a
+  // subsequent reroll hand back a quest the user just paid to replace.
   try {
     const composedToday = composeDailyQuests(user, completionIds, now, [], language, customQuests);
     const pinnedSetToday = new Set(preferredQuestIds);
@@ -2520,17 +2522,14 @@ app.get("/api/game-state/:username", async (req, res) => {
       .map((q) => q.id);
     const storedRandomIds = (user.randomQuestIds || "").split(",").map(Number).filter(Boolean);
     const ordersDiffer = randomIdsToday.join(",") !== storedRandomIds.join(",");
-    const needsClear = (user.previousRandomQuestIds || "").length > 0;
-    if ((ordersDiffer && randomIdsToday.length > 0) || needsClear) {
+    if (ordersDiffer && randomIdsToday.length > 0) {
       await prisma.user.update({
         where: { id: user.id },
         data: {
-          randomQuestIds: randomIdsToday.join(","),
-          previousRandomQuestIds: ""
+          randomQuestIds: randomIdsToday.join(",")
         }
       });
       user.randomQuestIds = randomIdsToday.join(",");
-      user.previousRandomQuestIds = "";
     }
   } catch (persistErr) {
     console.error(`[game-state] persist random quest rotation failed: ${persistErr?.message || persistErr}`);
@@ -4137,13 +4136,26 @@ app.post("/api/reset-daily", async (req, res) => {
           : { lastDailyRerollAt: now })
       : { lastDailyRerollAt: null, extraRerollsToday: 0 };
 
-    // Stash the just-ended rotation so the next composeDailyQuests call
-    // excludes those IDs. If we already produced a fresh non-repeating
-    // rotation synchronously (the reroll path above), we don't need the
-    // stash and clear it to avoid over-excluding the day after.
-    const previousRandomIdsNext = newRandomQuestIds
-      ? "" // reroll path generated new IDs that already avoided previous set
-      : (user.randomQuestIds || "");
+    // Stash the "quests the user has already seen today" so subsequent
+    // composeDailyQuests / reroll calls can avoid them.
+    // - Non-reroll (day rollover): stash yesterday's full random set so
+    //   today's new generation won't repeat it.
+    // - Reroll: ACCUMULATE the rerolled target IDs on top of the existing
+    //   previous set — otherwise a second reroll on the same day has no
+    //   memory of the first reroll's victims and could hand back a quest
+    //   the user just paid to get rid of.
+    const previousRandomIdsNext = (() => {
+      if (!parsed.isReroll) return user.randomQuestIds || "";
+      const carryOver = (user.previousRandomQuestIds || "")
+        .split(",")
+        .map((id) => Number(id))
+        .filter((id) => Number.isInteger(id) && id > 0);
+      const rerolledTargets = (requestedTargetQuestIds || [])
+        .map((id) => Number(id))
+        .filter((id) => Number.isInteger(id) && id > 0);
+      const merged = [...new Set([...carryOver, ...rerolledTargets])];
+      return merged.join(",");
+    })();
 
     const tUserUpdate = Date.now();
     const updatedUser = await prisma.user.update({
