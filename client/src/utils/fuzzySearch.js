@@ -150,6 +150,17 @@ function tokenStems(text) {
 // in a way a user expects after typing a rough keyword.
 export function fuzzyMatch(query, text) {
   if (!query || !String(query).trim()) return true;
+
+  // Safety net: if the normalised query is a plain substring of the
+  // normalised text, call it a match immediately. Guards against stemmer
+  // regressions that would otherwise drop obvious hits like "water" in
+  // "drink 4 glasses of water".
+  const normalizedQuery = normalizeTerm(query);
+  const normalizedText = normalizeTerm(text);
+  if (normalizedQuery && normalizedText.includes(normalizedQuery)) {
+    return true;
+  }
+
   const queryStems = expandQueryStems(query);
   if (queryStems.length === 0) return true;
   const targetStems = tokenStems(text);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "../ThemeContext";
 import { variantLabel } from "../utils/questGrouping";
 
@@ -167,127 +167,209 @@ export default function QuestGroupCard({
         </div>
       </button>
 
-      {/* Tier stepper — always fits, scales to any number of tiers */}
+      {/* Tier stepper — full-width, wide arrow wings, swipe to change */}
       {showTierStrip ? (
-        <div
-          style={{ padding: "0 10px 12px", position: "relative", zIndex: 1 }}
-          onClick={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "6px 6px",
-              background: "rgba(0,0,0,0.28)",
-              border: "1px solid var(--card-border-idle)",
-              borderRadius: 12
-            }}
-          >
-            <StepperArrow
-              direction="left"
-              disabled={activeIndex === 0}
-              onClick={() => stepTier(-1)}
-              ariaLabel={t.tierPickerPrev || "Previous difficulty"}
-            />
-            <div style={{ flex: 1, textAlign: "center", minWidth: 0 }}>
-              <p
-                className="cinzel"
-                style={{
-                  margin: 0,
-                  fontSize: 14,
-                  fontWeight: 800,
-                  color: "var(--color-text)",
-                  letterSpacing: "0.02em",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis"
-                }}
-              >
-                {activeLabel}
-              </p>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 4 }}>
-                <span
-                  style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
-                  aria-label={`Tier ${activeIndex + 1} of ${variants.length}`}
-                >
-                  {variants.map((variant, i) => {
-                    const active = i === activeIndex;
-                    const effort = Math.max(1, Math.min(5, Number(variant.effortScore) || 1));
-                    // Each dot's size scales with its own difficulty so the
-                    // row doubles as a compact difficulty read — easy tier
-                    // = small dot, hardest = noticeably bigger.
-                    const size = 4 + effort;
-                    return (
-                      <span
-                        key={variant.id}
-                        style={{
-                          width: size,
-                          height: size,
-                          borderRadius: 999,
-                          background: active ? "var(--color-primary)" : "rgba(148,163,184,0.35)",
-                          display: "inline-block",
-                          transition: "background 160ms ease, transform 160ms ease",
-                          transform: active ? "scale(1.15)" : "scale(1)"
-                        }}
-                      />
-                    );
-                  })}
-                </span>
-                <span
-                  className="cinzel"
-                  style={{
-                    fontSize: 10,
-                    color: "var(--color-muted)",
-                    letterSpacing: "0.08em",
-                    fontVariantNumeric: "tabular-nums"
-                  }}
-                >
-                  {activeIndex + 1}/{variants.length}
-                </span>
-              </div>
-            </div>
-            <StepperArrow
-              direction="right"
-              disabled={activeIndex === variants.length - 1}
-              onClick={() => stepTier(1)}
-              ariaLabel={t.tierPickerNext || "Next difficulty"}
-            />
-          </div>
-        </div>
+        <TierStepper
+          variants={variants}
+          activeIndex={activeIndex}
+          activeLabel={activeLabel}
+          onStep={stepTier}
+          onPickIndex={(idx) => handleTierPick(variants[idx]?.id)}
+          prevLabel={t.tierPickerPrev || "Previous difficulty"}
+          nextLabel={t.tierPickerNext || "Next difficulty"}
+        />
       ) : null}
     </div>
   );
 }
 
-function StepperArrow({ direction = "left", disabled = false, onClick, ariaLabel }) {
+function TierStepper({ variants, activeIndex, activeLabel, onStep, onPickIndex, prevLabel, nextLabel }) {
+  const prevDisabled = activeIndex === 0;
+  const nextDisabled = activeIndex === variants.length - 1;
+
+  // Swipe gesture state. Horizontal pan on the readout area maps to
+  // stepping through tiers — one step per ~50px travelled.
+  const swipeState = useSwipeGesture(onStep);
+
   return (
-    <button
-      type="button"
-      onClick={(e) => { e.stopPropagation(); if (!disabled) onClick?.(); }}
+    <div
+      style={{ padding: "0 10px 12px", position: "relative", zIndex: 1 }}
+      onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
-      disabled={disabled}
-      aria-label={ariaLabel}
-      className="mobile-pressable"
-      style={{
-        flexShrink: 0,
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        border: "1px solid var(--card-border-idle)",
-        background: disabled ? "transparent" : "rgba(255,255,255,0.05)",
-        color: disabled ? "rgba(148,163,184,0.35)" : "var(--color-text)",
-        fontSize: 14,
-        fontWeight: 800,
-        cursor: disabled ? "not-allowed" : "pointer",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        WebkitTapHighlightColor: "transparent"
-      }}
     >
-      {direction === "left" ? "◀" : "▶"}
-    </button>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "stretch",
+          gap: 0,
+          background: "transparent",
+          border: "1px solid var(--card-border-idle)",
+          borderRadius: 14,
+          overflow: "hidden",
+          minHeight: 52
+        }}
+      >
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); if (!prevDisabled) onStep?.(-1); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          disabled={prevDisabled}
+          aria-label={prevLabel}
+          className="mobile-pressable"
+          style={{
+            flexShrink: 0,
+            width: 56,
+            border: "none",
+            borderRight: "1px solid var(--card-border-idle)",
+            background: prevDisabled ? "transparent" : "rgba(255,255,255,0.04)",
+            color: prevDisabled ? "rgba(148,163,184,0.3)" : "var(--color-primary)",
+            fontSize: 18,
+            fontWeight: 700,
+            cursor: prevDisabled ? "not-allowed" : "pointer",
+            WebkitTapHighlightColor: "transparent",
+            transition: "background 140ms ease, color 140ms ease"
+          }}
+        >
+          ‹
+        </button>
+
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "8px 10px",
+            touchAction: "pan-y",
+            userSelect: "none",
+            cursor: "grab"
+          }}
+          onPointerDown={swipeState.onPointerDown}
+          onPointerMove={swipeState.onPointerMove}
+          onPointerUp={swipeState.onPointerUp}
+          onPointerCancel={swipeState.onPointerUp}
+        >
+          <p
+            className="cinzel"
+            style={{
+              margin: 0,
+              fontSize: 15,
+              fontWeight: 800,
+              color: "var(--color-text)",
+              letterSpacing: "0.02em",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              maxWidth: "100%"
+            }}
+          >
+            {activeLabel}
+          </p>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 5,
+              marginTop: 6
+            }}
+            aria-label={`Tier ${activeIndex + 1} of ${variants.length}`}
+          >
+            {variants.map((variant, i) => {
+              const active = i === activeIndex;
+              return (
+                <button
+                  key={variant.id}
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onPickIndex?.(i); }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  aria-label={`Tier ${i + 1}`}
+                  style={{
+                    width: active ? 22 : 6,
+                    height: 6,
+                    borderRadius: 999,
+                    background: active ? "var(--color-primary)" : "rgba(148,163,184,0.4)",
+                    border: "none",
+                    padding: 0,
+                    cursor: "pointer",
+                    transition: "width 180ms cubic-bezier(.2,.8,.2,1), background 160ms ease",
+                    WebkitTapHighlightColor: "transparent"
+                  }}
+                />
+              );
+            })}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); if (!nextDisabled) onStep?.(1); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          disabled={nextDisabled}
+          aria-label={nextLabel}
+          className="mobile-pressable"
+          style={{
+            flexShrink: 0,
+            width: 56,
+            border: "none",
+            borderLeft: "1px solid var(--card-border-idle)",
+            background: nextDisabled ? "transparent" : "rgba(255,255,255,0.04)",
+            color: nextDisabled ? "rgba(148,163,184,0.3)" : "var(--color-primary)",
+            fontSize: 18,
+            fontWeight: 700,
+            cursor: nextDisabled ? "not-allowed" : "pointer",
+            WebkitTapHighlightColor: "transparent",
+            transition: "background 140ms ease, color 140ms ease"
+          }}
+        >
+          ›
+        </button>
+      </div>
+    </div>
   );
+}
+
+// Horizontal-only swipe, 1 step per ~50px travelled while held. Left-swipe
+// advances to the next tier (feels like dragging the current pill out to
+// expose the one on the right), right-swipe retreats.
+function useSwipeGesture(onStep) {
+  const state = useRef({ active: false, startX: 0, startY: 0, consumed: 0, stepPx: 50, lockedAxis: null });
+
+  const onPointerDown = (e) => {
+    state.current.active = true;
+    state.current.startX = e.clientX;
+    state.current.startY = e.clientY;
+    state.current.consumed = 0;
+    state.current.lockedAxis = null;
+    if (e.currentTarget.setPointerCapture) {
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+    }
+  };
+  const onPointerMove = (e) => {
+    if (!state.current.active) return;
+    const totalX = e.clientX - state.current.startX;
+    const totalY = e.clientY - state.current.startY;
+    if (state.current.lockedAxis == null) {
+      if (Math.abs(totalX) < 6 && Math.abs(totalY) < 6) return;
+      state.current.lockedAxis = Math.abs(totalX) > Math.abs(totalY) ? "x" : "y";
+    }
+    if (state.current.lockedAxis !== "x") return;
+    const dx = totalX - state.current.consumed;
+    while (Math.abs(dx) >= state.current.stepPx) {
+      const sign = Math.sign(dx);
+      // Drag right (positive dx) → previous tier.
+      onStep?.(-sign);
+      state.current.consumed += sign * state.current.stepPx;
+      const remaining = e.clientX - state.current.startX - state.current.consumed;
+      if (Math.abs(remaining) < state.current.stepPx) break;
+    }
+  };
+  const onPointerUp = () => {
+    state.current.active = false;
+    state.current.lockedAxis = null;
+  };
+
+  return { onPointerDown, onPointerMove, onPointerUp };
 }
