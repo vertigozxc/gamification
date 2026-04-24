@@ -256,98 +256,96 @@ function ReqChip({ icon, label, met, current }) {
   );
 }
 
-// One row inside the iOS-TableView-styled perks list. The shared container
-// provides the rounded corners, border and background; each row paints a
-// leading-aligned separator at the bottom (except the last one) so the
-// stack reads as a single grouped list, not an assortment of chips.
-function PerkRow({ lvl, levelShort = "LVL", text, unlocked, isCurrent, isLast }) {
-  const markerColor = unlocked ? "#fff" : "var(--color-muted)";
-  const textColor = unlocked ? "var(--color-text)" : "var(--color-muted)";
-  const bg = isCurrent
-    ? "color-mix(in srgb, var(--color-primary) 14%, transparent)"
-    : "transparent";
+// One row in the district-level perks list. Visual treatment matches
+// the overview's "City Benefits" cards: green-tinted outlined card when
+// unlocked, dashed outline when still locked. The currently-applied
+// level swaps in the primary accent instead of green so the user
+// immediately sees "you are here". Rows intentionally render as
+// non-interactive <div>s — taps here shouldn't trigger anything.
+function PerkRow({ lvl, levelShort = "LVL", text, unlocked, isCurrent }) {
+  const circleColor = isCurrent
+    ? "var(--color-primary)"
+    : unlocked
+      ? "#4fa85e"
+      : "var(--color-muted)";
+  const circleBg = isCurrent
+    ? "color-mix(in srgb, var(--color-primary) 22%, transparent)"
+    : unlocked
+      ? "color-mix(in srgb, #4fa85e 20%, transparent)"
+      : "color-mix(in srgb, var(--panel-bg) 80%, transparent)";
+  const circleBorder = isCurrent
+    ? "color-mix(in srgb, var(--color-primary) 70%, transparent)"
+    : unlocked
+      ? "color-mix(in srgb, #4fa85e 55%, transparent)"
+      : "var(--panel-border)";
+  const cardBorder = isCurrent
+    ? "1.5px solid color-mix(in srgb, var(--color-primary) 70%, transparent)"
+    : unlocked
+      ? "1px solid color-mix(in srgb, #4fa85e 35%, transparent)"
+      : "1px dashed var(--panel-border)";
+  const cardBg = isCurrent
+    ? "color-mix(in srgb, var(--color-primary) 10%, transparent)"
+    : unlocked
+      ? "color-mix(in srgb, #4fa85e 8%, transparent)"
+      : "transparent";
   return (
     <div
       style={{
-        position: "relative",
         display: "flex",
         alignItems: "center",
-        gap: 12,
-        padding: "11px 14px",
-        background: bg,
-        opacity: unlocked ? 1 : 0.78
+        gap: 10,
+        padding: "10px 12px",
+        borderRadius: 10,
+        background: cardBg,
+        border: cardBorder,
+        opacity: unlocked ? 1 : 0.62,
+        boxShadow: isCurrent
+          ? "0 0 14px color-mix(in srgb, var(--color-primary) 20%, transparent)"
+          : "none"
       }}
     >
-      {/* Left-edge accent stripe — native tables use this to mark the
-          currently-applied row without ruining alignment. */}
-      {isCurrent && (
-        <span
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 6,
-            bottom: 6,
-            width: 3,
-            borderRadius: 2,
-            background: "var(--color-primary)",
-            boxShadow: "0 0 8px color-mix(in srgb, var(--color-primary) 60%, transparent)"
-          }}
-        />
-      )}
       <span
         style={{
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 24,
-          height: 24,
-          borderRadius: 12,
-          fontSize: 12,
-          fontWeight: 900,
-          color: markerColor,
-          background: unlocked
-            ? "#4fa85e"
-            : "color-mix(in srgb, var(--panel-bg) 80%, transparent)",
-          border: `1px solid ${unlocked ? "color-mix(in srgb, #4fa85e 55%, transparent)" : "var(--panel-border)"}`,
+          width: 26, height: 26, borderRadius: 13,
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          fontSize: 12, fontWeight: 800,
+          color: circleColor,
+          background: circleBg,
+          border: `1px solid ${circleBorder}`,
           flexShrink: 0,
           lineHeight: 1
         }}
+        title={`Level ${lvl}`}
       >
-        {unlocked ? "✓" : "🔒"}
+        {unlocked ? lvl : "🔒"}
       </span>
       <span
         style={{
-          fontSize: 10,
+          fontSize: 11,
+          fontWeight: 700,
           color: isCurrent ? "var(--color-primary)" : "var(--color-muted)",
-          fontWeight: isCurrent ? 800 : 700,
           letterSpacing: "0.08em",
-          minWidth: 32,
+          minWidth: 44,
           flexShrink: 0,
           textTransform: "uppercase",
-          textShadow: isCurrent ? "0 0 6px color-mix(in srgb, var(--color-primary) 45%, transparent)" : "none"
+          textShadow: isCurrent
+            ? "0 0 6px color-mix(in srgb, var(--color-primary) 45%, transparent)"
+            : "none"
         }}
       >
         {levelShort}&nbsp;{lvl}
       </span>
-      <span style={{ fontSize: 13.5, fontWeight: isCurrent ? 700 : 500, color: textColor, flex: 1, lineHeight: 1.3 }}>
+      <span
+        style={{
+          fontSize: 13,
+          fontWeight: isCurrent ? 700 : 600,
+          color: unlocked ? "var(--color-text)" : "var(--color-muted)",
+          flex: 1,
+          lineHeight: 1.25
+        }}
+      >
         {text}
       </span>
-      {/* Row separator — leading-aligned (iOS convention): starts after
-          the status icon so the icon column reads as its own lane. */}
-      {!isLast && (
-        <span
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            left: 50,
-            right: 0,
-            bottom: 0,
-            height: 1,
-            background: "color-mix(in srgb, var(--panel-border) 80%, transparent)"
-          }}
-        />
-      )}
     </div>
   );
 }
@@ -491,7 +489,9 @@ export default function CityTab({
   const grassBg = themeId === "light" ? "#7ec382" : "#1d3a28";
 
   const [lockedInfoOpen, setLockedInfoOpen] = useState(false);
-  const [claimSuccessPopup, setClaimSuccessPopup] = useState(null); // "freeze" | "vacation" | null
+  // Unified success popup. `type` selects icon/copy; `amount` is shown
+  // for payloads that have a numeric delta (business profits).
+  const [claimSuccessPopup, setClaimSuccessPopup] = useState(null); // { type: "freeze" | "vacation" | "business", amount?: number } | null
 
   // Custom city name — user-editable, persisted server-side (Prisma
   // `User.cityName`, POST /api/profiles/city-name). We keep a localStorage
@@ -579,6 +579,32 @@ export default function CityTab({
       const perk = t?.[perkKey(districtId, newLevel)] || "";
       setUpgradePopup({ districtId, level: newLevel, previousLevel, name: localizedName, perk });
       setFireworksActive(true);
+      // Park upgrades shorten the spin-wheel cooldown window. The server
+      // always returns the latest nextSpinAt, but we cache it locally for
+      // the persistent timer — re-sync here so the visible countdown
+      // shrinks immediately instead of staying on the pre-upgrade value
+      // until the next tab open.
+      if (districtId === "park") {
+        citySpinStatus(username)
+          .then((status) => {
+            if (!status?.alreadySpun) {
+              clearSpinCache();
+              setAlreadySpun(false);
+              setCdRemaining(0);
+              return;
+            }
+            if (status?.nextSpinAt) {
+              writeSpinCache(status.nextSpinAt);
+              const ms = Math.max(0, new Date(status.nextSpinAt) - Date.now());
+              setCdRemaining(ms);
+              setAlreadySpun(true);
+            }
+          })
+          .catch(() => {
+            // Best-effort resync — if the status call fails, leave the
+            // cached countdown alone; it'll refresh on the next mount.
+          });
+      }
     } catch (err) {
       console.warn("[district quick upgrade]", err?.message || err);
     }
@@ -625,8 +651,7 @@ export default function CityTab({
       const result = await claimBusinessTokens(username);
       onStatsGranted?.({ tokens: result.tokens });
       setBusinessClaimedLocal(getTodayKey());
-      setActionMsg(`+${result.granted} 🪙`);
-      setTimeout(() => setActionMsg(""), 2500);
+      setClaimSuccessPopup({ type: "business", amount: Number(result.granted) || 0 });
     } catch (err) {
       const msg = err?.data?.error || err?.message || "Failed";
       setActionMsg(msg);
@@ -645,7 +670,7 @@ export default function CityTab({
         streakFreezeCharges: result.streakFreezeCharges,
         ...(nextMonthlyClaims ? { monthlyFreezeClaims: nextMonthlyClaims } : {})
       });
-      setClaimSuccessPopup("freeze");
+      setClaimSuccessPopup({ type: "freeze" });
     } catch (err) {
       setActionMsg(err?.data?.error || err?.message || "Failed");
       setTimeout(() => setActionMsg(""), 3000);
@@ -666,7 +691,7 @@ export default function CityTab({
         vacationEndsAt: null,
         lastVacationAt: result.lastVacationAt ?? null
       });
-      setClaimSuccessPopup("vacation");
+      setClaimSuccessPopup({ type: "vacation" });
     } catch (err) {
       setActionMsg(err?.data?.error || err?.message || "Failed");
       setTimeout(() => setActionMsg(""), 3000);
@@ -1190,9 +1215,10 @@ export default function CityTab({
                 </div>
               )}
 
-              {/* Per-level perks list — iOS-style grouped TableView: a
-                  single rounded container holds all 5 rows, each with a
-                  leading-aligned bottom separator (except the last). */}
+              {/* Per-level perks list — matches the overview's "City
+                  Benefits" visual: each row is its own outlined card,
+                  green-tinted when unlocked / dashed when locked, with
+                  the current level pulled out in the primary accent. */}
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <span
                   style={{
@@ -1206,16 +1232,8 @@ export default function CityTab({
                 >
                   {t.districtBenefits || "Benefits"}
                 </span>
-                <div
-                  style={{
-                    borderRadius: 14,
-                    overflow: "hidden",
-                    background: "color-mix(in srgb, var(--panel-bg) 82%, transparent)",
-                    border: "1px solid var(--panel-border)",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.14), inset 0 0 0 0.5px color-mix(in srgb, var(--panel-border) 60%, transparent)"
-                  }}
-                >
-                  {[1, 2, 3, 4, 5].map((lvl, idx) => {
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {[1, 2, 3, 4, 5].map((lvl) => {
                     const unlocked = level >= lvl;
                     const isCurrent = level > 0 && lvl === level;
                     return (
@@ -1226,7 +1244,6 @@ export default function CityTab({
                         text={perkText(t, district.id, lvl)}
                         unlocked={unlocked}
                         isCurrent={isCurrent}
-                        isLast={idx === 4}
                       />
                     );
                   })}
@@ -1237,33 +1254,32 @@ export default function CityTab({
         );
       })()}
 
-      {/* Business: Claim daily tokens. Hidden entirely while the district
-          is still at level 0 — no point showing a disabled button for a
-          mechanic that isn't unlocked yet. Appears once bizLvl ≥ 1. */}
+      {/* Business: Collect District Profits. Always rendered — at lvl 0
+          it shows as a locked preview (same pattern as Park's Spin Wheel
+          button below) so the player discovers the mechanic early. */}
       {selectedDistrictIdx >= 0 && DISTRICTS[selectedDistrictIdx]?.id === "business" && (() => {
         const bizLvl = Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(Number(districtLevels[selectedDistrictIdx]) || 0)));
-        if (bizLvl < 1) {
-          return null;
-        }
-        const locked = false;
-        const disabled = businessClaimedToday;
+        const locked = bizLvl < 1;
+        const disabled = locked || businessClaimedToday;
         let label;
         if (locked) {
-          label = `${t.businessClaimLocked || "Unlock at level 1"}`;
+          label = t.businessCollectProfitsLocked || "🔒 Collect District Profits — unlock at Business lvl 1";
         } else if (businessClaimedToday) {
           label = `${t.businessClaimWait || "Next claim in"} ${msToHMS(msUntilMidnightUtc)}`;
         } else {
-          label = `${t.businessClaimBtn || "Collect"} +${bizLvl} 🪙`;
+          label = `${t.businessCollectProfits || "Collect District Profits"} +${bizLvl} 🪙`;
         }
         return (
           <button
             onClick={disabled ? undefined : handleBusinessClaim}
             disabled={disabled}
-            className="mt-3 qt-btn"
+            className="qt-btn mobile-pressable"
             style={{
               width: "100%",
               minHeight: 48,
               padding: "12px 14px",
+              marginTop: -4,
+              marginBottom: -4,
               borderRadius: 14,
               border: `1.5px solid ${disabled ? "var(--panel-border)" : "#d9a441"}`,
               background: disabled
@@ -1408,10 +1424,12 @@ export default function CityTab({
             data-tour="spin-wheel"
             onClick={disabled ? undefined : handleOpenSpin}
             disabled={disabled}
-            className="mt-3 qt-btn"
+            className="qt-btn mobile-pressable"
             style={{
               width: "100%",
               padding: "13px 14px",
+              marginTop: -4,
+              marginBottom: -4,
               textAlign: "center",
               fontSize: "14px",
               fontWeight: 700,
@@ -1521,48 +1539,58 @@ export default function CityTab({
       />
 
       {claimSuccessPopup && createPortal(
-        <div
-          className="logout-confirm-overlay"
-          onClick={() => setClaimSuccessPopup(null)}
-        >
-          <div
-            className="logout-confirm-card"
-            role="dialog"
-            aria-modal="true"
-            onClick={(event) => event.stopPropagation()}
-            style={{
-              border: "2px solid rgba(74, 222, 128, 0.6)",
-              boxShadow: "0 0 40px rgba(74, 222, 128, 0.22), 0 25px 50px rgba(0, 0, 0, 0.5)"
-            }}
-          >
-            <div className="logout-confirm-icon">
-              {claimSuccessPopup === "freeze" ? "❄️" : "🏖️"}
-            </div>
-            <h3 className="cinzel logout-confirm-title" style={{ color: "#4ade80" }}>
-              {claimSuccessPopup === "freeze"
-                ? (t.residentialClaimFreezeTitle || "Streak Freeze claimed")
-                : (t.residentialClaimVacationTitle || "Vacation charges claimed")}
-            </h3>
-            <p className="logout-confirm-msg">
-              {claimSuccessPopup === "freeze"
-                ? (t.residentialClaimFreezeBody || "Your Streak Freeze charges are waiting in your Profile.")
-                : (t.residentialVacationClaimed || "20 streak-freeze charges added to your profile.")}
-            </p>
-            <div className="logout-confirm-actions" style={{ justifyContent: "center" }}>
-              <button
-                className="logout-confirm-proceed cinzel"
-                onClick={() => setClaimSuccessPopup(null)}
+        (() => {
+          const popupType = claimSuccessPopup.type;
+          const icon = popupType === "freeze" ? "❄️" : popupType === "business" ? "🪙" : "🏖️";
+          const title = popupType === "freeze"
+            ? (t.residentialClaimFreezeTitle || "Streak Freeze claimed")
+            : popupType === "business"
+              ? (t.businessClaimSuccessTitle || "Profits Collected")
+              : (t.residentialClaimVacationTitle || "Vacation charges claimed");
+          const body = popupType === "freeze"
+            ? (t.residentialClaimFreezeBody || "Your Streak Freeze charges are waiting in your Profile.")
+            : popupType === "business"
+              ? tpl(t.businessClaimSuccessBody || "+{amount} 🪙 added to your balance.", {
+                  amount: Number(claimSuccessPopup.amount) || 0
+                })
+              : (t.residentialVacationClaimed || "20 streak-freeze charges added to your profile.");
+          return (
+            <div
+              className="logout-confirm-overlay"
+              onClick={() => setClaimSuccessPopup(null)}
+            >
+              <div
+                className="logout-confirm-card"
+                role="dialog"
+                aria-modal="true"
+                onClick={(event) => event.stopPropagation()}
                 style={{
-                  borderColor: "rgba(74, 222, 128, 0.7)",
-                  background: "linear-gradient(135deg, rgba(74,222,128,0.3), rgba(16,185,129,0.25))",
-                  color: "#dcfce7"
+                  border: "2px solid rgba(74, 222, 128, 0.6)",
+                  boxShadow: "0 0 40px rgba(74, 222, 128, 0.22), 0 25px 50px rgba(0, 0, 0, 0.5)"
                 }}
               >
-                {t.proceedLabel || "OK"}
-              </button>
+                <div className="logout-confirm-icon">{icon}</div>
+                <h3 className="cinzel logout-confirm-title" style={{ color: "#4ade80" }}>
+                  {title}
+                </h3>
+                <p className="logout-confirm-msg">{body}</p>
+                <div className="logout-confirm-actions" style={{ justifyContent: "center" }}>
+                  <button
+                    className="logout-confirm-proceed cinzel mobile-pressable"
+                    onClick={() => setClaimSuccessPopup(null)}
+                    style={{
+                      borderColor: "rgba(74, 222, 128, 0.7)",
+                      background: "linear-gradient(135deg, rgba(74,222,128,0.3), rgba(16,185,129,0.25))",
+                      color: "#dcfce7"
+                    }}
+                  >
+                    {t.proceedLabel || "OK"}
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>,
+          );
+        })(),
         document.body
       )}
 
@@ -1687,7 +1715,7 @@ export default function CityTab({
             </p>
             <div className="logout-confirm-actions" style={{ justifyContent: "center" }}>
               <button
-                className="logout-confirm-proceed cinzel"
+                className="logout-confirm-proceed cinzel mobile-pressable"
                 onClick={() => setLockedInfoOpen(false)}
                 style={{
                   borderColor: "color-mix(in srgb, var(--color-primary) 60%, transparent)",

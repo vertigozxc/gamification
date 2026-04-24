@@ -289,7 +289,14 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
                 to   { transform: translateY(0)    scale(1);    opacity: 1; }
               }
             `}</style>
-            <div style={{ fontSize: 36, lineHeight: 1, marginBottom: 4 }}>{wonReward.emoji}</div>
+            {/* Big reward emoji above the "You won!" label — skipped for
+                token rewards because the 🪙 character is already present
+                in the amount line below and duplicating it reads as
+                cluttered. XP and level rewards keep the emoji since
+                their amount line doesn't carry it. */}
+            {spinResult.reward.type !== "token" && (
+              <div style={{ fontSize: 36, lineHeight: 1, marginBottom: 4 }}>{wonReward.emoji}</div>
+            )}
             <p className="cinzel" style={{
               color: "var(--color-primary, #a78bfa)",
               fontSize: 14,
@@ -380,7 +387,7 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
           <button
             type="button"
             onClick={onClose}
-            className="cinzel"
+            className="cinzel mobile-pressable"
             style={{
               width: "100%",
               padding: "14px 20px",
