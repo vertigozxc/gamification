@@ -1,6 +1,12 @@
+import { useCallback, useEffect, useRef, useState } from "react";
 import QuestBoard from "../QuestBoard";
 import { useTheme } from "../../ThemeContext";
-import DashboardChallengeStrip from "../social/DashboardChallengeStrip";
+import { completeChallenge, fetchUserChallenges, joinChallenge, leaveChallenge } from "../../api";
+
+function todayKey() {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
 
 export default function DashboardTab({
   state, characterName, t,
@@ -22,12 +28,64 @@ export default function DashboardTab({
   emptyOtherSlotCount,
   onOpenHabitPicker,
   authUser,
-  onOpenSocial
 }) {
   const { themeId } = useTheme();
   const isLight = themeId === "light";
   const totalSegments = Math.max(1, Number(maxDailyQuests) || 6);
   const milestoneTargetSet = new Set(milestoneSteps.map((step) => step.target));
+
+  // ── Challenge state ──────────────────────────────────────────────────────
+  const meUid = String(authUser?.uid || "").slice(0, 128);
+  const [challenges, setChallenges] = useState([]);
+  const [challengesLoaded, setChallengesLoaded] = useState(false);
+  const [busyChallengeId, setBusyChallengeId] = useState(null);
+  const [optimisticDone, setOptimisticDone] = useState(() => new Set());
+
+  const refreshChallenges = useCallback(async () => {
+    if (!meUid) return;
+    try {
+      const data = await fetchUserChallenges(meUid);
+      const now = Date.now();
+      setChallenges((data?.challenges || []).filter((c) => new Date(c.endsAt).getTime() > now));
+    } catch {
+      setChallenges([]);
+    } finally {
+      setChallengesLoaded(true);
+    }
+  }, [meUid]);
+
+  useEffect(() => { refreshChallenges(); }, [refreshChallenges]);
+  useEffect(() => {
+    const h = () => refreshChallenges();
+    window.addEventListener("social:refresh-challenges", h);
+    return () => window.removeEventListener("social:refresh-challenges", h);
+  }, [refreshChallenges]);
+
+  const handleCompleteChallenge = useCallback(async (id) => {
+    setBusyChallengeId(id);
+    setOptimisticDone((prev) => new Set(prev).add(id));
+    try {
+      await completeChallenge(id, meUid);
+      await refreshChallenges();
+    } catch {
+      setOptimisticDone((prev) => { const next = new Set(prev); next.delete(id); return next; });
+    } finally {
+      setBusyChallengeId(null);
+    }
+  }, [meUid, refreshChallenges]);
+
+  const handleAcceptChallenge = useCallback(async (id) => {
+    setBusyChallengeId(id);
+    try { await joinChallenge(id, meUid); await refreshChallenges(); }
+    catch { /* silent */ } finally { setBusyChallengeId(null); }
+  }, [meUid, refreshChallenges]);
+
+  const handleDeclineChallenge = useCallback(async (id) => {
+    setBusyChallengeId(id);
+    try { await leaveChallenge(id, meUid); await refreshChallenges(); }
+    catch { /* silent */ } finally { setBusyChallengeId(null); }
+  }, [meUid, refreshChallenges]);
+
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
       {/* Hero: XP + Level compact row */}
@@ -75,10 +133,9 @@ export default function DashboardTab({
 
       {/* Daily Board Section */}
       <div className="mobile-card flex flex-col gap-4" style={{ background: "var(--panel-bg)" }}>
-        {/* Daily progress strip & Board Title */}
         <div className="flex flex-col shrink-0">
           <div className="flex items-center justify-between mb-2 px-1">
-            <span className="cinzel text-[11px] font-bold tracking-[0.15em] uppercase drop-shadow-sm flex items-center gap-1.5" style={{color: "var(--color-primary)"}}>
+            <span className="cinzel text-[11px] font-bold tracking-[0.15em] uppercase drop-shadow-sm flex items-center gap-1.5" style={{ color: "var(--color-primary)" }}>
               <span className="text-[12px]">{t.dailyBoardIcon}</span> {t.dailyBoard}
             </span>
             <span className="cinzel text-[11px] font-bold opacity-80" style={{ color: "var(--color-text)" }}>{completedToday}<span className="opacity-50">/{totalSegments}</span></span>
@@ -98,17 +155,16 @@ export default function DashboardTab({
           </div>
         </div>
 
-        {/* Milestones row */}
         <div className="grid grid-cols-3 gap-2">
           {milestoneSteps.map((step) => {
             const unlocked = completedToday >= step.target;
             return (
               <div key={step.target} className={`dash-milestone mobile-pressable ${unlocked ? "dash-milestone-on" : ""}`}>
                 <div className={`text-[20px] leading-tight mb-[2px] drop-shadow-md ${unlocked ? "" : isLight ? "opacity-75" : "opacity-40 grayscale"}`}>{step.rune}</div>
-                <div className={"cinzel text-[11px] font-bold tracking-wider mb-0.5"}>
+                <div className="cinzel text-[11px] font-bold tracking-wider mb-0.5">
                   <span style={{ color: unlocked ? "var(--color-primary)" : isLight ? "#3d4450" : "var(--color-text)", opacity: unlocked ? 1 : isLight ? 1 : 0.6 }}>{step.target} <span className="text-[9px] uppercase tracking-widest opacity-60">{step.target >= 5 && t.itemLabelPlural ? t.itemLabelPlural : t.itemLabel}</span></span>
                 </div>
-                <div className={"text-[10px] font-extrabold tracking-tight whitespace-nowrap flex flex-wrap items-center justify-center"} style={{ color: unlocked ? "var(--color-text)" : isLight ? "#3d4450" : "var(--color-muted)", opacity: unlocked ? 1 : isLight ? 1 : 0.6, filter: unlocked ? "drop-shadow(0 0 2px var(--color-primary-glow))" : "none" }}>
+                <div className="text-[10px] font-extrabold tracking-tight whitespace-nowrap flex flex-wrap items-center justify-center" style={{ color: unlocked ? "var(--color-text)" : isLight ? "#3d4450" : "var(--color-muted)", opacity: unlocked ? 1 : isLight ? 1 : 0.6, filter: unlocked ? "drop-shadow(0 0 2px var(--color-primary-glow))" : "none" }}>
                   {step.reward.split(new RegExp(`(${t.streakIcon}|${t.tokenIcon})`)).map((part, i) => (
                     part === t.streakIcon || part === t.tokenIcon ? (
                       <span key={i} className="text-[13px] leading-none ml-0.5 drop-shadow-sm">{part}</span>
@@ -123,8 +179,7 @@ export default function DashboardTab({
         </div>
       </div>
 
-      {/* Quest board with tabs. The group-challenges strip is slotted
-          directly under the daily-reset timer row via `postTimerRow`. */}
+      {/* Quest board with Habits / Quests / Challenges tabs */}
       <div data-tour="quest-board" className="mobile-card" style={{ background: "var(--panel-bg)" }}>
         <QuestBoard
           pinnedQuests={pinnedQuests} otherQuests={otherQuests}
@@ -140,7 +195,6 @@ export default function DashboardTab({
           questRenderCount={questRenderCount}
           onCompleteQuest={onCompleteQuest}
           resetTimer={resetTimer}
-          postTimerRow={<DashboardChallengeStrip authUser={authUser} t={t} onOpenSocial={onOpenSocial} />}
           rerollingQuestId={rerollingQuestId}
           rerollingPinned={rerollingPinned}
           renderQuestTimer={renderQuestTimer}
@@ -150,6 +204,13 @@ export default function DashboardTab({
           onOpenHabitPicker={onOpenHabitPicker}
           maxDailyQuests={totalSegments}
           compact
+          challenges={challengesLoaded ? challenges : []}
+          meUid={meUid}
+          busyChallengeId={busyChallengeId}
+          optimisticDoneChallenges={optimisticDone}
+          onCompleteChallenge={handleCompleteChallenge}
+          onAcceptChallenge={handleAcceptChallenge}
+          onDeclineChallenge={handleDeclineChallenge}
         />
       </div>
     </div>
