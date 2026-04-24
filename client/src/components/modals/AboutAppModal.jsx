@@ -560,6 +560,7 @@ const COPY_EN = {
             "Extra Daily Reroll — 3 tokens. Reshuffles today's random quests once more after the free reroll is used. You can buy multiple.",
             "XP Boost — 15 tokens. Gives +15% XP on every completed quest for 7 days. Buying again while active extends the timer.",
             "Pinned Quest Reroll — 7 tokens. Opens the picker to replace your pinned habits. You also get a free pinned reroll every 21 days.",
+            "Reset City — wipes every district back to level 0 and refunds the tokens you spent on them. Cost grows each time: 10 → 20 → 30 → 40 → 50, capped at 50 tokens from the 5th reset onward. The first paid reset unlocks the Phoenix achievement.",
             "Residential district gives a discount on every shop item (−1 token from level 1, −2 tokens from level 5)."
           ]} />
         </>
@@ -586,7 +587,7 @@ const COPY_EN = {
             { label: "🤝 First Handshake", value: "Join a group challenge" },
             { label: "🏅 Champion", value: "Finish a 7+ day group challenge" },
             { label: "👥 Mentor", value: "Invite 3 friends who stay active" },
-            { label: "🐦 Phoenix", value: "Pay to reset your city avatar" }
+            { label: "🐦 Phoenix", value: "Reset your city for the first time" }
           ]} />
         </>
       )
@@ -861,6 +862,7 @@ const COPY_RU = {
           "Доп. перемешивание — 3 токена. Ещё раз перетасовывает сегодняшние дневные квесты после бесплатного рерола. Можно покупать несколько раз.",
           "Буст опыта — 15 токенов. Даёт +15% XP за каждый выполненный квест в течение 7 дней. Покупка во время действия продлевает таймер.",
           "Замена привычек — 7 токенов. Открывает выбор новых привычек. Раз в 21 день такая замена бесплатна.",
+          "Сброс города — обнуляет все районы до 0 уровня и возвращает токены, потраченные на их прокачку. Цена растёт с каждым сбросом: 10 → 20 → 30 → 40 → 50, и далее остаётся 50 токенов. Первый платный сброс открывает достижение «Феникс».",
           "Жилой район даёт скидку на все товары магазина (−1 токен с 1 уровня, −2 токена с 5 уровня)."
         ]} />
       )
@@ -886,7 +888,7 @@ const COPY_RU = {
             { label: "🤝 Первое рукопожатие", value: "Войти в групповой челлендж" },
             { label: "🏅 Чемпион", value: "Завершить челлендж 7+ дней" },
             { label: "👥 Наставник", value: "3 приглашённых друга остались" },
-            { label: "🐦 Феникс", value: "Платно сбросить аватар города" }
+            { label: "🐦 Феникс", value: "Сбросить город в первый раз" }
           ]} />
         </>
       )
