@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useTheme } from "../../ThemeContext";
 
 const TITLE_MAX = 40;
@@ -27,6 +28,39 @@ function CustomHabitManager({
   const [needsTimer, setNeedsTimer] = useState(false);
   const [timeMinutes, setTimeMinutes] = useState("30");
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  // Track visualViewport so the create/edit popup shrinks with the
+  // iOS keyboard instead of getting pushed off-screen.
+  const [vvHeight, setVvHeight] = useState(() => (
+    typeof window !== "undefined"
+      ? (window.visualViewport?.height || window.innerHeight || 0)
+      : 0
+  ));
+  const [vvTop, setVvTop] = useState(0);
+  useEffect(() => {
+    if (mode !== "create" && mode !== "edit") return undefined;
+    if (typeof window === "undefined") return undefined;
+    const update = () => {
+      const vv = window.visualViewport;
+      setVvHeight(vv?.height || window.innerHeight || 0);
+      setVvTop(vv?.offsetTop || 0);
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener("resize", update);
+      vv.addEventListener("scroll", update);
+    }
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("orientationchange", update);
+      if (vv) {
+        vv.removeEventListener("resize", update);
+        vv.removeEventListener("scroll", update);
+      }
+    };
+  }, [mode]);
 
   useEffect(() => {
     if (customError) {
@@ -240,124 +274,220 @@ function CustomHabitManager({
         </>
       )}
 
-      {(mode === "create" || mode === "edit") && (
+      {(mode === "create" || mode === "edit") && createPortal(
         <div
-          className="rounded-lg border p-3"
-          style={{ borderColor: accentBorder, background: "var(--card-bg)" }}
+          className="logout-confirm-overlay"
+          style={{
+            zIndex: 240,
+            background: "rgba(0, 0, 0, 0.62)",
+            padding: 0,
+            alignItems: "stretch",
+            justifyContent: "stretch"
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) resetForm(); }}
         >
-          <label className="cinzel text-xs tracking-widest uppercase block mb-1" style={accentStyle}>
-                {t.customHabitTitleLabel}
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value.slice(0, TITLE_MAX))}
-            maxLength={TITLE_MAX}
-            className="w-full rounded-md px-3 py-2 text-slate-100"
-            style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--card-border-idle)", minHeight: 44 }}
-                placeholder={t.customHabitTitlePlaceholder}
-          />
-          <div className="text-right text-xs text-slate-500 mt-1">{title.length} / {TITLE_MAX}</div>
-
-          <label className="cinzel text-xs tracking-widest uppercase block mt-2 mb-1" style={accentStyle}>
-                {t.customHabitDescLabel}
-          </label>
-          <textarea
-            value={desc}
-            onChange={(e) => setDesc(e.target.value.slice(0, DESC_MAX))}
-            maxLength={DESC_MAX}
-            rows={2}
-            className="w-full rounded-md px-3 py-2 text-slate-100"
-            style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--card-border-idle)", resize: "vertical" }}
-                placeholder={t.customHabitDescPlaceholder}
-          />
-          <div className="text-right text-xs text-slate-500 mt-1">{desc.length} / {DESC_MAX}</div>
-
-          {/* Timer toggle + minutes input */}
-          <div className="mt-3 rounded-lg p-3" style={{ border: "1px solid var(--card-border-idle)", background: "rgba(0,0,0,0.2)" }}>
-            <label
-              className="flex items-center gap-2 cursor-pointer"
-              style={{ fontSize: 13, color: "#e2e8f0" }}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "fixed",
+              top: vvTop ? `${vvTop}px` : 0,
+              left: 0,
+              right: 0,
+              height: vvHeight ? `${vvHeight}px` : "100dvh",
+              maxHeight: vvHeight ? `${vvHeight}px` : "100dvh",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "20px 16px"
+            }}
+          >
+            <div
+              style={{
+                width: "100%",
+                maxWidth: 420,
+                maxHeight: "100%",
+                display: "flex",
+                flexDirection: "column",
+                borderRadius: 18,
+                overflow: "hidden",
+                background: "var(--card-bg, #0f172a)",
+                border: "1px solid color-mix(in srgb, var(--color-primary) 55%, var(--panel-border))",
+                boxShadow: "0 24px 60px rgba(0,0,0,0.55), 0 0 60px color-mix(in srgb, var(--color-primary) 24%, transparent)",
+                animation: "tour-finale-in 280ms cubic-bezier(0.2, 0.9, 0.35, 1)"
+              }}
             >
-              <input
-                type="checkbox"
-                checked={needsTimer}
-                onChange={(e) => setNeedsTimer(e.target.checked)}
-                style={{ width: 18, height: 18, cursor: "pointer" }}
-              />
-              <span className="cinzel" style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", ...accentStyle }}>
-                {t.customHabitUseTimer || "Use timer"}
-              </span>
-            </label>
-            {needsTimer ? (
-              <div className="mt-2">
-                <label className="cinzel text-[11px] tracking-widest uppercase block mb-1" style={{ color: "var(--color-muted)" }}>
-                  {t.customHabitMinutesLabel || "Duration (minutes)"}
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    max={480}
-                    value={timeMinutes}
-                    onChange={(e) => setTimeMinutes(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
-                    className="rounded-md px-3 py-2 text-slate-100"
-                    style={{ width: 100, background: "rgba(0,0,0,0.35)", border: "1px solid var(--card-border-idle)", minHeight: 40 }}
-                    placeholder="30"
-                  />
-                  <span className="text-xs" style={{ color: "var(--color-muted)" }}>
-                    → <strong style={{ color: "#4ade80" }}>+{previewXp} XP</strong>{" "}
-                    {t.customHabitXpHint || "per completion"}
-                  </span>
-                </div>
-                <p className="text-[11px] mt-2" style={{ color: "var(--color-muted)", lineHeight: 1.45 }}>
-                  {t.customHabitXpExplain
-                    || "Up to 39 min → 30 XP · 40–49 min → 40 XP · 50+ min → 50 XP"}
-                </p>
+              {/* Header */}
+              <div
+                style={{
+                  padding: "14px 16px",
+                  borderBottom: "1px solid var(--card-border-idle)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  background: "color-mix(in srgb, var(--color-primary) 6%, var(--card-bg, #0f172a))"
+                }}
+              >
+                <h3
+                  className="cinzel"
+                  style={{
+                    margin: 0,
+                    fontSize: 14,
+                    fontWeight: 800,
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    color: "var(--color-primary)"
+                  }}
+                >
+                  {mode === "create" ? t.customHabitCreate : t.customHabitEdit}
+                </h3>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  aria-label={t.cancelLabel}
+                  className="ui-close-x"
+                  style={{ width: 34, height: 34, fontSize: 18 }}
+                >
+                  ✕
+                </button>
               </div>
-            ) : null}
-          </div>
 
-          {customError ? (
-            <p className="text-red-400 text-xs mt-2 font-bold">{customError}</p>
-          ) : null}
+              {/* Scrollable body */}
+              <div
+                style={{
+                  flex: 1,
+                  minHeight: 0,
+                  overflowY: "auto",
+                  WebkitOverflowScrolling: "touch",
+                  padding: "14px 16px"
+                }}
+              >
+                <label className="cinzel text-xs tracking-widest uppercase block mb-1" style={accentStyle}>
+                  {t.customHabitTitleLabel}
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value.slice(0, TITLE_MAX))}
+                  maxLength={TITLE_MAX}
+                  className="w-full rounded-md px-3 py-2 text-slate-100"
+                  style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--card-border-idle)", minHeight: 44 }}
+                  placeholder={t.customHabitTitlePlaceholder}
+                />
+                <div className="text-right text-xs text-slate-500 mt-1">{title.length} / {TITLE_MAX}</div>
 
-          <div className="flex gap-2 mt-3">
-            <button
-              type="button"
-              onClick={resetForm}
-              className="flex-1 rounded-md py-2 cinzel text-xs mobile-pressable"
-              style={{
-                background: "transparent",
-                border: "1px solid var(--card-border-idle)",
-                color: "#cbd5e1",
-                cursor: "pointer",
-                minHeight: 44
-              }}
-            >
+                <label className="cinzel text-xs tracking-widest uppercase block mt-3 mb-1" style={accentStyle}>
+                  {t.customHabitDescLabel}
+                </label>
+                <textarea
+                  value={desc}
+                  onChange={(e) => setDesc(e.target.value.slice(0, DESC_MAX))}
+                  maxLength={DESC_MAX}
+                  rows={3}
+                  className="w-full rounded-md px-3 py-2 text-slate-100"
+                  style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--card-border-idle)", resize: "vertical", minHeight: 76 }}
+                  placeholder={t.customHabitDescPlaceholder}
+                />
+                <div className="text-right text-xs text-slate-500 mt-1">{desc.length} / {DESC_MAX}</div>
+
+                <div className="mt-3 rounded-lg p-3" style={{ border: "1px solid var(--card-border-idle)", background: "rgba(0,0,0,0.2)" }}>
+                  <label
+                    className="flex items-center gap-2 cursor-pointer"
+                    style={{ fontSize: 13, color: "#e2e8f0" }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={needsTimer}
+                      onChange={(e) => setNeedsTimer(e.target.checked)}
+                      style={{ width: 18, height: 18, cursor: "pointer" }}
+                    />
+                    <span className="cinzel" style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", ...accentStyle }}>
+                      {t.customHabitUseTimer || "Use timer"}
+                    </span>
+                  </label>
+                  {needsTimer ? (
+                    <div className="mt-2">
+                      <label className="cinzel text-[11px] tracking-widest uppercase block mb-1" style={{ color: "var(--color-muted)" }}>
+                        {t.customHabitMinutesLabel || "Duration (minutes)"}
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          max={480}
+                          value={timeMinutes}
+                          onChange={(e) => setTimeMinutes(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
+                          className="rounded-md px-3 py-2 text-slate-100"
+                          style={{ width: 100, background: "rgba(0,0,0,0.35)", border: "1px solid var(--card-border-idle)", minHeight: 40 }}
+                          placeholder="30"
+                        />
+                        <span className="text-xs" style={{ color: "var(--color-muted)" }}>
+                          → <strong style={{ color: "#4ade80" }}>+{previewXp} XP</strong>{" "}
+                          {t.customHabitXpHint || "per completion"}
+                        </span>
+                      </div>
+                      <p className="text-[11px] mt-2" style={{ color: "var(--color-muted)", lineHeight: 1.45 }}>
+                        {t.customHabitXpExplain
+                          || "Up to 39 min → 30 XP · 40–49 min → 40 XP · 50+ min → 50 XP"}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+
+                {customError ? (
+                  <p className="text-red-400 text-xs mt-2 font-bold">{customError}</p>
+                ) : null}
+              </div>
+
+              {/* Sticky footer */}
+              <div
+                style={{
+                  padding: "12px 16px calc(12px + env(safe-area-inset-bottom, 0px))",
+                  borderTop: "1px solid var(--card-border-idle)",
+                  background: "rgba(0,0,0,0.35)",
+                  display: "flex",
+                  gap: 10
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="flex-1 rounded-md py-2 cinzel text-xs mobile-pressable"
+                  style={{
+                    background: "transparent",
+                    border: "1px solid var(--card-border-idle)",
+                    color: "#cbd5e1",
+                    cursor: "pointer",
+                    minHeight: 44
+                  }}
+                >
                   {t.cancelLabel}
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={customSaving || !title.trim()}
-              className="flex-1 rounded-md py-2 cinzel text-xs font-bold mobile-pressable"
-              style={{
-                background: `var(${accentVar})`,
-                color: "#0f172a",
-                border: "none",
-                cursor: customSaving || !title.trim() ? "not-allowed" : "pointer",
-                opacity: customSaving || !title.trim() ? 0.6 : 1,
-                minHeight: 44
-              }}
-            >
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={customSaving || !title.trim()}
+                  className="flex-1 rounded-md py-2 cinzel text-xs font-bold mobile-pressable"
+                  style={{
+                    background: `var(${accentVar})`,
+                    color: "#0f172a",
+                    border: "none",
+                    cursor: customSaving || !title.trim() ? "not-allowed" : "pointer",
+                    opacity: customSaving || !title.trim() ? 0.6 : 1,
+                    minHeight: 44
+                  }}
+                >
                   {customSaving
                     ? t.onboardingSaving
                     : t.customHabitSave}
-            </button>
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {allowDelete && confirmDeleteId != null && (() => {
