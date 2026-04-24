@@ -152,7 +152,6 @@ export default function ProfileTab({
       <StreakFreezeCard
         t={t}
         charges={Number(state.user?.streakFreezeCharges) || 0}
-        streak={state.streak}
         languageId={languageId}
       />
 
@@ -336,21 +335,16 @@ export default function ProfileTab({
 // auto-consume on missed days. Shows current balance with a localized
 // days suffix ("20 days" / "20 дней") and an explainer of the automatic
 // behavior. No freeze-period card, no activation buttons.
-function StreakFreezeCard({ t, charges, streak, languageId }) {
+function StreakFreezeCard({ t, charges, languageId }) {
   const safeCharges = Math.max(0, Math.floor(Number(charges) || 0));
   const daysWord = pluralizeDaysLocal(safeCharges, languageId, t);
   const [hintOpen, setHintOpen] = useState(false);
 
   return (
     <div className="mobile-card" style={{ background: "var(--panel-bg)" }}>
-      <div className="flex items-center justify-between mb-2">
-        <p className="cinzel text-xs font-bold tracking-widest uppercase m-0" style={{ color: "var(--color-primary)" }}>
-          ❄️ {t.streakFreezeTitle || "Streak Freeze"}
-        </p>
-        <span className="text-[10px] uppercase tracking-wider" style={{ color: "var(--color-muted)" }}>
-          {t.streakIcon} {streak}
-        </span>
-      </div>
+      <p className="cinzel text-xs font-bold tracking-widest uppercase m-0 mb-2" style={{ color: "var(--color-primary)" }}>
+        ❄️ {t.streakFreezeTitle || "Streak Freeze"}
+      </p>
 
       <button
         type="button"
