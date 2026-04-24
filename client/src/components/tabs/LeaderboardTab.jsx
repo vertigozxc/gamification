@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTheme } from "../../ThemeContext";
 import {
   fetchFriends,
@@ -77,6 +77,8 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
   const [busy, setBusy] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(null);
   const swipeRef = useRef(null);
+  const tabsRowRef = useRef(null);
+  const indicatorRef = useRef(null);
 
   const pendingChallengeId =
     typeof window !== "undefined" ? window.__pendingSocialChallengeId || null : null;
@@ -196,6 +198,31 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
   ];
   const selectedIdx = tabs.findIndex((tb) => tb.id === tab);
 
+  // Slide the active-tab indicator pill under the current button — mirrors
+  // QuestBoard's .qb-tab-bar, so Community and Dashboard feel identical.
+  // Recomputes whenever badge counts or labels change, since those shift
+  // the button's width.
+  useLayoutEffect(() => {
+    if (!tabsRowRef.current || !indicatorRef.current) return;
+    const activeBtn = tabsRowRef.current.querySelector(`[data-qtab="${tab}"]`);
+    if (!activeBtn) return;
+    const apply = () => {
+      if (!indicatorRef.current) return;
+      indicatorRef.current.style.width = `${activeBtn.offsetWidth}px`;
+      indicatorRef.current.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
+    };
+    apply();
+    const raf = requestAnimationFrame(apply);
+    return () => cancelAnimationFrame(raf);
+  }, [
+    tab,
+    pendingChallenges.length,
+    requests.length,
+    t.communityTabActivity,
+    t.communityTabChallenges,
+    t.communityTabFriends,
+  ]);
+
   /* Swipe-to-switch between tabs. Thresholds: 40px horizontal, <60px vertical
    * drift, within 700ms. Works with vertical list scrolling because we check
    * only at touchend. */
@@ -236,27 +263,24 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
       <div style={{ paddingBottom: 24, display: "flex", flexDirection: "column", gap: 14 }}>
         <CommunityHero t={t} leaderboard={leaderboard} meUid={meUid} />
 
-        <div style={{ padding: "0 14px", display: "flex", flexDirection: "column", gap: 14 }}>
-          {/* iOS segmented control */}
-          <div data-tour="community-tabs" role="tablist" className="cm-tabs" style={{ "--count": tabs.length }}>
-            <div
-              className="cm-tabs-slider"
-              aria-hidden="true"
-              style={{ transform: `translateX(${selectedIdx * 100}%)` }}
-            />
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* Dashboard-style sliding pill tab bar (.qb-tab-bar, same theme
+              colours — indigo/green/pink by theme). */}
+          <div data-tour="community-tabs" role="tablist" className="qb-tab-bar" ref={tabsRowRef}>
+            <div className="qb-tab-indicator" ref={indicatorRef} />
             {tabs.map((tb) => (
               <button
                 key={tb.id}
                 type="button"
                 role="tab"
                 aria-selected={tab === tb.id}
-                onClick={() => setTab(tb.id)}
-                className="cm-tab"
+                data-qtab={tb.id}
                 data-tour={tb.id === "challenges" ? "cm-challenges" : undefined}
+                onClick={() => setTab(tb.id)}
+                className={`qb-tab-btn ${tab === tb.id ? "qb-tab-active" : ""}`}
               >
-                <span className="cm-tab-ico">{tb.icon}</span>
-                <span className="cm-tab-label">{tb.label}</span>
-                {tb.badge ? <span className="cm-tab-badge">{tb.badge}</span> : null}
+                <span>{tb.icon}</span> {tb.label}
+                {tb.badge ? <span className="qb-tab-count">{tb.badge}</span> : null}
               </button>
             ))}
           </div>
