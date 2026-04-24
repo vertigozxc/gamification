@@ -192,6 +192,7 @@ function QuestBoard({
           <button
             type="button"
             data-qtab="habits"
+            data-tour="qb-tab-habits"
             className={`qb-tab-btn ${activeQTab === "habits" ? "qb-tab-active" : ""}`}
             onClick={() => setActiveQTab("habits")}
           >
@@ -200,6 +201,7 @@ function QuestBoard({
           <button
             type="button"
             data-qtab="daily"
+            data-tour="qb-tab-daily"
             className={`qb-tab-btn ${activeQTab === "daily" ? "qb-tab-active" : ""}`}
             onClick={() => {
               setActiveQTab("daily");

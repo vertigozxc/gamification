@@ -6,6 +6,7 @@ const TYPE_MS_PER_CHAR = 22;      // typewriter speed
 const TYPE_PUNCT_PAUSE_MS = 90;   // extra pause after . ! ? ,
 const MASK_PAD = 8;               // spotlight padding around target
 const BUBBLE_MARGIN = 14;         // gap between spotlight and bubble
+const DEFAULT_BUBBLE_HEIGHT = 220; // fallback until the real one is measured
 const POSITION_POLL_MS = 320;     // fallback re-measure interval (keyboards, animations)
 const SCROLL_DELAY_MS = 240;
 
@@ -162,6 +163,8 @@ export default function AnimatedOnboardingTour({
   const [safeBottom, setSafeBottom] = useState(0);
   const [shakeTick, setShakeTick] = useState(0);
   const enteredIdRef = useRef(null);
+  const bubbleRef = useRef(null);
+  const [bubbleHeight, setBubbleHeight] = useState(DEFAULT_BUBBLE_HEIGHT);
   // Track the id of the step we're on so the index stays stable when
   // the parent rebuilds the steps array (e.g. setup-* steps vanish
   // once showOnboarding flips false). Without this, a completed setup
@@ -412,21 +415,23 @@ export default function AnimatedOnboardingTour({
     }
     const r = layout.rect;
     const BUBBLE_WIDTH = Math.min(viewport.w - 32, 360);
+    const h = bubbleHeight || DEFAULT_BUBBLE_HEIGHT;
     const spaceAbove = r.top - safeTop - 20;
     const spaceBelow = viewport.h - r.bottom - safeBottom - 20;
     const prefer = step?.bubblePlacement || "auto";
     let placement = prefer;
     if (prefer === "auto") {
-      placement = spaceBelow >= 180 ? "bottom" : spaceAbove >= 180 ? "top" : (spaceBelow >= spaceAbove ? "bottom" : "top");
+      placement = spaceBelow >= (h + 20) ? "bottom" : spaceAbove >= (h + 20) ? "top" : (spaceBelow >= spaceAbove ? "bottom" : "top");
     }
     const leftRaw = r.left + r.width / 2 - BUBBLE_WIDTH / 2;
     const clampedLeft = Math.max(12, Math.min(viewport.w - BUBBLE_WIDTH - 12, leftRaw));
     let top;
-    let arrow = placement;
+    const arrow = placement;
     if (placement === "top") {
-      top = Math.max(safeTop + 56, r.top - BUBBLE_MARGIN - 220);
+      // Anchor bubble so its bottom sits above the target (never covers it).
+      top = Math.max(safeTop + 12, r.top - BUBBLE_MARGIN - h);
     } else {
-      top = Math.min(viewport.h - safeBottom - 220, r.bottom + BUBBLE_MARGIN);
+      top = Math.min(viewport.h - safeBottom - h - 12, r.bottom + BUBBLE_MARGIN);
     }
     return {
       top: Math.round(top),
@@ -434,7 +439,18 @@ export default function AnimatedOnboardingTour({
       width: BUBBLE_WIDTH,
       arrow
     };
-  }, [layout, viewport.w, viewport.h, safeTop, safeBottom, step]);
+  }, [layout, viewport.w, viewport.h, safeTop, safeBottom, step, bubbleHeight]);
+
+  // After every render, measure the bubble's real height so the next
+  // position calculation uses an accurate value — long text steps were
+  // overflowing the hardcoded 220px budget and covering the target.
+  useLayoutEffect(() => {
+    if (!bubbleRef.current) return;
+    const h = bubbleRef.current.getBoundingClientRect().height;
+    if (h && Math.abs(h - bubbleHeight) > 3) {
+      setBubbleHeight(h);
+    }
+  });
 
   // Keyboard: Esc → skip confirm, space/enter → advance.
   useEffect(() => {
@@ -562,6 +578,7 @@ export default function AnimatedOnboardingTour({
       {/* bubble — spotlight / center steps only */}
       {!isWelcome && bubble ? (
         <div
+          ref={bubbleRef}
           className={`tour-bubble tour-bubble--arrow-${bubble.arrow} ${shakeTick ? "tour-bubble--shake" : ""}`}
           key={`bubble-${shakeTick}`}
           style={{
@@ -585,7 +602,7 @@ export default function AnimatedOnboardingTour({
           </div>
 
           <div className="tour-bubble-actions">
-            {canGoBack ? (
+            {canGoBack && !step.hideBack ? (
               <button
                 type="button"
                 className="tour-back mobile-pressable cinzel"

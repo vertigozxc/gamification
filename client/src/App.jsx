@@ -459,59 +459,139 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       onEnter: () => setWizardStep(1),
       scroll: true
     });
-    // Main tour, post-setup. Order per user ask:
-    // dashboard → city → store → community → profile.
+    // Main tour, post-setup.
+    // DASHBOARD: quest-board overview → daily tab tap → board rewards
     list.push({
       id: "quest-board",
       target: '[data-tour="quest-board"]',
       title: t.tourQuestBoardTitle || "Your quest board",
-      text: t.tourQuestBoardText || "Plain quests finish on a long tap. Some have a timer or a counter — run the mechanic and the quest closes itself.",
+      text: t.tourQuestBoardText || "This is where you close habits every day.",
       gate: "next",
+      hideBack: true,
       onEnter: () => { startTransition(() => setMobileTab("dashboard")); },
       scroll: true
     });
     list.push({
+      id: "qb-tab-daily",
+      target: '[data-tour="qb-tab-daily"]',
+      title: t.tourDailyQuestsTitle || "Daily quests",
+      text: t.tourDailyQuestsText || "Tap the Daily tab — every day you get a random set of quests.",
+      // Gate: wait for user to actually tap the Daily tab.
+      gate: "tap",
+      onEnter: () => { startTransition(() => setMobileTab("dashboard")); },
+      bubblePlacement: "bottom",
+      scroll: true
+    });
+    list.push({
+      id: "daily-board",
+      target: '[data-tour="quest-board"]',
+      title: t.tourDailyBoardTitle || "Full board = bonus",
+      text: t.tourDailyBoardText || "Close the whole board and your streak grows — plus extra tokens.",
+      gate: "next",
+      onEnter: () => { startTransition(() => setMobileTab("dashboard")); },
+      scroll: false
+    });
+    // CITY: intro → tap Park → free upgrade → spin wheel
+    list.push({
       id: "city-hero",
       target: '[data-tour="city-hero"]',
       title: t.tourCityTitle || "Your city",
-      text: t.tourCityText || "Every habit you complete grows the city. Level up districts to unlock perks and bonuses.",
+      text: t.tourCityText || "Every habit you complete grows this city. Let's take a walk through it.",
       gate: "next",
       onEnter: () => { startTransition(() => setMobileTab("city")); },
       scroll: true
     });
     list.push({
+      id: "park-district-tap",
+      target: '[data-tour="district-park"]',
+      title: t.tourCityDistrictsTitle || "Districts",
+      text: t.tourCityDistrictsText || "The city is made of districts. Tap the Park district to open it up.",
+      // Satisfied the moment the Park details / upgrade button appears.
+      gate: "condition",
+      isSatisfied: () => typeof document !== "undefined" && !!document.querySelector('[data-tour="district-upgrade"]'),
+      autoAdvance: true,
+      hideNext: true,
+      onEnter: () => { startTransition(() => setMobileTab("city")); },
+      bubblePlacement: "bottom",
+      scroll: false
+    });
+    list.push({
+      id: "park-upgrade",
+      target: '[data-tour="district-upgrade"]',
+      title: t.tourParkDistrictTitle || "Let's upgrade Park",
+      text: t.tourParkDistrictText || "This first upgrade is on the house — tap Upgrade.",
+      gate: "condition",
+      // Park index = 2 in the DISTRICT_IDS order [sport, business, park, square, residential].
+      isSatisfied: () => {
+        const arr = Array.isArray(state?.districtLevels) ? state.districtLevels : [];
+        return (Number(arr[2]) || 0) >= 1;
+      },
+      autoAdvance: true,
+      hideNext: true,
+      bubblePlacement: "top",
+      scroll: true
+    });
+    list.push({
+      id: "spin-wheel",
+      target: '[data-tour="spin-wheel"]',
+      title: t.tourSpinWheelTitle || "Daily spin",
+      text: t.tourSpinWheelText || "Tap the spin button to collect your daily reward.",
+      gate: "next",
+      bubblePlacement: "top",
+      scroll: true
+    });
+    // STORE
+    list.push({
       id: "store-hero",
       target: '[data-tour="store-hero"]',
-      title: t.tourStoreTitle || "Store",
-      text: t.tourStoreText || "Spend tokens on streak freezes, extra rerolls or an XP boost — no real money.",
+      title: t.tourStoreTitle || "The store",
+      text: t.tourStoreText || "Spend tokens on streak freezes, extra rerolls or an XP boost.",
       gate: "next",
       onEnter: () => { startTransition(() => setMobileTab("store")); },
       scroll: true
     });
+    // COMMUNITY
     list.push({
       id: "community",
       target: '[data-tour="community-tabs"]',
-      title: t.tourCommunityTitle || "Community & challenges",
-      text: t.tourCommunityText || "Here you race friends, join shared challenges and see the leaderboard.",
+      title: t.tourCommunityTitle || "Community",
+      text: t.tourCommunityText || "See the week's active players, add friends, take on group challenges.",
       gate: "next",
       onEnter: () => {
-        try { window.__pendingSocialSubTab = "challenges"; } catch { /* noop */ }
+        try { window.__pendingSocialSubTab = "activity"; } catch { /* noop */ }
         startTransition(() => setMobileTab("leaderboard"));
       },
+      scroll: true
+    });
+    // PROFILE: hero → achievements → settings → finale
+    list.push({
+      id: "profile-hero",
+      target: '[data-tour="profile-hero"]',
+      title: t.tourProfileHeroTitle || "Your profile",
+      text: t.tourProfileHeroText || "Name, level, XP, streak, tokens — all your stats live here.",
+      gate: "next",
+      onEnter: () => { startTransition(() => setMobileTab("profile")); },
+      scroll: true
+    });
+    list.push({
+      id: "profile-achievements",
+      target: '[data-tour="profile-achievements"]',
+      title: t.tourProfileAchievementsTitle || "Achievements",
+      text: t.tourProfileAchievementsText || "Every milestone you hit unlocks an achievement here.",
+      gate: "next",
       scroll: true
     });
     list.push({
       id: "profile-settings",
       target: '[data-tour="profile-settings"]',
-      title: t.tourProfileTitle || "Your profile",
-      text: t.tourProfileText || "Themes, language, and a replay of this tour — all here.",
+      title: t.tourProfileSettingsTitle || "Settings",
+      text: t.tourProfileSettingsText || "Theme, language, and a replay of this tour — all here.",
       gate: "next",
-      onEnter: () => { startTransition(() => setMobileTab("profile")); },
       scroll: true
     });
     return list;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t, tf, showOnboarding, onboardingName, onboardingQuestIds, state?.questSlots?.pinned, wizardStep]);
+  }, [t, tf, showOnboarding, onboardingName, onboardingQuestIds, state?.questSlots?.pinned, state?.districtLevels, wizardStep]);
 
   useEffect(() => {
     uidRef.current = authUser ? authUser.uid : null;

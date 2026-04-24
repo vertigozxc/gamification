@@ -4394,14 +4394,26 @@ app.post("/api/city/upgrade-district", async (req, res) => {
     const userLevel = Number(user.level) || 0;
     const userTokens = Number(user.tokens) || 0;
     const userStreak = Number(user.streak) || 0;
-    if (userLevel < req_.level) {
-      return res.status(400).json({ error: "Player level too low", code: "insufficient_level", required: req_.level, current: userLevel });
-    }
-    if (userTokens < req_.tokens) {
-      return res.status(400).json({ error: "Not enough tokens", code: "insufficient_tokens", required: req_.tokens, current: userTokens });
-    }
-    if (userStreak < req_.streak) {
-      return res.status(400).json({ error: "Streak too low", code: "insufficient_streak", required: req_.streak, current: userStreak });
+    // Onboarding freebie: while the animated tour is still in progress
+    // (onboardingTourCompletedAt == null), the user can lift Park from
+    // level 0 → 1 once without paying tokens or meeting streak/level
+    // requirements. This powers the "let's upgrade Park together" tour
+    // step. Every other upgrade keeps the normal gates.
+    const isTourFreebie = (
+      !user.onboardingTourCompletedAt
+      && districtId === "park"
+      && currentLevel === 0
+    );
+    if (!isTourFreebie) {
+      if (userLevel < req_.level) {
+        return res.status(400).json({ error: "Player level too low", code: "insufficient_level", required: req_.level, current: userLevel });
+      }
+      if (userTokens < req_.tokens) {
+        return res.status(400).json({ error: "Not enough tokens", code: "insufficient_tokens", required: req_.tokens, current: userTokens });
+      }
+      if (userStreak < req_.streak) {
+        return res.status(400).json({ error: "Streak too low", code: "insufficient_streak", required: req_.streak, current: userStreak });
+      }
     }
 
     levels[idx] = currentLevel + 1;
@@ -4410,7 +4422,7 @@ app.post("/api/city/upgrade-district", async (req, res) => {
     const updated = await prisma.user.update({
       where: { id: user.id },
       data: {
-        tokens: { decrement: req_.tokens },
+        tokens: isTourFreebie ? undefined : { decrement: req_.tokens },
         districtLevels: nextLevelsStr
       },
       select: { tokens: true, districtLevels: true }
@@ -4420,7 +4432,8 @@ app.post("/api/city/upgrade-district", async (req, res) => {
       ok: true,
       districtId,
       level: levels[idx],
-      cost: req_.tokens,
+      cost: isTourFreebie ? 0 : req_.tokens,
+      tourFreebie: isTourFreebie,
       tokens: updated.tokens,
       districtLevels: parseDistrictLevels(updated.districtLevels)
     });

@@ -999,6 +999,7 @@ export default function CityTab({
                     </div>
                   </div>
                   <button
+                    data-tour={district.id === "park" ? "district-upgrade" : undefined}
                     onClick={() => handleQuickUpgrade(district.id)}
                     disabled={!canUpgrade}
                     className="qt-btn"
@@ -1227,6 +1228,7 @@ export default function CityTab({
         }
         return (
           <button
+            data-tour="spin-wheel"
             onClick={disabled ? undefined : handleOpenSpin}
             disabled={disabled}
             className="mt-3 qt-btn"

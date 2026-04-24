@@ -1724,6 +1724,7 @@ function PlotBody({ district, level, palette, isSelected, isLocked, onClick, cli
       className="city-iso-district"
       role="button"
       tabIndex={0}
+      data-tour={`district-${district.id}`}
       onClick={onClick}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }}
       style={{ cursor: "pointer", outline: "none" }}
