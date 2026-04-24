@@ -625,11 +625,27 @@ export default function AnimatedOnboardingTour({
           <div className="tour-bubble-title">{typedTitle}{!titleDone ? <span className="tour-caret" /> : null}</div>
           <div className="tour-bubble-text">{typedText}{titleDone && !textDone ? <span className="tour-caret" /> : null}</div>
 
-          {step.kind === "tab-switch" ? (
-            <div className="tour-tab-arrow" aria-hidden>
-              <span className="tour-tab-arrow-glyph">▼</span>
-            </div>
-          ) : null}
+          {step.kind === "tab-switch" ? (() => {
+            // Native bottom tab order on the mobile shell. Keep this
+            // aligned with the shell's layout: [city, leaderboard,
+            // dashboard, store, profile].
+            const TAB_ORDER = ["city", "leaderboard", "dashboard", "store", "profile"];
+            const tabCount = TAB_ORDER.length;
+            const idx = TAB_ORDER.indexOf(step.tabAnchor);
+            const tabCenterX = idx >= 0
+              ? ((idx + 0.5) * viewport.w) / tabCount
+              : viewport.w / 2;
+            const bubbleLeft = bubble?.left ?? 0;
+            const arrowX = Math.max(18, Math.min((bubble?.width || viewport.w) - 18, tabCenterX - bubbleLeft));
+            return (
+              <div className="tour-tab-arrow" aria-hidden style={{ position: "relative", height: 40 }}>
+                <span
+                  className="tour-tab-arrow-glyph"
+                  style={{ position: "absolute", left: arrowX, transform: "translateX(-50%)" }}
+                >▼</span>
+              </div>
+            );
+          })() : null}
 
           <div className="tour-progress-inline" aria-hidden>
             <div className="tour-progress-inline-track">

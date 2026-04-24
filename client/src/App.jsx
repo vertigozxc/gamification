@@ -511,6 +511,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     list.push({
       id: "tab-switch-city",
       kind: "tab-switch",
+      tabAnchor: "city",
       title: t.tourTabCityTitle || "Next stop: your city",
       text: t.tourTabCityText || "Tap the City tab in the bottom bar to keep going.",
       gate: "condition",
@@ -566,6 +567,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     list.push({
       id: "tab-switch-store",
       kind: "tab-switch",
+      tabAnchor: "store",
       title: t.tourTabStoreTitle || "On to the store",
       text: t.tourTabStoreText || "Tap the Store tab in the bottom bar.",
       gate: "condition",
@@ -585,6 +587,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     list.push({
       id: "tab-switch-community",
       kind: "tab-switch",
+      tabAnchor: "leaderboard",
       title: t.tourTabCommunityTitle || "Community time",
       text: t.tourTabCommunityText || "Tap the Community tab in the bottom bar.",
       gate: "condition",
@@ -605,6 +608,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     list.push({
       id: "tab-switch-profile",
       kind: "tab-switch",
+      tabAnchor: "profile",
       title: t.tourTabProfileTitle || "One last stop",
       text: t.tourTabProfileText || "Tap the Profile tab in the bottom bar — we'll wrap up there.",
       gate: "condition",
