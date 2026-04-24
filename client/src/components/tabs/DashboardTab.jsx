@@ -31,8 +31,8 @@ export default function DashboardTab({
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
       {/* Hero: XP + Level compact row */}
-      <div className="dash-hero top-screen-block">
-        <div className="dash-hero-top">
+      <div className="dash-hero city-hero-surface top-screen-block">
+        <div className="dash-hero-top relative z-10">
           <div className="min-w-0 flex-1 flex flex-col gap-0">
             <p className="cinzel text-lg truncate" style={{ color: "var(--color-primary)" }}>{characterName}</p>
             <p className="text-xs cinzel opacity-80" style={{ color: "var(--color-text)" }}>{t.levelShort} {state.lvl}</p>
@@ -68,7 +68,7 @@ export default function DashboardTab({
             })()}
           </div>
         </div>
-        <div className="dash-xp-bar">
+        <div className="dash-xp-bar relative z-10">
           <div className="dash-xp-fill" style={{ width: `${xpPercent}%` }} />
         </div>
       </div>

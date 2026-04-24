@@ -95,6 +95,56 @@
 }
 
 /* ============================================================================
+ * Community hero — KPI tile pair sitting inside the framed hero card
+ * (ТВОЙ РАНГ / ЗАРАБОТАЛИ ВСЕ). Kept outside the .cm-* namespace because
+ * it's part of the full-width hero, not the tabbed home area below it.
+ * ========================================================================== */
+.social-block .community-kpi-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--panel-border) 70%, transparent);
+  background: color-mix(in srgb, var(--panel-bg) 90%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  min-width: 0;
+}
+.social-block .community-kpi-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.social-block .community-kpi-value {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: 2px 0 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.social-block .community-kpi-sub {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-muted);
+  margin: 2px 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.02em;
+}
+
+/* ============================================================================
  * Community home — tabbed layout (Activity / Challenges / Friends)
  * ========================================================================== */
 

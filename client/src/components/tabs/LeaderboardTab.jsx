@@ -233,7 +233,7 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
         touchAction: "pan-y",
       }}
     >
-      <div style={{ paddingTop: 10, paddingBottom: 24, display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ paddingBottom: 24, display: "flex", flexDirection: "column", gap: 14 }}>
         <CommunityHero t={t} leaderboard={leaderboard} meUid={meUid} />
 
         <div style={{ padding: "0 14px", display: "flex", flexDirection: "column", gap: 14 }}>
@@ -326,7 +326,8 @@ function CommunityHero({ t, leaderboard, meUid }) {
   const meFromList = meUid ? users.find((u) => u.username === meUid) : null;
   const me = leaderboard?.me || meFromList || null;
   const myRank = me?.rank ?? null;
-  const myWeeklyXp = Number(me?.weeklyXp) || 0;
+  const totalRanked = Number(leaderboard?.totalRanked) || 0;
+  const totalWeeklyXp = Number(leaderboard?.totalWeeklyXp) || 0;
 
   const now = useNow(60_000);
   const resetAt = nextWeekResetMs(now);
@@ -334,60 +335,57 @@ function CommunityHero({ t, leaderboard, meUid }) {
 
   return (
     <div className="city-hero-surface mobile-card top-screen-block p-4">
-      <div className="relative z-10 flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <h3
-            className="cinzel text-[1.35rem] font-bold tracking-wide leading-tight m-0"
-            style={{ color: "var(--color-primary)" }}
-          >
-            {t.communityTitle || "Community"}
-          </h3>
-          <p
-            className="text-xs leading-relaxed mt-2 mb-0"
-            style={{ color: "var(--color-text)", opacity: 0.88 }}
-          >
-            <span style={{ opacity: 0.72 }}>{t.communityWeekResetLabel || "Week resets in"} </span>
-            <span style={{ color: "var(--color-primary)", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-              {countdown}
-            </span>
-          </p>
-        </div>
-
-        <div className="city-kpi-chip text-center shrink-0 min-w-[88px]">
-          <p
-            className="text-[9px] uppercase tracking-[0.18em] mb-1"
-            style={{ color: "var(--color-muted)" }}
-          >
-            {t.communityRankLabel || "Rank"}
-          </p>
-          <p
-            className="cinzel text-xl font-bold leading-none m-0"
-            style={{ color: "var(--color-primary)", fontVariantNumeric: "tabular-nums" }}
-          >
-            {myRank ? `#${myRank}` : "—"}
-          </p>
-        </div>
+      <div className="relative z-10">
+        <h3
+          className="cinzel text-[1.35rem] font-bold tracking-wide leading-tight m-0"
+          style={{ color: "var(--color-primary)" }}
+        >
+          {t.communityTitle || "Community"}
+        </h3>
+        <p
+          className="text-xs leading-relaxed mt-2 mb-0"
+          style={{ color: "var(--color-text)", opacity: 0.88 }}
+        >
+          <span style={{ opacity: 0.72 }}>{t.communityWeekResetLabel || "Week resets in"} </span>
+          <span style={{ color: "var(--color-primary)", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+            {countdown}
+          </span>
+        </p>
       </div>
 
-      <div className="relative z-10 mt-3 flex items-center justify-between">
-        <span
-          className="text-[10px] uppercase tracking-[0.14em]"
-          style={{ color: "var(--color-muted)" }}
-        >
-          {t.communityWeekXpLabel || "This week"}
-        </span>
-        <span
-          className="cinzel"
-          style={{
-            color: "var(--color-primary)",
-            fontSize: 14,
-            fontWeight: 800,
-            letterSpacing: "-0.01em",
-            fontVariantNumeric: "tabular-nums",
-          }}
-        >
-          ⚡ {formatThousands(myWeeklyXp)} XP
-        </span>
+      <div className="relative z-10 mt-3 grid grid-cols-2 gap-2">
+        <div className="community-kpi-tile">
+          <p className="community-kpi-label">
+            {t.communityYourRankLabel || "Your rank"}
+          </p>
+          <p
+            className="cinzel community-kpi-value"
+            style={{ color: "var(--color-primary)" }}
+          >
+            {myRank ? `#${myRank}` : (t.communityUnranked || "—")}
+          </p>
+          {myRank && totalRanked > 0 ? (
+            <p className="community-kpi-sub">
+              {(t.communityRankOfPlayers || "of {total}").replace("{total}", formatThousands(totalRanked))}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="community-kpi-tile">
+          <p className="community-kpi-label">
+            {t.communityEarnedByAllLabel || "Community earned"}
+          </p>
+          <p
+            className="cinzel community-kpi-value"
+            style={{ color: "var(--color-primary)" }}
+          >
+            ⚡ {formatThousands(totalWeeklyXp)}
+            <span style={{ fontSize: "0.65em", fontWeight: 700, marginLeft: 4, opacity: 0.75 }}>XP</span>
+          </p>
+          <p className="community-kpi-sub">
+            {t.communityEarnedByAllHint || "this week"}
+          </p>
+        </div>
       </div>
     </div>
   );

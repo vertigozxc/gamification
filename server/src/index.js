@@ -6098,6 +6098,10 @@ app.get("/api/leaderboard/weekly", async (req, res) => {
     });
     grouped.sort((a, b) => (b._sum.xpToday || 0) - (a._sum.xpToday || 0));
     const topIds = grouped.slice(0, 100).map((g) => g.userId);
+    // Community-wide weekly XP — summed across ALL ranked users, not just
+    // top 100, so the hero stat in the Community header reflects the real
+    // total effort of every active player this week.
+    const totalWeeklyXp = grouped.reduce((acc, g) => acc + (g._sum.xpToday || 0), 0);
 
     let meUserId = null;
     const rawMe = String(req.query.me || "").trim().slice(0, 128);
@@ -6119,6 +6123,7 @@ app.get("/api/leaderboard/weekly", async (req, res) => {
         weekDayCount: dayKeys.length,
         dayKeys,
         totalRanked: grouped.length,
+        totalWeeklyXp,
         serverNowMs: Date.now()
       });
     }
@@ -6185,6 +6190,7 @@ app.get("/api/leaderboard/weekly", async (req, res) => {
       weekDayCount: dayKeys.length,
       dayKeys,
       totalRanked: grouped.length,
+      totalWeeklyXp,
       serverNowMs: Date.now()
     });
   } catch (error) {
