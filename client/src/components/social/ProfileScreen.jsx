@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import CityIsometricOverview, { DISTRICTS } from "../CityIsometricOverview";
+import CityMapHint from "../CityMapHint";
 import DistrictView from "../DistrictView";
 import InteractiveMapWrapper from "../InteractiveMapWrapper";
 import {
@@ -317,9 +318,12 @@ function CityCard({ profile, t }) {
             </div>
           </>
         ) : (
-          <InteractiveMapWrapper background="var(--panel-bg)" initialScale={1.0}>
-            <CityIsometricOverview levels={levels} selectedIdx={-1} onDistrictClick={handleDistrictClick} t={t} />
-          </InteractiveMapWrapper>
+          <>
+            <InteractiveMapWrapper background="var(--panel-bg)" initialScale={1.0}>
+              <CityIsometricOverview levels={levels} selectedIdx={-1} onDistrictClick={handleDistrictClick} t={t} />
+            </InteractiveMapWrapper>
+            <CityMapHint />
+          </>
         )}
       </div>
     </div>

@@ -2,6 +2,7 @@ import { startTransition, useCallback, useEffect, useRef, useState } from "react
 import { createPortal } from "react-dom";
 import CityFireworks from "../CityFireworks";
 import CityIsometricOverview, { DISTRICTS } from "../CityIsometricOverview";
+import CityMapHint from "../CityMapHint";
 import DistrictView from "../DistrictView";
 import InteractiveMapWrapper from "../InteractiveMapWrapper";
 import useEdgeSwipeBack from "../../hooks/useEdgeSwipeBack";
@@ -726,6 +727,7 @@ export default function CityTab({
                   t={t}
                 />
               </InteractiveMapWrapper>
+              <CityMapHint />
               <CityFireworks active={fireworksActive} onDone={handleFireworksDone} />
             </div>
             <p className="text-[11px] text-center m-0 mt-2" style={{ color: "var(--color-muted)" }}>
