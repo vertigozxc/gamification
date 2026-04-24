@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { createChallenge, fetchFriends } from "../../api";
 import Avatar from "./Avatar";
 import Screen from "./Screen";
@@ -8,6 +7,9 @@ const MAX_INVITEES = 5;
 // Must stay in sync with the server cap on POST /api/challenges.
 const MAX_DURATION_DAYS = 30;
 
+// 3-step wizard: Basics (name, daily task) → Rules (duration, timer)
+// → Invite (friend picker). Keeps the user focused on one concern at a
+// time and reduces cognitive load compared to a single long form.
 export default function CreateChallengeScreen({ authUser, t, onClose, onCreated }) {
   const meUid = String(authUser?.uid || "").slice(0, 128);
   const [friends, setFriends] = useState([]);
@@ -19,19 +21,43 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
   const [timeEstimateMin, setTimeEstimateMin] = useState(15);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [inviteOpen, setInviteOpen] = useState(false);
+  const [step, setStep] = useState(0);
 
   useEffect(() => {
     if (!meUid) return;
     fetchFriends(meUid).then((d) => setFriends(d?.friends || [])).catch(() => setFriends([]));
   }, [meUid]);
 
-  const canSubmit = title.trim().length >= 1 && questTitle.trim().length >= 1 && !submitting;
+  const steps = [
+    { id: "basics", label: t.arenaStepBasics || "Basics" },
+    { id: "rules", label: t.arenaStepRules || "Rules" },
+    { id: "invite", label: t.arenaStepInvite || "Invite" },
+  ];
+
+  // Step-by-step validation. Next advances only when the current step
+  // is complete; future steps are unreachable, past steps are clickable
+  // in the stepper so the user can scrub back quickly.
+  const step0Valid = title.trim().length >= 1 && questTitle.trim().length >= 1;
+  const step1Valid = !needsTimer
+    || (Number(timeEstimateMin) >= 1 && Number(timeEstimateMin) <= 180);
+  const canAdvance = (() => {
+    if (step === 0) return step0Valid;
+    if (step === 1) return step1Valid;
+    return true;
+  })();
 
   async function handleCreate() {
     setError("");
-    if (title.trim().length < 1) { setError(t.arenaCreateErrorTitle || "Challenge needs a name"); return; }
-    if (questTitle.trim().length < 1) { setError(t.arenaCreateErrorTask || "Describe the task"); return; }
+    if (!step0Valid) {
+      setError(t.arenaCreateErrorTitle || "Challenge needs a name");
+      setStep(0);
+      return;
+    }
+    if (!step1Valid) {
+      setError(t.arenaCreateErrorTimer || "Timer needs to be 1-180 minutes");
+      setStep(1);
+      return;
+    }
     setSubmitting(true);
     try {
       await createChallenge({
@@ -63,282 +89,338 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
     }
   }
 
+  function goNext() {
+    if (!canAdvance || submitting) return;
+    if (step < steps.length - 1) {
+      setError("");
+      setStep(step + 1);
+    } else {
+      handleCreate();
+    }
+  }
+  function goBack() {
+    if (submitting) return;
+    if (step === 0) {
+      onClose();
+    } else {
+      setError("");
+      setStep(step - 1);
+    }
+  }
+
+  function toggleInvitee(username) {
+    setSelected((prev) => {
+      if (prev.includes(username)) return prev.filter((u) => u !== username);
+      if (prev.length >= MAX_INVITEES) return prev;
+      return [...prev, username];
+    });
+  }
+
+  const isLastStep = step === steps.length - 1;
+  const nextLabel = isLastStep
+    ? (submitting ? (t.arenaForging || "Creating…") : (t.arenaForgePact || "Create challenge"))
+    : `${t.arenaStepNext || "Next"} ›`;
+  const backLabel = step === 0
+    ? (t.communityCancel || "Cancel")
+    : `‹ ${t.arenaStepBack || "Back"}`;
+
   const footer = (
-    <button
-      type="button"
-      disabled={!canSubmit}
-      onClick={handleCreate}
-      className="sb-primary-btn press"
-      style={{ width: "100%", padding: 14 }}
-    >
-      {submitting ? (t.arenaForging || "Creating…") : (t.arenaForgePact || "Create challenge")}
-    </button>
+    <div style={{ display: "flex", gap: 8 }}>
+      <button
+        type="button"
+        onClick={goBack}
+        disabled={submitting}
+        className="cc-back-btn press"
+      >
+        {backLabel}
+      </button>
+      <button
+        type="button"
+        onClick={goNext}
+        disabled={!canAdvance || submitting}
+        className="cm-primary-btn press"
+        style={{ flex: 1, padding: "14px 16px" }}
+      >
+        {nextLabel}
+      </button>
+    </div>
   );
 
-  const invitedPreview = selected
-    .map((u) => friends.find((f) => f.username === u))
-    .filter(Boolean);
+  return (
+    <Screen
+      title={t.arenaNewPactTitle || "New challenge"}
+      subtitle={(t.arenaStepCounter || "Step {n} of {total}")
+        .replace("{n}", String(step + 1))
+        .replace("{total}", String(steps.length))}
+      onClose={onClose}
+      footer={footer}
+    >
+      <Stepper
+        steps={steps}
+        current={step}
+        onJump={(i) => { if (i < step) { setError(""); setStep(i); } }}
+      />
 
+      <div className="cc-step-body">
+        {step === 0 && (
+          <BasicsStep
+            t={t}
+            title={title}
+            setTitle={setTitle}
+            questTitle={questTitle}
+            setQuestTitle={setQuestTitle}
+          />
+        )}
+        {step === 1 && (
+          <RulesStep
+            t={t}
+            duration={duration}
+            setDuration={setDuration}
+            needsTimer={needsTimer}
+            setNeedsTimer={setNeedsTimer}
+            timeEstimateMin={timeEstimateMin}
+            setTimeEstimateMin={setTimeEstimateMin}
+          />
+        )}
+        {step === 2 && (
+          <InviteStep
+            t={t}
+            friends={friends}
+            selected={selected}
+            onToggle={toggleInvitee}
+            maxInvitees={MAX_INVITEES}
+            preview={{ title, questTitle, duration, needsTimer, timeEstimateMin }}
+          />
+        )}
+
+        {error && (
+          <div className="cc-error" role="alert">
+            <span aria-hidden="true">⚠️</span>
+            <span>{error}</span>
+          </div>
+        )}
+      </div>
+    </Screen>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * Stepper — pill with 3 segments + a sliding primary-tinted fill
+ * that grows with progress. Past steps are clickable; current is
+ * highlighted; future ones are dim.
+ * ──────────────────────────────────────────────────────────────── */
+function Stepper({ steps, current, onJump }) {
+  const fillPct = ((current + 1) / steps.length) * 100;
+  return (
+    <div className="cc-stepper" role="tablist" aria-label="Create challenge steps">
+      <div className="cc-stepper-fill" style={{ width: `${fillPct}%` }} aria-hidden="true" />
+      {steps.map((s, i) => {
+        const isDone = i < current;
+        const isActive = i === current;
+        return (
+          <button
+            key={s.id}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => onJump(i)}
+            disabled={i > current}
+            className={`cc-step ${isActive ? "active" : ""} ${isDone ? "done" : ""}`}
+          >
+            <span className="cc-step-num">{isDone ? "✓" : i + 1}</span>
+            <span className="cc-step-label">{s.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * Step 1 · Basics — name + daily task
+ * ──────────────────────────────────────────────────────────────── */
+function BasicsStep({ t, title, setTitle, questTitle, setQuestTitle }) {
   return (
     <>
-      <Screen
-        title={t.arenaNewPactTitle || "New challenge"}
-        subtitle={t.arenaNewPactSubtitle || "Friends · duration · daily task"}
-        onClose={onClose}
-        footer={footer}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <Field label={`${t.arenaInvitePals || "Invite friends"} (${selected.length}/${MAX_INVITEES})`}>
-            {friends.length === 0 ? (
-              <p className="sb-caption" style={{ padding: "8px 0" }}>
-                {t.arenaNoFriendsYet || "Add friends first — they will appear here."}
-              </p>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setInviteOpen(true)}
-                className="press"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "12px 14px",
-                  background: "var(--panel-bg)",
-                  border: "1px solid var(--panel-border)",
-                  borderRadius: 12,
-                  color: "var(--color-text)",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  textAlign: "left",
-                }}
-              >
-                {invitedPreview.length === 0 ? (
-                  <>
-                    <span style={{ fontSize: 18 }}>＋</span>
-                    <span className="sb-body" style={{ flex: 1 }}>{t.arenaInviteOpen || "Choose friends"}</span>
-                  </>
-                ) : (
-                  <>
-                    <div style={{ display: "flex", flexShrink: 0 }}>
-                      {invitedPreview.slice(0, 5).map((f, i) => (
-                        <div key={f.username} style={{ marginLeft: i === 0 ? 0 : -8, width: 28, height: 28, borderRadius: "50%", overflow: "hidden", border: "2px solid var(--panel-bg)", background: "var(--panel-bg)", flexShrink: 0 }}>
-                          <Avatar photoUrl={f.photoUrl} displayName={f.displayName} size={24} />
-                        </div>
-                      ))}
-                    </div>
-                    <span className="sb-body" style={{ flex: 1, fontWeight: 500 }}>
-                      {(t.arenaInvitedCount || "{n} selected").replace("{n}", String(invitedPreview.length))}
-                    </span>
-                  </>
-                )}
-                <span style={{ color: "var(--color-muted)" }}>›</span>
-              </button>
-            )}
-          </Field>
+      <p className="cc-step-hint">
+        {t.arenaStepBasicsHint || "Give your pact a name and describe the daily task everyone will do."}
+      </p>
 
-          <Field label={`${t.arenaSpan || "Duration"} · ${duration} ${pluralDays(duration, t)}`}>
-            <div style={{ padding: "6px 0" }}>
-              <input
-                type="range"
-                min={1}
-                max={MAX_DURATION_DAYS}
-                value={duration}
-                onChange={(e) => setDuration(Number(e.target.value))}
-                className="sb-range"
-                aria-label={t.arenaSpan || "Duration"}
-              />
-            </div>
-            <div className="sb-caption" style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
-              <span>1</span><span>30</span><span>60</span><span>90</span>
-            </div>
-          </Field>
-
-          <Field label={t.arenaPactNameLabel || "Challenge name"}>
-            <input
-              type="text"
-              value={title}
-              maxLength={80}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t.arenaPactNamePlaceholder || "e.g. Morning routine"}
-              className="sb-input"
-            />
-          </Field>
-
-          <Field label={t.arenaRitualLabel || "Daily task"}>
-            <input
-              type="text"
-              value={questTitle}
-              maxLength={80}
-              onChange={(e) => setQuestTitle(e.target.value)}
-              placeholder={t.arenaRitualPlaceholder || "e.g. 30 push-ups before breakfast"}
-              className="sb-input"
-            />
-          </Field>
-
-          <div
-            className="sb-list-row press"
-            style={{ background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: 12 }}
-            onClick={() => setNeedsTimer((v) => !v)}
-          >
-            <span style={{ fontSize: 18 }}>⏱</span>
-            <span className="sb-body" style={{ flex: 1, fontWeight: 500 }}>
-              {t.arenaRitualIsTimed || "Timed task"}
-            </span>
-            <Switch checked={needsTimer} onChange={setNeedsTimer} />
-          </div>
-
-          {needsTimer && (
-            <Field label={t.arenaTimedMinutes || "Duration (minutes)"}>
-              <input
-                type="number"
-                min={1}
-                max={180}
-                value={timeEstimateMin}
-                onChange={(e) => setTimeEstimateMin(e.target.value)}
-                className="sb-input"
-              />
-            </Field>
-          )}
-
-          {error && <p style={{ color: "#ff6a63", fontSize: 14 }}>{error}</p>}
-        </div>
-      </Screen>
-
-      {inviteOpen && (
-        <InviteFriendsSheet
-          friends={friends}
-          selected={selected}
-          maxInvitees={MAX_INVITEES}
-          t={t}
-          onClose={() => setInviteOpen(false)}
-          onChange={setSelected}
+      <Field label={t.arenaPactNameLabel || "Challenge name"}>
+        <input
+          type="text"
+          value={title}
+          maxLength={80}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={t.arenaPactNamePlaceholder || "e.g. Morning routine"}
+          className="sb-input"
+          autoFocus
         />
+      </Field>
+
+      <Field label={t.arenaRitualLabel || "Daily task"}>
+        <input
+          type="text"
+          value={questTitle}
+          maxLength={80}
+          onChange={(e) => setQuestTitle(e.target.value)}
+          placeholder={t.arenaRitualPlaceholder || "e.g. 30 push-ups before breakfast"}
+          className="sb-input"
+        />
+      </Field>
+    </>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * Step 2 · Rules — duration + timer toggle (+minutes)
+ * ──────────────────────────────────────────────────────────────── */
+function RulesStep({ t, duration, setDuration, needsTimer, setNeedsTimer, timeEstimateMin, setTimeEstimateMin }) {
+  return (
+    <>
+      <p className="cc-step-hint">
+        {t.arenaStepRulesHint || "How long the pact runs and whether the daily task is timed."}
+      </p>
+
+      <Field label={`${t.arenaSpan || "Duration"} · ${duration} ${pluralDays(duration, t)}`}>
+        <div style={{ padding: "6px 0" }}>
+          <input
+            type="range"
+            min={1}
+            max={MAX_DURATION_DAYS}
+            value={duration}
+            onChange={(e) => setDuration(Number(e.target.value))}
+            className="sb-range"
+            aria-label={t.arenaSpan || "Duration"}
+          />
+        </div>
+        <div className="sb-caption" style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
+          <span>1</span><span>7</span><span>14</span><span>30</span>
+        </div>
+      </Field>
+
+      <div
+        className="sb-list-row press"
+        style={{
+          background: "var(--panel-bg)",
+          border: "1px solid color-mix(in srgb, var(--card-border-idle) 65%, transparent)",
+          borderRadius: 12,
+          cursor: "pointer",
+        }}
+        onClick={() => setNeedsTimer((v) => !v)}
+      >
+        <span style={{ fontSize: 18 }}>⏱</span>
+        <span className="sb-body" style={{ flex: 1, fontWeight: 500 }}>
+          {t.arenaRitualIsTimed || "Timed task"}
+        </span>
+        <Switch checked={needsTimer} onChange={setNeedsTimer} />
+      </div>
+
+      {needsTimer && (
+        <Field label={t.arenaTimedMinutes || "Duration (minutes)"}>
+          <input
+            type="number"
+            min={1}
+            max={180}
+            value={timeEstimateMin}
+            onChange={(e) => setTimeEstimateMin(e.target.value)}
+            className="sb-input"
+          />
+        </Field>
       )}
     </>
   );
 }
 
-function InviteFriendsSheet({ friends, selected, maxInvitees, t, onClose, onChange }) {
-  function toggle(username) {
-    if (selected.includes(username)) {
-      onChange(selected.filter((u) => u !== username));
-      return;
-    }
-    if (selected.length >= maxInvitees) return;
-    onChange([...selected, username]);
-  }
+/* ────────────────────────────────────────────────────────────────
+ * Step 3 · Invite — friend chip grid + live-updating summary
+ * ──────────────────────────────────────────────────────────────── */
+function InviteStep({ t, friends, selected, onToggle, maxInvitees, preview }) {
+  return (
+    <>
+      <p className="cc-step-hint">
+        {(t.arenaStepInviteHint || "Invite up to {max} friends. Each gets a notification.")
+          .replace("{max}", String(maxInvitees))}
+      </p>
 
-  if (typeof document === "undefined") return null;
+      <PactPreview t={t} preview={preview} />
 
-  const content = (
-    <div
-      className="logout-confirm-overlay social-block"
-      style={{ zIndex: 92, alignItems: "stretch", justifyContent: "stretch", padding: 0, background: "rgba(0,0,0,0.72)" }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div
-        style={{
-          background: "var(--card-bg, var(--panel-bg))",
-          display: "flex",
-          flexDirection: "column",
-          width: "100%",
-          maxWidth: 520,
-          margin: "auto",
-          height: "100svh",
-          maxHeight: "100svh",
-          // Push the header below the notch/status bar to match the Community
-          // screen's top rhythm.
-          paddingTop: "calc(env(safe-area-inset-top, 0px) + 14px)",
-        }}
-      >
-        <div
-          style={{ flexShrink: 0, padding: "4px 16px 12px", borderBottom: "1px solid var(--card-border-idle, var(--panel-border))" }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h2 className="cinzel sb-page-title">{t.arenaInviteSheetTitle || "Invite friends"}</h2>
-              <p className="sb-page-subtitle">
-                {(t.arenaInviteSheetHint || "Pick up to {max} friends to join this challenge.").replace("{max}", String(maxInvitees))}
-              </p>
-            </div>
-            <button type="button" aria-label="Close" onClick={onClose} className="ui-close-x">✕</button>
-          </div>
-        </div>
-
-        {/* Scrollable body: the list AND the confirm button sit inside the
-            same scroll container, so the button appears right under the last
-            friend in the list instead of being pinned in the tab bar. */}
-        <div style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: `14px 16px calc(16px + env(safe-area-inset-bottom, 0px))` }}>
-          {friends.length === 0 ? (
-            <p className="sb-caption" style={{ textAlign: "center", padding: "24px 12px" }}>
-              {t.arenaNoFriendsYet || "Add friends first — they will appear here."}
-            </p>
-          ) : (
-            <>
-              <div className="sb-list">
-                {friends.map((f, i) => {
-                  const picked = selected.includes(f.username);
-                  const atLimit = !picked && selected.length >= maxInvitees;
-                  return (
-                    <button
-                      key={f.username}
-                      type="button"
-                      onClick={() => toggle(f.username)}
-                      disabled={atLimit}
-                      className="sb-list-row press"
-                      style={{
-                        borderBottom: i === friends.length - 1 ? "none" : undefined,
-                        background: picked ? "rgba(var(--color-primary-rgb,251,191,36),0.12)" : "transparent",
-                        opacity: atLimit ? 0.4 : 1,
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: "50%",
-                          border: `2px solid ${picked ? "var(--color-primary)" : "rgba(120,120,128,0.5)"}`,
-                          background: picked ? "var(--color-primary)" : "transparent",
-                          color: "#1b1410",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 13,
-                          fontWeight: 700,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {picked ? "✓" : ""}
-                      </span>
-                      <div style={{ width: 32, height: 32, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: "var(--panel-bg)" }}>
-                        <Avatar photoUrl={f.photoUrl} displayName={f.displayName} size={32} />
-                      </div>
-                      <span className="sb-body" style={{ fontWeight: 600, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", letterSpacing: "-0.01em" }}>
-                        {f.displayName || f.username}
-                      </span>
-                      <span className="sb-caption">{t.arenaLvlShort || "Lv"} {f.level}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <button type="button" onClick={onClose} className="sb-primary-btn press" style={{ width: "100%", padding: 14, marginTop: 14 }}>
-                {t.arenaInvitePals || "Invite friends"} · {selected.length}/{maxInvitees}
-              </button>
-            </>
-          )}
-        </div>
+      <div className="cc-section-head">
+        <span className="cc-section-title">
+          {t.arenaInvitePals || "Invite friends"}
+        </span>
+        <span className="cc-section-count">
+          {selected.length}/{maxInvitees}
+        </span>
       </div>
+
+      {friends.length === 0 ? (
+        <p className="cc-empty-friends">
+          {t.arenaNoFriendsYet || "Add friends first — they will appear here."}
+        </p>
+      ) : (
+        <div className="cc-friends-grid">
+          {friends.map((f) => {
+            const picked = selected.includes(f.username);
+            const atLimit = !picked && selected.length >= maxInvitees;
+            return (
+              <button
+                key={f.username}
+                type="button"
+                onClick={() => onToggle(f.username)}
+                disabled={atLimit}
+                aria-pressed={picked}
+                className={`cc-friend-chip press ${picked ? "picked" : ""}`}
+              >
+                <div className="cc-friend-chip-avatar">
+                  <Avatar photoUrl={f.photoUrl} displayName={f.displayName} size={40} />
+                  {picked && (
+                    <span className="cc-friend-chip-badge" aria-hidden="true">✓</span>
+                  )}
+                </div>
+                <span className="cc-friend-chip-name">{f.displayName || f.username}</span>
+                <span className="cc-friend-chip-meta">{t.arenaLvlShort || "Lv"} {f.level}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+
+/* Live preview card — mirrors the cm-challenge card format so the
+ * user sees exactly how their pact will appear on the Challenges tab. */
+function PactPreview({ t, preview }) {
+  const title = preview.title?.trim() || (t.arenaPreviewNoName || "Untitled pact");
+  const questTitle = preview.questTitle?.trim() || (t.arenaPreviewNoTask || "— no daily task —");
+  const durationLabel = `${preview.duration}${(t.arenaPreviewDaySuffix || "d")}`;
+  return (
+    <div className="cc-preview">
+      <div className="cc-preview-eyebrow">
+        <span>✦</span>
+        <span>{t.arenaPreviewLabel || "Preview"}</span>
+        <span>✦</span>
+      </div>
+      <div className="cc-preview-head">
+        <p className="cc-preview-title">{title}</p>
+        <span className="cc-preview-pill">{durationLabel}</span>
+      </div>
+      <p className="cc-preview-quest">🎯 {questTitle}</p>
+      {preview.needsTimer && (
+        <p className="cc-preview-quest">
+          ⏱ {(t.arenaPreviewTimerLabel || "{n} min")
+            .replace("{n}", String(preview.timeEstimateMin))}
+        </p>
+      )}
     </div>
   );
-
-  return createPortal(content, document.body);
 }
 
 function Field({ label, children }) {
   return (
-    <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <span className="sb-caption" style={{ fontWeight: 600, fontSize: 13, color: "var(--color-muted)" }}>{label}</span>
+    <label className="cc-field">
+      <span className="cc-field-label">{label}</span>
       {children}
     </label>
   );
@@ -358,7 +440,7 @@ function Switch({ checked, onChange }) {
         borderRadius: 999,
         border: "none",
         padding: 2,
-        background: checked ? "#30d158" : "rgba(120,120,128,0.4)",
+        background: checked ? "var(--color-primary)" : "rgba(120,120,128,0.4)",
         position: "relative",
         cursor: "pointer",
         transition: "background 220ms ease",
