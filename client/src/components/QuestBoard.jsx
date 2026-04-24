@@ -501,9 +501,7 @@ function QuestBoard({
               <span className="qb-tab-label">{t.challengesTab || "Challenges"}</span>
               {challengePendingCount > 0 ? (
                 <span className="qb-tab-count qb-tab-count-alert">{challengePendingCount}</span>
-              ) : (
-                <span className="qb-tab-count">{challengeDoneToday}/{accepted.length || challenges.length}</span>
-              )}
+              ) : null}
             </button>
           )}
         </div>
