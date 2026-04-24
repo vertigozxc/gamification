@@ -491,7 +491,6 @@ function OnboardingModal({
             customError={customError}
             onClearCustomError={onClearCustomError}
           />
-          </div>
 
           <div style={{ marginTop: 16 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
@@ -591,6 +590,7 @@ function OnboardingModal({
               </div>
             )}
           </div>
+          </div>
         </div>
 
         <div
@@ -660,7 +660,7 @@ function OnboardingModal({
       </div>
 
       {showWarning && (
-        <div className="logout-confirm-overlay" style={{ zIndex: 100, background: "rgba(0,0,0,0.6)" }}>
+        <div className="logout-confirm-overlay" style={{ zIndex: 220, background: "rgba(0,0,0,0.6)" }}>
           <div className="logout-confirm-card" style={{ maxWidth: 400 }}>
             <div className="text-4xl mt-1 mb-4 text-center">⚠️</div>
             <h2 className="cinzel text-center text-2xl mb-4" style={{ color: "var(--color-primary)" }}>{t.confirmTitle}</h2>

@@ -2422,6 +2422,165 @@ body[data-theme="light"] .tour-next { color: #f8fafc; }
     line-height: 1.3;
 }
 
+.tour-back {
+    min-height: 38px;
+    padding: 8px 14px;
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--color-muted) 40%, var(--panel-border));
+    background: transparent;
+    color: var(--color-text);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-right: auto; /* pushes Next to the right */
+}
+.tour-back:active:not(:disabled) {
+    background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+    border-color: color-mix(in srgb, var(--color-primary) 55%, transparent);
+}
+
+/* ── Welcome hero card ─────────────────────────────────────────── */
+.tour-welcome-wrap {
+    position: fixed;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    padding-top: calc(var(--mobile-safe-top, env(safe-area-inset-top, 0px)) + 20px);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+    pointer-events: none;
+}
+.tour-welcome-card {
+    pointer-events: auto;
+    position: relative;
+    max-width: 340px;
+    width: 100%;
+    padding: 30px 22px 22px;
+    border-radius: 24px;
+    text-align: center;
+    color: var(--color-text);
+    border: 1px solid color-mix(in srgb, var(--color-primary) 60%, var(--panel-border));
+    background:
+        radial-gradient(140% 80% at 50% 0%, color-mix(in srgb, var(--color-primary) 22%, transparent), transparent 70%),
+        linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 10%, var(--panel-bg)), var(--panel-bg));
+    box-shadow:
+        0 24px 60px rgba(0, 0, 0, 0.5),
+        0 0 60px color-mix(in srgb, var(--color-primary) 30%, transparent);
+    animation: tour-finale-in 520ms cubic-bezier(0.18, 0.89, 0.32, 1.14);
+    overflow: hidden;
+}
+.tour-welcome-glow {
+    position: absolute;
+    inset: -40%;
+    background:
+        radial-gradient(closest-side at 30% 20%, color-mix(in srgb, var(--color-primary) 35%, transparent), transparent 70%),
+        radial-gradient(closest-side at 80% 80%, color-mix(in srgb, var(--color-accent) 30%, transparent), transparent 70%);
+    filter: blur(24px);
+    animation: tour-welcome-glow 5400ms ease-in-out infinite alternate;
+    pointer-events: none;
+    z-index: 0;
+}
+@keyframes tour-welcome-glow {
+    from { transform: translate3d(-3%, -3%, 0) rotate(0deg); opacity: 0.75; }
+    to   { transform: translate3d(3%, 3%, 0)  rotate(20deg); opacity: 1; }
+}
+.tour-welcome-emoji,
+.tour-welcome-eyebrow,
+.tour-welcome-title,
+.tour-welcome-text,
+.tour-welcome-buttons {
+    position: relative;
+    z-index: 1;
+}
+.tour-welcome-emoji {
+    font-size: 52px;
+    line-height: 1;
+    margin-bottom: 10px;
+    filter: drop-shadow(0 6px 14px color-mix(in srgb, var(--color-primary) 40%, transparent));
+    animation: tour-welcome-emoji-bounce 2200ms ease-in-out infinite;
+}
+@keyframes tour-welcome-emoji-bounce {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50%      { transform: translateY(-4px) scale(1.04); }
+}
+.tour-welcome-eyebrow {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    opacity: 0.9;
+}
+.tour-welcome-title {
+    margin: 0 0 10px;
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: 0.01em;
+    color: var(--color-primary);
+    line-height: 1.12;
+}
+.tour-welcome-text {
+    margin: 0 0 22px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--color-text);
+    opacity: 0.9;
+    min-height: 3em;
+}
+.tour-welcome-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.tour-welcome-skip {
+    flex: 1;
+    min-height: 46px;
+    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, var(--color-muted) 45%, var(--panel-border));
+    background: transparent;
+    color: var(--color-text);
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    opacity: 0.78;
+}
+.tour-welcome-skip:active:not(:disabled) {
+    background: color-mix(in srgb, var(--color-muted) 16%, transparent);
+    opacity: 1;
+}
+.tour-welcome-start {
+    flex: 1.6;
+    min-height: 48px;
+    border-radius: 14px;
+    border: none;
+    background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+    color: #0b1120;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 10px 26px color-mix(in srgb, var(--color-primary) 32%, transparent);
+}
+body[data-theme="light"] .tour-welcome-start { color: #f8fafc; }
+.tour-welcome-start:disabled {
+    background: color-mix(in srgb, var(--color-muted) 22%, var(--panel-bg));
+    color: var(--color-muted);
+    cursor: not-allowed;
+    box-shadow: none;
+}
+.tour-welcome-start:active:not(:disabled) {
+    background: linear-gradient(90deg, var(--color-accent), var(--color-primary));
+    transform: scale(0.98);
+}
+
 /* ── Finale (+1 level celebration) ─────────────────────────────── */
 .tour-finale {
     position: fixed;

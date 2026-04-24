@@ -141,10 +141,19 @@ export default function AnimatedOnboardingTour({
   const [typewriterKey, setTypewriterKey] = useState(0);
   const [askSkipConfirm, setAskSkipConfirm] = useState(false);
   const [finaleOpen, setFinaleOpen] = useState(false);
-  const [viewport, setViewport] = useState(() => ({
-    w: typeof window !== "undefined" ? window.innerWidth : 375,
-    h: typeof window !== "undefined" ? window.innerHeight : 667
-  }));
+  // When the mobile keyboard opens, window.innerHeight stays roughly
+  // the same but visualViewport.height shrinks — read from visualViewport
+  // when available so curtain heights and bubble positions stay sane
+  // while typing in the nickname / handle fields.
+  const readViewport = () => {
+    if (typeof window === "undefined") return { w: 375, h: 667 };
+    const vv = window.visualViewport;
+    return {
+      w: vv?.width || window.innerWidth || 375,
+      h: vv?.height || window.innerHeight || 667
+    };
+  };
+  const [viewport, setViewport] = useState(readViewport);
   const [safeTop, setSafeTop] = useState(0);
   const [safeBottom, setSafeBottom] = useState(0);
   const [shakeTick, setShakeTick] = useState(0);
@@ -163,20 +172,32 @@ export default function AnimatedOnboardingTour({
     }
   }, [open]);
 
-  // Read safe-area paddings once on mount + on resize.
+  // Read safe-area paddings once on mount + on resize. Track the
+  // visualViewport size separately so the overlay shrinks with the
+  // keyboard instead of staying full-height and covering the field the
+  // user is trying to type in.
   useLayoutEffect(() => {
     if (!open) return undefined;
     const update = () => {
       setSafeTop(readSafeAreaTop());
       setSafeBottom(readSafeAreaBottom());
-      setViewport({ w: window.innerWidth, h: window.innerHeight });
+      setViewport(readViewport());
     };
     update();
     window.addEventListener("resize", update);
     window.addEventListener("orientationchange", update);
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener("resize", update);
+      vv.addEventListener("scroll", update);
+    }
     return () => {
       window.removeEventListener("resize", update);
       window.removeEventListener("orientationchange", update);
+      if (vv) {
+        vv.removeEventListener("resize", update);
+        vv.removeEventListener("scroll", update);
+      }
     };
   }, [open]);
 
@@ -290,16 +311,25 @@ export default function AnimatedOnboardingTour({
       setFinaleOpen(true);
       return;
     }
+    enteredIdRef.current = null;
     setStepIndex(nextIndex);
   }, [open, step, stepIndex, stepCount]);
 
-  // For gate:"condition" steps, auto-advance the moment the condition
-  // flips true — the user shouldn't have to tap Next again if they've
-  // already done the thing we asked (e.g. finished setup).
+  // Go back one step. Welcome (index 0) has no previous step.
+  const goBack = useCallback(() => {
+    if (!open || stepIndex <= 0) return;
+    enteredIdRef.current = null;
+    setStepIndex(stepIndex - 1);
+  }, [open, stepIndex]);
+
+  // For gate:"condition" steps that explicitly opt into auto-advance,
+  // advance the moment the condition flips true. By default steps wait
+  // for an explicit Next tap (so typing one character in a name field
+  // doesn't jump to the next step on the user).
   useEffect(() => {
     if (!open || !step) return undefined;
     if (step.gate !== "condition" || typeof step.isSatisfied !== "function") return undefined;
-    if (step.autoAdvance === false) return undefined;
+    if (step.autoAdvance !== true) return undefined;
     if (step.isSatisfied()) {
       const id = setTimeout(() => {
         advance();
@@ -397,10 +427,14 @@ export default function AnimatedOnboardingTour({
     ? (t.tourFinishLabel || "Finish")
     : (t.tourNextLabel || "Next"));
 
+  const isWelcome = step.kind === "welcome";
+  const canGoBack = stepIndex > 0;
+
   return (
     <div className={`tour-root ${finaleOpen ? "tour-root--finale" : ""}`} aria-live="polite">
-      {/* curtains (dim) */}
-      {layout?.kind === "center" || layout?.kind === "missing" ? (
+      {/* curtains (dim). Welcome and missing-target use one full-screen
+          curtain; spotlight steps use the 4-curtain cutout. */}
+      {isWelcome || layout?.kind === "center" || layout?.kind === "missing" ? (
         <div className="tour-curtain tour-curtain-full" onPointerDown={(e) => e.stopPropagation()} />
       ) : curtains ? (
         <>
@@ -411,8 +445,8 @@ export default function AnimatedOnboardingTour({
         </>
       ) : null}
 
-      {/* highlight ring */}
-      {highlight ? (
+      {/* highlight ring — spotlight steps only */}
+      {!isWelcome && highlight ? (
         <div
           className="tour-highlight"
           style={{
@@ -425,30 +459,57 @@ export default function AnimatedOnboardingTour({
         />
       ) : null}
 
-      {/* progress dots top strip */}
-      <div
-        className="tour-progress"
-        style={{ top: safeTop + 10 }}
-      >
-        <div className="tour-progress-track">
-          <div className="tour-progress-fill" style={{ width: `${Math.min(100, pct)}%` }} />
+      {/* progress strip — hidden on welcome so the intro card feels like
+          a clean hero, shown on every other step so the user always knows
+          where they are. */}
+      {!isWelcome ? (
+        <div
+          className="tour-progress"
+          style={{ top: safeTop + 10 }}
+        >
+          <div className="tour-progress-track">
+            <div className="tour-progress-fill" style={{ width: `${Math.min(100, pct)}%` }} />
+          </div>
+          <span className="tour-progress-count">{Math.min(stepIndex + 1, stepCount)} / {stepCount}</span>
         </div>
-        <span className="tour-progress-count">{Math.min(stepIndex + 1, stepCount)} / {stepCount}</span>
-      </div>
+      ) : null}
 
-      {/* skip × */}
-      <button
-        type="button"
-        className="tour-skip mobile-pressable"
-        style={{ top: safeTop + 10 }}
-        onClick={() => setAskSkipConfirm(true)}
-        aria-label={t.tourSkipLabel || "Skip tour"}
-      >
-        {t.tourSkipLabel || "Skip"}
-      </button>
+      {/* Welcome hero card: colorful gradient, big emoji, primary Start
+          button and a secondary Skip button. No tour-bubble on this step. */}
+      {isWelcome ? (
+        <div className="tour-welcome-wrap" style={{ top: 0, bottom: 0 }}>
+          <div className="tour-welcome-card">
+            <div className="tour-welcome-glow" aria-hidden />
+            <div className="tour-welcome-emoji" aria-hidden>🎯</div>
+            <p className="tour-welcome-eyebrow cinzel">{t.tourWelcomeEyebrow || "GoHabit"}</p>
+            <h2 className="tour-welcome-title cinzel">{typedTitle}{!titleDone ? <span className="tour-caret" /> : null}</h2>
+            <p className="tour-welcome-text">{typedText}{titleDone && !textDone ? <span className="tour-caret" /> : null}</p>
+            <div className="tour-welcome-buttons">
+              <button
+                type="button"
+                className="tour-welcome-skip mobile-pressable cinzel"
+                onClick={() => setAskSkipConfirm(true)}
+              >
+                {t.tourSkipLabel || "Skip"}
+              </button>
+              <button
+                type="button"
+                className="tour-welcome-start mobile-pressable cinzel"
+                disabled={!typingDone}
+                onClick={() => {
+                  if (!typingDone) { skipTyping(); return; }
+                  advance();
+                }}
+              >
+                {t.tourWelcomeStart || "Start tour"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
-      {/* bubble */}
-      {bubble ? (
+      {/* bubble — spotlight / center steps only */}
+      {!isWelcome && bubble ? (
         <div
           className={`tour-bubble tour-bubble--arrow-${bubble.arrow} ${shakeTick ? "tour-bubble--shake" : ""}`}
           key={`bubble-${shakeTick}`}
@@ -466,6 +527,18 @@ export default function AnimatedOnboardingTour({
           <div className="tour-bubble-text">{typedText}{titleDone && !textDone ? <span className="tour-caret" /> : null}</div>
 
           <div className="tour-bubble-actions">
+            {canGoBack ? (
+              <button
+                type="button"
+                className="tour-back mobile-pressable cinzel"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goBack();
+                }}
+              >
+                {t.tourBackLabel || "Back"}
+              </button>
+            ) : null}
             {step.hideNext ? null : (
               <button
                 type="button"

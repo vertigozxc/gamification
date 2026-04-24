@@ -363,9 +363,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     const list = [];
     list.push({
       id: "welcome",
-      kind: "center",
-      title: t.tourWelcomeTitle || "Welcome to Life-RPG",
-      text: t.tourWelcomeText || "Quick 2-minute tour of the main areas. Finish it and claim a +1 level bonus."
+      kind: "welcome",
+      title: t.tourWelcomeTitle || "Welcome aboard!",
+      text: t.tourWelcomeText || "Quick 2-minute tour of the main areas. Finish it to claim a +1 level bonus."
     });
     if (showOnboarding) {
       list.push({
@@ -375,13 +375,15 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         text: t.tourSetupNameText || "Type a nickname — other players will see it on the leaderboard.",
         gate: "condition",
         isSatisfied: () => onboardingName.trim().length >= 1,
+        // Don't auto-advance mid-typing — let the user finish and tap Next.
+        autoAdvance: false,
         scroll: true
       });
       list.push({
         id: "setup-handle",
         target: '[data-tour="setup-handle"]',
         title: t.tourSetupHandleTitle || "Your @username",
-        text: t.tourSetupHandleText || "A short handle for friends to find you. The suggested one is free to keep.",
+        text: t.tourSetupHandleText || "A short handle for friends to find you. The suggested one is already free.",
         gate: "next",
         scroll: true
       });
@@ -392,6 +394,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         text: (tf && tf("tourSetupHabitsText", { n: pinnedLimit })) || `Choose ${pinnedLimit} habits — these are your daily anchors.`,
         gate: "condition",
         isSatisfied: () => Array.isArray(onboardingQuestIds) && onboardingQuestIds.length >= pinnedLimit,
+        autoAdvance: false,
         scroll: true
       });
       list.push({
@@ -400,7 +403,11 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         title: t.tourSetupBeginTitle || "Ready?",
         text: t.tourSetupBeginText || "Tap Begin — and we'll keep going.",
         gate: "condition",
+        // Auto-advance the moment the setup modal actually closes — this
+        // is the one setup step where the user's completing action
+        // happens outside the tour and we want to follow it through.
         isSatisfied: () => !showOnboarding,
+        autoAdvance: true,
         scroll: true
       });
     }
