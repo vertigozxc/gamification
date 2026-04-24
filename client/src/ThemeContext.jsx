@@ -32,6 +32,33 @@ export function ThemeProvider({ children }) {
   useEffect(() => {
     localStorage.setItem(THEME_STORAGE_KEY, themeId);
     document.body.setAttribute("data-theme", themeId);
+    // RN WebView bridge: the injected MutationObserver also watches
+    // data-theme, but its callback runs before style recalc so the
+    // `getComputedStyle()` read returns stale values — only the load/
+    // timeout-based sends after app re-open pick up the new theme.
+    // Push the fresh colours directly here on the next frame (after
+    // style flush) so the native tab bar repaints immediately.
+    if (typeof window !== "undefined" && window.ReactNativeWebView) {
+      requestAnimationFrame(() => {
+        try {
+          const c = getComputedStyle(document.body);
+          const colors = {
+            bg: c.getPropertyValue("--mobile-tab-bg").trim(),
+            active: c.getPropertyValue("--mobile-tab-active").trim(),
+            inactive: c.getPropertyValue("--mobile-tab-inactive").trim(),
+            orb: c.getPropertyValue("--mobile-tab-orb").trim(),
+            orbText: c.getPropertyValue("--mobile-tab-orb-text").trim(),
+            pageBg: c.getPropertyValue("--mobile-page-bg").trim(),
+          };
+          if (colors.bg) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: "mobile-theme-update",
+              colors,
+            }));
+          }
+        } catch { /* silent */ }
+      });
+    }
   }, [themeId]);
 
   useEffect(() => {
