@@ -62,6 +62,7 @@ export default function AchievementsSection({ username, t, languageId, onModalOp
   const [data, setData] = useState(prefetched || null);
   const [loading, setLoading] = useState(!prefetched);
   const [focused, setFocused] = useState(null);
+  const [expanded, setExpanded] = useState(false);
 
   // Report modal open/close upstream so the native shell can hide the
   // bottom tab bar, matching theme/language picker behavior.
@@ -103,22 +104,44 @@ export default function AchievementsSection({ username, t, languageId, onModalOp
 
   return (
     <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
-      <div className="flex items-center justify-between">
+      <button
+        type="button"
+        className="mobile-pressable flex items-center justify-between w-full"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", color: "inherit", textAlign: "left" }}
+      >
         <p className="cinzel text-xs font-bold tracking-widest uppercase m-0" style={{ color: "var(--color-primary)" }}>
           🏅 {t.achievementsTitle || "Achievements"}
         </p>
-        <span
-          className="cinzel text-[11px] font-bold px-2 py-0.5 rounded-full border"
-          style={{
-            color: "var(--color-primary)",
-            borderColor: "var(--color-primary-dim)",
-            background: "color-mix(in srgb, var(--color-primary) 10%, transparent)"
-          }}
-        >
-          {unlockedCount}/{total}
+        <span className="flex items-center gap-2">
+          <span
+            className="cinzel text-[11px] font-bold px-2 py-0.5 rounded-full border"
+            style={{
+              color: "var(--color-primary)",
+              borderColor: "var(--color-primary-dim)",
+              background: "color-mix(in srgb, var(--color-primary) 10%, transparent)"
+            }}
+          >
+            {unlockedCount}/{total}
+          </span>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="w-4 h-4 transition-transform duration-200"
+            style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)", color: "var(--color-muted)" }}
+            aria-hidden="true"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
         </span>
-      </div>
+      </button>
 
+      {expanded ? (
       <div className="grid grid-cols-5 gap-2">
         {ordered.map((item) => {
           const Icon = ACHIEVEMENT_ICONS[item.code];
@@ -156,8 +179,9 @@ export default function AchievementsSection({ username, t, languageId, onModalOp
           );
         })}
       </div>
+      ) : null}
 
-      {loading && !data ? (
+      {expanded && loading && !data ? (
         <p className="text-[11px] text-center opacity-60" style={{ color: "var(--color-muted)" }}>…</p>
       ) : null}
 

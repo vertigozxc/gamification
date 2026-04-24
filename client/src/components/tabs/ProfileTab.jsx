@@ -3,6 +3,24 @@ import { createPortal } from "react-dom";
 import themes from "../../themeConfig";
 import AchievementsSection from "../achievements/AchievementsSection";
 
+function ChevronToggle({ open }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="w-4 h-4 transition-transform duration-200"
+      style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+      aria-hidden="true"
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
 export default function ProfileTab({
   characterName, editingName, nameDraft, portraitData,
   state, xpPercent, profileStats,
@@ -119,17 +137,6 @@ export default function ProfileTab({
                 }}
               />
             )}
-            <div className="flex items-center gap-1 mt-2">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shadow-sm" style={{ background: "var(--panel-bg)", borderColor: "var(--color-primary)", color: "var(--color-primary)" }}>
-                {t.levelShort} {state.lvl}
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shadow-sm" style={{ background: "var(--panel-bg)", borderColor: "var(--color-primary)", color: "var(--color-text)" }}>
-                {t.streakIcon} {state.streak}
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shadow-sm" style={{ background: "var(--panel-bg)", borderColor: "var(--color-primary)", color: "var(--color-primary)" }}>
-                {t.tokenIcon} {state.tokens}
-              </span>
-            </div>
           </div>
         </div>
         {avatarError && (
@@ -148,21 +155,6 @@ export default function ProfileTab({
         streak={state.streak}
         languageId={languageId}
       />
-
-      {/* XP Progress */}
-      <div className="mobile-card" style={{ background: "var(--panel-bg)" }}>
-        <div className="flex justify-between items-center mb-2">
-          <p className="cinzel text-xs font-bold tracking-widest uppercase" style={{ color: "var(--color-primary)" }}>{t.levelProgress}</p>
-          <span className="cinzel text-xs opacity-80" style={{ color: "var(--color-text)" }}>{state.xp} / {state.xpNext} {t.xpLabel}</span>
-        </div>
-        <div className="w-full bg-black/50 rounded-full border border-yellow-700/30 overflow-hidden h-3">
-          <div className="bar-fill h-full rounded-full transition-all duration-500" style={{ width: `${xpPercent}%` }} />
-        </div>
-        <div className="flex justify-between items-center mt-1.5">
-          <span className="cinzel text-[10px]" style={{ color: "var(--color-primary)" }}>{t.levelShort} {state.lvl}</span>
-          <span className="cinzel text-[10px] opacity-70" style={{ color: "var(--color-muted)" }}>{t.levelShort} {state.lvl + 1}</span>
-        </div>
-      </div>
 
       {/* Quick Stats Grid */}
       <div className="grid grid-cols-2 gap-3">
@@ -272,20 +264,6 @@ export default function ProfileTab({
               <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
             </button>
           ) : null}
-          {onRestartTour ? (
-            <button
-              data-tour="restart-tour"
-              className="profile-settings-row mobile-pressable"
-              onClick={onRestartTour}
-            >
-              <span className="text-xl w-8 text-center">✨</span>
-              <div className="flex-1 text-left">
-                <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.tourRestartLabel || "Replay tour"}</p>
-                <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{t.tourRestartHint || "A 2-minute walkthrough of the app"}</p>
-              </div>
-              <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
-            </button>
-          ) : null}
         </div>
       </div>
 
@@ -302,11 +280,11 @@ export default function ProfileTab({
       {/* Delete Profile */}
       <button
         onClick={() => setShowDeleteConfirm(true)}
-        className="mobile-card mobile-pressable flex items-center justify-center gap-2 py-3 border border-red-900/40 transition-all hover:bg-red-950/30 active:scale-[0.98]"
+        className="mobile-card mobile-pressable w-full flex items-center justify-center gap-2 py-3.5 border border-red-900/40 transition-all hover:bg-red-950/30 active:scale-[0.98]"
         style={{ background: "rgba(60,0,0,0.18)" }}
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-red-700"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4h6v2"></path></svg>
-        <span className="cinzel font-bold text-xs text-red-700/80 tracking-wider uppercase">{t.deleteProfileButton || "Delete My Profile"}</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-red-700"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4h6v2"></path></svg>
+        <span className="cinzel font-bold text-sm text-red-700/80 tracking-wider uppercase">{t.deleteProfileButton || "Delete My Profile"}</span>
       </button>
 
       {/* Delete Confirmation Modal */}
@@ -361,6 +339,7 @@ export default function ProfileTab({
 function StreakFreezeCard({ t, charges, streak, languageId }) {
   const safeCharges = Math.max(0, Math.floor(Number(charges) || 0));
   const daysWord = pluralizeDaysLocal(safeCharges, languageId, t);
+  const [hintOpen, setHintOpen] = useState(false);
 
   return (
     <div className="mobile-card" style={{ background: "var(--panel-bg)" }}>
@@ -373,15 +352,23 @@ function StreakFreezeCard({ t, charges, streak, languageId }) {
         </span>
       </div>
 
-      <div
+      <button
+        type="button"
+        className="mobile-pressable"
+        onClick={() => setHintOpen((v) => !v)}
+        aria-expanded={hintOpen}
         style={{
           display: "flex",
           alignItems: "center",
           gap: 12,
           padding: "10px 14px",
+          width: "100%",
           background: "color-mix(in srgb, #5ba0e0 12%, transparent)",
           border: "1px solid color-mix(in srgb, #5ba0e0 45%, transparent)",
           borderRadius: 12,
+          textAlign: "left",
+          cursor: "pointer",
+          color: "inherit",
         }}
       >
         <span style={{ fontSize: 28, lineHeight: 1, flexShrink: 0 }}>❄️</span>
@@ -396,23 +383,28 @@ function StreakFreezeCard({ t, charges, streak, languageId }) {
             </span>
           </span>
         </div>
-      </div>
+        <span style={{ flexShrink: 0, color: "color-mix(in srgb, #5ba0e0 80%, var(--color-text))", display: "flex", alignItems: "center" }}>
+          <ChevronToggle open={hintOpen} />
+        </span>
+      </button>
 
-      <p
-        className="mt-3 mb-0"
-        style={{
-          fontSize: 12,
-          lineHeight: 1.4,
-          color: "var(--color-muted)",
-          padding: "10px 12px",
-          background: "color-mix(in srgb, #5ba0e0 6%, transparent)",
-          borderRadius: 10,
-          borderLeft: "3px solid color-mix(in srgb, #5ba0e0 55%, transparent)",
-        }}
-      >
-        {t.streakFreezeAutoHint
-          || "If you miss a day, 1 charge is spent automatically and your streak survives — no action needed. When charges hit 0, the next miss burns the streak."}
-      </p>
+      {hintOpen ? (
+        <p
+          className="mt-3 mb-0"
+          style={{
+            fontSize: 12,
+            lineHeight: 1.4,
+            color: "var(--color-muted)",
+            padding: "10px 12px",
+            background: "color-mix(in srgb, #5ba0e0 6%, transparent)",
+            borderRadius: 10,
+            borderLeft: "3px solid color-mix(in srgb, #5ba0e0 55%, transparent)",
+          }}
+        >
+          {t.streakFreezeAutoHint
+            || "If you miss a day, 1 charge is spent automatically and your streak survives — no action needed. When charges hit 0, the next miss burns the streak."}
+        </p>
+      ) : null}
     </div>
   );
 }
