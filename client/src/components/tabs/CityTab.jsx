@@ -417,7 +417,11 @@ export default function CityTab({
   lastVacationAt = null,
   vacationEndsAt = null,
   onDistrictUpgraded,
-  onStatsGranted
+  onStatsGranted,
+  // Tour-only override — when set, the matching district's next
+  // upgrade bypasses token / level / streak gates on the client side.
+  // Server grants the same freebie once for Park during onboarding.
+  tourFreeUpgradeDistrict = null
 }) {
   const [fireworksActive, setFireworksActive] = useState(false);
   const [spinModalOpen, setSpinModalOpen] = useState(false);
@@ -955,10 +959,15 @@ export default function CityTab({
         const atMax = level >= DISTRICT_MAX_LEVEL;
         const districtName = t?.[`district${district.id.charAt(0).toUpperCase() + district.id.slice(1)}`] || district.id;
         const nextReq = !atMax ? DISTRICT_UPGRADE_REQS[level] : null;
-        const canUpgrade = !atMax && !!nextReq
-          && userLevel >= nextReq.level
-          && tokens >= nextReq.tokens
-          && userStreak >= nextReq.streak;
+        const isTourFree = !atMax && tourFreeUpgradeDistrict === district.id && level === 0;
+        const canUpgrade = !atMax && !!nextReq && (
+          isTourFree
+          || (
+            userLevel >= nextReq.level
+            && tokens >= nextReq.tokens
+            && userStreak >= nextReq.streak
+          )
+        );
         return (
           <div className="mt-3 flex flex-col gap-3">
             {/* Benefits + next-upgrade requirements card */}
@@ -1020,7 +1029,9 @@ export default function CityTab({
                       transition: "all 0.2s ease"
                     }}
                   >
-                    {t.districtUpgradeCta || "Upgrade"}
+                    {isTourFree
+                      ? (t.districtUpgradeFreeCta || "Upgrade · Free")
+                      : (t.districtUpgradeCta || "Upgrade")}
                   </button>
                 </div>
               ) : (

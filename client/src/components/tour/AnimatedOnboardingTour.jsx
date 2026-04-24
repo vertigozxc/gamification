@@ -335,8 +335,8 @@ export default function AnimatedOnboardingTour({
   // fast enough at 60 fps when already laid out).
   const layout = useMemo(() => {
     if (!open || !step) return null;
-    if (step.kind === "center") {
-      return { kind: "center" };
+    if (step.kind === "center" || step.kind === "tab-switch") {
+      return { kind: step.kind };
     }
     const info = getTargetRect(step.target);
     if (!info) return { kind: "missing" };
@@ -404,6 +404,18 @@ export default function AnimatedOnboardingTour({
   // Compute bubble placement based on target rect and viewport.
   const bubble = useMemo(() => {
     if (!layout) return null;
+    if (layout.kind === "tab-switch") {
+      // Pin the bubble near the bottom, above the native tab bar, so
+      // the arrow points down at the tab the user should tap.
+      const BUBBLE_WIDTH = Math.min(viewport.w - 32, 360);
+      const leftRaw = (viewport.w - BUBBLE_WIDTH) / 2;
+      return {
+        top: Math.max(safeTop + 12, viewport.h - safeBottom - 160 - (bubbleHeight || DEFAULT_BUBBLE_HEIGHT)),
+        left: Math.round(leftRaw),
+        width: BUBBLE_WIDTH,
+        arrow: "bottom-pointer"
+      };
+    }
     if (layout.kind === "center" || layout.kind === "missing") {
       return {
         top: Math.round(viewport.h / 2 - 110),
@@ -512,9 +524,10 @@ export default function AnimatedOnboardingTour({
 
   return (
     <div className={`tour-root ${finaleOpen ? "tour-root--finale" : ""}`} aria-live="polite">
-      {/* curtains (dim). Welcome and missing-target use one full-screen
-          curtain; spotlight steps use the 4-curtain cutout. */}
-      {isWelcome || layout?.kind === "center" || layout?.kind === "missing" ? (
+      {/* curtains (dim). Welcome / center / tab-switch / missing all
+          use one full-screen curtain; spotlight steps use the 4-curtain
+          cutout so the target stays clickable. */}
+      {isWelcome || layout?.kind === "center" || layout?.kind === "missing" || layout?.kind === "tab-switch" ? (
         <div className="tour-curtain tour-curtain-full" onPointerDown={(e) => e.stopPropagation()} />
       ) : curtains ? (
         <>

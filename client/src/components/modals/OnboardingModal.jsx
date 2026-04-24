@@ -643,8 +643,10 @@ function OnboardingModal({
 
           {/* habits-picker — wraps the slide bar, the sticky counter
               and the active tab content. This is the region the tour
-              spotlights on habits-custom / habits-browse steps. */}
-          <div data-tour="habits-picker">
+              spotlights on habits-custom / habits-browse steps. The
+              min-height keeps the spotlight from shrinking when the
+              Custom tab is empty; Presets is usually taller. */}
+          <div data-tour="habits-picker" style={{ minHeight: "60vh" }}>
           {/* Segmented slide bar: Presets ↔ Custom. Active tab slides
               under the labels like an iOS control. */}
           <div
