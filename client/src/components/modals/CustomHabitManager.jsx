@@ -17,7 +17,11 @@ function CustomHabitManager({
   onDeleteCustomQuest,
   customSaving,
   customError,
-  onClearCustomError
+  onClearCustomError,
+  // Parent gets notified when the inline create/edit form is open and
+  // whether the keyboard is currently up — lets the onboarding modal
+  // collapse its own header/footer while the user is typing.
+  onFormStateChange
 }) {
   const { t, tf } = useTheme();
   const [mode, setMode] = useState("list"); // "list" | "create" | "edit"
@@ -56,6 +60,12 @@ function CustomHabitManager({
       }
     };
   }, [mode]);
+  // Notify parent whenever form open-ness or keyboard state changes.
+  useEffect(() => {
+    if (typeof onFormStateChange !== "function") return;
+    const open = mode === "create" || mode === "edit";
+    onFormStateChange({ open, hasKeyboard: open && kbHeight > 60 });
+  }, [mode, kbHeight, onFormStateChange]);
   const formRef = useRef(null);
   const titleRef = useRef(null);
   // When the form opens, slide it into view. When an input gets

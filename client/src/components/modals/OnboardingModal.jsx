@@ -75,6 +75,10 @@ function OnboardingModal({
   const [handleStatus, setHandleStatus] = useState("idle"); // idle | checking | available | taken | invalid | short
   const [handleTouched, setHandleTouched] = useState(false);
   const checkReqRef = useRef(0);
+  // When the CustomHabitManager's inline create/edit form is open AND
+  // the iOS keyboard is up, collapse the modal's own header + footer
+  // so the form gets the full screen to breathe.
+  const [customFormExpanded, setCustomFormExpanded] = useState(false);
   // iOS keyboard handling: 100dvh doesn't always shrink with the
   // software keyboard inside a WebView, so we mirror the visualViewport
   // height ourselves and apply it to the sheet. Without this, focusing
@@ -322,7 +326,7 @@ function OnboardingModal({
           overflow: "hidden"
         }}
       >
-        <div style={{ padding: "calc(var(--mobile-safe-top, env(safe-area-inset-top, 0px)) + 16px) 16px 12px", borderBottom: "1px solid var(--card-border-idle)" }}>
+        <div style={{ padding: "calc(var(--mobile-safe-top, env(safe-area-inset-top, 0px)) + 16px) 16px 12px", borderBottom: "1px solid var(--card-border-idle)", display: customFormExpanded ? "none" : undefined }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <h2
@@ -384,7 +388,7 @@ function OnboardingModal({
         {/* Sticky habits-selected counter — lives between the header and
             the sliding body, so it stays in view while the user scrolls
             through the habit list. Hidden on step 0. */}
-        {wizardStep === 1 ? (
+        {wizardStep === 1 && !customFormExpanded ? (
           <div
             style={{
               padding: "10px 16px 10px",
@@ -702,6 +706,7 @@ function OnboardingModal({
               customSaving={customSaving}
               customError={customError}
               onClearCustomError={onClearCustomError}
+              onFormStateChange={({ open, hasKeyboard }) => setCustomFormExpanded(open && hasKeyboard)}
             />
           </div>
 
@@ -812,7 +817,8 @@ function OnboardingModal({
           style={{
             padding: "12px 16px calc(12px + env(safe-area-inset-bottom, 0px))",
             borderTop: "1px solid var(--card-border-idle)",
-            background: "rgba(0,0,0,0.35)"
+            background: "rgba(0,0,0,0.35)",
+            display: customFormExpanded ? "none" : undefined
           }}
         >
           {onboardingError ? (
