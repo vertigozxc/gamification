@@ -712,25 +712,28 @@ body[data-theme="light"] .social-block .cm-tabs-slider {
   margin-top: 2px;
 }
 
-/* Section intro (heading + body, panel-style) */
+/* Section intro (heading + body). Mirrors the StreakFreezeCard's auto-hint
+ * block on the profile screen: soft primary tint + 3px primary left accent
+ * + small muted body text. Works on both the Challenges and Friends intros. */
 .social-block .cm-intro {
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
+  border-left: 3px solid color-mix(in srgb, var(--color-primary) 55%, transparent);
 }
 .social-block .cm-intro-title {
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 14px;
-  color: var(--color-text);
-  letter-spacing: 0.04em;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-primary);
   margin: 0 0 4px;
 }
 .social-block .cm-intro-body {
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.4;
   color: var(--color-muted);
-  line-height: 1.45;
   margin: 0;
 }
 
