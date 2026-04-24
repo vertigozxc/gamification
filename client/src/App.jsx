@@ -416,32 +416,26 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       bubblePlacement: "top",
       scroll: true
     });
-    list.push({
-      id: "habits-intro",
-      hidden: hideSetup,
-      kind: "center",
-      title: t.tourHabitsIntroTitle || "Pick your daily habits",
-      text: t.tourHabitsIntroText || "On this page, choose 2 daily habits you want to build. They'll become your daily anchors.",
-      gate: "next",
-      onEnter: () => setWizardStep(1)
-    });
+    // New habits tour flow matching the slide-bar design:
+    // 1) Custom tab introduction → 2) Presets tab with "pick 2" gate
+    //    → (next) 3) Start Adventure
     list.push({
       id: "habits-custom",
       hidden: hideSetup,
       target: '[data-tour="my-custom-habits"]',
-      title: t.tourHabitsCustomTitle || "Your own habits",
-      text: t.tourHabitsCustomText || "You can create your own habit here, or pick one from the catalog below — tap next to see it.",
+      title: t.tourHabitsCustomTitle || "Your custom habits",
+      text: t.tourHabitsCustomText || "This tab is where you build your own habits. Tap Next to see the curated catalog.",
       gate: "next",
       onEnter: () => { setWizardStep(1); setForcedHabitsTab("custom"); },
       bubblePlacement: "top",
-      scroll: true
+      scroll: false
     });
     list.push({
       id: "habits-browse",
       hidden: hideSetup,
-      target: '[data-tour="setup-habits"]',
-      title: t.tourHabitsBrowseTitle || "Pick two habits",
-      text: t.tourHabitsBrowseText || "Pick two habits and tap Next — the Start Adventure button unlocks once the tour finishes.",
+      target: '[data-tour="browse-habits"]',
+      title: t.tourHabitsBrowseTitle || "Ready-made habits",
+      text: t.tourHabitsBrowseText || "Filter by category or search. Pick 2 habits you want to build, then tap Next.",
       gate: "condition",
       isSatisfied: () => Array.isArray(onboardingQuestIds) && onboardingQuestIds.length >= pinnedLimit,
       autoAdvance: false,
@@ -453,8 +447,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       id: "setup-begin",
       hidden: hideSetup,
       target: '[data-tour="setup-begin"]',
-      title: t.tourSetupBeginTitle || "Ready?",
-      text: t.tourSetupBeginText || "Tap Begin — and we'll keep going.",
+      title: t.tourSetupBeginTitle || "Ready for your adventure?",
+      text: t.tourSetupBeginText || "Tap Start Adventure — we're heading into the game.",
       gate: "condition",
       isSatisfied: () => !showOnboarding,
       autoAdvance: true,
