@@ -9,7 +9,7 @@ import useEdgeSwipeBack from "../../hooks/useEdgeSwipeBack";
 import SpinWheelModal from "../SpinWheelModal";
 import { useTheme } from "../../ThemeContext";
 import { pluralizeDays } from "../../i18nConfig";
-import { citySpinStatus, upgradeDistrict, downgradeDistrict, devGrantStats, claimBusinessTokens, claimMonthlyFreeze, startVacation } from "../../api";
+import { citySpinStatus, upgradeDistrict, downgradeDistrict, devGrantStats, claimBusinessTokens, claimMonthlyFreeze, startVacation, updateCityName } from "../../api";
 
 const DISTRICT_MAX_LEVEL = 5;
 
@@ -210,6 +210,10 @@ function DistrictNameBadge({ name, level, max, levelLabel }) {
 }
 
 function ReqChip({ icon, label, met, current }) {
+  // Always show a status marker next to the chip: green ✓ when met,
+  // red ✕ when not — previously the unmet state rendered with no mark,
+  // which made it ambiguous whether the requirement was still needed.
+  const accent = met ? "#4fa85e" : "#e14b5a";
   return (
     <span
       title={`Current: ${current}`}
@@ -224,60 +228,93 @@ function ReqChip({ icon, label, met, current }) {
         color: met ? "#4fa85e" : "var(--color-text)",
         background: met
           ? "color-mix(in srgb, #4fa85e 18%, transparent)"
-          : "color-mix(in srgb, var(--panel-bg) 85%, transparent)",
-        border: `1px solid ${met ? "color-mix(in srgb, #4fa85e 55%, transparent)" : "var(--panel-border)"}`
+          : "color-mix(in srgb, #e14b5a 10%, transparent)",
+        border: `1px solid color-mix(in srgb, ${accent} ${met ? 55 : 40}%, transparent)`
       }}
     >
       <span style={{ fontSize: 13 }}>{icon}</span>
       <span>{label}</span>
-      {met && <span style={{ fontSize: 11 }}>✓</span>}
+      <span
+        aria-hidden="true"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 14,
+          height: 14,
+          borderRadius: 7,
+          fontSize: 9,
+          fontWeight: 900,
+          color: "#fff",
+          background: accent,
+          lineHeight: 1
+        }}
+      >
+        {met ? "✓" : "✕"}
+      </span>
     </span>
   );
 }
 
-function PerkRow({ lvl, levelShort = "LVL", text, unlocked, isCurrent }) {
-  const marker = unlocked ? "✓" : "🔒";
-  const markerColor = unlocked ? "#4fa85e" : "var(--color-muted)";
+// One row inside the iOS-TableView-styled perks list. The shared container
+// provides the rounded corners, border and background; each row paints a
+// leading-aligned separator at the bottom (except the last one) so the
+// stack reads as a single grouped list, not an assortment of chips.
+function PerkRow({ lvl, levelShort = "LVL", text, unlocked, isCurrent, isLast }) {
+  const markerColor = unlocked ? "#fff" : "var(--color-muted)";
   const textColor = unlocked ? "var(--color-text)" : "var(--color-muted)";
   const bg = isCurrent
-    ? "color-mix(in srgb, var(--color-primary) 12%, transparent)"
+    ? "color-mix(in srgb, var(--color-primary) 14%, transparent)"
     : "transparent";
   return (
     <div
       style={{
+        position: "relative",
         display: "flex",
         alignItems: "center",
-        gap: 10,
-        padding: "7px 10px",
-        borderRadius: 10,
+        gap: 12,
+        padding: "11px 14px",
         background: bg,
-        border: isCurrent
-          ? "1.5px solid color-mix(in srgb, var(--color-primary) 70%, transparent)"
-          : "1px solid transparent",
-        boxShadow: isCurrent
-          ? "0 0 14px color-mix(in srgb, var(--color-primary) 22%, transparent)"
-          : "none",
-        opacity: unlocked ? 1 : 0.72
+        opacity: unlocked ? 1 : 0.78
       }}
     >
+      {/* Left-edge accent stripe — native tables use this to mark the
+          currently-applied row without ruining alignment. */}
+      {isCurrent && (
+        <span
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 6,
+            bottom: 6,
+            width: 3,
+            borderRadius: 2,
+            background: "var(--color-primary)",
+            boxShadow: "0 0 8px color-mix(in srgb, var(--color-primary) 60%, transparent)"
+          }}
+        />
+      )}
       <span
         style={{
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          width: 22,
-          height: 22,
-          borderRadius: 11,
-          fontSize: 11,
-          fontWeight: 800,
+          width: 24,
+          height: 24,
+          borderRadius: 12,
+          fontSize: 12,
+          fontWeight: 900,
           color: markerColor,
           background: unlocked
-            ? "color-mix(in srgb, #4fa85e 18%, transparent)"
+            ? "#4fa85e"
             : "color-mix(in srgb, var(--panel-bg) 80%, transparent)",
-          border: `1px solid ${unlocked ? "color-mix(in srgb, #4fa85e 55%, transparent)" : "var(--panel-border)"}`
+          border: `1px solid ${unlocked ? "color-mix(in srgb, #4fa85e 55%, transparent)" : "var(--panel-border)"}`,
+          flexShrink: 0,
+          lineHeight: 1
         }}
       >
-        {marker}
+        {unlocked ? "✓" : "🔒"}
       </span>
       <span
         style={{
@@ -285,15 +322,32 @@ function PerkRow({ lvl, levelShort = "LVL", text, unlocked, isCurrent }) {
           color: isCurrent ? "var(--color-primary)" : "var(--color-muted)",
           fontWeight: isCurrent ? 800 : 700,
           letterSpacing: "0.08em",
-          minWidth: 36,
+          minWidth: 32,
+          flexShrink: 0,
+          textTransform: "uppercase",
           textShadow: isCurrent ? "0 0 6px color-mix(in srgb, var(--color-primary) 45%, transparent)" : "none"
         }}
       >
         {levelShort}&nbsp;{lvl}
       </span>
-      <span style={{ fontSize: 13, fontWeight: isCurrent ? 700 : 600, color: textColor, flex: 1, lineHeight: 1.25 }}>
+      <span style={{ fontSize: 13.5, fontWeight: isCurrent ? 700 : 500, color: textColor, flex: 1, lineHeight: 1.3 }}>
         {text}
       </span>
+      {/* Row separator — leading-aligned (iOS convention): starts after
+          the status icon so the icon column reads as its own lane. */}
+      {!isLast && (
+        <span
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            left: 50,
+            right: 0,
+            bottom: 0,
+            height: 1,
+            background: "color-mix(in srgb, var(--panel-border) 80%, transparent)"
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -418,6 +472,9 @@ export default function CityTab({
   vacationEndsAt = null,
   onDistrictUpgraded,
   onStatsGranted,
+  // Server-persisted custom city name (empty string means "use default").
+  cityName: serverCityName = "",
+  onCityNameChanged,
   // Tour-only override — when set, the matching district's next
   // upgrade bypasses token / level / streak gates on the client side.
   // Server grants the same freebie once for Park during onboarding.
@@ -436,34 +493,61 @@ export default function CityTab({
   const [lockedInfoOpen, setLockedInfoOpen] = useState(false);
   const [claimSuccessPopup, setClaimSuccessPopup] = useState(null); // "freeze" | "vacation" | null
 
-  // Custom city name — user-editable, persisted in localStorage per-username.
-  // Falls back to the translated default (Embervale / Эмбервейл).
-  const [cityName, setCityName] = useState("");
+  // Custom city name — user-editable, persisted server-side (Prisma
+  // `User.cityName`, POST /api/profiles/city-name). We keep a localStorage
+  // mirror per-username so the header doesn't flicker through the
+  // translated default on reload before the game-state fetch resolves.
+  // Priority: server value → local cache → translated default.
+  const [localCityName, setLocalCityName] = useState("");
   const [cityNameModalOpen, setCityNameModalOpen] = useState(false);
   const [cityNameDraft, setCityNameDraft] = useState("");
   const [cityNameError, setCityNameError] = useState("");
+  const [cityNameSaving, setCityNameSaving] = useState(false);
   useEffect(() => {
-    if (!username) { setCityName(""); return; }
+    if (!username) { setLocalCityName(""); return; }
     try {
       const v = localStorage.getItem(`city_name_${username}`);
-      setCityName(v || "");
-    } catch { setCityName(""); }
+      setLocalCityName(v || "");
+    } catch { setLocalCityName(""); }
   }, [username]);
-  const effectiveCityName = cityName || t.cityNameDefault || "Embervale";
+  // Keep the local cache in sync with what the server sent back on load so
+  // a rename from another device becomes visible the next time this device
+  // opens the tab.
+  useEffect(() => {
+    if (!username || !serverCityName) return;
+    try { localStorage.setItem(`city_name_${username}`, serverCityName); } catch {}
+    setLocalCityName(serverCityName);
+  }, [username, serverCityName]);
+  const currentCityName = serverCityName || localCityName || "";
+  const effectiveCityName = currentCityName || t.cityNameDefault || "Embervale";
   const openCityNameEdit = useCallback(() => {
-    setCityNameDraft(cityName || t.cityNameDefault || "");
+    setCityNameDraft(currentCityName || t.cityNameDefault || "");
     setCityNameError("");
     setCityNameModalOpen(true);
-  }, [cityName, t]);
-  const saveCityName = useCallback(() => {
+  }, [currentCityName, t]);
+  const saveCityName = useCallback(async () => {
     const trimmed = String(cityNameDraft || "").trim().slice(0, 24);
     if (!trimmed) { setCityNameError(t.cityNameEditError || "1–24 characters"); return; }
-    if (username) {
+    if (!username) { setCityNameModalOpen(false); return; }
+    setCityNameSaving(true);
+    try {
+      const result = await updateCityName(username, trimmed);
+      const saved = typeof result?.cityName === "string" ? result.cityName : trimmed;
+      try { localStorage.setItem(`city_name_${username}`, saved); } catch {}
+      setLocalCityName(saved);
+      onCityNameChanged?.(saved);
+      setCityNameModalOpen(false);
+    } catch (err) {
+      // Fall back to local-only save so the user isn't blocked by a
+      // transient backend hiccup; next successful /game-state will
+      // reconcile.
       try { localStorage.setItem(`city_name_${username}`, trimmed); } catch {}
+      setLocalCityName(trimmed);
+      setCityNameError(err?.data?.error || err?.message || (t.cityNameEditError || "Failed to save"));
+    } finally {
+      setCityNameSaving(false);
     }
-    setCityName(trimmed);
-    setCityNameModalOpen(false);
-  }, [cityNameDraft, username, t]);
+  }, [cityNameDraft, username, t, onCityNameChanged]);
   const handleDistrictClick = useCallback((_districtId, idx, meta) => {
     if (meta?.locked) {
       setLockedInfoOpen(true);
@@ -821,10 +905,10 @@ export default function CityTab({
               <button
                 onClick={handleCloseDistrict}
                 aria-label="Back"
-                className="qt-btn"
+                className="qt-btn mobile-pressable"
                 style={{
                   position: "absolute", top: 10, left: 10, zIndex: 40,
-                  width: 42, height: 42, borderRadius: 12,
+                  width: 46, height: 46, borderRadius: 13,
                   border: "1px solid rgba(15,23,42,0.55)",
                   background: "rgba(15,23,42,0.78)",
                   backdropFilter: "blur(6px)",
@@ -834,7 +918,7 @@ export default function CityTab({
                   boxShadow: "0 3px 10px rgba(0,0,0,0.35)"
                 }}
               >
-                <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M15 6l-6 6 6 6" />
                 </svg>
               </button>
@@ -1106,25 +1190,47 @@ export default function CityTab({
                 </div>
               )}
 
-              {/* Per-level perks list */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <span style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-muted)", fontWeight: 700 }}>
+              {/* Per-level perks list — iOS-style grouped TableView: a
+                  single rounded container holds all 5 rows, each with a
+                  leading-aligned bottom separator (except the last). */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <span
+                  style={{
+                    fontSize: 10,
+                    letterSpacing: "0.16em",
+                    textTransform: "uppercase",
+                    color: "var(--color-muted)",
+                    fontWeight: 700,
+                    paddingLeft: 4
+                  }}
+                >
                   {t.districtBenefits || "Benefits"}
                 </span>
-                {[1, 2, 3, 4, 5].map((lvl) => {
-                  const unlocked = level >= lvl;
-                  const isCurrent = level > 0 && lvl === level;
-                  return (
-                    <PerkRow
-                      key={lvl}
-                      lvl={lvl}
-                      levelShort={t.districtLevelShort || "LVL"}
-                      text={perkText(t, district.id, lvl)}
-                      unlocked={unlocked}
-                      isCurrent={isCurrent}
-                    />
-                  );
-                })}
+                <div
+                  style={{
+                    borderRadius: 14,
+                    overflow: "hidden",
+                    background: "color-mix(in srgb, var(--panel-bg) 82%, transparent)",
+                    border: "1px solid var(--panel-border)",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.14), inset 0 0 0 0.5px color-mix(in srgb, var(--panel-border) 60%, transparent)"
+                  }}
+                >
+                  {[1, 2, 3, 4, 5].map((lvl, idx) => {
+                    const unlocked = level >= lvl;
+                    const isCurrent = level > 0 && lvl === level;
+                    return (
+                      <PerkRow
+                        key={lvl}
+                        lvl={lvl}
+                        levelShort={t.districtLevelShort || "LVL"}
+                        text={perkText(t, district.id, lvl)}
+                        unlocked={unlocked}
+                        isCurrent={isCurrent}
+                        isLast={idx === 4}
+                      />
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -1178,9 +1284,14 @@ export default function CityTab({
         );
       })()}
 
-      {/* Residential: Claim monthly freeze + Start vacation */}
+      {/* Residential: Claim monthly freeze + Start vacation. At lvl 0 and 1
+          neither action is unlocked yet, so return null early — otherwise
+          the wrapper div (with `mt-3` + flex gap) still occupies space and
+          visually pushes the benefits/upgrade card much further below the
+          map than in other districts. */}
       {selectedDistrictIdx >= 0 && DISTRICTS[selectedDistrictIdx]?.id === "residential" && (() => {
         const resLvl = Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(Number(districtLevels[selectedDistrictIdx]) || 0)));
+        if (resLvl < 2) return null;
         const fz = residentialFreezeStatus(resLvl, monthlyFreezeClaims, nowMs);
         const vac = residentialVacationStatus(resLvl, lastVacationAt, vacationEndsAt, nowMs);
         const freezeDisabled = fz.cap === 0 || fz.remaining === 0;
@@ -1527,6 +1638,7 @@ export default function CityTab({
               <button
                 type="button"
                 onClick={saveCityName}
+                disabled={cityNameSaving}
                 className="cinzel qt-btn mobile-pressable"
                 style={{
                   flex: 1,
@@ -1539,10 +1651,11 @@ export default function CityTab({
                   fontWeight: 800,
                   letterSpacing: "0.08em",
                   textTransform: "uppercase",
-                  cursor: "pointer"
+                  cursor: cityNameSaving ? "not-allowed" : "pointer",
+                  opacity: cityNameSaving ? 0.6 : 1
                 }}
               >
-                {t.cityNameEditSave || "Save"}
+                {cityNameSaving ? "…" : (t.cityNameEditSave || "Save")}
               </button>
             </div>
           </div>

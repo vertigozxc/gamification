@@ -42,6 +42,7 @@ model User {
   cityResetsPaid            Int                    @default(0)
   tokensSpentTotal          Int                    @default(0)
   preferredLanguage         String                 @default("")
+  cityName                  String                 @default("")
   isDevTester               Boolean                @default(false)
   maxStreak                 Int                    @default(0)
   onboardingSkippedAt       DateTime?

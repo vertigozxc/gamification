@@ -888,7 +888,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
               streakFreezeCharges: Number(userData.streakFreezeCharges) || 0,
               streakFreezeExpiresAt: userData.streakFreezeExpiresAt ?? null,
               lastFreezePurchaseWeekKey: userData.lastFreezePurchaseWeekKey ?? "",
-              xpBoostExpiresAt: userData.xpBoostExpiresAt ?? null
+              xpBoostExpiresAt: userData.xpBoostExpiresAt ?? null,
+              cityName: typeof userData.cityName === "string" ? userData.cityName : (prev.user?.cityName ?? "")
             },
             productivity: gameStateResponse?.productivity ?? prev.productivity,
             pinnedQuestProgress21d: normalizePinnedQuestProgress(gameStateResponse?.pinnedQuestProgress21d),
@@ -954,7 +955,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           user: {
             ...prev.user,
             handle: userData.handle ?? prev.user?.handle ?? null,
-            lastFreeTaskRerollAt: userData.lastFreeTaskRerollAt ?? null
+            lastFreeTaskRerollAt: userData.lastFreeTaskRerollAt ?? null,
+            cityName: typeof userData.cityName === "string" ? userData.cityName : (prev.user?.cityName ?? "")
           },
           productivity: gameStateResponse?.productivity ?? prev.productivity,
           questSlots: gameStateResponse?.questSlots ?? prev.questSlots,
@@ -2102,6 +2104,13 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 monthlyFreezeClaims={state.user?.monthlyFreezeClaims || ""}
                 lastVacationAt={state.user?.lastVacationAt || null}
                 vacationEndsAt={state.user?.vacationEndsAt || null}
+                cityName={state.user?.cityName || ""}
+                onCityNameChanged={(name) => {
+                  setState((prev) => ({
+                    ...prev,
+                    user: { ...(prev.user || {}), cityName: String(name || "") }
+                  }));
+                }}
                 onDistrictUpgraded={(result) => {
                   setState((prev) => ({
                     ...prev,

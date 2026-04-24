@@ -5906,6 +5906,36 @@ app.delete("/api/profiles/:userId", async (req, res) => {
   }
 });
 
+// Persist the user's custom city name shown in the City tab header.
+// 1..24 characters, any printable unicode. Empty string on the server
+// means "use the translated default" (Embervale / Эмбервейл) — the
+// client falls back automatically. No authenticity check beyond the
+// username ownership implied by the request context — this is purely
+// cosmetic (no leaderboard, no XP).
+app.post("/api/profiles/city-name", async (req, res) => {
+  const schema = z.object({
+    username: z.string().min(2).max(64),
+    cityName: z.string().max(64)
+  });
+  try {
+    const parsed = schema.parse(req.body);
+    const username = slugifyUsername(parsed.username);
+    if (!username) return res.status(400).json({ error: "Invalid username" });
+    const cleaned = String(parsed.cityName || "")
+      // Strip ASCII/Unicode control chars. Emoji & letters pass through.
+      .replace(/[\u0000-\u001f\u007f-\u009f]/g, "")
+      .trim()
+      .slice(0, 24);
+    const user = await prisma.user.update({
+      where: { username },
+      data: { cityName: cleaned }
+    });
+    res.json({ ok: true, cityName: user.cityName });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
 // Persist the user's chosen UI language on the server so achievements
 // like `polyglot` can unlock (and so we remember across devices).
 app.post("/api/profiles/language", async (req, res) => {

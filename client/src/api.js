@@ -624,6 +624,13 @@ export function updatePreferredLanguage(username, language) {
   });
 }
 
+export function updateCityName(username, cityName) {
+  return request("/api/profiles/city-name", {
+    method: "POST",
+    body: JSON.stringify({ username, cityName })
+  });
+}
+
 export function fetchAchievements(username) {
   return request(`/api/users/${encodeURIComponent(username)}/achievements`);
 }
