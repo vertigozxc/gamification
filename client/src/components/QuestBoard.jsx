@@ -374,10 +374,7 @@ function QuestBoard({
   if (hasChallenges) tabs.push("challenges");
 
   const [activeQTab, setActiveQTab] = useState(tabs[0] || "habits");
-  const [selectedRerollId, setSelectedRerollId] = useState(null);
   const [showFreshDailyBadge, setShowFreshDailyBadge] = useState(false);
-  const indicatorRef = useRef(null);
-  const tabsRowRef = useRef(null);
 
   const [pinnedListRef] = useAutoAnimate();
   const [otherListRef] = useAutoAnimate();
@@ -444,25 +441,9 @@ function QuestBoard({
   const challengeDoneToday = accepted.filter((c) => c.myLastCompletionDayKey === tKey || optimisticSet.has(c.id)).length;
   const challengePendingCount = challenges.length - accepted.length;
 
-  // Slide tab underline
-  useLayoutEffect(() => {
-    if (!tabsRowRef.current || !indicatorRef.current) return;
-    const activeBtn = tabsRowRef.current.querySelector(`[data-qtab="${activeQTab}"]`);
-    if (!activeBtn) return;
-    const apply = () => {
-      if (!indicatorRef.current) return;
-      indicatorRef.current.style.width = `${activeBtn.offsetWidth}px`;
-      indicatorRef.current.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
-    };
-    apply();
-    const raf = requestAnimationFrame(apply);
-    return () => cancelAnimationFrame(raf);
-  }, [
-    activeQTab, tabs.length,
-    pinnedDone, pinnedSlotTotal, otherDone, otherSlotTotal,
-    challengeDoneToday, accepted.length, challengePendingCount,
-    showFreshDailyBadge, t.pinnedSection, t.otherSection, t.challengesTab
-  ]);
+  // Tab-bar grid template: active tab = 3fr, others = 1fr.
+  // Animated via CSS transition on grid-template-columns.
+  const gridTemplateColumns = tabs.map((tab) => (tab === activeQTab ? "3fr" : "1fr")).join(" ");
 
   return (
     <div className={`relative ${compact ? "" : "lg:col-span-2"}`}>
@@ -480,19 +461,22 @@ function QuestBoard({
 
       {postTimerRow ? <div className="mb-3">{postTimerRow}</div> : null}
 
-      {/* Tab bar */}
+      {/* Tab bar — expanding-active variant (Tab B).
+          Active tab = 3fr, inactive = 1fr. Label is hidden on inactive
+          tabs via max-width collapse; grid-template-columns transitions
+          smoothly between states. */}
       {tabs.length > 1 && (
-        <div className="qb-tab-bar mb-4" ref={tabsRowRef}>
-          <div className="qb-tab-indicator" ref={indicatorRef} />
-
+        <div
+          className="qb-tab-bar qb-tab-bar-expand mb-4"
+          style={{ gridTemplateColumns }}
+        >
           {hasPinned && (
             <button type="button" data-qtab="habits" data-tour="qb-tab-habits"
               className={`qb-tab-btn ${activeQTab === "habits" ? "qb-tab-active" : ""}`}
               onClick={() => setActiveQTab("habits")}>
-              <div className="qb-tab-inner">
-                <span><span>📌</span> {t.pinnedSection}</span>
-                <span className="qb-tab-count">{pinnedDone}/{pinnedSlotTotal}</span>
-              </div>
+              <span className="qb-tab-icon" aria-hidden="true">📌</span>
+              <span className="qb-tab-label">{t.pinnedSection}</span>
+              <span className="qb-tab-count">{pinnedDone}/{pinnedSlotTotal}</span>
             </button>
           )}
 
@@ -500,10 +484,9 @@ function QuestBoard({
             <button type="button" data-qtab="daily" data-tour="qb-tab-daily"
               className={`qb-tab-btn ${activeQTab === "daily" ? "qb-tab-active" : ""}`}
               onClick={() => { setActiveQTab("daily"); if (showFreshDailyBadge) markDailyTabSeen(); }}>
-              <div className="qb-tab-inner">
-                <span><span>🎲</span> {t.otherSection}</span>
-                <span className="qb-tab-count">{otherDone}/{otherSlotTotal}</span>
-              </div>
+              <span className="qb-tab-icon" aria-hidden="true">🎲</span>
+              <span className="qb-tab-label">{t.otherSection}</span>
+              <span className="qb-tab-count">{otherDone}/{otherSlotTotal}</span>
               {showFreshDailyBadge ? (
                 <span className="qb-tab-fresh" aria-label={t.dailyQuestFreshBadge || "NEW"}>
                   <span className="qb-tab-fresh__spark">✦</span>
@@ -517,16 +500,13 @@ function QuestBoard({
             <button type="button" data-qtab="challenges"
               className={`qb-tab-btn ${activeQTab === "challenges" ? "qb-tab-active" : ""}`}
               onClick={() => setActiveQTab("challenges")}>
-              <div className="qb-tab-inner">
-                <span>⚔️ {t.challengesTab || "Challenges"}</span>
-                {challengePendingCount > 0 ? (
-                  <span className="qb-tab-count" style={{ color: "var(--color-primary)" }}>
-                    {challengePendingCount} new
-                  </span>
-                ) : (
-                  <span className="qb-tab-count">{challengeDoneToday}/{accepted.length || challenges.length}</span>
-                )}
-              </div>
+              <span className="qb-tab-icon" aria-hidden="true">⚔️</span>
+              <span className="qb-tab-label">{t.challengesTab || "Challenges"}</span>
+              {challengePendingCount > 0 ? (
+                <span className="qb-tab-count qb-tab-count-alert">{challengePendingCount}</span>
+              ) : (
+                <span className="qb-tab-count">{challengeDoneToday}/{accepted.length || challenges.length}</span>
+              )}
             </button>
           )}
         </div>
