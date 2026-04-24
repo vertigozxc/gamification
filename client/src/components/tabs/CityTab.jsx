@@ -1256,19 +1256,40 @@ export default function CityTab({
 
       {/* Business: Collect District Profits. Always rendered — at lvl 0
           it shows as a locked preview (same pattern as Park's Spin Wheel
-          button below) so the player discovers the mechanic early. */}
+          button below) so the player discovers the mechanic early.
+          All three states (active / cooldown / locked) keep a solid
+          opaque background + border so the control reads as a real
+          button, not a flat table cell. */}
       {selectedDistrictIdx >= 0 && DISTRICTS[selectedDistrictIdx]?.id === "business" && (() => {
         const bizLvl = Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(Number(districtLevels[selectedDistrictIdx]) || 0)));
         const locked = bizLvl < 1;
-        const disabled = locked || businessClaimedToday;
+        const cooldown = !locked && businessClaimedToday;
+        const disabled = locked || cooldown;
         let label;
         if (locked) {
-          label = t.businessCollectProfitsLocked || "🔒 Collect District Profits — unlock at Business lvl 1";
-        } else if (businessClaimedToday) {
+          label = t.businessCollectProfitsLocked || "🔒 Collect — unlock at Business lvl 1";
+        } else if (cooldown) {
           label = `${t.businessClaimWait || "Next claim in"} ${msToHMS(msUntilMidnightUtc)}`;
         } else {
           label = `${t.businessCollectProfits || "Collect District Profits"} +${bizLvl} 🪙`;
         }
+        const ACCENT = "#d9a441";
+        const bg = locked
+          ? "var(--panel-bg)"
+          : cooldown
+            ? `color-mix(in srgb, ${ACCENT} 10%, var(--panel-bg))`
+            : `color-mix(in srgb, ${ACCENT} 20%, var(--panel-bg))`;
+        const borderColor = locked
+          ? "var(--panel-border)"
+          : cooldown
+            ? `color-mix(in srgb, ${ACCENT} 45%, var(--panel-bg))`
+            : ACCENT;
+        const borderStyle = locked ? "dashed" : "solid";
+        const textColor = locked
+          ? "var(--color-muted)"
+          : cooldown
+            ? `color-mix(in srgb, ${ACCENT} 70%, var(--color-muted))`
+            : ACCENT;
         return (
           <button
             onClick={disabled ? undefined : handleBusinessClaim}
@@ -1281,17 +1302,20 @@ export default function CityTab({
               marginTop: -4,
               marginBottom: -4,
               borderRadius: 14,
-              border: `1.5px solid ${disabled ? "var(--panel-border)" : "#d9a441"}`,
-              background: disabled
-                ? "color-mix(in srgb, var(--panel-bg) 70%, transparent)"
-                : "color-mix(in srgb, #d9a441 18%, var(--panel-bg))",
-              color: disabled ? "var(--color-muted)" : "#d9a441",
+              border: `1.5px ${borderStyle} ${borderColor}`,
+              background: bg,
+              color: textColor,
               fontWeight: 800,
               fontSize: 14,
               cursor: disabled ? "not-allowed" : "pointer",
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              opacity: locked ? 0.7 : 1,
+              opacity: 1,
+              boxShadow: locked
+                ? "none"
+                : cooldown
+                  ? "inset 0 0 0 1px color-mix(in srgb, " + ACCENT + " 20%, transparent)"
+                  : "0 2px 10px color-mix(in srgb, " + ACCENT + " 25%, transparent)",
               order: 5
             }}
           >
@@ -1404,21 +1428,40 @@ export default function CityTab({
         </div>
       )}
 
-      {/* Spin Wheel button — always visible inside Park district. Shows as
-          disabled at lvl 0 so the player sees the feature; cooldown shortens
-          with Park level (24 → 8 h). */}
+      {/* Spin Wheel button — always visible inside Park district. All
+          three states (active / cooldown / locked) keep a solid opaque
+          background so the control reads as a proper button rather than
+          a transparent table cell. Cooldown shortens with Park level
+          (24 → 8 h). */}
       {selectedDistrictIdx >= 0 && DISTRICTS[selectedDistrictIdx]?.id === "park" && (() => {
         const parkLvl = Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(Number(districtLevels[selectedDistrictIdx]) || 0)));
         const locked = parkLvl < 1;
-        const disabled = locked || alreadySpun;
+        const cooldown = !locked && alreadySpun;
+        const disabled = locked || cooldown;
         let label;
         if (locked) {
-          label = t.parkSpinLocked || "Unlock at level 1";
-        } else if (alreadySpun) {
+          label = t.parkSpinLocked || "🔒 Spin Wheel — unlock at Park lvl 1";
+        } else if (cooldown) {
           label = `${t.spinCooldownLabel || "🎰 Next spin"}: ${msToHMS(cdRemaining)}`;
         } else {
           label = t.launchFireworks || "🎆 Launch Fireworks";
         }
+        const bg = locked
+          ? "var(--panel-bg)"
+          : cooldown
+            ? "color-mix(in srgb, var(--color-primary) 10%, var(--panel-bg))"
+            : "color-mix(in srgb, var(--color-primary) 18%, var(--panel-bg))";
+        const borderColor = locked
+          ? "var(--panel-border)"
+          : cooldown
+            ? "color-mix(in srgb, var(--color-primary) 45%, var(--panel-bg))"
+            : "var(--color-primary)";
+        const borderStyle = locked ? "dashed" : "solid";
+        const textColor = locked
+          ? "var(--color-muted)"
+          : cooldown
+            ? "color-mix(in srgb, var(--color-primary) 70%, var(--color-muted))"
+            : "var(--color-primary)";
         return (
           <button
             data-tour="spin-wheel"
@@ -1434,20 +1477,22 @@ export default function CityTab({
               fontSize: "14px",
               fontWeight: 700,
               letterSpacing: "0.3px",
-              color: disabled ? "var(--color-muted)" : "var(--color-primary)",
-              border: "1px solid " + (disabled ? "var(--panel-border)" : "var(--color-primary)"),
+              color: textColor,
+              border: `1.5px ${borderStyle} ${borderColor}`,
               borderRadius: "14px",
-              background: disabled
-                ? "color-mix(in srgb, var(--panel-bg) 60%, transparent)"
-                : "color-mix(in srgb, var(--color-primary) 10%, var(--panel-bg))",
-              boxShadow: disabled ? "none" : "0 0 18px color-mix(in srgb, var(--color-primary) 25%, transparent)",
+              background: bg,
+              boxShadow: locked
+                ? "none"
+                : cooldown
+                  ? "inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 18%, transparent)"
+                  : "0 0 18px color-mix(in srgb, var(--color-primary) 25%, transparent)",
               cursor: disabled ? "not-allowed" : "pointer",
               transition: "all 0.25s ease",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               gap: "8px",
-              opacity: locked ? 0.7 : 1,
+              opacity: 1,
               order: 5
             }}
           >
