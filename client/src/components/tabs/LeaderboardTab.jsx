@@ -157,6 +157,11 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
   // QuestBoard's .qb-tab-bar. Re-measures on every render path (even when
   // the tab bar is not mounted because a drill-in screen is showing); the
   // ref-null guard at the top makes that cheap.
+  //
+  // `stack.length` is in the dep list so the effect re-fires when the user
+  // closes a pushed screen (Create / Search / Profile / ChallengeDetail)
+  // and the tab bar remounts — without it the indicator stays at its
+  // initial x=0 / w=0 position and the active tab looks deselected.
   useLayoutEffect(() => {
     if (!tabsRowRef.current || !indicatorRef.current) return;
     const activeBtn = tabsRowRef.current.querySelector(`[data-qtab="${tab}"]`);
@@ -171,6 +176,7 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
     return () => cancelAnimationFrame(raf);
   }, [
     tab,
+    stack.length,
     pendingChallenges.length,
     requests.length,
     t.communityTabActivity,
