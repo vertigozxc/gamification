@@ -44,6 +44,14 @@
       <key>NSAllowsLocalNetworking</key>
       <true/>
     </dict>
+    <key>NSCameraUsageDescription</key>
+    <string>GoHabit needs camera access so you can take a photo for your profile avatar.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>GoHabit needs access to your photo library so you can choose a profile avatar.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>GoHabit needs permission to save images to your photo library.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>GoHabit may use the microphone when recording video for your profile.</string>
     <key>NSLocalNetworkUsageDescription</key>
     <string>Allow GoHabit to connect to your Mac during development.</string>
     <key>NSBonjourServices</key>
