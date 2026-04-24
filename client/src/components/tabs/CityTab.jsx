@@ -1131,7 +1131,7 @@ export default function CityTab({
           )
         );
         return (
-          <div className="mt-3 flex flex-col gap-3" style={{ order: 20 }}>
+          <div className="flex flex-col gap-3" style={{ order: 20 }}>
             {/* Benefits + next-upgrade requirements card */}
             <div
               style={{
