@@ -418,6 +418,8 @@ export const languagePacks = {
       onboardingBack: "Back",
       onboardingHabitsSelected: "habits selected",
       onboardingReady: "ready",
+      onboardingTabPresets: "Presets",
+      onboardingTabCustom: "Custom",
       // ── Animated onboarding tour ──────────────────────────────────
       tourWelcomeEyebrow: "GoHabit",
       tourWelcomeTitle: "Welcome aboard!",
@@ -1514,6 +1516,8 @@ export const languagePacks = {
       onboardingBack: "Назад",
       onboardingHabitsSelected: "привычки выбрано",
       onboardingReady: "готово",
+      onboardingTabPresets: "Пресеты",
+      onboardingTabCustom: "Свои",
       // ── Анимированный онбординг-тур ───────────────────────────────
       tourWelcomeEyebrow: "GoHabit",
       tourWelcomeTitle: "Привет!",

@@ -49,7 +49,10 @@ function OnboardingModal({
   // When the animated tour hasn't reached the "Ready?" step yet, lock
   // the Begin button so the user can't submit and accidentally cut
   // the tour short.
-  lockBegin = false
+  lockBegin = false,
+  // Tour may drive the habit picker tab so highlighted sections are
+  // on-screen when the tour stops on them. Null = user controls.
+  forcedHabitsTab = null
 }) {
   const TOTAL_STEPS = 2;
   const setStep = (n) => {
@@ -79,6 +82,14 @@ function OnboardingModal({
   // the iOS keyboard is up, collapse the modal's own header + footer
   // so the form gets the full screen to breathe.
   const [customFormExpanded, setCustomFormExpanded] = useState(false);
+  // Segmented tab for the habit picker (wizard page 1): "presets" shows
+  // the curated catalog, "custom" shows the user's own habit list.
+  const [habitsTab, setHabitsTab] = useState("presets");
+  useEffect(() => {
+    if (forcedHabitsTab === "presets" || forcedHabitsTab === "custom") {
+      setHabitsTab(forcedHabitsTab);
+    }
+  }, [forcedHabitsTab]);
   // iOS keyboard handling: 100dvh doesn't always shrink with the
   // software keyboard inside a WebView, so we mirror the visualViewport
   // height ourselves and apply it to the sheet. Without this, focusing
@@ -653,11 +664,8 @@ function OnboardingModal({
             }}
           >
           <div data-tour="setup-habits">
-          {/* Section-start header for the habit picker. The accent bar
-              above the title matches the title's own text width — uses
-              inline-block + an absolutely-positioned 100%-width ::before
-              line so it shrinks/grows with the copy. */}
-          <div style={{ marginTop: 22, marginBottom: 10 }}>
+          {/* Section-start header for the habit picker. */}
+          <div style={{ marginTop: 18, marginBottom: 10 }}>
             <div style={{ display: "inline-block", position: "relative", paddingTop: 10 }}>
               <span
                 aria-hidden
@@ -692,122 +700,138 @@ function OnboardingModal({
             </p>
           </div>
 
-          <div data-tour="my-custom-habits">
-            <CustomHabitManager
-              customQuests={customQuests}
-              selectedIds={onboardingQuestIds}
-              onToggleSelect={onToggleOnboardingQuest}
-              selectionLimitReached={selectedCount >= SELECTION_LIMIT}
-              accentVar="--color-primary"
-              allowDelete={true}
-              onCreateCustomQuest={onCreateCustomQuest}
-              onUpdateCustomQuest={onUpdateCustomQuest}
-              onDeleteCustomQuest={onDeleteCustomQuest}
-              customSaving={customSaving}
-              customError={customError}
-              onClearCustomError={onClearCustomError}
-              onFormStateChange={({ open, hasKeyboard }) => setCustomFormExpanded(open && hasKeyboard)}
-            />
+          {/* Segmented slide bar: Presets ↔ Custom. Active tab slides
+              under the labels like an iOS control. */}
+          <div
+            role="tablist"
+            className="onb-habits-tabs"
+            style={{ "--onb-tabs-count": 2, "--onb-tabs-active": habitsTab === "custom" ? 1 : 0 }}
+          >
+            <div className="onb-habits-tabs-slider" aria-hidden />
+            <button
+              type="button"
+              role="tab"
+              aria-selected={habitsTab === "presets"}
+              onClick={() => setHabitsTab("presets")}
+              className="onb-habits-tab cinzel mobile-pressable"
+            >
+              <span className="onb-habits-tab-ico" aria-hidden>📋</span>
+              <span className="onb-habits-tab-label">{t.onboardingTabPresets || "Presets"}</span>
+              <span className="onb-habits-tab-count">{questGroups.length}</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={habitsTab === "custom"}
+              onClick={() => setHabitsTab("custom")}
+              className="onb-habits-tab cinzel mobile-pressable"
+            >
+              <span className="onb-habits-tab-ico" aria-hidden>✨</span>
+              <span className="onb-habits-tab-label">{t.onboardingTabCustom || "Custom"}</span>
+              <span className="onb-habits-tab-count">{Array.isArray(customQuests) ? customQuests.length : 0}</span>
+            </button>
           </div>
 
-          <div data-tour="browse-habits" style={{ marginTop: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-              <span
-                className="cinzel"
-                style={{
-                  fontSize: 11,
-                  letterSpacing: "0.15em",
-                  textTransform: "uppercase",
-                  color: "var(--color-primary)"
-                }}
-              >
-                {t.browseHabitsSection}
-              </span>
-              <span style={{ fontSize: 11, color: "#64748b" }}>{questGroups.length}</span>
-            </div>
+          {habitsTab === "presets" ? (
+            <div data-tour="browse-habits" style={{ marginTop: 12 }}>
+              <div style={{ marginBottom: 10 }}>
+                <CategoryFilterRow
+                  value={categoryFilter}
+                  onChange={setCategoryFilter}
+                  categories={categoryOptions}
+                  counts={categoryCounts}
+                  translateCategory={translateCategory}
+                />
+              </div>
 
-            <div style={{ marginBottom: 10 }}>
-              <CategoryFilterRow
-                value={categoryFilter}
-                onChange={setCategoryFilter}
-                categories={categoryOptions}
-                counts={categoryCounts}
-                translateCategory={translateCategory}
+              <div style={{ marginBottom: 10 }}>
+                <InputWithClear
+                  value={onboardingQuestSearch}
+                  onChange={onOnboardingQuestSearchChange}
+                  placeholder={t.onboardingSearch}
+                  clearAriaLabel={t.clearLabel || "Clear"}
+                  inputStyle={{
+                    padding: "9px 12px",
+                    borderRadius: 10,
+                    background: "rgba(0,0,0,0.35)",
+                    border: "1px solid var(--card-border-idle)",
+                    color: "#e2e8f0",
+                    fontSize: 14,
+                    minHeight: 38,
+                    outline: "none"
+                  }}
+                />
+              </div>
+
+              {questGroups.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "20px 0", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+                  <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>
+                    {t.onboardingNoMatch}
+                  </p>
+                  {(onboardingQuestSearch || categoryFilter !== "ALL") ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onOnboardingQuestSearchChange("");
+                        setCategoryFilter("ALL");
+                      }}
+                      className="cinzel mobile-pressable"
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: "6px 12px",
+                        borderRadius: 999,
+                        border: "1px solid var(--color-primary)",
+                        background: "color-mix(in srgb, var(--color-primary) 14%, transparent)",
+                        color: "var(--color-primary)",
+                        letterSpacing: "0.06em",
+                        textTransform: "uppercase",
+                        cursor: "pointer"
+                      }}
+                    >
+                      {t.clearFiltersLabel || "Clear filters"}
+                    </button>
+                  ) : null}
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {questGroups.map((group) => {
+                    const selectedInGroup = group.variants.find((q) => onboardingQuestIds.includes(q.id));
+                    const blocked = !selectedInGroup && selectedCount >= SELECTION_LIMIT;
+                    return (
+                      <QuestGroupCard
+                        key={`onboarding-group-${group.key}`}
+                        group={group}
+                        selectedVariantId={selectedInGroup?.id ?? null}
+                        disabled={blocked}
+                        onPick={(id) => onToggleOnboardingQuest(id)}
+                        onUnpick={(id) => onToggleOnboardingQuest(id)}
+                        translateCategory={translateCategory}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div data-tour="my-custom-habits" style={{ marginTop: 12 }}>
+              <CustomHabitManager
+                customQuests={customQuests}
+                selectedIds={onboardingQuestIds}
+                onToggleSelect={onToggleOnboardingQuest}
+                selectionLimitReached={selectedCount >= SELECTION_LIMIT}
+                accentVar="--color-primary"
+                allowDelete={true}
+                onCreateCustomQuest={onCreateCustomQuest}
+                onUpdateCustomQuest={onUpdateCustomQuest}
+                onDeleteCustomQuest={onDeleteCustomQuest}
+                customSaving={customSaving}
+                customError={customError}
+                onClearCustomError={onClearCustomError}
+                onFormStateChange={({ open, hasKeyboard }) => setCustomFormExpanded(open && hasKeyboard)}
               />
             </div>
-
-            {/* Quest-name search sits directly above the list so the user
-                filters after picking a category — matches the natural
-                top-to-bottom reading order of the section. */}
-            <div style={{ marginBottom: 10 }}>
-              <InputWithClear
-                value={onboardingQuestSearch}
-                onChange={onOnboardingQuestSearchChange}
-                placeholder={t.onboardingSearch}
-                clearAriaLabel={t.clearLabel || "Clear"}
-                inputStyle={{
-                  padding: "9px 12px",
-                  borderRadius: 10,
-                  background: "rgba(0,0,0,0.35)",
-                  border: "1px solid var(--card-border-idle)",
-                  color: "#e2e8f0",
-                  fontSize: 14,
-                  minHeight: 38,
-                  outline: "none"
-                }}
-              />
-            </div>
-
-            {questGroups.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "20px 0", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
-                <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>
-                  {t.onboardingNoMatch}
-                </p>
-                {(onboardingQuestSearch || categoryFilter !== "ALL") ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onOnboardingQuestSearchChange("");
-                      setCategoryFilter("ALL");
-                    }}
-                    className="cinzel mobile-pressable"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      padding: "6px 12px",
-                      borderRadius: 999,
-                      border: "1px solid var(--color-primary)",
-                      background: "color-mix(in srgb, var(--color-primary) 14%, transparent)",
-                      color: "var(--color-primary)",
-                      letterSpacing: "0.06em",
-                      textTransform: "uppercase",
-                      cursor: "pointer"
-                    }}
-                  >
-                    {t.clearFiltersLabel || "Clear filters"}
-                  </button>
-                ) : null}
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {questGroups.map((group) => {
-                  const selectedInGroup = group.variants.find((q) => onboardingQuestIds.includes(q.id));
-                  const blocked = !selectedInGroup && selectedCount >= SELECTION_LIMIT;
-                  return (
-                    <QuestGroupCard
-                      key={`onboarding-group-${group.key}`}
-                      group={group}
-                      selectedVariantId={selectedInGroup?.id ?? null}
-                      disabled={blocked}
-                      onPick={(id) => onToggleOnboardingQuest(id)}
-                      onUnpick={(id) => onToggleOnboardingQuest(id)}
-                      translateCategory={translateCategory}
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          )}
           </div>
           </section>
           </div>

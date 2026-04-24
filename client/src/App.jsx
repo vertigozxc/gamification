@@ -352,6 +352,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   };
 
   const [tourStepId, setTourStepId] = useState(null);
+  const [forcedHabitsTab, setForcedHabitsTab] = useState(null);
 
   const handleRestartTour = async () => {
     const uname = authUser?.uid || username;
@@ -431,7 +432,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       title: t.tourHabitsCustomTitle || "Your own habits",
       text: t.tourHabitsCustomText || "You can create your own habit here, or pick one from the catalog below — tap next to see it.",
       gate: "next",
-      onEnter: () => setWizardStep(1),
+      onEnter: () => { setWizardStep(1); setForcedHabitsTab("custom"); },
       bubblePlacement: "top",
       scroll: true
     });
@@ -444,7 +445,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       gate: "condition",
       isSatisfied: () => Array.isArray(onboardingQuestIds) && onboardingQuestIds.length >= pinnedLimit,
       autoAdvance: false,
-      onEnter: () => setWizardStep(1),
+      onEnter: () => { setWizardStep(1); setForcedHabitsTab("presets"); },
       bubblePlacement: "top",
       scroll: false
     });
@@ -1862,6 +1863,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         wizardStep={wizardStep}
         onWizardStepChange={setWizardStep}
         lockBegin={showTour && tourStepId !== "setup-begin"}
+        forcedHabitsTab={forcedHabitsTab}
       />
 
       <PinnedReplacementModal
