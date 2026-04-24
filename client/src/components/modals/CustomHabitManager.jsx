@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useTheme } from "../../ThemeContext";
 
 const TITLE_MAX = 40;
@@ -31,17 +32,26 @@ function CustomHabitManager({
   const [needsTimer, setNeedsTimer] = useState(false);
   const [timeMinutes, setTimeMinutes] = useState("30");
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-  // Track keyboard height so the inline form can add enough bottom
-  // padding to keep the Save button above the keyboard on iOS.
+  // Track visualViewport so the portal popup can shrink / re-anchor
+  // with the iOS keyboard instead of getting covered or pushed around.
+  const [vvHeight, setVvHeight] = useState(() => (
+    typeof window !== "undefined"
+      ? (window.visualViewport?.height || window.innerHeight || 0)
+      : 0
+  ));
+  const [vvTop, setVvTop] = useState(0);
   const [kbHeight, setKbHeight] = useState(0);
   useEffect(() => {
-    if (mode !== "create" && mode !== "edit") return undefined;
+    const popupOpen = mode === "create" || mode === "edit" || confirmDeleteId != null;
+    if (!popupOpen) return undefined;
     if (typeof window === "undefined") return undefined;
     const update = () => {
       const vv = window.visualViewport;
-      if (!vv) { setKbHeight(0); return; }
-      const kb = Math.max(0, (window.innerHeight || vv.height) - vv.height - (vv.offsetTop || 0));
-      setKbHeight(kb);
+      const h = vv?.height || window.innerHeight || 0;
+      const top = vv?.offsetTop || 0;
+      setVvHeight(h);
+      setVvTop(top);
+      setKbHeight(Math.max(0, (window.innerHeight || h) - h - top));
     };
     update();
     window.addEventListener("resize", update);
@@ -59,32 +69,21 @@ function CustomHabitManager({
         vv.removeEventListener("scroll", update);
       }
     };
-  }, [mode]);
+  }, [mode, confirmDeleteId]);
   // Notify parent whenever form open-ness or keyboard state changes.
   useEffect(() => {
     if (typeof onFormStateChange !== "function") return;
     const open = mode === "create" || mode === "edit";
     onFormStateChange({ open, hasKeyboard: open && kbHeight > 60 });
   }, [mode, kbHeight, onFormStateChange]);
-  const formRef = useRef(null);
   const titleRef = useRef(null);
-  // When the form opens, slide it into view. When an input gets
-  // focused, make sure the input sits in the middle of the visible
-  // viewport so the keyboard never hides it.
   useEffect(() => {
     if (mode !== "create" && mode !== "edit") return;
-    const t = setTimeout(() => {
-      try { formRef.current?.scrollIntoView({ block: "center", behavior: "smooth" }); } catch { /* noop */ }
+    const id = setTimeout(() => {
       try { titleRef.current?.focus({ preventScroll: true }); } catch { /* noop */ }
-    }, 60);
-    return () => clearTimeout(t);
+    }, 80);
+    return () => clearTimeout(id);
   }, [mode]);
-  const scrollInputIntoView = (el) => {
-    if (!el) return;
-    setTimeout(() => {
-      try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch { /* noop */ }
-    }, 260);
-  };
 
   useEffect(() => {
     if (customError) {
@@ -298,179 +297,286 @@ function CustomHabitManager({
         </>
       )}
 
-      {(mode === "create" || mode === "edit") && (
+      {(mode === "create" || mode === "edit") && createPortal(
         <div
-          ref={formRef}
-          className="ch-inline-form"
           style={{
-            borderRadius: 14,
-            border: `1px solid ${accentBorder}`,
-            background: "var(--card-bg)",
-            padding: 12,
-            marginTop: 4,
-            // Reserve extra bottom room matching the iOS software
-            // keyboard height so Save stays reachable while typing.
-            paddingBottom: `calc(12px + ${kbHeight}px)`,
-            transition: "padding-bottom 200ms ease",
-            overflow: "hidden"
+            position: "fixed",
+            inset: 0,
+            zIndex: 240,
+            background: "rgba(0, 0, 0, 0.6)",
+            display: "block"
           }}
+          onClick={(e) => { if (e.target === e.currentTarget) resetForm(); }}
         >
-          <label className="cinzel text-xs tracking-widest uppercase block mb-1" style={accentStyle}>
-            {t.customHabitTitleLabel}
-          </label>
-          <input
-            ref={titleRef}
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value.slice(0, TITLE_MAX))}
-            onFocus={(e) => scrollInputIntoView(e.currentTarget)}
-            maxLength={TITLE_MAX}
-            className="w-full rounded-md px-3 py-2 text-slate-100"
-            style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--card-border-idle)", minHeight: 44, boxSizing: "border-box" }}
-            placeholder={t.customHabitTitlePlaceholder}
-          />
-          <div className="text-right text-xs text-slate-500 mt-1">{title.length} / {TITLE_MAX}</div>
-
-          <label className="cinzel text-xs tracking-widest uppercase block mt-2 mb-1" style={accentStyle}>
-            {t.customHabitDescLabel}
-          </label>
-          <textarea
-            value={desc}
-            onChange={(e) => setDesc(e.target.value.slice(0, DESC_MAX))}
-            onFocus={(e) => scrollInputIntoView(e.currentTarget)}
-            maxLength={DESC_MAX}
-            rows={2}
-            className="w-full rounded-md px-3 py-2 text-slate-100"
-            style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--card-border-idle)", resize: "vertical", boxSizing: "border-box" }}
-            placeholder={t.customHabitDescPlaceholder}
-          />
-          <div className="text-right text-xs text-slate-500 mt-1">{desc.length} / {DESC_MAX}</div>
-
-          {/* Timer toggle + minutes input */}
-          <div className="mt-3 rounded-lg p-3" style={{ border: "1px solid var(--card-border-idle)", background: "rgba(0,0,0,0.2)" }}>
-            <label
-              className="flex items-center gap-2 cursor-pointer"
-              style={{ fontSize: 13, color: "#e2e8f0" }}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "fixed",
+              left: 0,
+              right: 0,
+              top: vvTop ? `${vvTop}px` : 0,
+              width: "100vw",
+              maxWidth: "100vw",
+              height: vvHeight ? `${vvHeight}px` : "100dvh",
+              maxHeight: vvHeight ? `${vvHeight}px` : "100dvh",
+              display: "flex",
+              alignItems: "flex-end",
+              justifyContent: "center",
+              padding: 0,
+              boxSizing: "border-box",
+              overflow: "hidden"
+            }}
+          >
+            <div
+              style={{
+                width: "100vw",
+                maxWidth: "100vw",
+                maxHeight: "100%",
+                display: "flex",
+                flexDirection: "column",
+                borderRadius: "18px 18px 0 0",
+                overflow: "hidden",
+                boxSizing: "border-box",
+                background: "var(--card-bg, #0f172a)",
+                border: "1px solid color-mix(in srgb, var(--color-primary) 50%, var(--panel-border))",
+                borderBottom: "none",
+                boxShadow: "0 -20px 48px rgba(0,0,0,0.55)",
+                animation: "ch-sheet-in 260ms cubic-bezier(0.2, 0.9, 0.35, 1)"
+              }}
             >
-              <input
-                type="checkbox"
-                checked={needsTimer}
-                onChange={(e) => setNeedsTimer(e.target.checked)}
-                style={{ width: 18, height: 18, cursor: "pointer" }}
-              />
-              <span className="cinzel" style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", ...accentStyle }}>
-                {t.customHabitUseTimer || "Use timer"}
-              </span>
-            </label>
-            {needsTimer ? (
-              <div className="mt-2">
-                <label className="cinzel text-[11px] tracking-widest uppercase block mb-1" style={{ color: "var(--color-muted)" }}>
-                  {t.customHabitMinutesLabel || "Duration (minutes)"}
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    max={480}
-                    value={timeMinutes}
-                    onChange={(e) => setTimeMinutes(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
-                    onFocus={(e) => scrollInputIntoView(e.currentTarget)}
-                    className="rounded-md px-3 py-2 text-slate-100"
-                    style={{ width: 100, background: "rgba(0,0,0,0.35)", border: "1px solid var(--card-border-idle)", minHeight: 40 }}
-                    placeholder="30"
-                  />
-                  <span className="text-xs" style={{ color: "var(--color-muted)" }}>
-                    → <strong style={{ color: "#4ade80" }}>+{previewXp} XP</strong>{" "}
-                    {t.customHabitXpHint || "per completion"}
-                  </span>
-                </div>
-                <p className="text-[11px] mt-2" style={{ color: "var(--color-muted)", lineHeight: 1.45 }}>
-                  {t.customHabitXpExplain
-                    || "Up to 39 min → 30 XP · 40–49 min → 40 XP · 50+ min → 50 XP"}
-                </p>
+              {/* Header */}
+              <div
+                style={{
+                  padding: "14px 16px",
+                  borderBottom: "1px solid var(--card-border-idle)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  background: "color-mix(in srgb, var(--color-primary) 7%, var(--card-bg, #0f172a))"
+                }}
+              >
+                <h3
+                  className="cinzel"
+                  style={{
+                    margin: 0,
+                    fontSize: 14,
+                    fontWeight: 800,
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    color: "var(--color-primary)"
+                  }}
+                >
+                  {mode === "create" ? t.customHabitCreate : t.customHabitEdit}
+                </h3>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  aria-label={t.cancelLabel}
+                  className="ui-close-x"
+                  style={{ width: 34, height: 34, fontSize: 18 }}
+                >
+                  ✕
+                </button>
               </div>
-            ) : null}
-          </div>
 
-          {customError ? (
-            <p className="text-red-400 text-xs mt-2 font-bold">{customError}</p>
-          ) : null}
+              {/* Scrollable body */}
+              <div
+                style={{
+                  flex: 1,
+                  minHeight: 0,
+                  overflowY: "auto",
+                  WebkitOverflowScrolling: "touch",
+                  padding: "14px 16px"
+                }}
+              >
+                <label className="cinzel text-xs tracking-widest uppercase block mb-1" style={accentStyle}>
+                  {t.customHabitTitleLabel}
+                </label>
+                <input
+                  ref={titleRef}
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value.slice(0, TITLE_MAX))}
+                  maxLength={TITLE_MAX}
+                  className="w-full rounded-md px-3 py-2 text-slate-100"
+                  style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--card-border-idle)", minHeight: 44, boxSizing: "border-box" }}
+                  placeholder={t.customHabitTitlePlaceholder}
+                />
+                <div className="text-right text-xs text-slate-500 mt-1">{title.length} / {TITLE_MAX}</div>
 
-          <div className="flex gap-2 mt-3">
-            <button
-              type="button"
-              onClick={resetForm}
-              className="flex-1 rounded-md py-2 cinzel text-xs mobile-pressable"
-              style={{
-                background: "transparent",
-                border: "1px solid var(--card-border-idle)",
-                color: "#cbd5e1",
-                cursor: "pointer",
-                minHeight: 44
-              }}
-            >
-              {t.cancelLabel}
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={customSaving || !title.trim()}
-              className="flex-1 rounded-md py-2 cinzel text-xs font-bold mobile-pressable"
-              style={{
-                background: `var(${accentVar})`,
-                color: "#0f172a",
-                border: "none",
-                cursor: customSaving || !title.trim() ? "not-allowed" : "pointer",
-                opacity: customSaving || !title.trim() ? 0.6 : 1,
-                minHeight: 44
-              }}
-            >
-              {customSaving
-                ? t.onboardingSaving
-                : t.customHabitSave}
-            </button>
+                <label className="cinzel text-xs tracking-widest uppercase block mt-3 mb-1" style={accentStyle}>
+                  {t.customHabitDescLabel}
+                </label>
+                <textarea
+                  value={desc}
+                  onChange={(e) => setDesc(e.target.value.slice(0, DESC_MAX))}
+                  maxLength={DESC_MAX}
+                  rows={3}
+                  className="w-full rounded-md px-3 py-2 text-slate-100"
+                  style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--card-border-idle)", resize: "vertical", minHeight: 76, boxSizing: "border-box" }}
+                  placeholder={t.customHabitDescPlaceholder}
+                />
+                <div className="text-right text-xs text-slate-500 mt-1">{desc.length} / {DESC_MAX}</div>
+
+                <div className="mt-3 rounded-lg p-3" style={{ border: "1px solid var(--card-border-idle)", background: "rgba(0,0,0,0.2)" }}>
+                  <label
+                    className="flex items-center gap-2 cursor-pointer"
+                    style={{ fontSize: 13, color: "#e2e8f0" }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={needsTimer}
+                      onChange={(e) => setNeedsTimer(e.target.checked)}
+                      style={{ width: 18, height: 18, cursor: "pointer" }}
+                    />
+                    <span className="cinzel" style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", ...accentStyle }}>
+                      {t.customHabitUseTimer || "Use timer"}
+                    </span>
+                  </label>
+                  {needsTimer ? (
+                    <div className="mt-2">
+                      <label className="cinzel text-[11px] tracking-widest uppercase block mb-1" style={{ color: "var(--color-muted)" }}>
+                        {t.customHabitMinutesLabel || "Duration (minutes)"}
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          max={480}
+                          value={timeMinutes}
+                          onChange={(e) => setTimeMinutes(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
+                          className="rounded-md px-3 py-2 text-slate-100"
+                          style={{ width: 100, background: "rgba(0,0,0,0.35)", border: "1px solid var(--card-border-idle)", minHeight: 40 }}
+                          placeholder="30"
+                        />
+                        <span className="text-xs" style={{ color: "var(--color-muted)" }}>
+                          → <strong style={{ color: "#4ade80" }}>+{previewXp} XP</strong>{" "}
+                          {t.customHabitXpHint || "per completion"}
+                        </span>
+                      </div>
+                      <p className="text-[11px] mt-2" style={{ color: "var(--color-muted)", lineHeight: 1.45 }}>
+                        {t.customHabitXpExplain
+                          || "Up to 39 min → 30 XP · 40–49 min → 40 XP · 50+ min → 50 XP"}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+
+                {customError ? (
+                  <p className="text-red-400 text-xs mt-2 font-bold">{customError}</p>
+                ) : null}
+              </div>
+
+              {/* Sticky footer */}
+              <div
+                style={{
+                  padding: "12px 16px calc(12px + env(safe-area-inset-bottom, 0px))",
+                  borderTop: "1px solid var(--card-border-idle)",
+                  background: "rgba(0,0,0,0.35)",
+                  display: "flex",
+                  gap: 10
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="flex-1 rounded-md py-2 cinzel text-xs mobile-pressable"
+                  style={{
+                    background: "transparent",
+                    border: "1px solid var(--card-border-idle)",
+                    color: "#cbd5e1",
+                    cursor: "pointer",
+                    minHeight: 44
+                  }}
+                >
+                  {t.cancelLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={customSaving || !title.trim()}
+                  className="flex-1 rounded-md py-2 cinzel text-xs font-bold mobile-pressable"
+                  style={{
+                    background: `var(${accentVar})`,
+                    color: "#0f172a",
+                    border: "none",
+                    cursor: customSaving || !title.trim() ? "not-allowed" : "pointer",
+                    opacity: customSaving || !title.trim() ? 0.6 : 1,
+                    minHeight: 44
+                  }}
+                >
+                  {customSaving
+                    ? t.onboardingSaving
+                    : t.customHabitSave}
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {allowDelete && confirmDeleteId != null && (() => {
         const victim = Array.isArray(customQuests) ? customQuests.find((cq) => cq.id === confirmDeleteId) : null;
         const victimName = victim?.title || "";
-        return (
-        <div
-          className="logout-confirm-overlay"
-          style={{ zIndex: 120 }}
-          onClick={(e) => { if (e.target === e.currentTarget) setConfirmDeleteId(null); }}
-        >
-          <div className="logout-confirm-card" style={{ maxWidth: 360 }}>
-            <div className="text-3xl mb-2 text-center">🗑</div>
-            <p className="text-slate-100 text-center mb-4" style={{ lineHeight: 1.45 }}>
-              {tf("customHabitDeleteConfirm", { name: victimName })}
-            </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setConfirmDeleteId(null)}
-                className="flex-1 rounded-md py-2 cinzel text-xs mobile-pressable"
-                style={{ background: "transparent", border: "1px solid var(--card-border-idle)", color: "#cbd5e1", cursor: "pointer", minHeight: 44 }}
-                    >
-                      {t.cancelLabel}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDelete(confirmDeleteId)}
-                disabled={customSaving}
-                className="flex-1 rounded-md py-2 cinzel text-xs font-bold mobile-pressable"
-                style={{ background: "#dc2626", color: "#fff", border: "none", cursor: customSaving ? "not-allowed" : "pointer", opacity: customSaving ? 0.6 : 1, minHeight: 44 }}
-              >
-                {customSaving
-                      ? t.onboardingSaving
-                      : t.customHabitDelete}
-              </button>
+        return createPortal(
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 245,
+              background: "rgba(0,0,0,0.68)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 16
+            }}
+            onClick={(e) => { if (e.target === e.currentTarget) setConfirmDeleteId(null); }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: "100%",
+                maxWidth: 360,
+                background: "var(--card-bg, #0f172a)",
+                borderRadius: 18,
+                border: "1px solid color-mix(in srgb, #ef4444 40%, var(--panel-border))",
+                boxShadow: "0 24px 60px rgba(0,0,0,0.55)",
+                padding: "20px 20px 16px",
+                textAlign: "center",
+                animation: "tour-finale-in 280ms cubic-bezier(0.2, 0.9, 0.35, 1)"
+              }}
+            >
+              <div style={{ fontSize: 34, marginBottom: 8 }}>🗑</div>
+              <p className="text-slate-100" style={{ lineHeight: 1.45, margin: "0 0 16px" }}>
+                {tf("customHabitDeleteConfirm", { name: victimName })}
+              </p>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDeleteId(null)}
+                  className="flex-1 rounded-md py-2 cinzel text-xs mobile-pressable"
+                  style={{ background: "transparent", border: "1px solid var(--card-border-idle)", color: "#cbd5e1", cursor: "pointer", minHeight: 44 }}
+                >
+                  {t.cancelLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(confirmDeleteId)}
+                  disabled={customSaving}
+                  className="flex-1 rounded-md py-2 cinzel text-xs font-bold mobile-pressable"
+                  style={{ background: "#dc2626", color: "#fff", border: "none", cursor: customSaving ? "not-allowed" : "pointer", opacity: customSaving ? 0.6 : 1, minHeight: 44 }}
+                >
+                  {customSaving
+                    ? t.onboardingSaving
+                    : t.customHabitDelete}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
+          </div>,
+          document.body
         );
       })()}
     </div>

@@ -396,65 +396,6 @@ function OnboardingModal({
           </div>
         </div>
 
-        {/* Sticky habits-selected counter — lives between the header and
-            the sliding body, so it stays in view while the user scrolls
-            through the habit list. Hidden on step 0. */}
-        {wizardStep === 1 && !customFormExpanded ? (
-          <div
-            style={{
-              padding: "10px 16px 10px",
-              borderBottom: "1px solid var(--card-border-idle)",
-              background: "color-mix(in srgb, var(--color-primary) 6%, var(--card-bg, #0f172a))"
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, gap: 10 }}>
-              <span
-                className="cinzel"
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: "var(--color-primary)"
-                }}
-              >
-                {selectedCount} / {SELECTION_LIMIT}{" "}
-                <span style={{ color: "var(--color-muted)", fontWeight: 700 }}>
-                  {t.onboardingHabitsSelected || "habits selected"}
-                </span>
-              </span>
-              {selectionComplete ? (
-                <span
-                  className="cinzel"
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 800,
-                    letterSpacing: "0.1em",
-                    textTransform: "uppercase",
-                    padding: "3px 8px",
-                    borderRadius: 999,
-                    background: "color-mix(in srgb, var(--color-accent) 22%, transparent)",
-                    color: "var(--color-accent)",
-                    border: "1px solid color-mix(in srgb, var(--color-accent) 55%, transparent)"
-                  }}
-                >
-                  ✓ {t.onboardingReady || "ready"}
-                </span>
-              ) : null}
-            </div>
-            <div style={{ height: 4, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
-              <div
-                style={{
-                  width: `${progressPct}%`,
-                  height: "100%",
-                  background: selectionComplete ? "var(--color-accent)" : "var(--color-primary)",
-                  transition: "width 200ms ease"
-                }}
-              />
-            </div>
-          </div>
-        ) : null}
-
         <div
           style={{
             flex: 1,
@@ -730,6 +671,70 @@ function OnboardingModal({
               <span className="onb-habits-tab-label">{t.onboardingTabCustom || "Custom"}</span>
               <span className="onb-habits-tab-count">{Array.isArray(customQuests) ? customQuests.length : 0}</span>
             </button>
+          </div>
+
+          {/* HABITS SELECTED progress chip — sits directly under the
+              slide bar, sticks to the top of the scrollable body so
+              the count stays visible while the user browses habits. */}
+          <div
+            style={{
+              position: "sticky",
+              top: 0,
+              zIndex: 4,
+              marginTop: 8,
+              marginBottom: 12,
+              padding: "10px 12px",
+              borderRadius: 12,
+              background: "color-mix(in srgb, var(--color-primary) 8%, var(--card-bg, #0f172a))",
+              border: "1px solid color-mix(in srgb, var(--color-primary) 35%, var(--card-border-idle))",
+              backdropFilter: "saturate(1.1)"
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, gap: 10 }}>
+              <span
+                className="cinzel"
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "var(--color-primary)"
+                }}
+              >
+                {selectedCount} / {SELECTION_LIMIT}{" "}
+                <span style={{ color: "var(--color-muted)", fontWeight: 700 }}>
+                  {t.onboardingHabitsSelected || "habits selected"}
+                </span>
+              </span>
+              {selectionComplete ? (
+                <span
+                  className="cinzel"
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    padding: "3px 8px",
+                    borderRadius: 999,
+                    background: "color-mix(in srgb, var(--color-accent) 22%, transparent)",
+                    color: "var(--color-accent)",
+                    border: "1px solid color-mix(in srgb, var(--color-accent) 55%, transparent)"
+                  }}
+                >
+                  ✓ {t.onboardingReady || "ready"}
+                </span>
+              ) : null}
+            </div>
+            <div style={{ height: 4, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+              <div
+                style={{
+                  width: `${progressPct}%`,
+                  height: "100%",
+                  background: selectionComplete ? "var(--color-accent)" : "var(--color-primary)",
+                  transition: "width 200ms ease"
+                }}
+              />
+            </div>
           </div>
 
           {habitsTab === "presets" ? (
