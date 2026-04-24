@@ -293,6 +293,8 @@ function CustomHabitManager({
               top: vvTop ? `${vvTop}px` : 0,
               left: 0,
               right: 0,
+              width: "100vw",
+              maxWidth: "100vw",
               height: vvHeight ? `${vvHeight}px` : "100dvh",
               maxHeight: vvHeight ? `${vvHeight}px` : "100dvh",
               display: "flex",
@@ -300,18 +302,23 @@ function CustomHabitManager({
               // input is right above where the user is typing.
               alignItems: "flex-end",
               justifyContent: "center",
-              padding: 0
+              padding: 0,
+              boxSizing: "border-box",
+              overflow: "hidden"
             }}
           >
             <div
               style={{
                 width: "100%",
-                maxWidth: 520,
-                maxHeight: "calc(100% - 40px)",
+                maxWidth: "100vw",
+                // Compact sheet — only as tall as it needs to be, so it
+                // sits close to the keyboard instead of stretching up.
+                maxHeight: "min(520px, 100%)",
                 display: "flex",
                 flexDirection: "column",
                 borderRadius: "18px 18px 0 0",
                 overflow: "hidden",
+                boxSizing: "border-box",
                 background: "var(--card-bg, #0f172a)",
                 border: "1px solid color-mix(in srgb, var(--color-primary) 55%, var(--panel-border))",
                 borderBottom: "none",
