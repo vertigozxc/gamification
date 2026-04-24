@@ -124,15 +124,21 @@ async function request(path, options = {}) {
       }
 
       const errorMessage = (data && data.error) || `Request failed (${response.status})`;
-      try {
-        const mod = await import("./eventLogger.js");
-        mod.logEvent("api_error", {
-          level: response.status >= 500 ? "error" : "warn",
-          message: errorMessage,
-          meta: { path, status: response.status, method, attempts: attempt }
-        });
-      } catch {
-        // ignore
+      // Only ship 5xx (server bugs) to the admin events log. 4xx are
+      // expected business rejections ("Already claimed today", "Invalid
+      // request", auth failures, rate limits) — they're noise for admin
+      // and surface to the user through the normal error flow anyway.
+      if (response.status >= 500) {
+        try {
+          const mod = await import("./eventLogger.js");
+          mod.logEvent("api_error", {
+            level: "error",
+            message: errorMessage,
+            meta: { path, status: response.status, method, attempts: attempt }
+          });
+        } catch {
+          // ignore
+        }
       }
       if (notifiedRetry) dispatchNetworkEvent("api-retry-end", { path, method, ok: false });
       const errObj = new Error(errorMessage);

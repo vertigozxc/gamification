@@ -109,7 +109,7 @@ async function flushEvents() {
 // we don't burn CPU, bandwidth, or server cycles on non-actionable
 // telemetry. To add a new admin-visible event, pass `level: "warn"`
 // or higher.
-const ADMIN_LEVELS = new Set(["warn", "warning", "error", "critical", "problem"]);
+const ADMIN_LEVELS = new Set(["warn", "warning", "error", "fatal", "critical", "problem"]);
 
 export function logEvent(type, data = {}) {
   if (typeof window === "undefined") return;

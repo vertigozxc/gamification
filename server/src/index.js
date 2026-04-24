@@ -918,6 +918,50 @@ app.post("/api/admin/users/:userId/reset-full", requireAdmin, async (req, res) =
 });
 
 // Public event ingestion (rate-limited per IP/userId)
+// Levels that actually warrant a row in the admin events table. Anything
+// below warn (info / debug / analytics pings) is treated as noise and
+// dropped without touching the DB — even if an older client build is
+// still sending it. This is the last line of defence; the web and mobile
+// event loggers also filter at the source (see `ADMIN_LEVELS` in both
+// eventLogger modules).
+const INGEST_ADMIN_LEVELS = new Set(["warn", "warning", "error", "fatal", "critical", "problem"]);
+
+// Event types that are PURELY analytics/telemetry and should never reach
+// the admin panel regardless of the level field. Older mobile builds
+// shipped `mobile_app_state` pings at info level; client_session_start
+// is the web equivalent; ab_assigned powers an experiments view that is
+// not currently used. If one of these ever needs to come back, carve it
+// out here rather than punching a hole in the level filter.
+const INGEST_NOISE_TYPES = new Set([
+  "mobile_app_state",
+  "client_session_start",
+  "ab_assigned",
+  "auth_login",
+  "quest_completed",
+  "level_up",
+  "extra_reroll_purchased",
+  "streak_freeze_activated",
+  "pinned_quests_rerolled"
+]);
+
+function shouldPersistEvent(evt) {
+  const level = String(evt?.level || "").toLowerCase();
+  if (!INGEST_ADMIN_LEVELS.has(level)) return false;
+  const type = String(evt?.type || "").toLowerCase();
+  if (INGEST_NOISE_TYPES.has(type)) return false;
+  // Defensive: a client that still logs every 4xx as warn would flood
+  // admin with expected business rejections. Drop those here too.
+  if (type === "api_error") {
+    let status = 0;
+    const meta = evt?.meta;
+    if (meta && typeof meta === "object" && !Array.isArray(meta)) {
+      status = Number(meta.status) || 0;
+    }
+    if (status > 0 && status < 500) return false;
+  }
+  return true;
+}
+
 app.post("/api/events/ingest", async (req, res) => {
   const ip = String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "unknown").split(",")[0].trim();
   const body = req.body || {};
@@ -929,8 +973,9 @@ app.post("/api/events/ingest", async (req, res) => {
 
   const ua = String(req.headers["user-agent"] || "");
   const events = Array.isArray(body.events) ? body.events : [body];
+  const kept = events.slice(0, 50).filter(shouldPersistEvent);
 
-  await Promise.all(events.slice(0, 50).map((evt) =>
+  await Promise.all(kept.map((evt) =>
     recordEvent({
       type: evt.type,
       level: evt.level,
@@ -945,7 +990,7 @@ app.post("/api/events/ingest", async (req, res) => {
     })
   ));
 
-  res.json({ ok: true, count: events.length });
+  res.json({ ok: true, count: kept.length, dropped: events.length - kept.length });
 });
 
 // Admin: list recent events (filterable)
@@ -1079,6 +1124,20 @@ const AB_CONVERSION_TYPES = new Set([
   "pinned_quests_rerolled"
 ]);
 
+
+// Admin: targeted wipe of the events/audit log table only. Users,
+// quests, friendships, all gameplay data stay untouched. Useful when
+// stale analytics or noise events are polluting the admin dashboard
+// and we want a clean baseline without resetting accounts.
+app.post("/api/admin/wipe-events", requireAdmin, async (_req, res) => {
+  try {
+    const result = await prisma.event.deleteMany({});
+    res.json({ ok: true, deleted: { events: result.count } });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error", detail: String(error?.message || error) });
+  }
+});
 
 // Admin: destructive full wipe of app data + admin/event logs.
 app.post("/api/admin/wipe-all-data", requireAdmin, async (_req, res) => {

@@ -346,6 +346,23 @@ export default function AdminPanel() {
     }
   }
 
+  async function runWipeEvents() {
+    const ok = window.confirm("Wipe ALL event / audit log rows? Users and gameplay data are NOT affected. This cannot be undone.");
+    if (!ok) return;
+
+    setError("");
+    setLoading(true);
+    try {
+      const result = await adminFetch("/api/admin/wipe-events", token, { method: "POST" });
+      await load();
+      window.alert(`Events wiped: ${result?.deleted?.events ?? 0}`);
+    } catch (err) {
+      setError(String(err?.message || err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function load() {
     if (!token) return;
     setLoading(true);
@@ -722,7 +739,10 @@ export default function AdminPanel() {
           <div style={styles.helpText}>
             Available actions: +500 XP, reset daily quests, hard reset (level + quests).
           </div>
-          <div style={styles.userActionsRow}> 
+          <div style={styles.userActionsRow}>
+            <button style={styles.actionButton} onClick={runWipeEvents} disabled={loading}>
+              Wipe Event Logs
+            </button>
             <button style={styles.actionButtonDanger} onClick={runWipeAllData} disabled={usersLoading}>
               Wipe All DB Data
             </button>
