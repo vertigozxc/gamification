@@ -605,6 +605,9 @@ app.post("/api/dev/reset-me", async (req, res) => {
           // though the account is wiped, and the dev tester lands on a
           // nameless empty dashboard instead of the onboarding screen.
           onboardingSkippedAt: null,
+          // Also clear the animated tour flag so the full intro walkthrough
+          // fires again on next login — same rationale as the skip flag.
+          onboardingTourCompletedAt: null,
           // Drop the public @handle too — onboarding will reassign it.
           handle: null
         }
