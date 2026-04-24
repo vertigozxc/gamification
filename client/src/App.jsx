@@ -422,7 +422,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     list.push({
       id: "habits-custom",
       hidden: hideSetup,
-      target: '[data-tour="my-custom-habits"]',
+      // Highlight from the slide bar down through the Custom-tab list
+      // — the picker wrapper (tabs + sticky chip + active content).
+      target: '[data-tour="habits-picker"]',
       title: t.tourHabitsCustomTitle || "Your custom habits",
       text: t.tourHabitsCustomText || "This tab is where you build your own habits. Tap Next to see the curated catalog.",
       gate: "next",
@@ -433,7 +435,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     list.push({
       id: "habits-browse",
       hidden: hideSetup,
-      target: '[data-tour="browse-habits"]',
+      target: '[data-tour="habits-picker"]',
       title: t.tourHabitsBrowseTitle || "Ready-made habits",
       text: t.tourHabitsBrowseText || "Filter by category or search. Pick 2 habits you want to build, then tap Next.",
       gate: "condition",

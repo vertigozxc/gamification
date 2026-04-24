@@ -641,6 +641,10 @@ function OnboardingModal({
             </p>
           </div>
 
+          {/* habits-picker — wraps the slide bar, the sticky counter
+              and the active tab content. This is the region the tour
+              spotlights on habits-custom / habits-browse steps. */}
+          <div data-tour="habits-picker">
           {/* Segmented slide bar: Presets ↔ Custom. Active tab slides
               under the labels like an iOS control. */}
           <div
@@ -837,6 +841,7 @@ function OnboardingModal({
               />
             </div>
           )}
+          </div>
           </div>
           </section>
           </div>
