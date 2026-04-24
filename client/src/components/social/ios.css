@@ -89,9 +89,9 @@
 }
 .social-block .sb-page-footer {
   flex-shrink: 0;
-  padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px));
+  padding: 8px 0 calc(6px + env(safe-area-inset-bottom, 0px) / 2);
   border-top: 1px solid var(--card-border-idle, rgba(255, 255, 255, 0.12));
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 /* ============================================================================
@@ -530,82 +530,69 @@ body[data-theme="light"] .social-block .cm-tabs-slider {
  * friend chip grid and a live pact preview. Scoped under .social-block.
  * ============================================================================ */
 
+/* Stepper — mirrors OnboardingModal's Presets/Custom tab bar:
+ * pill container with a primary→accent gradient slider that glides
+ * under the active segment. No numbered circles — the active label
+ * flips to dark text on the gradient; past/future steps stay muted. */
 .social-block .cc-stepper {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  height: 44px;
-  background: color-mix(in srgb, var(--panel-bg) 80%, transparent);
-  border: 1px solid color-mix(in srgb, var(--card-border-idle) 65%, transparent);
-  border-radius: 12px;
-  overflow: hidden;
-  isolation: isolate;
-  padding: 0;
+  grid-template-columns: repeat(var(--cc-tabs-count, 3), 1fr);
+  align-items: stretch;
+  gap: 0;
+  padding: 4px;
   margin-bottom: 16px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-muted) 14%, var(--panel-bg));
+  border: 1px solid var(--card-border-idle);
+  overflow: hidden;
 }
-.social-block .cc-stepper-fill {
+.social-block .cc-stepper-slider {
   position: absolute;
-  inset: 0 auto 0 0;
-  background: color-mix(in srgb, var(--color-primary) 16%, transparent);
-  border-right: 2px solid color-mix(in srgb, var(--color-primary) 60%, transparent);
-  transition: width 280ms cubic-bezier(0.32, 0.72, 0, 1);
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc((100% - 8px) / var(--cc-tabs-count, 3));
+  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+  border-radius: 10px;
+  transform: translateX(calc(var(--cc-tabs-active, 0) * 100%));
+  transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--color-primary) 22%, transparent);
   pointer-events: none;
   z-index: 0;
 }
 .social-block .cc-step {
   position: relative;
   z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 0 6px;
   border: none;
   background: transparent;
   color: var(--color-muted);
   font-family: var(--font-heading);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  cursor: pointer;
-  transition: color 200ms ease, opacity 200ms ease;
-  -webkit-tap-highlight-color: transparent;
-  min-width: 0;
-}
-.social-block .cc-step:disabled {
-  cursor: default;
-  opacity: 0.85;
-}
-.social-block .cc-step.active,
-.social-block .cc-step.done {
-  color: var(--color-primary);
-}
-.social-block .cc-step-num {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  display: inline-flex;
+  padding: 10px 12px;
+  min-height: 42px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--card-border-idle) 60%, transparent);
-  color: var(--color-muted);
-  font-size: 10px;
-  font-weight: 800;
-  font-family: var(--font-heading);
-  flex-shrink: 0;
-  transition: background-color 200ms ease, color 200ms ease;
+  gap: 6px;
+  cursor: pointer;
+  transition: color 180ms ease;
+  -webkit-tap-highlight-color: transparent;
 }
-.social-block .cc-step.active .cc-step-num,
-.social-block .cc-step.done .cc-step-num {
-  background: var(--color-primary);
-  color: #1b1410;
-}
+.social-block .cc-step[aria-selected="true"] { color: #0b1120; }
+body[data-theme="light"] .social-block .cc-step[aria-selected="true"] { color: #f8fafc; }
+.social-block .cc-step:disabled { cursor: default; }
 .social-block .cc-step-label {
+  line-height: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-width: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .social-block .cc-stepper-slider { transition: none; }
 }
 
 /* Step body — content below the stepper, stacked fields with 14px gaps. */
@@ -621,7 +608,6 @@ body[data-theme="light"] .social-block .cm-tabs-slider {
 }
 @media (prefers-reduced-motion: reduce) {
   .social-block .cc-step-body { animation: none; }
-  .social-block .cc-stepper-fill { transition: none; }
 }
 
 /* Step hint — mirrors .cm-intro so hints across the wizard feel coherent
@@ -714,13 +700,14 @@ body[data-theme="light"] .social-block .cm-tabs-slider {
 }
 
 .social-block .cc-friend-chip {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
   padding: 10px 6px 8px;
   border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--card-border-idle) 65%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--card-border-idle) 65%, transparent);
   background: var(--panel-bg);
   color: var(--color-text);
   cursor: pointer;
@@ -728,6 +715,7 @@ body[data-theme="light"] .social-block .cm-tabs-slider {
   transition: background-color 160ms ease, border-color 160ms ease, transform 120ms ease;
   -webkit-tap-highlight-color: transparent;
   min-width: 0;
+  overflow: visible;
 }
 .social-block .cc-friend-chip:disabled {
   opacity: 0.35;
@@ -735,14 +723,14 @@ body[data-theme="light"] .social-block .cm-tabs-slider {
 }
 .social-block .cc-friend-chip.picked {
   background: color-mix(in srgb, var(--color-primary) 14%, var(--panel-bg));
-  border-color: color-mix(in srgb, var(--color-primary) 55%, transparent);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 45%, transparent);
 }
 .social-block .cc-friend-chip.press:active:not(:disabled) {
   transform: scale(0.97);
 }
 
 .social-block .cc-friend-chip-avatar {
-  position: relative;
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -750,21 +738,25 @@ body[data-theme="light"] .social-block .cm-tabs-slider {
   background: color-mix(in srgb, var(--panel-bg) 80%, #000 20%);
   flex-shrink: 0;
 }
+/* Check badge — anchored to the chip's outer border (top-right corner),
+ * NOT to the avatar. The chip's overflow:visible lets it pop out. */
 .social-block .cc-friend-chip-badge {
   position: absolute;
-  bottom: -2px;
-  right: -2px;
-  width: 18px;
-  height: 18px;
+  top: -7px;
+  right: -7px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: var(--color-primary);
   color: #1b1410;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 2px solid var(--panel-bg);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary) 40%, transparent);
+  z-index: 2;
 }
 .social-block .cc-friend-chip-name {
   font-size: 12px;
@@ -1839,15 +1831,56 @@ body[data-theme="light"] .social-block .cm-tabs-slider {
   padding: 12px 14px;
   background: var(--panel-bg);
   color: var(--color-text);
-  border: 1px solid var(--panel-border);
+  border: 1px solid color-mix(in srgb, var(--card-border-idle) 65%, transparent);
   border-radius: 12px;
   font-size: 16px;
   outline: none;
   -webkit-appearance: none;
   font-family: inherit;
+  /* iOS: when the keyboard pops, the browser tries to scrollIntoView
+   * the focused input, which shifts the whole form up. A generous
+   * scroll-margin around the input tells the browser it's already
+   * "comfortable" — no scroll needed. */
+  scroll-margin-top: 120px;
+  scroll-margin-bottom: 240px;
 }
 .social-block .sb-input:focus {
-  border-color: color-mix(in srgb, var(--color-primary) 60%, var(--panel-border));
+  border-color: color-mix(in srgb, var(--color-primary) 60%, transparent);
+}
+
+/* Wrapper for an sb-input with an inline clear (✕) button, same look
+ * as the search input on the Friends screen. Visible only when the
+ * input has text. */
+.social-block .cc-input-wrap {
+  position: relative;
+}
+.social-block .cc-input-wrap .sb-input {
+  padding-right: 40px;
+}
+.social-block .cc-input-clear {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  background: rgba(120, 120, 128, 0.5);
+  color: #fff;
+  border: none;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 140ms ease;
+}
+.social-block .cc-input-clear:active {
+  background: rgba(120, 120, 128, 0.75);
 }
 
 /* ---------- Typography helpers -------------------------------------------- */

@@ -122,7 +122,7 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
     : `${t.arenaStepNext || "Next"} ›`;
   const backLabel = step === 0
     ? (t.communityCancel || "Cancel")
-    : `‹ ${t.arenaStepBack || "Back"}`;
+    : (t.arenaStepBack || "Back");
 
   const footer = (
     <div style={{ display: "flex", gap: 8 }}>
@@ -205,17 +205,21 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
 }
 
 /* ────────────────────────────────────────────────────────────────
- * Stepper — pill with 3 segments + a sliding primary-tinted fill
- * that grows with progress. Past steps are clickable; current is
- * highlighted; future ones are dim.
+ * Stepper — pill with a primary→accent gradient slider that glides
+ * under the active step (same visual language as the Presets/Custom
+ * tab bar in OnboardingModal). Past steps are clickable, future ones
+ * are gated by the form's validation.
  * ──────────────────────────────────────────────────────────────── */
 function Stepper({ steps, current, onJump }) {
-  const fillPct = ((current + 1) / steps.length) * 100;
   return (
-    <div className="cc-stepper" role="tablist" aria-label="Create challenge steps">
-      <div className="cc-stepper-fill" style={{ width: `${fillPct}%` }} aria-hidden="true" />
+    <div
+      className="cc-stepper"
+      role="tablist"
+      aria-label="Create challenge steps"
+      style={{ "--cc-tabs-count": steps.length, "--cc-tabs-active": current }}
+    >
+      <div className="cc-stepper-slider" aria-hidden="true" />
       {steps.map((s, i) => {
-        const isDone = i < current;
         const isActive = i === current;
         return (
           <button
@@ -225,9 +229,8 @@ function Stepper({ steps, current, onJump }) {
             aria-selected={isActive}
             onClick={() => onJump(i)}
             disabled={i > current}
-            className={`cc-step ${isActive ? "active" : ""} ${isDone ? "done" : ""}`}
+            className="cc-step"
           >
-            <span className="cc-step-num">{isDone ? "✓" : i + 1}</span>
             <span className="cc-step-label">{s.label}</span>
           </button>
         );
@@ -247,28 +250,52 @@ function BasicsStep({ t, title, setTitle, questTitle, setQuestTitle }) {
       </p>
 
       <Field label={t.arenaPactNameLabel || "Challenge name"}>
-        <input
-          type="text"
+        <InputWithClear
           value={title}
-          maxLength={80}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={setTitle}
           placeholder={t.arenaPactNamePlaceholder || "e.g. Morning routine"}
-          className="sb-input"
+          maxLength={80}
+          clearLabel={t.communityCancel || "Clear"}
           autoFocus
         />
       </Field>
 
       <Field label={t.arenaRitualLabel || "Daily task"}>
-        <input
-          type="text"
+        <InputWithClear
           value={questTitle}
-          maxLength={80}
-          onChange={(e) => setQuestTitle(e.target.value)}
+          onChange={setQuestTitle}
           placeholder={t.arenaRitualPlaceholder || "e.g. 30 push-ups before breakfast"}
-          className="sb-input"
+          maxLength={80}
+          clearLabel={t.communityCancel || "Clear"}
         />
       </Field>
     </>
+  );
+}
+
+function InputWithClear({ value, onChange, placeholder, maxLength, clearLabel, autoFocus }) {
+  return (
+    <div className="cc-input-wrap">
+      <input
+        type="text"
+        value={value}
+        maxLength={maxLength}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="sb-input"
+        autoFocus={autoFocus}
+      />
+      {value && (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          aria-label={clearLabel || "Clear"}
+          className="cc-input-clear press"
+        >
+          ✕
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -372,11 +399,11 @@ function InviteStep({ t, friends, selected, onToggle, maxInvitees, preview }) {
                 aria-pressed={picked}
                 className={`cc-friend-chip press ${picked ? "picked" : ""}`}
               >
+                {picked && (
+                  <span className="cc-friend-chip-badge" aria-hidden="true">✓</span>
+                )}
                 <div className="cc-friend-chip-avatar">
                   <Avatar photoUrl={f.photoUrl} displayName={f.displayName} size={40} />
-                  {picked && (
-                    <span className="cc-friend-chip-badge" aria-hidden="true">✓</span>
-                  )}
                 </div>
                 <span className="cc-friend-chip-name">{f.displayName || f.username}</span>
                 <span className="cc-friend-chip-meta">{t.arenaLvlShort || "Lv"} {f.level}</span>
