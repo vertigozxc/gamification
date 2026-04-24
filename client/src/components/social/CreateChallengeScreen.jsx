@@ -344,13 +344,15 @@ function RulesStep({ t, duration, setDuration, needsTimer, setNeedsTimer, timeEs
       </div>
 
       {needsTimer && (
-        <Field label={t.arenaTimedMinutes || "Duration (minutes)"}>
+        <Field label={t.arenaTimedMinutes || "Duration · 1–180 min"}>
           <input
             type="number"
+            inputMode="numeric"
             min={1}
             max={180}
             value={timeEstimateMin}
             onChange={(e) => setTimeEstimateMin(e.target.value)}
+            placeholder="1–180"
             className="sb-input"
           />
         </Field>
