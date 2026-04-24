@@ -103,7 +103,7 @@ export default function AchievementsSection({ username, t, languageId, onModalOp
   const total = ordered.length;
 
   return (
-    <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
+    <div className="mobile-card flex flex-col" style={{ background: "var(--panel-bg)" }}>
       <button
         type="button"
         className="mobile-pressable flex items-center justify-between w-full"
@@ -143,14 +143,15 @@ export default function AchievementsSection({ username, t, languageId, onModalOp
 
       <div
         style={{
-          display: "grid",
-          gridTemplateRows: expanded ? "1fr" : "0fr",
+          maxHeight: expanded ? 320 : 0,
           opacity: expanded ? 1 : 0,
-          transition: "grid-template-rows 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 240ms ease",
+          overflow: "hidden",
+          transition: "max-height 280ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms ease, padding-top 280ms cubic-bezier(0.4, 0, 0.2, 1)",
+          paddingTop: expanded ? 12 : 0,
+          willChange: "max-height, opacity",
         }}
         aria-hidden={!expanded}
       >
-        <div style={{ overflow: "hidden", minHeight: 0 }}>
       <div className="grid grid-cols-5 gap-2">
         {ordered.map((item) => {
           const Icon = ACHIEVEMENT_ICONS[item.code];
@@ -188,7 +189,6 @@ export default function AchievementsSection({ username, t, languageId, onModalOp
           );
         })}
       </div>
-        </div>
       </div>
 
       {expanded && loading && !data ? (
