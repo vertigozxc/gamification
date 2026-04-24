@@ -250,7 +250,7 @@ function ChallengeItem({ challenge, meUid, t, busy, optimisticDone, onComplete, 
 
   return (
     <div
-      className={`qb-quest-item${pressing ? " qb-quest-pressing" : ""}${completedToday ? " qb-quest-done" : ""}${pending ? " qb-quest-pending" : ""}`}
+      className={`qb-quest-item qb-chal-item${pressing ? " qb-quest-pressing" : ""}${completedToday ? " qb-quest-done" : ""}${pending ? " qb-quest-pending" : ""}`}
       style={{ position: "relative" }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}

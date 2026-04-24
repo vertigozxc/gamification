@@ -1645,16 +1645,36 @@ body[data-theme="light"] .delete-profile-confirm-cancel {
 .dash-progress-strip{align-items:center;gap:.65rem;padding:0 .15rem;display:flex}
 .dash-milestone{-webkit-backdrop-filter:blur(12px);background:color-mix(in srgb,var(--card-bg) 82%,transparent);border:1px solid color-mix(in srgb,var(--card-border-idle) 70%,transparent);border-radius:1rem;flex-direction:column;justify-content:center;align-items:center;gap:.25rem;padding:.65rem .25rem;transition:all .3s cubic-bezier(.2,.8,.2,1);display:flex;position:relative;overflow:hidden}
 .dash-milestone-on{background:color-mix(in srgb,var(--color-primary) 16%,transparent);border-color:color-mix(in srgb,var(--color-primary) 42%,transparent);box-shadow:inset 0 0 12px color-mix(in srgb,var(--color-primary) 18%,transparent)}
-.qb-tab-bar{background:var(--quest-tab-bar-bg);border:1.5px solid var(--quest-tab-bar-border);border-radius:999px;gap:.15rem;margin-bottom:1.25rem;padding:.15rem;display:flex;position:relative;overflow:visible}
-.qb-tab-bar-expand{display:grid;transition:grid-template-columns .36s cubic-bezier(.22,1,.36,1);align-items:stretch;gap:.15rem;min-height:2.6rem}
-.qb-tab-btn{z-index:1;font-family:var(--font-heading);letter-spacing:.02em;color:#94a3b8;cursor:pointer;white-space:nowrap;background:0 0;border:1.5px solid transparent;border-radius:999px;flex:1;justify-content:center;align-items:center;gap:.3rem;padding:.35rem .5rem;font-size:.75rem;font-weight:700;transition:color .25s,background .24s,border-color .24s,box-shadow .24s;display:flex;position:relative;min-width:0;overflow:hidden}
-.qb-tab-icon{font-size:.95rem;line-height:1;flex-shrink:0}
-.qb-tab-label{max-width:0;opacity:0;overflow:hidden;transition:max-width .34s cubic-bezier(.22,1,.36,1),opacity .22s ease-out,margin .34s cubic-bezier(.22,1,.36,1);margin:0}
-.qb-tab-active .qb-tab-label{max-width:140px;opacity:1}
+/* Base tab-bar (used by Community/Leaderboard — original sliding pill). */
+.qb-tab-bar{background:var(--quest-tab-bar-bg);border:1.5px solid var(--quest-tab-bar-border);border-radius:999px;gap:0;margin-bottom:1.25rem;padding:0;display:flex;position:relative;overflow:visible}
+.qb-tab-indicator{box-sizing:border-box;pointer-events:none;z-index:0;background:#6366f173;border:1.5px solid #818cf899;border-radius:999px;height:100%;transition:transform .32s cubic-bezier(.22,1,.36,1),width .32s cubic-bezier(.22,1,.36,1);position:absolute;top:0;left:0;box-shadow:0 4px 12px #6366f14d}
+.qb-tab-btn{z-index:1;font-family:var(--font-heading);letter-spacing:.02em;color:#94a3b8;cursor:pointer;white-space:nowrap;background:0 0;border:none;border-radius:999px;flex:1;justify-content:center;align-items:center;gap:.4rem;padding:.6rem .5rem;font-size:.75rem;font-weight:700;transition:color .25s;display:flex;position:relative}
 .qb-tab-btn:hover{color:#e2e8f0}
-.qb-tab-active{color:#f8fafc;background:#6366f173;border-color:#818cf899;box-shadow:0 4px 12px #6366f14d}
-.qb-tab-count{opacity:.55;font-variant-numeric:tabular-nums;font-size:.62rem;flex-shrink:0}
-.qb-tab-count-alert{opacity:1;color:var(--color-primary);background:color-mix(in srgb,var(--color-primary) 22%,transparent);border-radius:999px;padding:.05rem .38rem;font-size:.6rem;font-weight:700}
+.qb-tab-active{color:#f8fafc}
+.qb-tab-count{opacity:.5;font-variant-numeric:tabular-nums;font-size:.62rem}
+
+/* Dashboard variant — expanding-active grid with button-as-pill. */
+.qb-tab-bar-expand{display:grid;gap:.15rem;padding:.15rem;transition:grid-template-columns .36s cubic-bezier(.22,1,.36,1);align-items:stretch;min-height:2.6rem}
+.qb-tab-bar-expand .qb-tab-btn{border:1.5px solid transparent;padding:.35rem .5rem;gap:.3rem;transition:color .25s,background .24s,border-color .24s,box-shadow .24s;min-width:0;overflow:hidden}
+.qb-tab-bar-expand .qb-tab-icon{font-size:.95rem;line-height:1;flex-shrink:0}
+.qb-tab-bar-expand .qb-tab-label{max-width:0;opacity:0;overflow:hidden;transition:max-width .34s cubic-bezier(.22,1,.36,1),opacity .22s ease-out;margin:0}
+.qb-tab-bar-expand .qb-tab-active .qb-tab-label{max-width:140px;opacity:1}
+.qb-tab-bar-expand .qb-tab-count{flex-shrink:0}
+.qb-tab-bar-expand .qb-tab-active{background:#6366f173;border-color:#818cf899;box-shadow:0 4px 12px #6366f14d}
+/* Challenges tab gets a distinct violet hue to signal it's outside
+   the daily-board / streak accounting. */
+.qb-tab-bar-expand .qb-tab-active[data-qtab="challenges"]{background:rgba(139,92,246,.32);border-color:rgba(167,139,250,.62);box-shadow:0 4px 12px rgba(139,92,246,.32)}
+.qb-tab-count-alert{opacity:1;color:#c4b5fd;background:rgba(139,92,246,.28);border-radius:999px;padding:.05rem .38rem;font-size:.6rem;font-weight:700}
+
+/* Challenge item — violet accent separates it from daily-board quests. */
+.qb-chal-item{border-color:rgba(139,92,246,.38)}
+.qb-chal-item .qb-check{border-color:rgba(167,139,250,.5)}
+.qb-chal-item .qb-check-done{background:#8b5cf6;border-color:#8b5cf6;box-shadow:0 2px 8px rgba(139,92,246,.45)}
+.qb-chal-item .qb-cat{color:#c4b5fd;background:rgba(139,92,246,.18);border-color:rgba(167,139,250,.32)}
+.qb-chal-item .qb-xp{color:#c4b5fd}
+body[data-theme="light"] .qb-chal-item{border-color:rgba(139,92,246,.32)}
+body[data-theme="light"] .qb-chal-item .qb-cat{color:#6d28d9;background:rgba(139,92,246,.14)}
+body[data-theme="light"] .qb-chal-item .qb-xp{color:#6d28d9}
 .qb-tab-fresh{pointer-events:none;position:absolute;top:-12px;right:-8px;z-index:8;display:inline-flex;align-items:center;gap:.2rem;padding:.14rem .4rem .12rem;border-radius:999px;background:linear-gradient(135deg,#ffe28a,#ffc947);border:1px solid rgba(255,221,112,.68);box-shadow:0 12px 20px -12px rgba(255,190,11,.95),0 0 0 1px rgba(255,255,255,.35) inset;transform:rotate(-4deg);animation:qbFreshBadgeFloat 2.2s ease-in-out infinite}
 .qb-tab-fresh__spark{font-size:.5rem;line-height:1;color:#7c2d12;opacity:.9}
 .qb-tab-fresh__label{font-family:"Caveat",var(--font-heading);font-size:.8rem;line-height:1;color:#111827;font-weight:700;letter-spacing:.03em;text-transform:none}
@@ -1786,16 +1806,39 @@ body[data-theme="light"] .dash-progress-strip .w-full.h-1\.5.rounded-full.transi
     background: rgba(147, 162, 187, 0.22) !important;
 }
 
-body[data-theme="light"] .qb-tab-active {
+/* Sliding indicator (base tab-bar — Community / Leaderboard). */
+body[data-theme="light"] .qb-tab-indicator {
     background: linear-gradient(135deg, rgba(255, 122, 168, 0.2), rgba(116, 168, 255, 0.18));
     border-color: rgba(255, 92, 138, 0.38);
     box-shadow: 0 4px 16px rgba(255, 92, 138, 0.18);
 }
 
-body[data-theme="balance"] .qb-tab-active {
+body[data-theme="balance"] .qb-tab-indicator {
     background: linear-gradient(135deg, rgba(134, 239, 172, 0.28), rgba(52, 211, 153, 0.22));
     border-color: rgba(134, 239, 172, 0.55);
     box-shadow: 0 4px 14px rgba(52, 211, 153, 0.22);
+}
+
+/* Dashboard expand-variant active pill per theme. */
+body[data-theme="light"] .qb-tab-bar-expand .qb-tab-active {
+    background: linear-gradient(135deg, rgba(255, 122, 168, 0.2), rgba(116, 168, 255, 0.18));
+    border-color: rgba(255, 92, 138, 0.38);
+    box-shadow: 0 4px 16px rgba(255, 92, 138, 0.18);
+}
+
+body[data-theme="balance"] .qb-tab-bar-expand .qb-tab-active {
+    background: linear-gradient(135deg, rgba(134, 239, 172, 0.28), rgba(52, 211, 153, 0.22));
+    border-color: rgba(134, 239, 172, 0.55);
+    box-shadow: 0 4px 14px rgba(52, 211, 153, 0.22);
+}
+
+/* Challenges tab violet stays consistent across themes — it's a
+   deliberate signal that challenges are outside daily-board accounting. */
+body[data-theme="light"] .qb-tab-bar-expand .qb-tab-active[data-qtab="challenges"],
+body[data-theme="balance"] .qb-tab-bar-expand .qb-tab-active[data-qtab="challenges"] {
+    background: rgba(139, 92, 246, 0.24);
+    border-color: rgba(167, 139, 250, 0.55);
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.22);
 }
 
 body[data-theme="light"] .qb-tab-btn {
