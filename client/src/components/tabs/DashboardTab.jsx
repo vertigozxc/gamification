@@ -136,7 +136,14 @@ export default function DashboardTab({
         <div className="flex flex-col shrink-0">
           <div className="flex items-center justify-between mb-2 px-1">
             <span className="cinzel text-[11px] font-bold tracking-[0.15em] uppercase drop-shadow-sm flex items-center gap-1.5" style={{ color: "var(--color-primary)" }}>
-              <span className="text-[12px]">{t.dailyBoardIcon}</span> {t.dailyBoard}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="5" y="4" width="14" height="17" rx="2.5" />
+                <path d="M8.5 9 L9.8 10.2 L12.2 7.8" />
+                <line x1="14" y1="9" x2="16" y2="9" />
+                <line x1="8.5" y1="13.8" x2="15.5" y2="13.8" />
+                <line x1="8.5" y1="17.2" x2="13" y2="17.2" />
+              </svg>
+              {t.dailyBoard}
             </span>
             <span className="cinzel text-[11px] font-bold opacity-80" style={{ color: "var(--color-text)" }}>{completedToday}<span className="opacity-50">/{totalSegments}</span></span>
           </div>

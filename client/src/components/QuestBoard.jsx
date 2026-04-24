@@ -298,11 +298,8 @@ function ChallengeItem({ challenge, meUid, t, busy, optimisticDone, onComplete, 
             {t.arenaDeclineInvite || "Decline"}
           </button>
         </div>
-      ) : waiting ? (
-        <p className="mt-2 pl-9 text-[12px]" style={{ color: "var(--color-muted)" }}>
-          ⏳ {t.arenaWaitingForPlayers || "Waiting for at least one more player to accept"}
-        </p>
-      ) : completedToday ? null
+      ) : waiting ? null
+        : completedToday ? null
         : challenge.needsTimer && challenge.timeEstimateMin ? (
           <div className="mt-2.5 pl-9 pointer-events-auto">
             <ChallengeTimerInline
