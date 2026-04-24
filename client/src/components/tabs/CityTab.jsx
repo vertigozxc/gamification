@@ -674,7 +674,7 @@ export default function CityTab({
         const citizens = computeCitizens(districtLevels, userStreak);
         const streakMult = streakMultiplier(userStreak);
         return (
-          <div className="city-hero-surface mobile-card top-screen-block p-4">
+          <div data-tour="city-hero" className="city-hero-surface mobile-card top-screen-block p-4">
             <div className="relative z-10 flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] uppercase tracking-[0.2em] mb-1" style={{ color: "var(--color-muted)" }}>

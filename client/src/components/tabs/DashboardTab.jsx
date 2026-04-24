@@ -125,7 +125,7 @@ export default function DashboardTab({
 
       {/* Quest board with tabs. The group-challenges strip is slotted
           directly under the daily-reset timer row via `postTimerRow`. */}
-      <div className="mobile-card">
+      <div data-tour="quest-board" className="mobile-card">
         <QuestBoard
           pinnedQuests={pinnedQuests} otherQuests={otherQuests}
           pinnedQuestProgressById={pinnedQuestProgressById}

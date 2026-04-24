@@ -1766,7 +1766,11 @@ function onboardingStatus(user, customQuests = []) {
   const hasSkipped = Boolean(user.onboardingSkippedAt);
   return {
     preferredQuestIds,
-    needsOnboarding: !hasSkipped && allPreferred.length < onboardingMinimum
+    needsOnboarding: !hasSkipped && allPreferred.length < onboardingMinimum,
+    // Animated tour flag — independent from setup. A user who skipped the
+    // setup can still be shown the tour, and the tour is marked done only
+    // after the user finishes it (or taps skip explicitly).
+    needsTour: !user.onboardingTourCompletedAt
   };
 }
 
@@ -2672,7 +2676,7 @@ app.get("/api/game-state/:username", async (req, res) => {
   const streakFreezeActive = user.streakFreezeExpiresAt
     ? getDateKey(new Date(user.streakFreezeExpiresAt)) >= todayKey
     : false;
-  const { preferredQuestIds, needsOnboarding } = onboardingStatus(user, customQuests);
+  const { preferredQuestIds, needsOnboarding, needsTour } = onboardingStatus(user, customQuests);
   const precomputedProgress = buildTodayProgressSnapshot(user, completionIds, customQuests, now);
   const [pinnedQuestProgress21d, { productivity }] = await Promise.all([
     getPinnedQuestProgress21d(user, preferredQuestIds, now),
@@ -2760,6 +2764,7 @@ app.get("/api/game-state/:username", async (req, res) => {
     preferredQuestIds,
     pinnedQuestProgress21d,
     needsOnboarding,
+    needsTour,
     allQuests: needsOnboarding
       ? getQuestPool({ language }).filter((q) => Number(q.effortScore) <= questSlots.maxEffort && Number(q.minStreak) <= (user.streak || 0))
       : [],
@@ -2878,6 +2883,7 @@ app.post("/api/onboarding/complete", async (req, res) => {
       preferredQuestIds: uniquePreferredQuestIds,
       pinnedQuestProgress21d,
       needsOnboarding: false,
+      needsTour: !updatedUser.onboardingTourCompletedAt,
       customQuests: customQuests.map(buildCustomQuestEntry),
       productivity,
       questSlots: getQuestSlotsForLevel(updatedUser.level || 1, updatedUser.streak || 0),
@@ -2961,11 +2967,80 @@ app.post("/api/onboarding/skip", async (req, res) => {
       preferredQuestIds: parsedPreferred,
       pinnedQuestProgress21d,
       needsOnboarding: false,
+      needsTour: !updatedUser.onboardingTourCompletedAt,
       customQuests: customQuests.map(buildCustomQuestEntry),
       productivity,
       questSlots: getQuestSlotsForLevel(updatedUser.level || 1, updatedUser.streak || 0),
       ...buildServerTimeMeta(now)
     });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// Finish the animated onboarding tour. Awards +1 level (xp reset to 0,
+// xpNext grows by 10% just like a normal level-up) and stamps the tour
+// completion timestamp so the gate stops firing on future logins.
+app.post("/api/onboarding/tour/complete", async (req, res) => {
+  const schema = z.object({
+    username: z.string().min(2).max(64),
+    // If the user tapped "Skip" instead of walking through, we still mark
+    // the tour as seen, but do NOT award the +1 level bonus.
+    awardLevel: z.boolean().optional()
+  });
+  try {
+    const parsed = schema.parse(req.body);
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    if (user.onboardingTourCompletedAt) {
+      return res.json({
+        ok: true,
+        alreadyCompleted: true,
+        awarded: false,
+        user
+      });
+    }
+
+    const shouldAward = parsed.awardLevel !== false;
+    const nextData = { onboardingTourCompletedAt: new Date() };
+    if (shouldAward) {
+      nextData.level = (user.level || 1) + 1;
+      nextData.xp = 0;
+      nextData.xpNext = Math.floor((user.xpNext || 250) * 1.1);
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: nextData
+    });
+
+    return res.json({
+      ok: true,
+      alreadyCompleted: false,
+      awarded: shouldAward,
+      user: updatedUser
+    });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// Replay the animated tour from Profile → Settings. Clears the timestamp
+// so the client's next render sees needsTour: true and auto-opens the tour.
+app.post("/api/onboarding/tour/reset", async (req, res) => {
+  const schema = z.object({ username: z.string().min(2).max(64) });
+  try {
+    const { username } = schema.parse(req.body);
+    const user = await prisma.user.findUnique({ where: { username: slugifyUsername(username) } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { onboardingTourCompletedAt: null }
+    });
+    return res.json({ ok: true, user: updatedUser });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
   }

@@ -50,6 +50,10 @@ function useOnboardingPinned({
   const [replacePinnedSaving, setReplacePinnedSaving] = useState(false);
   const [replacePinnedError, setReplacePinnedError] = useState("");
   const [showOnboarding, setShowOnboarding] = useState(false);
+  // Animated onboarding tour — runs in parallel with the setup modal for
+  // brand-new users (guides them through it too) and can also fire on its
+  // own for existing users who reset the tour from Settings.
+  const [showTour, setShowTour] = useState(false);
   const [onboardingName, setOnboardingName] = useState("");
   const [onboardingQuestIds, setOnboardingQuestIds] = useState([]);
   const [onboardingQuestSearch, setOnboardingQuestSearch] = useState("");
@@ -121,6 +125,7 @@ function useOnboardingPinned({
 
   function resetOnLogout() {
     setShowOnboarding(false);
+    setShowTour(false);
     setShowPinnedReplaceModal(false);
     setReplacePinnedQuestIds([]);
     setReplacePinnedSearch("");
@@ -258,6 +263,11 @@ function useOnboardingPinned({
       : [];
     const needsOnboarding = gameStateResponse?.needsOnboarding === true;
     setShowOnboarding(needsOnboarding);
+    // Server tells us whether the user has already finished the animated
+    // tour. For brand-new users this will be true alongside needsOnboarding
+    // — the tour walks them through the setup fields.
+    const needsTour = gameStateResponse?.needsTour === true;
+    setShowTour(needsTour);
     if (needsOnboarding) {
       setOnboardingError("");
       setOnboardingSaving(false);
@@ -543,6 +553,8 @@ function useOnboardingPinned({
     replacePinnedSaving,
     replacePinnedError,
     showOnboarding,
+    showTour,
+    setShowTour,
     onboardingName,
     setOnboardingName,
     onboardingQuestIds,

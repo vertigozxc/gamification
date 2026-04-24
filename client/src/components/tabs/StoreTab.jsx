@@ -12,7 +12,7 @@ export default function StoreTab({
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <div className="relative overflow-hidden mobile-card top-screen-block shadow-[0_0_20px_rgba(234,179,8,0.08)]" style={{ background: "var(--card-bg)" }}>
+      <div data-tour="store-hero" className="relative overflow-hidden mobile-card top-screen-block shadow-[0_0_20px_rgba(234,179,8,0.08)]" style={{ background: "var(--card-bg)" }}>
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.05]"></div>
         <div className="relative z-10 flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">

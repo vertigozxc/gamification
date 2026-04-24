@@ -304,43 +304,46 @@ function OnboardingModal({
             padding: "12px 16px 16px"
           }}
         >
-          <label
-            className="cinzel"
-            style={{
-              display: "block",
-              marginBottom: 6,
-              fontSize: 11,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: "var(--color-primary)"
-            }}
-          >
-            {t.onboardingNickname}
-          </label>
-          <InputWithClear
-            value={onboardingName}
-            onChange={onOnboardingNameChange}
-            maxLength={32}
-            placeholder={t.onboardingNicknamePlaceholder}
-            clearAriaLabel={t.clearLabel || "Clear"}
-            inputStyle={{
-              padding: "9px 12px",
-              borderRadius: 10,
-              background: "rgba(0,0,0,0.35)",
-              border: "1px solid var(--card-border-idle)",
-              color: "#e2e8f0",
-              fontSize: 14,
-              minHeight: 38,
-              outline: "none",
-              fontFamily: "var(--font-heading)"
-            }}
-          />
-          <p style={{ margin: "6px 2px 0", fontSize: 11, color: "var(--color-muted)", lineHeight: 1.4 }}>
-            {t.onboardingNameHint || "Your public name that other players see."}
-          </p>
+          <div data-tour="setup-name">
+            <label
+              className="cinzel"
+              style={{
+                display: "block",
+                marginBottom: 6,
+                fontSize: 11,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "var(--color-primary)"
+              }}
+            >
+              {t.onboardingNickname}
+            </label>
+            <InputWithClear
+              value={onboardingName}
+              onChange={onOnboardingNameChange}
+              maxLength={32}
+              placeholder={t.onboardingNicknamePlaceholder}
+              clearAriaLabel={t.clearLabel || "Clear"}
+              inputStyle={{
+                padding: "9px 12px",
+                borderRadius: 10,
+                background: "rgba(0,0,0,0.35)",
+                border: "1px solid var(--card-border-idle)",
+                color: "#e2e8f0",
+                fontSize: 14,
+                minHeight: 38,
+                outline: "none",
+                fontFamily: "var(--font-heading)"
+              }}
+            />
+            <p style={{ margin: "6px 2px 0", fontSize: 11, color: "var(--color-muted)", lineHeight: 1.4 }}>
+              {t.onboardingNameHint || "Your public name that other players see."}
+            </p>
+          </div>
 
           {/* @handle — public, searchable, shown under the display name in
               profiles and leaderboards. Auto-seeded on open; user can edit. */}
+          <div data-tour="setup-handle">
           <label
             className="cinzel"
             style={{
@@ -436,7 +439,9 @@ function OnboardingModal({
           <p style={{ margin: "6px 2px 0", fontSize: 11, color: "var(--color-muted)", lineHeight: 1.4 }}>
             {t.onboardingHandleHint || "3–20 letters / digits / underscore. Others find you by this."}
           </p>
+          </div>
 
+          <div data-tour="setup-habits">
           {/* Section-start header for the habit picker. A primary-coloured
               accent bar sits above the title as the lone divider — no
               dot, no separator border. */}
@@ -486,6 +491,7 @@ function OnboardingModal({
             customError={customError}
             onClearCustomError={onClearCustomError}
           />
+          </div>
 
           <div style={{ marginTop: 16 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
@@ -627,6 +633,7 @@ function OnboardingModal({
             </button>
             <button
               type="button"
+              data-tour="setup-begin"
               onClick={handleStartRequest}
               disabled={primaryDisabled}
               className="cinzel mobile-pressable"

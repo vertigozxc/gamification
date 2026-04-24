@@ -45,6 +45,7 @@ model User {
   isDevTester               Boolean                @default(false)
   maxStreak                 Int                    @default(0)
   onboardingSkippedAt       DateTime?
+  onboardingTourCompletedAt DateTime?
   handle                    String?                @unique
   createdAt                 DateTime               @default(now())
   updatedAt                 DateTime               @updatedAt
@@ -67,11 +68,11 @@ model User {
 }
 
 model UserAchievement {
-  id          String   @id @default(cuid())
-  userId      String
-  code        String
-  unlockedAt  DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  userId     String
+  code       String
+  unlockedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, code])
   @@index([userId])
@@ -142,18 +143,18 @@ model QuestTimerSession {
 }
 
 model QuestCounter {
-  id             String    @id @default(cuid())
-  userId         String
-  questId        Int
-  dayKey         String
-  count          Int       @default(0)
-  target         Int
-  lastTickAt     DateTime?
-  windowStartAt  DateTime?
-  windowTicks    Int       @default(0)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String    @id @default(cuid())
+  userId        String
+  questId       Int
+  dayKey        String
+  count         Int       @default(0)
+  target        Int
+  lastTickAt    DateTime?
+  windowStartAt DateTime?
+  windowTicks   Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, questId, dayKey])
   @@index([userId, dayKey])
@@ -216,24 +217,24 @@ model FriendRequest {
 }
 
 model GroupChallenge {
-  id                String                 @id @default(cuid())
-  creatorId         String
-  title             String
-  description       String                 @default("")
-  questTitle        String
-  questDescription  String                 @default("")
-  needsTimer        Boolean                @default(false)
-  timeEstimateMin   Int                    @default(0)
-  durationDays      Int                    @default(7)
-  startedAt         DateTime               @default(now())
-  endsAt            DateTime
-  lastAwardedDayKey String                 @default("")
-  groupDaysCompleted Int                   @default(0)
-  completionAwarded Boolean                @default(false)
-  createdAt         DateTime               @default(now())
-  creator           User                   @relation("challengeCreator", fields: [creatorId], references: [id], onDelete: Cascade)
-  participants      ChallengeParticipant[]
-  logs              ChallengeLogEntry[]
+  id                 String                 @id @default(cuid())
+  creatorId          String
+  title              String
+  description        String                 @default("")
+  questTitle         String
+  questDescription   String                 @default("")
+  needsTimer         Boolean                @default(false)
+  timeEstimateMin    Int                    @default(0)
+  durationDays       Int                    @default(7)
+  startedAt          DateTime               @default(now())
+  endsAt             DateTime
+  lastAwardedDayKey  String                 @default("")
+  groupDaysCompleted Int                    @default(0)
+  completionAwarded  Boolean                @default(false)
+  createdAt          DateTime               @default(now())
+  creator            User                   @relation("challengeCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  participants       ChallengeParticipant[]
+  logs               ChallengeLogEntry[]
 
   @@index([creatorId])
   @@index([endsAt])

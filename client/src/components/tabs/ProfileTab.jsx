@@ -15,7 +15,8 @@ export default function ProfileTab({
   onOpenAbout,
   onOpenNotesHistory,
   onDeleteConfirmStateChange,
-  onAchievementModalChange
+  onAchievementModalChange,
+  onRestartTour
 }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -230,7 +231,7 @@ export default function ProfileTab({
 
       {/* Settings — iOS-style grouped table: rows share a card, separated
           by hairline dividers; the card keeps its rounded corners. */}
-      <div className="mobile-card flex flex-col" style={{ background: "var(--panel-bg)", padding: "12px 0" }}>
+      <div data-tour="profile-settings" className="mobile-card flex flex-col" style={{ background: "var(--panel-bg)", padding: "12px 0" }}>
         <p className="cinzel text-xs font-bold tracking-widest uppercase mb-1" style={{ color: "var(--color-primary)", padding: "0 16px 8px" }}>{t.profileSettingsTitle}</p>
         <div className="profile-settings-list">
           <button className="profile-settings-row" onClick={onOpenThemePicker}>
@@ -265,6 +266,20 @@ export default function ProfileTab({
               <div className="flex-1 text-left">
                 <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.aboutAppLabel || "About the app"}</p>
                 <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{t.aboutAppHint || "Rules, mechanics, formulas"}</p>
+              </div>
+              <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
+            </button>
+          ) : null}
+          {onRestartTour ? (
+            <button
+              data-tour="restart-tour"
+              className="profile-settings-row mobile-pressable"
+              onClick={onRestartTour}
+            >
+              <span className="text-xl w-8 text-center">✨</span>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.tourRestartLabel || "Replay tour"}</p>
+                <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{t.tourRestartHint || "A 2-minute walkthrough of the app"}</p>
               </div>
               <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
             </button>

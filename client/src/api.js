@@ -182,6 +182,23 @@ export function skipOnboarding(username, displayName, photoUrl, handle) {
   });
 }
 
+// Finish the animated tour. `awardLevel:false` when the user tapped Skip —
+// the tour is still marked done (so it won't reopen next login) but no
+// +1 level is granted.
+export function completeOnboardingTour(username, { awardLevel = true } = {}) {
+  return request("/api/onboarding/tour/complete", {
+    method: "POST",
+    body: JSON.stringify({ username, awardLevel })
+  });
+}
+
+export function resetOnboardingTour(username) {
+  return request("/api/onboarding/tour/reset", {
+    method: "POST",
+    body: JSON.stringify({ username })
+  });
+}
+
 // Server suggests an unclaimed @handle seeded from the displayName the
 // user just typed. Used to pre-fill the onboarding @handle input.
 export function suggestHandle(displayName) {

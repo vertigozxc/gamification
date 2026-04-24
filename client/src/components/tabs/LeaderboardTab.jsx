@@ -215,7 +215,7 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
         </header>
 
         {/* iOS segmented control */}
-        <div role="tablist" className="cm-tabs" style={{ "--count": tabs.length }}>
+        <div data-tour="community-tabs" role="tablist" className="cm-tabs" style={{ "--count": tabs.length }}>
           <div
             className="cm-tabs-slider"
             aria-hidden="true"
@@ -229,6 +229,7 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
               aria-selected={tab === tb.id}
               onClick={() => setTab(tb.id)}
               className="cm-tab"
+              data-tour={tb.id === "challenges" ? "cm-challenges" : undefined}
             >
               <span className="cm-tab-ico">{tb.icon}</span>
               <span className="cm-tab-label">{tb.label}</span>

@@ -20,7 +20,9 @@ import {
   fetchProfileStats,
   deleteProfile,
   addPinnedQuest,
-  updatePreferredLanguage
+  updatePreferredLanguage,
+  completeOnboardingTour,
+  resetOnboardingTour
 } from "./api";
 import useGameplayActions from "./hooks/useGameplayActions";
 import useAuthSession from "./hooks/useAuthSession";
@@ -72,6 +74,7 @@ const QuestNoteModal = lazy(() => import("./components/modals/QuestNoteModal"));
 const NotesHistoryModal = lazy(() => import("./components/modals/NotesHistoryModal"));
 const QuestCompletePopup = lazy(() => import("./components/QuestCompletePopup"));
 const SingleHabitPickerModal = lazy(() => import("./components/modals/SingleHabitPickerModal"));
+const AnimatedOnboardingTour = lazy(() => import("./components/tour/AnimatedOnboardingTour"));
 const CityTab = lazy(() => import("./components/tabs/CityTab"));
 const DashboardTab = lazy(() => import("./components/tabs/DashboardTab"));
 const LeaderboardTab = lazy(() => import("./components/tabs/LeaderboardTab"));
@@ -269,6 +272,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     replacePinnedSaving,
     replacePinnedError,
     showOnboarding,
+    showTour,
+    setShowTour,
     onboardingName,
     setOnboardingName,
     onboardingQuestIds,
@@ -315,6 +320,141 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     getTimestamp,
     portraitKey
   });
+
+  // ── Animated onboarding tour ───────────────────────────────────────
+  // Finish flow: call /tour/complete (with or without the +1 level
+  // bonus depending on whether the user tapped Skip or walked through),
+  // apply the returned user state so the badge updates instantly, then
+  // close the tour.
+  const finalizeTour = async ({ awardLevel }) => {
+    setShowTour(false);
+    const uname = authUser?.uid || username;
+    if (!uname) return;
+    try {
+      const result = await completeOnboardingTour(uname, { awardLevel });
+      const u = result?.user;
+      if (u && result?.awarded) {
+        setState((prev) => ({
+          ...prev,
+          lvl: u.level ?? prev.lvl,
+          xp: u.xp ?? prev.xp,
+          xpNext: u.xpNext ?? prev.xpNext,
+          user: { ...prev.user, level: u.level ?? prev.user?.level, xp: u.xp ?? prev.user?.xp, xpNext: u.xpNext ?? prev.user?.xpNext }
+        }));
+      }
+    } catch {
+      // Non-fatal — the tour already closed on the client, next login
+      // will just reopen the server flag (or the user can replay it
+      // from Settings).
+    }
+  };
+
+  const handleRestartTour = async () => {
+    const uname = authUser?.uid || username;
+    try {
+      if (uname) await resetOnboardingTour(uname);
+    } catch { /* non-fatal */ }
+    startTransition(() => setMobileTab("dashboard"));
+    setShowTour(true);
+  };
+
+  const tourSteps = useMemo(() => {
+    const pinnedLimit = Number(state?.questSlots?.pinned) || 2;
+    const list = [];
+    list.push({
+      id: "welcome",
+      kind: "center",
+      title: t.tourWelcomeTitle || "Welcome to Life-RPG",
+      text: t.tourWelcomeText || "Quick 2-minute tour of the main areas. Finish it and claim a +1 level bonus."
+    });
+    if (showOnboarding) {
+      list.push({
+        id: "setup-name",
+        target: '[data-tour="setup-name"]',
+        title: t.tourSetupNameTitle || "Pick your name",
+        text: t.tourSetupNameText || "Type a nickname — other players will see it on the leaderboard.",
+        gate: "condition",
+        isSatisfied: () => onboardingName.trim().length >= 1,
+        scroll: true
+      });
+      list.push({
+        id: "setup-handle",
+        target: '[data-tour="setup-handle"]',
+        title: t.tourSetupHandleTitle || "Your @username",
+        text: t.tourSetupHandleText || "A short handle for friends to find you. The suggested one is free to keep.",
+        gate: "next",
+        scroll: true
+      });
+      list.push({
+        id: "setup-habits",
+        target: '[data-tour="setup-habits"]',
+        title: t.tourSetupHabitsTitle || "Pick your daily habits",
+        text: (tf && tf("tourSetupHabitsText", { n: pinnedLimit })) || `Choose ${pinnedLimit} habits — these are your daily anchors.`,
+        gate: "condition",
+        isSatisfied: () => Array.isArray(onboardingQuestIds) && onboardingQuestIds.length >= pinnedLimit,
+        scroll: true
+      });
+      list.push({
+        id: "setup-begin",
+        target: '[data-tour="setup-begin"]',
+        title: t.tourSetupBeginTitle || "Ready?",
+        text: t.tourSetupBeginText || "Tap Begin — and we'll keep going.",
+        gate: "condition",
+        isSatisfied: () => !showOnboarding,
+        scroll: true
+      });
+    }
+    list.push({
+      id: "quest-board",
+      target: '[data-tour="quest-board"]',
+      title: t.tourQuestBoardTitle || "Your quest board",
+      text: t.tourQuestBoardText || "Plain quests finish on a long tap. Some have a timer or a counter — run the mechanic and the quest closes itself.",
+      gate: "next",
+      onEnter: () => { startTransition(() => setMobileTab("dashboard")); },
+      scroll: true
+    });
+    list.push({
+      id: "community",
+      target: '[data-tour="community-tabs"]',
+      title: t.tourCommunityTitle || "Community & challenges",
+      text: t.tourCommunityText || "Here you race friends, join shared challenges and see the leaderboard.",
+      gate: "next",
+      onEnter: () => {
+        try { window.__pendingSocialSubTab = "challenges"; } catch { /* noop */ }
+        startTransition(() => setMobileTab("leaderboard"));
+      },
+      scroll: true
+    });
+    list.push({
+      id: "city-hero",
+      target: '[data-tour="city-hero"]',
+      title: t.tourCityTitle || "Your city",
+      text: t.tourCityText || "Every habit you complete grows the city. Level up districts to unlock perks and bonuses.",
+      gate: "next",
+      onEnter: () => { startTransition(() => setMobileTab("city")); },
+      scroll: true
+    });
+    list.push({
+      id: "store-hero",
+      target: '[data-tour="store-hero"]',
+      title: t.tourStoreTitle || "Store",
+      text: t.tourStoreText || "Spend tokens on streak freezes, extra rerolls or an XP boost — no real money.",
+      gate: "next",
+      onEnter: () => { startTransition(() => setMobileTab("store")); },
+      scroll: true
+    });
+    list.push({
+      id: "profile-settings",
+      target: '[data-tour="profile-settings"]',
+      title: t.tourProfileTitle || "Your profile",
+      text: t.tourProfileText || "Themes, language, and a replay of this tour — all here.",
+      gate: "next",
+      onEnter: () => { startTransition(() => setMobileTab("profile")); },
+      scroll: true
+    });
+    return list;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t, tf, showOnboarding, onboardingName, onboardingQuestIds, state?.questSlots?.pinned]);
 
   useEffect(() => {
     uidRef.current = authUser ? authUser.uid : null;
@@ -1624,6 +1764,15 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         </div>
       ) : null}
 
+      <Suspense fallback={null}>
+        <AnimatedOnboardingTour
+          open={showTour}
+          steps={tourSteps}
+          onSkip={() => finalizeTour({ awardLevel: false })}
+          onFinish={() => finalizeTour({ awardLevel: true })}
+        />
+      </Suspense>
+
       <OnboardingModal
         open={showOnboarding}
         onClose={handleLogoutConfirm}
@@ -1931,6 +2080,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 onAchievementModalChange={setAchievementModalOpen}
                 onOpenAbout={() => setShowAbout(true)}
                 onOpenNotesHistory={() => setShowNotesHistory(true)}
+                onRestartTour={handleRestartTour}
                 onLogout={() => setShowLogoutConfirm(true)}
                 onDeleteProfile={handleDeleteProfile}
                 onDeleteConfirmStateChange={setDeleteProfileOpen}
