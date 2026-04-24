@@ -160,18 +160,38 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
   //
   // `stack.length` is in the dep list so the effect re-fires when the user
   // closes a pushed screen (Create / Search / Profile / ChallengeDetail)
-  // and the tab bar remounts — without it the indicator stays at its
-  // initial x=0 / w=0 position and the active tab looks deselected.
+  // and the tab bar remounts.
+  //
+  // On the VERY first measurement after (re)mount we kill the CSS
+  // transition for one frame, snap the indicator directly under the
+  // active tab, then restore the transition. Without this, returning
+  // from a pushed screen renders the indicator at x=0 first and then
+  // animates it to the active tab — which feels like a "wrong tab is
+  // selected" flash.
   useLayoutEffect(() => {
     if (!tabsRowRef.current || !indicatorRef.current) return;
     const activeBtn = tabsRowRef.current.querySelector(`[data-qtab="${tab}"]`);
     if (!activeBtn) return;
+    const ind = indicatorRef.current;
     const apply = () => {
       if (!indicatorRef.current) return;
       indicatorRef.current.style.width = `${activeBtn.offsetWidth}px`;
       indicatorRef.current.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
     };
-    apply();
+    const firstMeasure = ind.dataset.ccMeasured !== "1";
+    if (firstMeasure) {
+      const prev = ind.style.transition;
+      ind.style.transition = "none";
+      apply();
+      // Force a reflow so the "transition: none" takes effect before
+      // we restore the original transition value.
+      // eslint-disable-next-line no-unused-expressions
+      ind.offsetHeight;
+      ind.style.transition = prev;
+      ind.dataset.ccMeasured = "1";
+    } else {
+      apply();
+    }
     const raf = requestAnimationFrame(apply);
     return () => cancelAnimationFrame(raf);
   }, [
