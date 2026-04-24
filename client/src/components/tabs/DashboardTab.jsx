@@ -74,7 +74,7 @@ export default function DashboardTab({
       </div>
 
       {/* Daily Board Section */}
-      <div className="mobile-card top-screen-block flex flex-col gap-4">
+      <div className="mobile-card flex flex-col gap-4">
         {/* Daily progress strip & Board Title */}
         <div className="flex flex-col shrink-0">
           <div className="flex items-center justify-between mb-2 px-1">
@@ -125,7 +125,7 @@ export default function DashboardTab({
 
       {/* Quest board with tabs. The group-challenges strip is slotted
           directly under the daily-reset timer row via `postTimerRow`. */}
-      <div data-tour="quest-board" className="mobile-card top-screen-block">
+      <div data-tour="quest-board" className="mobile-card">
         <QuestBoard
           pinnedQuests={pinnedQuests} otherQuests={otherQuests}
           pinnedQuestProgressById={pinnedQuestProgressById}
