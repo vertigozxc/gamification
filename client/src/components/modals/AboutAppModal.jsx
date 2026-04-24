@@ -407,7 +407,7 @@ const COPY_EN = {
             "Finish 2 or fewer → streak resets to 0.",
             "Streak multiplies the XP from every single quest, permanently while the streak holds.",
             "Reaching 14 days unlocks the hardest (difficulty 5) quests.",
-            "A Streak Freeze protects you from one missed day — see Shop and Profile."
+            "A Streak Freeze charge auto-consumes when you would otherwise miss a day — no manual action needed. See Shop and Profile."
           ]} />
           <Rows rows={[
             { label: "0–2 day streak", value: "normal XP" },
@@ -504,7 +504,7 @@ const COPY_EN = {
             { label: "🏘 Residential", value: "Shop discount, monthly free Freeze, Vacation mode" }
           ]} />
           <p style={{ fontSize: 12, color: "var(--color-muted)", marginTop: 10, fontStyle: "italic", lineHeight: 1.5 }}>
-            Residential unlocks the Vacation mode — pause your streak for up to 20 days without losing it.
+            Residential unlocks Vacation — a one-time bundle of 20 Streak Freeze charges (cooldown: once a year) that absorbs missed days automatically.
           </p>
         </>
       )
@@ -556,11 +556,82 @@ const COPY_EN = {
       body: (
         <>
           <Bullets items={[
-            "Streak Freeze — 7 tokens. Adds one charge to your inventory (visible in Profile). Activate it there to protect your streak from one missed day. Limit: 1 purchase per week.",
+            "Streak Freeze — 7 tokens. Adds one charge to your inventory (visible in Profile). Charges auto-consume when you would otherwise miss a day — no manual activation. Limit: 1 purchase per week.",
             "Extra Daily Reroll — 3 tokens. Reshuffles today's random quests once more after the free reroll is used. You can buy multiple.",
             "XP Boost — 15 tokens. Gives +15% XP on every completed quest for 7 days. Buying again while active extends the timer.",
             "Pinned Quest Reroll — 7 tokens. Opens the picker to replace your pinned habits. You also get a free pinned reroll every 21 days.",
             "Residential district gives a discount on every shop item (−1 token from level 1, −2 tokens from level 5)."
+          ]} />
+        </>
+      )
+    },
+    {
+      icon: "🏆",
+      title: "Achievements",
+      summary: "Trophies you collect by playing the long game.",
+      body: (
+        <>
+          <Bullets items={[
+            "Achievements unlock automatically as you play. Tap them in your Profile to see what you've earned and when.",
+            "They cover three areas: daily discipline (streak length), token spending, and social play (challenges, invites, language).",
+            "There's no XP bonus — each one is a one-shot trophy and bragging right."
+          ]} />
+          <Rows rows={[
+            { label: "🔥 Week Warrior", value: "Reach a 7-day streak" },
+            { label: "🏔 Month Monk", value: "Reach a 30-day streak" },
+            { label: "💯 Hundred Club", value: "Reach a 100-day streak" },
+            { label: "🪙 First Coin", value: "Spend your first token" },
+            { label: "💰 High Roller", value: "Spend 200+ tokens total" },
+            { label: "🌐 Polyglot", value: "Switch the app language" },
+            { label: "🤝 First Handshake", value: "Join a group challenge" },
+            { label: "🏅 Champion", value: "Finish a 7+ day group challenge" },
+            { label: "👥 Mentor", value: "Invite 3 friends who stay active" },
+            { label: "🐦 Phoenix", value: "Pay to reset your city avatar" }
+          ]} />
+        </>
+      )
+    },
+    {
+      icon: "🤝",
+      title: "Group challenges",
+      summary: "Run a multi-day mission with friends — keep up or get carried.",
+      body: (
+        <>
+          <Bullets items={[
+            "Create or accept a challenge (e.g. \"30 days of meditation\"). Everyone tracks the same goal in the same window.",
+            "You can be in up to 3 active challenges at once. Creating a new one is limited to 1 per day.",
+            "Each day participants mark their progress; a leaderboard inside the challenge shows who's keeping up.",
+            "Finishing a challenge that ran 7 days or longer unlocks the Champion achievement.",
+            "Joining a challenge for the first time unlocks First Handshake."
+          ]} />
+        </>
+      )
+    },
+    {
+      icon: "👥",
+      title: "Friends & leaderboard",
+      summary: "See who else is showing up.",
+      body: (
+        <>
+          <Bullets items={[
+            "Add friends by username — they show up on a friends-only leaderboard.",
+            "Two leaderboards exist: weekly (XP earned in the last 7 days) and all-time (total XP).",
+            "Inviting 3 friends who join and stay active unlocks the Mentor achievement."
+          ]} />
+        </>
+      )
+    },
+    {
+      icon: "📝",
+      title: "Notes",
+      summary: "Quick journaling, kept on your account.",
+      body: (
+        <>
+          <Bullets items={[
+            "Four kinds of notes: ✏️ personal, 💡 reflection, 🙏 gratitude, 🔤 vocabulary.",
+            "Reflections are written when you finish certain quests; the rest you write on demand from My Notes in Profile.",
+            "All notes are searchable and filterable by kind.",
+            "Notes live only on your account — they're not shared with friends or shown on any leaderboard."
           ]} />
         </>
       )
@@ -575,9 +646,9 @@ const COPY_EN = {
             "Aim for 4 quests a day — that's the streak growth line.",
             "Pick habits you genuinely want to build. Hitting the 21-day bonus is very rewarding.",
             "Stack multipliers for big XP days: high streak × Sport district × XP Boost shop item.",
-            "Save Streak Freeze charges — they're earned for free from the Residential district cycle and Vacation mode.",
+            "Stockpile Streak Freeze charges — they auto-protect missed days, and Vacation plus Residential's monthly cycle add more for free on top of shop purchases.",
             "Use timer quests for deep-work sessions — they give the largest XP rewards.",
-            "Going on vacation? Upgrade Residential early to unlock Vacation mode and pause your streak."
+            "Going on vacation? Upgrade Residential early — its Vacation perk drops 20 Streak Freeze charges in one go so missed days are absorbed automatically."
           ]} />
         </>
       )
@@ -640,7 +711,7 @@ const COPY_RU = {
             "2 и меньше → стрик сбрасывается в 0.",
             "Стрик постоянно умножает опыт с каждого квеста, пока он держится.",
             "Стрик 14+ дней открывает самые сложные квесты.",
-            "Заморозка стрика (Streak Freeze) защищает его от одного пропущенного дня — см. разделы «Магазин» и «Профиль»."
+            "Заряды Streak Freeze списываются автоматически при пропуске дня — никаких действий вручную не нужно. См. разделы «Магазин» и «Профиль»."
           ]} />
           <Rows rows={[
             { label: "Стрик 0–2", value: "обычный XP" },
@@ -735,7 +806,7 @@ const COPY_RU = {
             { label: "🏘 Жилой", value: "Скидка в магазине, бесплатный Freeze и режим отпуска" }
           ]} />
           <p style={{ fontSize: 12, color: "var(--color-muted)", marginTop: 10, fontStyle: "italic", lineHeight: 1.5 }}>
-            Жилой район открывает режим отпуска — можно поставить стрик на паузу на срок до 20 дней.
+            Жилой район открывает «Отпуск» — разовый набор из 20 зарядов Streak Freeze (кулдаун раз в год), которые автоматически закрывают пропущенные дни.
           </p>
         </>
       )
@@ -786,12 +857,83 @@ const COPY_RU = {
       summary: "Что можно купить за токены.",
       body: (
         <Bullets items={[
-          "Заморозка стрика — 7 токенов. Добавляет 1 заряд в инвентарь (виден в профиле). Активируется там же и защищает стрик от одного пропущенного дня. Лимит: 1 покупка в неделю.",
+          "Заморозка стрика — 7 токенов. Добавляет 1 заряд в инвентарь (виден в профиле). Заряды списываются автоматически при пропуске дня — без ручной активации. Лимит: 1 покупка в неделю.",
           "Доп. перемешивание — 3 токена. Ещё раз перетасовывает сегодняшние дневные квесты после бесплатного рерола. Можно покупать несколько раз.",
           "Буст опыта — 15 токенов. Даёт +15% XP за каждый выполненный квест в течение 7 дней. Покупка во время действия продлевает таймер.",
           "Замена привычек — 7 токенов. Открывает выбор новых привычек. Раз в 21 день такая замена бесплатна.",
           "Жилой район даёт скидку на все товары магазина (−1 токен с 1 уровня, −2 токена с 5 уровня)."
         ]} />
+      )
+    },
+    {
+      icon: "🏆",
+      title: "Достижения",
+      summary: "Трофеи за долгую игру.",
+      body: (
+        <>
+          <Bullets items={[
+            "Достижения открываются автоматически по мере игры. Загляните в профиль, чтобы посмотреть, что уже собрано и когда.",
+            "Покрывают три темы: ежедневная дисциплина (длина стрика), траты токенов и социальные действия (челленджи, приглашения, язык).",
+            "За них не дают XP — каждое достижение это одноразовый трофей и предмет гордости."
+          ]} />
+          <Rows rows={[
+            { label: "🔥 Воин недели", value: "Стрик 7 дней" },
+            { label: "🏔 Монах месяца", value: "Стрик 30 дней" },
+            { label: "💯 Клуб сотни", value: "Стрик 100 дней" },
+            { label: "🪙 Первая монета", value: "Потратить первый токен" },
+            { label: "💰 Богач", value: "Потратить 200+ токенов" },
+            { label: "🌐 Полиглот", value: "Сменить язык приложения" },
+            { label: "🤝 Первое рукопожатие", value: "Войти в групповой челлендж" },
+            { label: "🏅 Чемпион", value: "Завершить челлендж 7+ дней" },
+            { label: "👥 Наставник", value: "3 приглашённых друга остались" },
+            { label: "🐦 Феникс", value: "Платно сбросить аватар города" }
+          ]} />
+        </>
+      )
+    },
+    {
+      icon: "🤝",
+      title: "Групповые челленджи",
+      summary: "Многодневная миссия вместе с друзьями.",
+      body: (
+        <>
+          <Bullets items={[
+            "Создавайте челлендж сами или принимайте чужой («30 дней медитации» и т.д.). Все идут к одной цели в одном окне.",
+            "Одновременно можно быть в 3 активных челленджах. Новый создаётся не чаще раза в день.",
+            "Каждый день участники отмечают прогресс — внутри челленджа видно лидерборд, кто держит ритм.",
+            "За завершение челленджа длиной 7+ дней дают достижение «Чемпион».",
+            "Первое присоединение к любому челленджу открывает «Первое рукопожатие»."
+          ]} />
+        </>
+      )
+    },
+    {
+      icon: "👥",
+      title: "Друзья и лидерборд",
+      summary: "Посмотреть, кто ещё держит ритм.",
+      body: (
+        <>
+          <Bullets items={[
+            "Добавляйте друзей по имени пользователя — они появятся в личном лидерборде.",
+            "Лидербордов два: недельный (XP за последние 7 дней) и общий (всего XP).",
+            "Достижение «Наставник» даётся за 3 приглашённых друзей, которые остались играть."
+          ]} />
+        </>
+      )
+    },
+    {
+      icon: "📝",
+      title: "Заметки",
+      summary: "Короткие записи, привязанные к аккаунту.",
+      body: (
+        <>
+          <Bullets items={[
+            "Четыре типа: ✏️ личные, 💡 рефлексии, 🙏 благодарности, 🔤 слова.",
+            "Рефлексии пишутся при закрытии некоторых квестов, остальное — вручную из «Мои заметки» в профиле.",
+            "Заметки можно искать и фильтровать по типу.",
+            "Хранятся только на вашем аккаунте — не отображаются у друзей и не идут в лидерборды."
+          ]} />
+        </>
       )
     },
     {
@@ -803,9 +945,9 @@ const COPY_RU = {
           "Целитесь в 4 квеста в день — это порог роста стрика.",
           "Выбирайте привычки, которые действительно хочется развивать. 21 день — сильный результат и токен-бонус.",
           "Складывайте множители для больших XP-дней: высокий стрик × район Спорт × Буст опыта из магазина.",
-          "Копите заряды заморозки стрика — они также начисляются бесплатно Жилым районом и режимом отпуска.",
+          "Копите заряды заморозки стрика — они автоматически закрывают пропуски, а «Отпуск» Жилого района и его ежемесячный цикл начисляют их бесплатно поверх покупок в магазине.",
           "Квесты с таймером — лучший способ наростить XP на глубокой работе.",
-          "Собираетесь в отпуск? Прокачайте Жилой район заранее — там есть режим отпуска, который ставит стрик на паузу."
+          "Собираетесь в отпуск? Прокачайте Жилой район заранее — его «Отпуск» сразу выдаёт 20 зарядов заморозки стрика, и пропущенные дни закрываются автоматически."
         ]} />
       )
     }
