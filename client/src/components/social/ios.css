@@ -525,30 +525,6 @@ body[data-theme="light"] .social-block .cm-tabs-slider {
   line-height: 1.4;
 }
 
-/* Find-a-friend CTA: secondary, tinted, icon + text */
-.social-block .cm-find-friend {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 40%, transparent);
-  background: rgba(var(--color-primary-rgb, 251, 191, 36), 0.12);
-  color: var(--color-primary);
-  font-family: inherit;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  letter-spacing: -0.01em;
-  transition: background-color 120ms ease, transform 120ms ease;
-  -webkit-tap-highlight-color: transparent;
-}
-.social-block .cm-find-friend:active {
-  background: rgba(var(--color-primary-rgb, 251, 191, 36), 0.24);
-  transform: scale(0.98);
-}
-
 /* Remove-friend X: 40px hit-area, destructive red, tactile press state */
 .social-block .cm-remove-friend {
   width: 40px;

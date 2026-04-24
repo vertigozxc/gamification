@@ -133,6 +133,51 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
   const pushCreate = () => push({ kind: "create", props: {} });
   const pushSearch = () => push({ kind: "search", props: {} });
 
+  /* ── Derived data used by both the tab bar AND the tab content below.
+       Must stay ABOVE the early-return for the pushed screen, since the
+       useLayoutEffect that slides the tab pill depends on it — hooks can't
+       live behind a conditional return (rules of hooks). ── */
+  const now = Date.now();
+  const pendingChallenges = challenges.filter((c) => !c.myAcceptedAt && new Date(c.endsAt).getTime() > now);
+  const activeChallenges = challenges.filter((c) => c.myAcceptedAt && new Date(c.endsAt).getTime() > now);
+  const endedChallenges = challenges.filter((c) => new Date(c.endsAt).getTime() <= now);
+  const hitDailyCreate = createdToday >= dailyCreateLimit;
+  const hitActiveCap = activeChallenges.length >= MAX_ACTIVE_CHALLENGES;
+  const canCreate = !hitActiveCap && !hitDailyCreate;
+  const blockReason = hitActiveCap ? "active" : hitDailyCreate ? "daily" : null;
+
+  const tabs = [
+    { id: "activity", label: t.communityTabActivity || "Activity", icon: "⚡" },
+    { id: "challenges", label: t.communityTabChallenges || "Challenges", icon: "⚔️", badge: pendingChallenges.length },
+    { id: "friends", label: t.communityTabFriends || "Friends", icon: "🤝", badge: requests.length },
+  ];
+  const selectedIdx = tabs.findIndex((tb) => tb.id === tab);
+
+  // Slide the active-tab indicator pill under the current button — mirrors
+  // QuestBoard's .qb-tab-bar. Re-measures on every render path (even when
+  // the tab bar is not mounted because a drill-in screen is showing); the
+  // ref-null guard at the top makes that cheap.
+  useLayoutEffect(() => {
+    if (!tabsRowRef.current || !indicatorRef.current) return;
+    const activeBtn = tabsRowRef.current.querySelector(`[data-qtab="${tab}"]`);
+    if (!activeBtn) return;
+    const apply = () => {
+      if (!indicatorRef.current) return;
+      indicatorRef.current.style.width = `${activeBtn.offsetWidth}px`;
+      indicatorRef.current.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
+    };
+    apply();
+    const raf = requestAnimationFrame(apply);
+    return () => cancelAnimationFrame(raf);
+  }, [
+    tab,
+    pendingChallenges.length,
+    requests.length,
+    t.communityTabActivity,
+    t.communityTabChallenges,
+    t.communityTabFriends,
+  ]);
+
   /* ── If a screen is pushed, render ONLY it ── */
   const topEntry = stack.length > 0 ? stack[stack.length - 1] : null;
   if (topEntry) {
@@ -161,20 +206,6 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
     );
   }
 
-  /* ── Home with 3 tabs ── */
-  const now = Date.now();
-  // Invites the user hasn't accepted yet — surfaced as a Pending bucket
-  // so they don't quietly mix into the active list. An invite only
-  // moves to Active once the user taps Accept on the challenge screen.
-  const pendingChallenges = challenges.filter((c) => !c.myAcceptedAt && new Date(c.endsAt).getTime() > now);
-  const activeChallenges = challenges.filter((c) => c.myAcceptedAt && new Date(c.endsAt).getTime() > now);
-  const endedChallenges = challenges.filter((c) => new Date(c.endsAt).getTime() <= now);
-  const hitDailyCreate = createdToday >= dailyCreateLimit;
-  const hitActiveCap = activeChallenges.length >= MAX_ACTIVE_CHALLENGES;
-  const canCreate = !hitActiveCap && !hitDailyCreate;
-  // Reason the Create button would block — drives the popup copy.
-  const blockReason = hitActiveCap ? "active" : hitDailyCreate ? "daily" : null;
-
   async function handleRespond(requestId, response) {
     setBusy(true);
     try {
@@ -190,38 +221,6 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
       await refresh();
     } finally { setBusy(false); setConfirmRemove(null); }
   }
-
-  const tabs = [
-    { id: "activity", label: t.communityTabActivity || "Activity", icon: "⚡" },
-    { id: "challenges", label: t.communityTabChallenges || "Challenges", icon: "⚔️", badge: pendingChallenges.length },
-    { id: "friends", label: t.communityTabFriends || "Friends", icon: "🤝", badge: requests.length },
-  ];
-  const selectedIdx = tabs.findIndex((tb) => tb.id === tab);
-
-  // Slide the active-tab indicator pill under the current button — mirrors
-  // QuestBoard's .qb-tab-bar, so Community and Dashboard feel identical.
-  // Recomputes whenever badge counts or labels change, since those shift
-  // the button's width.
-  useLayoutEffect(() => {
-    if (!tabsRowRef.current || !indicatorRef.current) return;
-    const activeBtn = tabsRowRef.current.querySelector(`[data-qtab="${tab}"]`);
-    if (!activeBtn) return;
-    const apply = () => {
-      if (!indicatorRef.current) return;
-      indicatorRef.current.style.width = `${activeBtn.offsetWidth}px`;
-      indicatorRef.current.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
-    };
-    apply();
-    const raf = requestAnimationFrame(apply);
-    return () => cancelAnimationFrame(raf);
-  }, [
-    tab,
-    pendingChallenges.length,
-    requests.length,
-    t.communityTabActivity,
-    t.communityTabChallenges,
-    t.communityTabFriends,
-  ]);
 
   /* Swipe-to-switch between tabs. Thresholds: 40px horizontal, <60px vertical
    * drift, within 700ms. Works with vertical list scrolling because we check
@@ -758,13 +757,14 @@ function FriendsInlineTab({ friends, requests, busy, t, onOpenProfile, onOpenSea
       <button
         type="button"
         onClick={onOpenSearch}
-        className="cm-find-friend press"
+        className="cm-primary-btn press"
         aria-label={t.communityAddFriend || "Add a friend"}
+        style={{ marginTop: 4 }}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="2" />
-          <path d="m20 20-3.2-3.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          <path d="M11 8.5v5M8.5 11h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+          <path d="m20 20-3.2-3.2" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+          <path d="M11 8.5v5M8.5 11h5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
         </svg>
         <span>{t.communityFindFriend || "Find a friend"}</span>
       </button>
