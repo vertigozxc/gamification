@@ -133,7 +133,11 @@ export default function AnimatedOnboardingTour({
   open,
   steps,
   onSkip,
-  onFinish
+  onFinish,
+  // Parent gets notified of the current step id on every transition —
+  // lets the onboarding modal lock its Begin button until the tour
+  // reaches the "Ready?" step, so the user can't skip ahead.
+  onStepChange
 }) {
   const { t } = useTheme();
   const [stepIndex, setStepIndex] = useState(0);
@@ -158,6 +162,11 @@ export default function AnimatedOnboardingTour({
   const [safeBottom, setSafeBottom] = useState(0);
   const [shakeTick, setShakeTick] = useState(0);
   const enteredIdRef = useRef(null);
+  // Track the id of the step we're on so the index stays stable when
+  // the parent rebuilds the steps array (e.g. setup-* steps vanish
+  // once showOnboarding flips false). Without this, a completed setup
+  // used to jump stepIndex onto an unrelated main-tour step.
+  const currentStepIdRef = useRef(null);
 
   const stepCount = Array.isArray(steps) ? steps.length : 0;
   const step = stepCount > 0 && stepIndex < stepCount ? steps[stepIndex] : null;
@@ -169,8 +178,40 @@ export default function AnimatedOnboardingTour({
       setFinaleOpen(false);
       setAskSkipConfirm(false);
       enteredIdRef.current = null;
+      currentStepIdRef.current = null;
     }
   }, [open]);
+
+  // Keep stepIndex tracking the same step id when the array mutates,
+  // and fan the id out to the parent for external locking (e.g. the
+  // onboarding modal's Begin button).
+  useEffect(() => {
+    if (!open) return;
+    const nextId = step?.id;
+    if (nextId) currentStepIdRef.current = nextId;
+    if (typeof onStepChange === "function") {
+      try { onStepChange(nextId || null); } catch { /* noop */ }
+    }
+  }, [open, stepIndex, step?.id, onStepChange]);
+
+  useEffect(() => {
+    // Clear reported id when the tour closes.
+    if (!open && typeof onStepChange === "function") {
+      try { onStepChange(null); } catch { /* noop */ }
+    }
+  }, [open, onStepChange]);
+
+  useEffect(() => {
+    if (!open) return;
+    const pinned = currentStepIdRef.current;
+    if (!pinned || !Array.isArray(steps) || steps.length === 0) return;
+    const foundIdx = steps.findIndex((s) => s?.id === pinned);
+    if (foundIdx >= 0 && foundIdx !== stepIndex) {
+      setStepIndex(foundIdx);
+    }
+  // Only re-evaluate when the steps array reference actually changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [steps]);
 
   // Read safe-area paddings once on mount + on resize. Track the
   // visualViewport size separately so the overlay shrinks with the
@@ -459,31 +500,24 @@ export default function AnimatedOnboardingTour({
         />
       ) : null}
 
-      {/* progress strip — hidden on welcome so the intro card feels like
-          a clean hero, shown on every other step so the user always knows
-          where they are. */}
-      {!isWelcome ? (
-        <div
-          className="tour-progress"
-          style={{ top: safeTop + 10 }}
-        >
-          <div className="tour-progress-track">
-            <div className="tour-progress-fill" style={{ width: `${Math.min(100, pct)}%` }} />
-          </div>
-          <span className="tour-progress-count">{Math.min(stepIndex + 1, stepCount)} / {stepCount}</span>
-        </div>
-      ) : null}
+      {/* Top progress strip removed per design — progress now lives
+          inside the bubble (see below) and inside the welcome card. */}
 
       {/* Welcome hero card: colorful gradient, big emoji, primary Start
           button and a secondary Skip button. No tour-bubble on this step. */}
       {isWelcome ? (
         <div className="tour-welcome-wrap" style={{ top: 0, bottom: 0 }}>
           <div className="tour-welcome-card">
-            <div className="tour-welcome-glow" aria-hidden />
             <div className="tour-welcome-emoji" aria-hidden>🎯</div>
             <p className="tour-welcome-eyebrow cinzel">{t.tourWelcomeEyebrow || "GoHabit"}</p>
             <h2 className="tour-welcome-title cinzel">{typedTitle}{!titleDone ? <span className="tour-caret" /> : null}</h2>
             <p className="tour-welcome-text">{typedText}{titleDone && !textDone ? <span className="tour-caret" /> : null}</p>
+            <div className="tour-progress-inline" aria-hidden>
+              <div className="tour-progress-inline-track">
+                <div className="tour-progress-inline-fill" style={{ width: `${Math.min(100, pct)}%` }} />
+              </div>
+              <span className="tour-progress-inline-pct cinzel">{Math.min(100, pct)}%</span>
+            </div>
             <div className="tour-welcome-buttons">
               <button
                 type="button"
@@ -525,6 +559,13 @@ export default function AnimatedOnboardingTour({
         >
           <div className="tour-bubble-title">{typedTitle}{!titleDone ? <span className="tour-caret" /> : null}</div>
           <div className="tour-bubble-text">{typedText}{titleDone && !textDone ? <span className="tour-caret" /> : null}</div>
+
+          <div className="tour-progress-inline" aria-hidden>
+            <div className="tour-progress-inline-track">
+              <div className="tour-progress-inline-fill" style={{ width: `${Math.min(100, pct)}%` }} />
+            </div>
+            <span className="tour-progress-inline-pct cinzel">{Math.min(100, pct)}%</span>
+          </div>
 
           <div className="tour-bubble-actions">
             {canGoBack ? (

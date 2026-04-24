@@ -351,6 +351,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     }
   };
 
+  const [tourStepId, setTourStepId] = useState(null);
+
   const handleRestartTour = async () => {
     const uname = authUser?.uid || username;
     try {
@@ -429,15 +431,18 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       });
       list.push({
         id: "habits-browse",
-        target: '[data-tour="browse-habits"]',
-        title: t.tourHabitsBrowseTitle || "Catalog",
-        text: t.tourHabitsBrowseText || "Browse ready-made habits by category, or search. Tap a card to pick it.",
+        // Highlight the whole habits section (from "Pick Daily Habits"
+        // down through the catalog) and keep it still — no scroll so
+        // the user doesn't get jumped to the bottom of the list.
+        target: '[data-tour="setup-habits"]',
+        title: t.tourHabitsBrowseTitle || "Pick two habits",
+        text: t.tourHabitsBrowseText || "Pick two habits and tap Next — the Start Adventure button unlocks once the tour finishes.",
         gate: "condition",
         isSatisfied: () => Array.isArray(onboardingQuestIds) && onboardingQuestIds.length >= pinnedLimit,
         autoAdvance: false,
         onEnter: () => setWizardStep(1),
         bubblePlacement: "top",
-        scroll: true
+        scroll: false
       });
       list.push({
         id: "setup-begin",
@@ -1822,6 +1827,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           steps={tourSteps}
           onSkip={() => finalizeTour({ awardLevel: false })}
           onFinish={() => finalizeTour({ awardLevel: true })}
+          onStepChange={setTourStepId}
         />
       </Suspense>
 
@@ -1852,6 +1858,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         authUsername={authUser?.uid || ""}
         wizardStep={wizardStep}
         onWizardStepChange={setWizardStep}
+        lockBegin={showTour && tourStepId !== "setup-begin"}
       />
 
       <PinnedReplacementModal

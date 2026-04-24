@@ -2464,35 +2464,20 @@ body[data-theme="light"] .tour-next { color: #f8fafc; }
     text-align: center;
     color: var(--color-text);
     border: 1px solid color-mix(in srgb, var(--color-primary) 60%, var(--panel-border));
-    background:
-        radial-gradient(140% 80% at 50% 0%, color-mix(in srgb, var(--color-primary) 22%, transparent), transparent 70%),
-        linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 10%, var(--panel-bg)), var(--panel-bg));
+    /* Fully opaque background — no transparency, no blur-through. */
+    background: var(--panel-bg);
     box-shadow:
         0 24px 60px rgba(0, 0, 0, 0.5),
         0 0 60px color-mix(in srgb, var(--color-primary) 30%, transparent);
     animation: tour-finale-in 520ms cubic-bezier(0.18, 0.89, 0.32, 1.14);
     overflow: hidden;
 }
-.tour-welcome-glow {
-    position: absolute;
-    inset: -40%;
-    background:
-        radial-gradient(closest-side at 30% 20%, color-mix(in srgb, var(--color-primary) 35%, transparent), transparent 70%),
-        radial-gradient(closest-side at 80% 80%, color-mix(in srgb, var(--color-accent) 30%, transparent), transparent 70%);
-    filter: blur(24px);
-    animation: tour-welcome-glow 5400ms ease-in-out infinite alternate;
-    pointer-events: none;
-    z-index: 0;
-}
-@keyframes tour-welcome-glow {
-    from { transform: translate3d(-3%, -3%, 0) rotate(0deg); opacity: 0.75; }
-    to   { transform: translate3d(3%, 3%, 0)  rotate(20deg); opacity: 1; }
-}
 .tour-welcome-emoji,
 .tour-welcome-eyebrow,
 .tour-welcome-title,
 .tour-welcome-text,
-.tour-welcome-buttons {
+.tour-welcome-buttons,
+.tour-welcome-card .tour-progress-inline {
     position: relative;
     z-index: 1;
 }
@@ -2532,10 +2517,41 @@ body[data-theme="light"] .tour-next { color: #f8fafc; }
     opacity: 0.9;
     min-height: 3em;
 }
+/* Inline progress chip — lives inside the bubble (and welcome card).
+   Replaces the old full-width progress strip at the top of the screen. */
+.tour-progress-inline {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0 4px;
+}
+.tour-progress-inline-track {
+    flex: 1;
+    height: 4px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-muted) 24%, transparent);
+    overflow: hidden;
+}
+.tour-progress-inline-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+    transition: width 320ms cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 999px;
+}
+.tour-progress-inline-pct {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: color-mix(in srgb, var(--color-text) 82%, transparent);
+    min-width: 34px;
+    text-align: right;
+}
+
 .tour-welcome-buttons {
     display: flex;
     gap: 10px;
     align-items: center;
+    margin-top: 12px;
 }
 .tour-welcome-skip {
     flex: 1;

@@ -45,7 +45,11 @@ function OnboardingModal({
   randomQuestCount = 2,
   authUsername = "",
   wizardStep = 0,
-  onWizardStepChange
+  onWizardStepChange,
+  // When the animated tour hasn't reached the "Ready?" step yet, lock
+  // the Begin button so the user can't submit and accidentally cut
+  // the tour short.
+  lockBegin = false
 }) {
   const TOTAL_STEPS = 2;
   const setStep = (n) => {
@@ -71,6 +75,39 @@ function OnboardingModal({
   const [handleStatus, setHandleStatus] = useState("idle"); // idle | checking | available | taken | invalid | short
   const [handleTouched, setHandleTouched] = useState(false);
   const checkReqRef = useRef(0);
+  // iOS keyboard handling: 100dvh doesn't always shrink with the
+  // software keyboard inside a WebView, so we mirror the visualViewport
+  // height ourselves and apply it to the sheet. Without this, focusing
+  // the nickname / custom-habit inputs pushed the whole modal
+  // off-screen.
+  const [sheetHeight, setSheetHeight] = useState(() => (
+    typeof window !== "undefined"
+      ? (window.visualViewport?.height || window.innerHeight || 0)
+      : 0
+  ));
+  useEffect(() => {
+    if (!open || typeof window === "undefined") return undefined;
+    const readHeight = () => {
+      const h = window.visualViewport?.height || window.innerHeight || 0;
+      if (h) setSheetHeight(h);
+    };
+    readHeight();
+    window.addEventListener("resize", readHeight);
+    window.addEventListener("orientationchange", readHeight);
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener("resize", readHeight);
+      vv.addEventListener("scroll", readHeight);
+    }
+    return () => {
+      window.removeEventListener("resize", readHeight);
+      window.removeEventListener("orientationchange", readHeight);
+      if (vv) {
+        vv.removeEventListener("resize", readHeight);
+        vv.removeEventListener("scroll", readHeight);
+      }
+    };
+  }, [open]);
 
   useEffect(() => {
     if (open) {
@@ -196,7 +233,7 @@ function OnboardingModal({
   // Block submit on handle states the server will reject. "checking" is
   // allowed through — the server revalidates on the mutation call.
   const handleBlocksSubmit = handleStatus === "taken" || handleStatus === "invalid" || handleStatus === "short";
-  const primaryDisabled = onboardingSaving || !onboardingName.trim() || !selectionComplete || handleBlocksSubmit;
+  const primaryDisabled = onboardingSaving || !onboardingName.trim() || !selectionComplete || handleBlocksSubmit || lockBegin;
   // Wizard page 0 → 1 gate: nickname filled and handle isn't failing.
   // "checking" is allowed through so typing the handle doesn't block
   // forward progress on a slow network.
@@ -231,11 +268,15 @@ function OnboardingModal({
         onClick={(e) => e.stopPropagation()}
         style={{
           position: "fixed",
-          inset: 0,
+          top: 0,
+          left: 0,
+          right: 0,
           width: "100vw",
-          height: "100dvh",
+          // Shrink with the visualViewport so the iOS keyboard pushes
+          // the bottom of the sheet, not scrolls the top off-screen.
+          height: sheetHeight ? `${sheetHeight}px` : "100dvh",
           maxWidth: "100vw",
-          maxHeight: "100dvh",
+          maxHeight: sheetHeight ? `${sheetHeight}px` : "100dvh",
           background: "var(--card-bg, #0f172a)",
           border: "none",
           borderRadius: 0,
