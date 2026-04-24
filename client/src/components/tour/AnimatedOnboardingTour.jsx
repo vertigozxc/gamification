@@ -275,8 +275,9 @@ export default function AnimatedOnboardingTour({
       setTimeout(() => {
         const found = getTargetRect(step.target);
         if (found?.el && typeof found.el.scrollIntoView === "function") {
+          const block = step.scrollBlock || "center";
           try {
-            found.el.scrollIntoView({ block: "center", behavior: "smooth" });
+            found.el.scrollIntoView({ block, behavior: "smooth" });
           } catch {
             try { found.el.scrollIntoView(); } catch { /* noop */ }
           }
@@ -341,6 +342,23 @@ export default function AnimatedOnboardingTour({
     const info = getTargetRect(step.target);
     if (!info) return { kind: "missing" };
     const r = info.rect;
+    // fillBottom — stretch the spotlight from the target's top edge
+    // all the way to the bottom of the viewport, full width. Keeps
+    // the highlight rectangle stable as the user scrolls / picks
+    // items inside the target (used by the habits picker).
+    if (step.fillBottom) {
+      return {
+        kind: "spotlight",
+        rect: {
+          top: r.top,
+          left: 0,
+          right: viewport.w,
+          bottom: viewport.h,
+          width: viewport.w,
+          height: Math.max(0, viewport.h - r.top)
+        }
+      };
+    }
     return { kind: "spotlight", rect: r };
   // Re-run whenever viewport changes or rectTick increments.
   // eslint-disable-next-line react-hooks/exhaustive-deps

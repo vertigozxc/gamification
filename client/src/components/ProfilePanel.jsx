@@ -103,7 +103,7 @@ function ProfilePanel({
           </div>
 
           {/* Daily Board */}
-          <div className={`daily-board-panel bg-slate-900/80 rounded-lg shadow-lg w-full ${compact ? "px-3 py-3" : "px-3 py-2"}`} style={{ borderWidth: 1, borderStyle: "solid", borderColor: "var(--panel-border)" }}>
+          <div data-tour="daily-board-panel" className={`daily-board-panel bg-slate-900/80 rounded-lg shadow-lg w-full ${compact ? "px-3 py-3" : "px-3 py-2"}`} style={{ borderWidth: 1, borderStyle: "solid", borderColor: "var(--panel-border)" }}>
             <div className="flex justify-between items-center mb-2">
               <p className="cinzel text-[10px] tracking-widest uppercase" style={{ color: "var(--color-primary)" }}>{t.dailyBoard}</p>
               <div className="flex items-center gap-3">

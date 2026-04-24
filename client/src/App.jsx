@@ -392,8 +392,11 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       autoAdvance: false,
       onEnter: () => setWizardStep(0),
       // Pin the bubble below the input so the keyboard doesn't shove
-      // everything around when the user taps the field.
+      // everything around when the user taps the field. Scroll the
+      // target to the TOP of the viewport so the bubble below it
+      // never covers it.
       bubblePlacement: "bottom",
+      scrollBlock: "start",
       scroll: true
     });
     list.push({
@@ -405,6 +408,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       gate: "next",
       onEnter: () => setWizardStep(0),
       bubblePlacement: "bottom",
+      scrollBlock: "start",
       scroll: true
     });
     list.push({
@@ -426,30 +430,34 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     // New habits tour flow matching the slide-bar design:
     // 1) Custom tab introduction → 2) Presets tab with "pick 2" gate
     //    → (next) 3) Start Adventure
-    list.push({
-      id: "habits-custom",
-      hidden: hideSetup,
-      // Highlight from the slide bar down through the Custom-tab list
-      // — the picker wrapper (tabs + sticky chip + active content).
-      target: '[data-tour="habits-picker"]',
-      title: t.tourHabitsCustomTitle || "Your custom habits",
-      text: t.tourHabitsCustomText || "This tab is where you build your own habits. Tap Next to see the curated catalog.",
-      gate: "next",
-      onEnter: () => { setWizardStep(1); setForcedHabitsTab("custom"); },
-      bubblePlacement: "top",
-      scroll: false
-    });
+    // Show Presets (ready-made) first, then the Custom tab. Both
+    // highlight the same wrapper — tour uses fillBottom so the
+    // spotlight extends from the slide bar to the bottom of the
+    // viewport and never resizes as the user picks habits.
     list.push({
       id: "habits-browse",
       hidden: hideSetup,
       target: '[data-tour="habits-picker"]',
       title: t.tourHabitsBrowseTitle || "Ready-made habits",
       text: t.tourHabitsBrowseText || "Filter by category or search. Pick 2 habits you want to build, then tap Next.",
+      gate: "next",
+      onEnter: () => { setWizardStep(1); setForcedHabitsTab("presets"); },
+      bubblePlacement: "top",
+      fillBottom: true,
+      scroll: false
+    });
+    list.push({
+      id: "habits-custom",
+      hidden: hideSetup,
+      target: '[data-tour="habits-picker"]',
+      title: t.tourHabitsCustomTitle || "Your custom habits",
+      text: t.tourHabitsCustomText || "This tab is where you build your own habits. Tap Next once you've finished picking.",
       gate: "condition",
       isSatisfied: () => Array.isArray(onboardingQuestIds) && onboardingQuestIds.length >= pinnedLimit,
       autoAdvance: false,
-      onEnter: () => { setWizardStep(1); setForcedHabitsTab("presets"); },
+      onEnter: () => { setWizardStep(1); setForcedHabitsTab("custom"); },
       bubblePlacement: "top",
+      fillBottom: true,
       scroll: false
     });
     list.push({
@@ -491,11 +499,13 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     });
     list.push({
       id: "daily-board",
-      target: '[data-tour="daily-panel"]',
+      // Spotlight the actual "DAILY BOARD X/Y" segmented progress panel
+      // (above the quest list), not the quest list itself.
+      target: '[data-tour="daily-board-panel"]',
       title: t.tourDailyBoardTitle || "Full board = bonus",
       text: t.tourDailyBoardText || "Close the whole board and your streak grows — plus extra tokens.",
       gate: "next",
-      scroll: false
+      scroll: true
     });
     // CITY: user taps the City tab themselves → tour highlights districts etc
     list.push({
