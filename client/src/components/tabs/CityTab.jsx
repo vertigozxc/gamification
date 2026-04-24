@@ -1180,11 +1180,13 @@ export default function CityTab({
                       borderRadius: 12,
                       border: canUpgrade
                         ? "1.5px solid #4fa85e"
-                        : "1.5px dashed var(--panel-border)",
+                        : "1.5px solid color-mix(in srgb, var(--color-muted) 55%, var(--panel-border))",
                       background: canUpgrade
                         ? "color-mix(in srgb, #4fa85e 22%, var(--panel-bg))"
-                        : "var(--panel-bg)",
-                      color: canUpgrade ? "#4fa85e" : "var(--color-muted)",
+                        : "color-mix(in srgb, var(--panel-border) 18%, var(--panel-bg))",
+                      color: canUpgrade
+                        ? "#4fa85e"
+                        : "color-mix(in srgb, var(--color-muted) 65%, var(--color-text))",
                       fontSize: 14,
                       fontWeight: 800,
                       letterSpacing: "0.08em",
