@@ -1180,13 +1180,11 @@ export default function CityTab({
                       borderRadius: 12,
                       border: canUpgrade
                         ? "1.5px solid #4fa85e"
-                        : "1.5px solid color-mix(in srgb, var(--color-muted) 55%, var(--panel-border))",
+                        : "1.5px solid var(--panel-border)",
                       background: canUpgrade
                         ? "color-mix(in srgb, #4fa85e 22%, var(--panel-bg))"
                         : "color-mix(in srgb, var(--panel-border) 18%, var(--panel-bg))",
-                      color: canUpgrade
-                        ? "#4fa85e"
-                        : "color-mix(in srgb, var(--color-muted) 65%, var(--color-text))",
+                      color: canUpgrade ? "#4fa85e" : "var(--color-muted)",
                       fontSize: 14,
                       fontWeight: 800,
                       letterSpacing: "0.08em",
@@ -1194,14 +1192,23 @@ export default function CityTab({
                       cursor: canUpgrade ? "pointer" : "not-allowed",
                       transition: "all 0.2s ease",
                       opacity: 1,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
                       boxShadow: canUpgrade
                         ? "0 2px 10px color-mix(in srgb, #4fa85e 22%, transparent)"
                         : "none"
                     }}
                   >
-                    {isTourFree
-                      ? (t.districtUpgradeFreeCta || "Upgrade · Free")
-                      : (t.districtUpgradeCta || "Upgrade")}
+                    {!canUpgrade && (
+                      <span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1 }}>🔒</span>
+                    )}
+                    <span>
+                      {isTourFree
+                        ? (t.districtUpgradeFreeCta || "Upgrade · Free")
+                        : (t.districtUpgradeCta || "Upgrade")}
+                    </span>
                   </button>
                 </div>
               ) : (
