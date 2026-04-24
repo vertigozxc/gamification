@@ -309,6 +309,65 @@ function OnboardingModal({
           </div>
         </div>
 
+        {/* Sticky habits-selected counter — lives between the header and
+            the sliding body, so it stays in view while the user scrolls
+            through the habit list. Hidden on step 0. */}
+        {wizardStep === 1 ? (
+          <div
+            style={{
+              padding: "10px 16px 10px",
+              borderBottom: "1px solid var(--card-border-idle)",
+              background: "color-mix(in srgb, var(--color-primary) 6%, var(--card-bg, #0f172a))"
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, gap: 10 }}>
+              <span
+                className="cinzel"
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "var(--color-primary)"
+                }}
+              >
+                {selectedCount} / {SELECTION_LIMIT}{" "}
+                <span style={{ color: "var(--color-muted)", fontWeight: 700 }}>
+                  {t.onboardingHabitsSelected || "habits selected"}
+                </span>
+              </span>
+              {selectionComplete ? (
+                <span
+                  className="cinzel"
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    padding: "3px 8px",
+                    borderRadius: 999,
+                    background: "color-mix(in srgb, var(--color-accent) 22%, transparent)",
+                    color: "var(--color-accent)",
+                    border: "1px solid color-mix(in srgb, var(--color-accent) 55%, transparent)"
+                  }}
+                >
+                  ✓ {t.onboardingReady || "ready"}
+                </span>
+              ) : null}
+            </div>
+            <div style={{ height: 4, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+              <div
+                style={{
+                  width: `${progressPct}%`,
+                  height: "100%",
+                  background: selectionComplete ? "var(--color-accent)" : "var(--color-primary)",
+                  transition: "width 200ms ease"
+                }}
+              />
+            </div>
+          </div>
+        ) : null}
+
         <div
           style={{
             flex: 1,
@@ -514,29 +573,6 @@ function OnboardingModal({
               padding: "12px 16px 16px"
             }}
           >
-          {/* "N / 2 selected" chip — was in the header before the wizard
-              refactor, now lives directly above the habits list where
-              it's most relevant. */}
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-              <span style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#cbd5e1" }}>
-                {t.onboardingSelected
-                  ? `${selectedCount} / ${SELECTION_LIMIT} ${t.onboardingSelected}`
-                  : `${selectedCount} / ${SELECTION_LIMIT}`}
-              </span>
-            </div>
-            <div style={{ height: 4, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
-              <div
-                style={{
-                  width: `${progressPct}%`,
-                  height: "100%",
-                  background: selectionComplete ? "var(--color-accent)" : "var(--color-primary)",
-                  transition: "width 200ms ease"
-                }}
-              />
-            </div>
-          </div>
-
           <div data-tour="setup-habits">
           {/* Section-start header for the habit picker. A primary-coloured
               accent bar sits above the title as the lone divider — no
@@ -708,38 +744,13 @@ function OnboardingModal({
               <button
                 type="button"
                 onClick={() => {
-                  if (!onboardingName.trim() || onboardingSaving || handleBlocksSubmit) return;
-                  onSkip?.(normalizedHandle);
-                }}
-                disabled={onboardingSaving || !onboardingName.trim() || !onSkip || handleBlocksSubmit}
-                className="cinzel mobile-pressable"
-                title={!onboardingName.trim() ? t.nicknameRequired : undefined}
-                style={{
-                  flex: 1,
-                  minHeight: 48,
-                  borderRadius: 12,
-                  background: "transparent",
-                  border: "1px solid var(--card-border-idle)",
-                  color: !onboardingName.trim() ? "#64748b" : "#cbd5e1",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: (!onboardingName.trim() || onboardingSaving || handleBlocksSubmit) ? "not-allowed" : "pointer",
-                  letterSpacing: "0.05em",
-                  opacity: (!onboardingName.trim() || onboardingSaving || handleBlocksSubmit) ? 0.7 : 1
-                }}
-              >
-                {t.onboardingSkipLater || "I'll do it later"}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
                   if (!canAdvanceFromStep0) return;
                   setStep(1);
                 }}
                 disabled={!canAdvanceFromStep0 || onboardingSaving}
                 className="cinzel mobile-pressable"
                 style={{
-                  flex: 2,
+                  flex: 1,
                   minHeight: 48,
                   borderRadius: 12,
                   background: (!canAdvanceFromStep0)
@@ -764,44 +775,21 @@ function OnboardingModal({
                 onClick={() => setStep(0)}
                 disabled={onboardingSaving}
                 className="cinzel mobile-pressable"
-                aria-label={t.onboardingBack || "Back"}
-                style={{
-                  minHeight: 48,
-                  width: 48,
-                  borderRadius: 12,
-                  background: "transparent",
-                  border: "1px solid var(--card-border-idle)",
-                  color: "#cbd5e1",
-                  fontSize: 18,
-                  fontWeight: 600,
-                  cursor: onboardingSaving ? "not-allowed" : "pointer"
-                }}
-              >
-                ←
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!onboardingName.trim() || onboardingSaving || handleBlocksSubmit) return;
-                  onSkip?.(normalizedHandle);
-                }}
-                disabled={onboardingSaving || !onboardingName.trim() || !onSkip || handleBlocksSubmit}
-                className="cinzel mobile-pressable"
                 style={{
                   flex: 1,
                   minHeight: 48,
                   borderRadius: 12,
                   background: "transparent",
                   border: "1px solid var(--card-border-idle)",
-                  color: !onboardingName.trim() ? "#64748b" : "#cbd5e1",
+                  color: "#cbd5e1",
                   fontSize: 13,
-                  fontWeight: 600,
-                  cursor: (!onboardingName.trim() || onboardingSaving || handleBlocksSubmit) ? "not-allowed" : "pointer",
+                  fontWeight: 700,
                   letterSpacing: "0.05em",
-                  opacity: (!onboardingName.trim() || onboardingSaving || handleBlocksSubmit) ? 0.7 : 1
+                  textTransform: "uppercase",
+                  cursor: onboardingSaving ? "not-allowed" : "pointer"
                 }}
               >
-                {t.onboardingSkipLater || "I'll do it later"}
+                {t.onboardingBack || "Back"}
               </button>
               <button
                 type="button"

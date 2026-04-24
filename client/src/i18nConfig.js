@@ -416,6 +416,8 @@ export const languagePacks = {
       onboardingStepOf: "Step {current} of {total}",
       onboardingContinue: "Continue →",
       onboardingBack: "Back",
+      onboardingHabitsSelected: "habits selected",
+      onboardingReady: "ready",
       // ── Animated onboarding tour ──────────────────────────────────
       tourWelcomeEyebrow: "GoHabit",
       tourWelcomeTitle: "Welcome aboard!",
@@ -1502,6 +1504,8 @@ export const languagePacks = {
       onboardingStepOf: "Шаг {current} из {total}",
       onboardingContinue: "Дальше →",
       onboardingBack: "Назад",
+      onboardingHabitsSelected: "привычки выбрано",
+      onboardingReady: "готово",
       // ── Анимированный онбординг-тур ───────────────────────────────
       tourWelcomeEyebrow: "GoHabit",
       tourWelcomeTitle: "Привет!",
