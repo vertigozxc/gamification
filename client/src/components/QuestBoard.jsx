@@ -222,7 +222,7 @@ function QuestBoard({
       )}
 
       {/* Tab content with crossfade */}
-      <div className="qb-tab-content">
+      <div data-tour="daily-panel" className="qb-tab-content">
         {/* Habits / Pinned tab */}
         {activeQTab === "habits" && hasPinned && (
           <div className="qb-panel-enter">
@@ -280,7 +280,7 @@ function QuestBoard({
 
         {/* Daily / Other quests tab */}
         {activeQTab === "daily" && hasOther && (
-          <div data-tour="daily-panel" className="qb-panel-enter flex flex-col">
+          <div className="qb-panel-enter flex flex-col">
             <div ref={otherListRef} className={`grid grid-cols-1 ${compact ? "gap-3" : "md:grid-cols-2 gap-3"}`}>
               {sortedOtherQuests.map((quest, index) => {
                 const isDone = completedIds.includes(quest.id);

@@ -607,6 +607,12 @@ export default function AnimatedOnboardingTour({
           <div className="tour-bubble-title">{typedTitle}{!titleDone ? <span className="tour-caret" /> : null}</div>
           <div className="tour-bubble-text">{typedText}{titleDone && !textDone ? <span className="tour-caret" /> : null}</div>
 
+          {step.kind === "tab-switch" ? (
+            <div className="tour-tab-arrow" aria-hidden>
+              <span className="tour-tab-arrow-glyph">▼</span>
+            </div>
+          ) : null}
+
           <div className="tour-progress-inline" aria-hidden>
             <div className="tour-progress-inline-track">
               <div className="tour-progress-inline-fill" style={{ width: `${Math.min(100, pct)}%` }} />

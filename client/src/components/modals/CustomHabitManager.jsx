@@ -177,7 +177,11 @@ function CustomHabitManager({
                     key={"custom-" + cq.id}
                     className="rounded-lg border p-3 relative"
                     style={isSelected
-                      ? { borderColor: accentBorder, background: "var(--color-accent-dim)" }
+                      ? {
+                          borderColor: accentBorder,
+                          background: `color-mix(in srgb, var(${accentVar}) 12%, transparent)`,
+                          boxShadow: `0 0 18px color-mix(in srgb, var(${accentVar}) 25%, transparent)`
+                        }
                       : { borderColor: "var(--card-border-idle)", background: "var(--card-bg)", opacity: blocked ? 0.5 : 1 }}
                   >
                     <button

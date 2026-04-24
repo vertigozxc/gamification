@@ -44,7 +44,7 @@ export default function DashboardTab({
               <span className="text-base">🔥</span>
               <p className="text-xs cinzel font-bold" style={{ color: "var(--streak-text)" }}>{state.streak}</p>
             </div>
-            <p className="text-[10px] opacity-70 cinzel tracking-wider" style={{ color: "var(--color-muted)" }}>+{streakBonusPercent}% {t.xpMultiplier}</p>
+            <p className="text-[10px] opacity-70 cinzel tracking-wider" style={{ color: "var(--color-muted)" }}>+{streakBonusPercent}% XP {t.dashSportBonusFrom || "from"} {t.streakLabel || "Streak"}</p>
             {(() => {
               const ms = xpBoostExpiresAt ? new Date(xpBoostExpiresAt).getTime() - Date.now() : 0;
               if (ms <= 0) return null;
@@ -62,7 +62,7 @@ export default function DashboardTab({
               if (sportBonusPct <= 0) return null;
               return (
                 <p className="text-[10px] opacity-70 cinzel tracking-wider" style={{ color: "var(--color-muted)" }}>
-                  +{sportBonusPct}% {t.dashSportBonusFrom || "from"} {t.districtSport || "Sports"}
+                  +{sportBonusPct}% XP {t.dashSportBonusFrom || "from"} {t.cityLabel || "City"}
                 </p>
               );
             })()}

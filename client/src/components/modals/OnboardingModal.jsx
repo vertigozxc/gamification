@@ -255,23 +255,33 @@ function OnboardingModal({
   const questGroups = useMemo(() => {
     const filteredGroups = groupQuests(filteredByCategory);
     const initialSet = new Set(initialSelectedIds);
-    const fullPool = Array.isArray(allEligibleQuestOptions)
-      ? allEligibleQuestOptions.filter((q) => !q.isCustom)
-      : nonCustomQuests;
-    const initialGroupsFromFullPool = groupQuests(fullPool).filter(
-      (g) => g.variants.some((q) => initialSet.has(q.id))
-    );
-    const filteredKeys = new Set(filteredGroups.map((g) => g.key));
-    const missingInitialGroups = initialGroupsFromFullPool.filter(
-      (g) => !filteredKeys.has(g.key)
-    );
-    const combined = [...missingInitialGroups, ...filteredGroups];
+
+    // A specific category filter should honour the filter strictly;
+    // previously selected habits from other categories must NOT leak
+    // back in. Only ALL brings missing initial picks back (so search
+    // can't drop them).
+    let combined;
+    if (categoryFilter === "ALL") {
+      const fullPool = Array.isArray(allEligibleQuestOptions)
+        ? allEligibleQuestOptions.filter((q) => !q.isCustom)
+        : nonCustomQuests;
+      const initialGroupsFromFullPool = groupQuests(fullPool).filter(
+        (g) => g.variants.some((q) => initialSet.has(q.id))
+      );
+      const filteredKeys = new Set(filteredGroups.map((g) => g.key));
+      const missingInitialGroups = initialGroupsFromFullPool.filter(
+        (g) => !filteredKeys.has(g.key)
+      );
+      combined = [...missingInitialGroups, ...filteredGroups];
+    } else {
+      combined = filteredGroups;
+    }
     return combined.slice().sort((a, b) => {
       const aSelected = a.variants.some((q) => initialSet.has(q.id)) ? 0 : 1;
       const bSelected = b.variants.some((q) => initialSet.has(q.id)) ? 0 : 1;
       return aSelected - bSelected;
     });
-  }, [filteredByCategory, nonCustomQuests, initialSelectedIds, allEligibleQuestOptions]);
+  }, [filteredByCategory, nonCustomQuests, initialSelectedIds, allEligibleQuestOptions, categoryFilter]);
 
   const selectedCount = Array.isArray(onboardingQuestIds) ? onboardingQuestIds.length : 0;
   const selectionComplete = selectedCount === SELECTION_LIMIT;
@@ -401,37 +411,6 @@ function OnboardingModal({
             flex: 1,
             overflow: "hidden",
             position: "relative"
-          }}
-          onTouchStart={(e) => {
-            const tp = e.touches?.[0];
-            if (!tp) return;
-            swipeRef.current = { startX: tp.clientX, startY: tp.clientY, active: true };
-          }}
-          onTouchMove={(e) => {
-            if (!swipeRef.current.active) return;
-            const tp = e.touches?.[0];
-            if (!tp) return;
-            const dx = tp.clientX - swipeRef.current.startX;
-            const dy = tp.clientY - swipeRef.current.startY;
-            // If the user is clearly scrolling vertically, disarm the
-            // swipe so we don't steal the gesture.
-            if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) {
-              swipeRef.current.active = false;
-            }
-          }}
-          onTouchEnd={(e) => {
-            if (!swipeRef.current.active) return;
-            const tp = e.changedTouches?.[0];
-            swipeRef.current.active = false;
-            if (!tp) return;
-            const dx = tp.clientX - swipeRef.current.startX;
-            const dy = tp.clientY - swipeRef.current.startY;
-            if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)) return;
-            if (dx < 0 && wizardStep < TOTAL_STEPS - 1 && canAdvanceFromStep0) {
-              setStep(wizardStep + 1);
-            } else if (dx > 0 && wizardStep > 0) {
-              setStep(wizardStep - 1);
-            }
           }}
         >
           <div

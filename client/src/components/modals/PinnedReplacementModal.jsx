@@ -36,6 +36,7 @@ function PinnedReplacementModal({
   const SELECTION_LIMIT = Math.max(1, Number(selectionLimit) || 2);
   const [sheetAnim, setSheetAnim] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [habitsTab, setHabitsTab] = useState("presets");
   // Snapshot of which quest IDs were selected when the picker opened.
   // Sort + filter pin those groups to the top and keep them visible
   // regardless of search/category — so subsequent taps never cause the
@@ -81,21 +82,27 @@ function PinnedReplacementModal({
     const filteredGroups = groupQuests(filteredByCategory);
     const initialSet = new Set(initialSelectedIds);
 
-    // Always surface groups that contain any initially-selected quest,
-    // even if the search / category filter would otherwise exclude them.
-    // Use the UNFILTERED eligible pool (not the search-filtered pool),
-    // otherwise a search term would drop the initial selection entirely.
-    const fullPool = Array.isArray(allEligibleQuestOptions)
-      ? allEligibleQuestOptions.filter((q) => !q.isCustom)
-      : nonCustomQuests;
-    const initialGroupsFromFullPool = groupQuests(fullPool).filter(
-      (g) => g.variants.some((q) => initialSet.has(q.id))
-    );
-    const filteredKeys = new Set(filteredGroups.map((g) => g.key));
-    const missingInitialGroups = initialGroupsFromFullPool.filter(
-      (g) => !filteredKeys.has(g.key)
-    );
-    const combined = [...missingInitialGroups, ...filteredGroups];
+    // When the user picks a specific category, honour the filter
+    // strictly — only show quests that match. (Previously we also
+    // surfaced already-picked habits from other categories, which
+    // made the filter feel broken.) For ALL, we still bring back
+    // initial picks that a search term might otherwise drop.
+    let combined;
+    if (categoryFilter === "ALL") {
+      const fullPool = Array.isArray(allEligibleQuestOptions)
+        ? allEligibleQuestOptions.filter((q) => !q.isCustom)
+        : nonCustomQuests;
+      const initialGroupsFromFullPool = groupQuests(fullPool).filter(
+        (g) => g.variants.some((q) => initialSet.has(q.id))
+      );
+      const filteredKeys = new Set(filteredGroups.map((g) => g.key));
+      const missingInitialGroups = initialGroupsFromFullPool.filter(
+        (g) => !filteredKeys.has(g.key)
+      );
+      combined = [...missingInitialGroups, ...filteredGroups];
+    } else {
+      combined = filteredGroups;
+    }
 
     // Sort: groups with any initially-selected quest first. Uses the
     // open-time snapshot, not live selection, so tapping a card during
@@ -105,7 +112,7 @@ function PinnedReplacementModal({
       const bSelected = b.variants.some((q) => initialSet.has(q.id)) ? 0 : 1;
       return aSelected - bSelected;
     });
-  }, [filteredByCategory, nonCustomQuests, initialSelectedIds, allEligibleQuestOptions]);
+  }, [filteredByCategory, nonCustomQuests, initialSelectedIds, allEligibleQuestOptions, categoryFilter]);
 
   const selectedCount = Array.isArray(replacePinnedQuestIds) ? replacePinnedQuestIds.length : 0;
   const selectionComplete = selectedCount === SELECTION_LIMIT;
@@ -259,111 +266,134 @@ function PinnedReplacementModal({
             padding: "12px 16px 16px"
           }}
         >
-          <InputWithClear
-            value={replacePinnedSearch}
-            onChange={onReplacePinnedSearchChange}
-            placeholder={t.replacePinnedSearchPlaceholder || t.onboardingSearch}
-            clearAriaLabel={t.clearLabel || "Clear"}
-            inputStyle={{
-              padding: "12px 14px",
-              borderRadius: 12,
-              background: "rgba(255,255,255,0.07)",
-              border: "1px solid var(--card-border-idle)",
-              color: "#e2e8f0",
-              fontSize: 14,
-              minHeight: 44,
-              outline: "none"
-            }}
-          />
+          {/* Segmented slide bar: Presets ↔ Custom. Same pattern as the
+              first-setup habit picker. */}
+          <div
+            role="tablist"
+            className="onb-habits-tabs"
+            style={{ "--onb-tabs-count": 2, "--onb-tabs-active": habitsTab === "custom" ? 1 : 0 }}
+          >
+            <div className="onb-habits-tabs-slider" aria-hidden />
+            <button
+              type="button"
+              role="tab"
+              aria-selected={habitsTab === "presets"}
+              onClick={() => setHabitsTab("presets")}
+              className="onb-habits-tab cinzel mobile-pressable"
+            >
+              <span className="onb-habits-tab-ico" aria-hidden>📋</span>
+              <span className="onb-habits-tab-label">{t.onboardingTabPresets || "Presets"}</span>
+              <span className="onb-habits-tab-count">{questGroups.length}</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={habitsTab === "custom"}
+              onClick={() => setHabitsTab("custom")}
+              className="onb-habits-tab cinzel mobile-pressable"
+            >
+              <span className="onb-habits-tab-ico" aria-hidden>✨</span>
+              <span className="onb-habits-tab-label">{t.onboardingTabCustom || "Custom"}</span>
+              <span className="onb-habits-tab-count">{Array.isArray(customQuests) ? customQuests.length : 0}</span>
+            </button>
+          </div>
 
-          <CustomHabitManager
-            customQuests={customQuests}
-            selectedIds={replacePinnedQuestIds}
-            onToggleSelect={onToggleReplacePinnedQuest}
-            selectionLimitReached={selectedCount >= SELECTION_LIMIT}
-            accentVar="--color-accent"
-            onCreateCustomQuest={onCreateCustomQuest}
-            onUpdateCustomQuest={onUpdateCustomQuest}
-            onDeleteCustomQuest={onDeleteCustomQuest}
-            customSaving={customSaving}
-            customError={customError}
-            onClearCustomError={onClearCustomError}
-          />
-
-          <div style={{ marginTop: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-              <span
-                className="cinzel"
-                style={{
-                  fontSize: 11,
-                  letterSpacing: "0.15em",
-                  textTransform: "uppercase",
-                  color: "var(--color-accent)"
-                }}
-              >
-                {t.browseHabitsSection}
-              </span>
-              <span style={{ fontSize: 11, color: "#64748b" }}>{questGroups.length}</span>
+          {habitsTab === "presets" ? (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ marginBottom: 10 }}>
+                <CategoryFilterRow
+                  value={categoryFilter}
+                  onChange={setCategoryFilter}
+                  categories={categoryOptions}
+                  counts={categoryCounts}
+                  translateCategory={translateCategory}
+                />
+              </div>
+              <div style={{ marginBottom: 10 }}>
+                <InputWithClear
+                  value={replacePinnedSearch}
+                  onChange={onReplacePinnedSearchChange}
+                  placeholder={t.replacePinnedSearchPlaceholder || t.onboardingSearch}
+                  clearAriaLabel={t.clearLabel || "Clear"}
+                  inputStyle={{
+                    padding: "12px 14px",
+                    borderRadius: 12,
+                    background: "rgba(255,255,255,0.07)",
+                    border: "1px solid var(--card-border-idle)",
+                    color: "#e2e8f0",
+                    fontSize: 14,
+                    minHeight: 44,
+                    outline: "none"
+                  }}
+                />
+              </div>
+              {questGroups.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "20px 0", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+                  <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>
+                    {t.onboardingNoMatch}
+                  </p>
+                  {(replacePinnedSearch || categoryFilter !== "ALL") ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onReplacePinnedSearchChange("");
+                        setCategoryFilter("ALL");
+                      }}
+                      className="cinzel mobile-pressable"
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: "6px 12px",
+                        borderRadius: 999,
+                        border: "1px solid var(--color-primary)",
+                        background: "color-mix(in srgb, var(--color-primary) 14%, transparent)",
+                        color: "var(--color-primary)",
+                        letterSpacing: "0.06em",
+                        textTransform: "uppercase",
+                        cursor: "pointer"
+                      }}
+                    >
+                      {t.clearFiltersLabel || "Clear filters"}
+                    </button>
+                  ) : null}
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {questGroups.map((group) => {
+                    const selectedInGroup = group.variants.find((q) => replacePinnedQuestIds.includes(q.id));
+                    const blocked = !selectedInGroup && selectedCount >= SELECTION_LIMIT;
+                    return (
+                      <QuestGroupCard
+                        key={`replace-group-${group.key}`}
+                        group={group}
+                        selectedVariantId={selectedInGroup?.id ?? null}
+                        disabled={blocked}
+                        onPick={(id) => onToggleReplacePinnedQuest(id)}
+                        onUnpick={(id) => onToggleReplacePinnedQuest(id)}
+                        translateCategory={translateCategory}
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            <div style={{ marginBottom: 10 }}>
-              <CategoryFilterRow
-                value={categoryFilter}
-                onChange={setCategoryFilter}
-                categories={categoryOptions}
-                counts={categoryCounts}
-                translateCategory={translateCategory}
+          ) : (
+            <div style={{ marginTop: 12 }}>
+              <CustomHabitManager
+                customQuests={customQuests}
+                selectedIds={replacePinnedQuestIds}
+                onToggleSelect={onToggleReplacePinnedQuest}
+                selectionLimitReached={selectedCount >= SELECTION_LIMIT}
+                accentVar="--color-primary"
+                onCreateCustomQuest={onCreateCustomQuest}
+                onUpdateCustomQuest={onUpdateCustomQuest}
+                onDeleteCustomQuest={onDeleteCustomQuest}
+                customSaving={customSaving}
+                customError={customError}
+                onClearCustomError={onClearCustomError}
               />
             </div>
-            {questGroups.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "20px 0", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
-                <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>
-                  {t.onboardingNoMatch}
-                </p>
-                {(replacePinnedSearch || categoryFilter !== "ALL") ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onReplacePinnedSearchChange("");
-                      setCategoryFilter("ALL");
-                    }}
-                    className="cinzel mobile-pressable"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      padding: "6px 12px",
-                      borderRadius: 999,
-                      border: "1px solid var(--color-primary)",
-                      background: "color-mix(in srgb, var(--color-primary) 14%, transparent)",
-                      color: "var(--color-primary)",
-                      letterSpacing: "0.06em",
-                      textTransform: "uppercase",
-                      cursor: "pointer"
-                    }}
-                  >
-                    {t.clearFiltersLabel || "Clear filters"}
-                  </button>
-                ) : null}
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {questGroups.map((group) => {
-                  const selectedInGroup = group.variants.find((q) => replacePinnedQuestIds.includes(q.id));
-                  const blocked = !selectedInGroup && selectedCount >= SELECTION_LIMIT;
-                  return (
-                    <QuestGroupCard
-                      key={`replace-group-${group.key}`}
-                      group={group}
-                      selectedVariantId={selectedInGroup?.id ?? null}
-                      disabled={blocked}
-                      onPick={(id) => onToggleReplacePinnedQuest(id)}
-                      onUnpick={(id) => onToggleReplacePinnedQuest(id)}
-                      translateCategory={translateCategory}
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
         <div

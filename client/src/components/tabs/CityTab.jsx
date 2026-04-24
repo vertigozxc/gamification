@@ -952,8 +952,9 @@ export default function CityTab({
         </div>
       )}
 
-      {/* District controls — appear BELOW the shell when a district is active */}
-      {selectedDistrictIdx >= 0 && (() => {
+      {/* District controls — appear BELOW the action buttons when a
+          district is active (upgrade card / perks list). */}
+      {selectedDistrictIdx >= 0 && (() => { /* __DISTRICT_CONTROLS_START__ */
         const district = DISTRICTS[selectedDistrictIdx];
         const level = Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(Number(districtLevels[selectedDistrictIdx]) || 0)));
         const atMax = level >= DISTRICT_MAX_LEVEL;
@@ -969,7 +970,7 @@ export default function CityTab({
           )
         );
         return (
-          <div className="mt-3 flex flex-col gap-3">
+          <div className="mt-3 flex flex-col gap-3" style={{ order: 20 }}>
             {/* Benefits + next-upgrade requirements card */}
             <div
               style={{
@@ -1116,7 +1117,8 @@ export default function CityTab({
               cursor: disabled ? "not-allowed" : "pointer",
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              opacity: locked ? 0.7 : 1
+              opacity: locked ? 0.7 : 1,
+              order: 5
             }}
           >
             {label}
@@ -1132,7 +1134,7 @@ export default function CityTab({
         const freezeDisabled = fz.cap === 0 || fz.remaining === 0;
         const vacationDisabled = !vac.unlocked || vac.active || (vac.nextAvailableInDays > 0);
         return (
-          <div className="mt-3 flex flex-col gap-2">
+          <div className="mt-3 flex flex-col gap-2" style={{ order: 5 }}>
             {resLvl >= 2 && (
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <button
@@ -1215,7 +1217,8 @@ export default function CityTab({
             textAlign: "center",
             fontSize: 12,
             color: "var(--color-text)",
-            fontWeight: 600
+            fontWeight: 600,
+            order: 6
           }}
         >
           {actionMsg}
@@ -1263,7 +1266,8 @@ export default function CityTab({
               alignItems: "center",
               justifyContent: "center",
               gap: "8px",
-              opacity: locked ? 0.7 : 1
+              opacity: locked ? 0.7 : 1,
+              order: 5
             }}
           >
             {label}

@@ -330,6 +330,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   // close the tour.
   const finalizeTour = async ({ awardLevel }) => {
     setShowTour(false);
+    // Land the user on the dashboard after the tour completes, no
+    // matter which tab the last step ended on.
+    startTransition(() => setMobileTab("dashboard"));
     const uname = authUser?.uid || username;
     if (!uname) return;
     try {
@@ -388,6 +391,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       isSatisfied: () => onboardingName.trim().length >= 1,
       autoAdvance: false,
       onEnter: () => setWizardStep(0),
+      // Pin the bubble below the input so the keyboard doesn't shove
+      // everything around when the user taps the field.
+      bubblePlacement: "bottom",
       scroll: true
     });
     list.push({
@@ -398,6 +404,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       text: t.tourSetupHandleText || "A short handle for friends to find you. The suggested one is already free.",
       gate: "next",
       onEnter: () => setWizardStep(0),
+      bubblePlacement: "bottom",
       scroll: true
     });
     list.push({
