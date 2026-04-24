@@ -637,12 +637,14 @@ body[data-theme="light"] .social-block .cm-tabs-slider {
   letter-spacing: -0.01em;
 }
 
-/* Grouped list + rows */
+/* Grouped list + rows — border matches the Store item card (mobile-card).
+ * Avoids inheriting the amber `--panel-border` in the adventure theme,
+ * which used to read as a yellow frame around the Activity leaderboard. */
 .social-block .cm-list {
   background: var(--panel-bg);
-  border-radius: 14px;
+  border-radius: 1.5rem;
   overflow: hidden;
-  border: 1px solid var(--panel-border);
+  border: 0.5px solid color-mix(in srgb, var(--card-border-idle) 65%, transparent);
 }
 .social-block .cm-row {
   display: flex;
@@ -666,7 +668,7 @@ body[data-theme="light"] .social-block .cm-tabs-slider {
   left: 58px;
   right: 14px;
   height: 1px;
-  background: var(--panel-border);
+  background: color-mix(in srgb, var(--card-border-idle) 65%, transparent);
   opacity: 0.55;
 }
 .social-block .cm-row-rank {

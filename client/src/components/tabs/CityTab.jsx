@@ -955,18 +955,15 @@ export default function CityTab({
       {/* Active benefits panel — shown on iso overview (no district selected) */}
       {selectedDistrictIdx < 0 && (
         <div
-          className="mt-3"
+          className="mt-3 mobile-card"
           style={{
-            padding: "14px 16px",
             background: "var(--panel-bg)",
-            border: "1px solid var(--panel-border)",
-            borderRadius: 16,
             display: "flex",
             flexDirection: "column",
             gap: 10
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", paddingBottom: 6, borderBottom: "1px solid var(--panel-border)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", paddingBottom: 6, borderBottom: "1px solid color-mix(in srgb, var(--card-border-idle) 65%, transparent)" }}>
             <span style={{ fontSize: 14 }}>✨</span>
             <span
               className="cinzel"
@@ -1134,11 +1131,9 @@ export default function CityTab({
           <div className="flex flex-col gap-3" style={{ order: 20 }}>
             {/* Benefits + next-upgrade requirements card */}
             <div
+              className="mobile-card"
               style={{
-                padding: "14px 16px",
                 background: "var(--panel-bg)",
-                border: "1px solid var(--panel-border)",
-                borderRadius: 16,
                 display: "flex",
                 flexDirection: "column",
                 gap: 12
@@ -1153,7 +1148,7 @@ export default function CityTab({
                     gap: 10,
                     padding: "12px 14px",
                     background: "color-mix(in srgb, var(--panel-bg) 60%, transparent)",
-                    border: "1px solid var(--panel-border)",
+                    border: "1px solid color-mix(in srgb, var(--card-border-idle) 65%, transparent)",
                     borderRadius: 12
                   }}
                 >
