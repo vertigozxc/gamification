@@ -1049,10 +1049,13 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     const isFullBoard = target === maxDailyQuests;
     let reward;
     if (isFullBoard) {
-      reward = `+25 ${t.xpLabel} / +${fullBoardTokenReward} ${t.tokenIcon}`;
-      if (isStreak) reward += ` / +1 ${t.streakIcon}`;
+      const tokenPart = fullBoardTokenReward > 1
+        ? `+${fullBoardTokenReward} ${t.tokenIcon}`
+        : `+${t.tokenIcon}`;
+      reward = `+25 ${t.xpLabel} / ${tokenPart}`;
+      if (isStreak) reward += ` / +${t.streakIcon}`;
     } else if (isStreak) {
-      reward = `+20 ${t.xpLabel} / +1 ${t.streakIcon}`;
+      reward = `+20 ${t.xpLabel} / +${t.streakIcon}`;
     } else {
       // Mid milestone earns the heavier XP bump so the card isn't empty.
       reward = `+${i === 1 ? 25 : 20} ${t.xpLabel}`;

@@ -79,14 +79,15 @@ body[data-theme="adventure"] {
     --quest-check-done-bg: #34c759;
     --border-radius-card: 0.75rem;
     --border-radius-panel: 1.5rem;
-    --mobile-tab-bg: rgba(8, 15, 30, 0.97);
+    /* Adventure (gold) — warm obsidian base, gold orb, stone-cool inactive. */
+    --mobile-tab-bg: rgba(14, 10, 4, 0.97);
     /* Literal values (not var()) so getComputedStyle().getPropertyValue()
        returns a resolvable color for the RN shell — custom-property
        getters don't substitute nested var() references. */
-    --mobile-tab-active: #fbbf24;
-    --mobile-tab-inactive: #94a3b8;
+    --mobile-tab-active: #fcd34d;
+    --mobile-tab-inactive: #78716c;
     --mobile-tab-orb: #fbbf24;
-    --mobile-tab-orb-text: #111827;
+    --mobile-tab-orb-text: #1c1410;
     --mobile-page-bg: #0a0e14;
 }
 body[data-theme="balance"] {
@@ -167,12 +168,13 @@ body[data-theme="balance"] {
     --quest-check-done-bg: #22c55e;
     --border-radius-card: 1rem;
     --border-radius-panel: 1.5rem;
-    --mobile-tab-bg: rgba(10, 22, 18, 0.98);
+    /* Balance (green) — deep forest base, emerald orb, neutral inactive. */
+    --mobile-tab-bg: rgba(6, 22, 14, 0.98);
     /* Literal values (not var()) — see adventure block for why. */
-    --mobile-tab-active: #86efac;
-    --mobile-tab-inactive: #9ca3af;
-    --mobile-tab-orb: #86efac;
-    --mobile-tab-orb-text: #111827;
+    --mobile-tab-active: #4ade80;
+    --mobile-tab-inactive: #6b7280;
+    --mobile-tab-orb: #4ade80;
+    --mobile-tab-orb-text: #052e16;
     --mobile-page-bg: #0a1612;
 }
 body[data-theme="light"] {
@@ -255,10 +257,11 @@ body[data-theme="light"] {
     --border-radius-card: 1.05rem;
     --border-radius-panel: 1.65rem;
     --card-hover: rgba(255, 92, 138, 0.08);
-    --mobile-tab-bg: rgba(255, 255, 255, 0.92);
-    --mobile-tab-active: #ff5c8a;
-    --mobile-tab-inactive: #96a0af;
-    --mobile-tab-orb: #ff5c8a;
+    /* Light (pink) — frosted pink-tinted white, magenta orb. */
+    --mobile-tab-bg: rgba(253, 242, 248, 0.94);
+    --mobile-tab-active: #ec4899;
+    --mobile-tab-inactive: #9ca3af;
+    --mobile-tab-orb: #ec4899;
     --mobile-tab-orb-text: #ffffff;
     --mobile-page-bg: #fdf7fb;
 }
