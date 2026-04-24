@@ -310,7 +310,7 @@ function RulesStep({ t, duration, setDuration, needsTimer, setNeedsTimer, timeEs
       </p>
 
       <Field label={`${t.arenaSpan || "Duration"} · ${duration} ${pluralDays(duration, t)}`}>
-        <div style={{ padding: "6px 0" }}>
+        <div style={{ padding: "2px 0" }}>
           <input
             type="range"
             min={1}
