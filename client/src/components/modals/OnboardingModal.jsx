@@ -85,27 +85,57 @@ function OnboardingModal({
       ? (window.visualViewport?.height || window.innerHeight || 0)
       : 0
   ));
+  const [sheetTop, setSheetTop] = useState(0);
   useEffect(() => {
     if (!open || typeof window === "undefined") return undefined;
-    const readHeight = () => {
-      const h = window.visualViewport?.height || window.innerHeight || 0;
+    const readViewport = () => {
+      const vv = window.visualViewport;
+      const h = vv?.height || window.innerHeight || 0;
+      const top = vv?.offsetTop || 0;
       if (h) setSheetHeight(h);
+      setSheetTop(top);
     };
-    readHeight();
-    window.addEventListener("resize", readHeight);
-    window.addEventListener("orientationchange", readHeight);
+    readViewport();
+    window.addEventListener("resize", readViewport);
+    window.addEventListener("orientationchange", readViewport);
     const vv = window.visualViewport;
     if (vv) {
-      vv.addEventListener("resize", readHeight);
-      vv.addEventListener("scroll", readHeight);
+      vv.addEventListener("resize", readViewport);
+      vv.addEventListener("scroll", readViewport);
     }
     return () => {
-      window.removeEventListener("resize", readHeight);
-      window.removeEventListener("orientationchange", readHeight);
+      window.removeEventListener("resize", readViewport);
+      window.removeEventListener("orientationchange", readViewport);
       if (vv) {
-        vv.removeEventListener("resize", readHeight);
-        vv.removeEventListener("scroll", readHeight);
+        vv.removeEventListener("resize", readViewport);
+        vv.removeEventListener("scroll", readViewport);
       }
+    };
+  }, [open]);
+
+  // Freeze the document while the modal is mounted. Without this, iOS
+  // scrolls the page up when an input is focused and the sheet drifts
+  // above the viewport.
+  useEffect(() => {
+    if (!open || typeof document === "undefined") return undefined;
+    const { body, documentElement } = document;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyPosition = body.style.position;
+    const prevBodyWidth = body.style.width;
+    const prevHtmlOverflow = documentElement.style.overflow;
+    const prevScroll = window.scrollY || 0;
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${prevScroll}px`;
+    body.style.width = "100%";
+    documentElement.style.overflow = "hidden";
+    return () => {
+      body.style.overflow = prevBodyOverflow;
+      body.style.position = prevBodyPosition;
+      body.style.top = "";
+      body.style.width = prevBodyWidth;
+      documentElement.style.overflow = prevHtmlOverflow;
+      window.scrollTo(0, prevScroll);
     };
   }, [open]);
 
@@ -268,7 +298,10 @@ function OnboardingModal({
         onClick={(e) => e.stopPropagation()}
         style={{
           position: "fixed",
-          top: 0,
+          // Follow visualViewport.offsetTop so the sheet stays anchored
+          // to the visible area when iOS scrolls the layout to make
+          // room for the keyboard.
+          top: sheetTop ? `${sheetTop}px` : 0,
           left: 0,
           right: 0,
           width: "100vw",

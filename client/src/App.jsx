@@ -371,94 +371,97 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       title: t.tourWelcomeTitle || "Welcome aboard!",
       text: t.tourWelcomeText || "Quick 2-minute tour of the main areas. Finish it to claim a +1 level bonus."
     });
-    if (showOnboarding) {
-      list.push({
-        id: "setup-name",
-        target: '[data-tour="setup-name"]',
-        title: t.tourSetupNameTitle || "Pick your name",
-        text: t.tourSetupNameText || "Type a nickname — other players will see it on the leaderboard.",
-        gate: "condition",
-        isSatisfied: () => onboardingName.trim().length >= 1,
-        // Don't auto-advance mid-typing — let the user finish and tap Next.
-        autoAdvance: false,
-        onEnter: () => setWizardStep(0),
-        scroll: true
-      });
-      list.push({
-        id: "setup-handle",
-        target: '[data-tour="setup-handle"]',
-        title: t.tourSetupHandleTitle || "Your @username",
-        text: t.tourSetupHandleText || "A short handle for friends to find you. The suggested one is already free.",
-        gate: "next",
-        onEnter: () => setWizardStep(0),
-        scroll: true
-      });
-      // New: explicitly prompt the user to tap Continue rather than
-      // auto-jumping the wizard onto the habits page.
-      list.push({
-        id: "setup-continue",
-        target: '[data-tour="setup-continue"]',
-        title: t.tourSetupContinueTitle || "Nice — next up",
-        text: t.tourSetupContinueText || "Tap Continue to move on to picking your daily habits.",
-        gate: "condition",
-        isSatisfied: () => wizardStep === 1,
-        autoAdvance: true,
-        onEnter: () => setWizardStep(0),
-        bubblePlacement: "top",
-        scroll: true
-      });
-      // Intro popup before the habits page — plain center card, no
-      // spotlight. Explains what this page is about.
-      list.push({
-        id: "habits-intro",
-        kind: "center",
-        title: t.tourHabitsIntroTitle || "Pick your daily habits",
-        text: t.tourHabitsIntroText || "On this page, choose 2 daily habits you want to build. They'll become your daily anchors.",
-        gate: "next",
-        onEnter: () => setWizardStep(1)
-      });
-      // Custom habits block — bubble always on top so it never covers
-      // the quests below while the user scrolls.
-      list.push({
-        id: "habits-custom",
-        target: '[data-tour="my-custom-habits"]',
-        title: t.tourHabitsCustomTitle || "Your own habits",
-        text: t.tourHabitsCustomText || "You can create your own habit here, or pick one from the catalog below — tap next to see it.",
-        gate: "next",
-        onEnter: () => setWizardStep(1),
-        bubblePlacement: "top",
-        scroll: true
-      });
-      list.push({
-        id: "habits-browse",
-        // Highlight the whole habits section (from "Pick Daily Habits"
-        // down through the catalog) and keep it still — no scroll so
-        // the user doesn't get jumped to the bottom of the list.
-        target: '[data-tour="setup-habits"]',
-        title: t.tourHabitsBrowseTitle || "Pick two habits",
-        text: t.tourHabitsBrowseText || "Pick two habits and tap Next — the Start Adventure button unlocks once the tour finishes.",
-        gate: "condition",
-        isSatisfied: () => Array.isArray(onboardingQuestIds) && onboardingQuestIds.length >= pinnedLimit,
-        autoAdvance: false,
-        onEnter: () => setWizardStep(1),
-        bubblePlacement: "top",
-        scroll: false
-      });
-      list.push({
-        id: "setup-begin",
-        target: '[data-tour="setup-begin"]',
-        title: t.tourSetupBeginTitle || "Ready?",
-        text: t.tourSetupBeginText || "Tap Begin — and we'll keep going.",
-        gate: "condition",
-        // Auto-advance the moment the setup modal actually closes — this
-        // is the one setup step where the user's completing action
-        // happens outside the tour and we want to follow it through.
-        isSatisfied: () => !showOnboarding,
-        autoAdvance: true,
-        onEnter: () => setWizardStep(1),
-        scroll: true
-      });
-    }
+    // Setup-family tour steps stay in the array even after the modal
+    // closes — they just mark themselves hidden so the tour auto-skips
+    // them. This keeps stepIndex stable through the showOnboarding
+    // transition so the main tour actually continues onto the
+    // Dashboard / City / Store tabs instead of falling off.
+    const hideSetup = !showOnboarding;
+    list.push({
+      id: "setup-name",
+      hidden: hideSetup,
+      target: '[data-tour="setup-name"]',
+      title: t.tourSetupNameTitle || "Pick your name",
+      text: t.tourSetupNameText || "Type a nickname — other players will see it on the leaderboard.",
+      gate: "condition",
+      isSatisfied: () => onboardingName.trim().length >= 1,
+      autoAdvance: false,
+      onEnter: () => setWizardStep(0),
+      scroll: true
+    });
+    list.push({
+      id: "setup-handle",
+      hidden: hideSetup,
+      target: '[data-tour="setup-handle"]',
+      title: t.tourSetupHandleTitle || "Your @username",
+      text: t.tourSetupHandleText || "A short handle for friends to find you. The suggested one is already free.",
+      gate: "next",
+      onEnter: () => setWizardStep(0),
+      scroll: true
+    });
+    list.push({
+      id: "setup-continue",
+      hidden: hideSetup,
+      target: '[data-tour="setup-continue"]',
+      title: t.tourSetupContinueTitle || "Nice — next up",
+      text: t.tourSetupContinueText || "Tap Continue to move on to picking your daily habits.",
+      gate: "condition",
+      isSatisfied: () => wizardStep === 1,
+      autoAdvance: true,
+      // User advances by tapping the real Continue button, not a tour
+      // Next button.
+      hideNext: true,
+      onEnter: () => setWizardStep(0),
+      bubblePlacement: "top",
+      scroll: true
+    });
+    list.push({
+      id: "habits-intro",
+      hidden: hideSetup,
+      kind: "center",
+      title: t.tourHabitsIntroTitle || "Pick your daily habits",
+      text: t.tourHabitsIntroText || "On this page, choose 2 daily habits you want to build. They'll become your daily anchors.",
+      gate: "next",
+      onEnter: () => setWizardStep(1)
+    });
+    list.push({
+      id: "habits-custom",
+      hidden: hideSetup,
+      target: '[data-tour="my-custom-habits"]',
+      title: t.tourHabitsCustomTitle || "Your own habits",
+      text: t.tourHabitsCustomText || "You can create your own habit here, or pick one from the catalog below — tap next to see it.",
+      gate: "next",
+      onEnter: () => setWizardStep(1),
+      bubblePlacement: "top",
+      scroll: true
+    });
+    list.push({
+      id: "habits-browse",
+      hidden: hideSetup,
+      target: '[data-tour="setup-habits"]',
+      title: t.tourHabitsBrowseTitle || "Pick two habits",
+      text: t.tourHabitsBrowseText || "Pick two habits and tap Next — the Start Adventure button unlocks once the tour finishes.",
+      gate: "condition",
+      isSatisfied: () => Array.isArray(onboardingQuestIds) && onboardingQuestIds.length >= pinnedLimit,
+      autoAdvance: false,
+      onEnter: () => setWizardStep(1),
+      bubblePlacement: "top",
+      scroll: false
+    });
+    list.push({
+      id: "setup-begin",
+      hidden: hideSetup,
+      target: '[data-tour="setup-begin"]',
+      title: t.tourSetupBeginTitle || "Ready?",
+      text: t.tourSetupBeginText || "Tap Begin — and we'll keep going.",
+      gate: "condition",
+      isSatisfied: () => !showOnboarding,
+      autoAdvance: true,
+      // User advances by tapping the real Start Adventure button.
+      hideNext: true,
+      onEnter: () => setWizardStep(1),
+      scroll: true
+    });
     // Main tour, post-setup. Order per user ask:
     // dashboard → city → store → community → profile.
     list.push({

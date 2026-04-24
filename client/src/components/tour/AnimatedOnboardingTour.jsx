@@ -213,6 +213,23 @@ export default function AnimatedOnboardingTour({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [steps]);
 
+  // Auto-skip steps marked hidden (e.g. setup-* steps once the setup
+  // modal has closed). This is what keeps the tour continuing after the
+  // user taps Start Adventure — without it the tour would silently
+  // land on a hidden step and appear broken.
+  useEffect(() => {
+    if (!open || !step) return;
+    if (!step.hidden) return;
+    const nextIdx = stepIndex + 1;
+    if (nextIdx >= stepCount) {
+      setFinaleOpen(true);
+      return;
+    }
+    enteredIdRef.current = null;
+    currentStepIdRef.current = null;
+    setStepIndex(nextIdx);
+  }, [open, step, stepIndex, stepCount]);
+
   // Read safe-area paddings once on mount + on resize. Track the
   // visualViewport size separately so the overlay shrinks with the
   // keyboard instead of staying full-height and covering the field the
@@ -437,7 +454,13 @@ export default function AnimatedOnboardingTour({
 
   if (!open || !step) return null;
 
-  const pct = Math.round(((stepIndex + (finaleOpen ? 1 : 0)) / Math.max(1, stepCount)) * 100);
+  // Progress ignores the welcome step entirely. First tour step = 0%,
+  // last step = 100%, finale = 100%.
+  const totalTrackable = Math.max(1, stepCount - 1);
+  const trackableIndex = Math.max(0, stepIndex - 1);
+  const divisor = Math.max(1, totalTrackable - 1);
+  const rawPct = finaleOpen ? 100 : Math.round((trackableIndex / divisor) * 100);
+  const pct = Math.max(0, Math.min(100, rawPct));
   const maskRect = layout?.kind === "spotlight" ? layout.rect : null;
   const curtains = maskRect
     ? {
@@ -512,12 +535,6 @@ export default function AnimatedOnboardingTour({
             <p className="tour-welcome-eyebrow cinzel">{t.tourWelcomeEyebrow || "GoHabit"}</p>
             <h2 className="tour-welcome-title cinzel">{typedTitle}{!titleDone ? <span className="tour-caret" /> : null}</h2>
             <p className="tour-welcome-text">{typedText}{titleDone && !textDone ? <span className="tour-caret" /> : null}</p>
-            <div className="tour-progress-inline" aria-hidden>
-              <div className="tour-progress-inline-track">
-                <div className="tour-progress-inline-fill" style={{ width: `${Math.min(100, pct)}%` }} />
-              </div>
-              <span className="tour-progress-inline-pct cinzel">{Math.min(100, pct)}%</span>
-            </div>
             <div className="tour-welcome-buttons">
               <button
                 type="button"
