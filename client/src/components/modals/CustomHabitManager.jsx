@@ -296,24 +296,27 @@ function CustomHabitManager({
               height: vvHeight ? `${vvHeight}px` : "100dvh",
               maxHeight: vvHeight ? `${vvHeight}px` : "100dvh",
               display: "flex",
-              alignItems: "center",
+              // Bottom-sheet style — hug the keyboard so the title
+              // input is right above where the user is typing.
+              alignItems: "flex-end",
               justifyContent: "center",
-              padding: "20px 16px"
+              padding: 0
             }}
           >
             <div
               style={{
                 width: "100%",
-                maxWidth: 420,
-                maxHeight: "100%",
+                maxWidth: 520,
+                maxHeight: "calc(100% - 40px)",
                 display: "flex",
                 flexDirection: "column",
-                borderRadius: 18,
+                borderRadius: "18px 18px 0 0",
                 overflow: "hidden",
                 background: "var(--card-bg, #0f172a)",
                 border: "1px solid color-mix(in srgb, var(--color-primary) 55%, var(--panel-border))",
-                boxShadow: "0 24px 60px rgba(0,0,0,0.55), 0 0 60px color-mix(in srgb, var(--color-primary) 24%, transparent)",
-                animation: "tour-finale-in 280ms cubic-bezier(0.2, 0.9, 0.35, 1)"
+                borderBottom: "none",
+                boxShadow: "0 -18px 44px rgba(0,0,0,0.55), 0 0 60px color-mix(in srgb, var(--color-primary) 24%, transparent)",
+                animation: "ch-sheet-in 280ms cubic-bezier(0.2, 0.9, 0.35, 1)"
               }}
             >
               {/* Header */}
