@@ -347,16 +347,21 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
           <p style={{ color: "#f87171", fontSize: 12, textAlign: "center", margin: "0 0 10px" }}>{error}</p>
         )}
 
-        {/* Bottom action button */}
+        {/* Bottom action slot — fixed min-height so the popup card doesn't
+            visibly shrink when we swap the SPIN button for the tiny
+            "Spinning…" label mid-animation. Without this the card
+            collapsed by ~30 px right as the wheel started moving, which
+            read as a glitch. */}
         {phase === "idle" || phase === "loading" ? (
           <button
             type="button"
             onClick={handleSpin}
             disabled={phase !== "idle"}
-            className="cinzel"
+            className="cinzel mobile-pressable"
             style={{
               width: "100%",
               padding: "14px 20px",
+              minHeight: 52,
               fontSize: 16,
               fontWeight: 900,
               letterSpacing: "0.15em",
@@ -368,21 +373,34 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
               borderRadius: 14,
               cursor: phase === "idle" ? "pointer" : "default",
               boxShadow: phase === "idle" ? "0 0 24px rgba(167,139,250,0.45)" : "none",
-              transition: "all 0.3s ease"
+              transition: "background 0.3s ease, box-shadow 0.3s ease"
             }}
           >
             {phase === "idle" ? (t.spinButtonLabel || "🎰 SPIN!") : "⏳"}
           </button>
         ) : phase === "spinning" ? (
-          <p className="cinzel" style={{
-            color: "#94a3b8",
-            fontSize: 13,
-            textAlign: "center",
-            margin: "6px 0 2px",
-            letterSpacing: "0.1em"
-          }}>
+          <div
+            className="cinzel"
+            style={{
+              width: "100%",
+              padding: "14px 20px",
+              minHeight: 52,
+              fontSize: 14,
+              fontWeight: 700,
+              letterSpacing: "0.14em",
+              color: "#94a3b8",
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 14,
+              textTransform: "uppercase",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxSizing: "border-box"
+            }}
+          >
             {t.spinSpinning || "Spinning..."}
-          </p>
+          </div>
         ) : (
           <button
             type="button"
@@ -391,6 +409,7 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
             style={{
               width: "100%",
               padding: "14px 20px",
+              minHeight: 52,
               fontSize: 16,
               fontWeight: 900,
               letterSpacing: "0.15em",

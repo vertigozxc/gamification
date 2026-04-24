@@ -1173,22 +1173,28 @@ export default function CityTab({
                     data-tour={district.id === "park" ? "district-upgrade" : undefined}
                     onClick={() => handleQuickUpgrade(district.id)}
                     disabled={!canUpgrade}
-                    className="qt-btn"
+                    className="qt-btn mobile-pressable"
                     style={{
                       width: "100%",
                       minHeight: 46,
                       borderRadius: 12,
-                      border: `1.5px solid ${canUpgrade ? "#4fa85e" : "var(--panel-border)"}`,
+                      border: canUpgrade
+                        ? "1.5px solid #4fa85e"
+                        : "1.5px dashed var(--panel-border)",
                       background: canUpgrade
                         ? "color-mix(in srgb, #4fa85e 22%, var(--panel-bg))"
-                        : "color-mix(in srgb, var(--panel-bg) 70%, transparent)",
+                        : "var(--panel-bg)",
                       color: canUpgrade ? "#4fa85e" : "var(--color-muted)",
                       fontSize: 14,
                       fontWeight: 800,
                       letterSpacing: "0.08em",
                       textTransform: "uppercase",
                       cursor: canUpgrade ? "pointer" : "not-allowed",
-                      transition: "all 0.2s ease"
+                      transition: "all 0.2s ease",
+                      opacity: 1,
+                      boxShadow: canUpgrade
+                        ? "0 2px 10px color-mix(in srgb, #4fa85e 22%, transparent)"
+                        : "none"
                     }}
                   >
                     {isTourFree
