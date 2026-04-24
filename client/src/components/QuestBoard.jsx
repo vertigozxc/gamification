@@ -443,7 +443,7 @@ function QuestBoard({
 
   // Tab-bar grid template: active tab = 3fr, others = 1fr.
   // Animated via CSS transition on grid-template-columns.
-  const gridTemplateColumns = tabs.map((tab) => (tab === activeQTab ? "3fr" : "1fr")).join(" ");
+  const gridTemplateColumns = tabs.map((tab) => (tab === activeQTab ? "2fr" : "1fr")).join(" ");
 
   return (
     <div className={`relative ${compact ? "" : "lg:col-span-2"}`}>
