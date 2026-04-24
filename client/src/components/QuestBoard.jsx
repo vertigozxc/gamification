@@ -489,7 +489,10 @@ function QuestBoard({
             <button type="button" data-qtab="habits" data-tour="qb-tab-habits"
               className={`qb-tab-btn ${activeQTab === "habits" ? "qb-tab-active" : ""}`}
               onClick={() => setActiveQTab("habits")}>
-              <span>📌</span> {t.pinnedSection} <span className="qb-tab-count">{pinnedDone}/{pinnedSlotTotal}</span>
+              <div className="qb-tab-inner">
+                <span><span>📌</span> {t.pinnedSection}</span>
+                <span className="qb-tab-count">{pinnedDone}/{pinnedSlotTotal}</span>
+              </div>
             </button>
           )}
 
@@ -497,7 +500,10 @@ function QuestBoard({
             <button type="button" data-qtab="daily" data-tour="qb-tab-daily"
               className={`qb-tab-btn ${activeQTab === "daily" ? "qb-tab-active" : ""}`}
               onClick={() => { setActiveQTab("daily"); if (showFreshDailyBadge) markDailyTabSeen(); }}>
-              <span>🎲</span> {t.otherSection} <span className="qb-tab-count">{otherDone}/{otherSlotTotal}</span>
+              <div className="qb-tab-inner">
+                <span><span>🎲</span> {t.otherSection}</span>
+                <span className="qb-tab-count">{otherDone}/{otherSlotTotal}</span>
+              </div>
               {showFreshDailyBadge ? (
                 <span className="qb-tab-fresh" aria-label={t.dailyQuestFreshBadge || "NEW"}>
                   <span className="qb-tab-fresh__spark">✦</span>
@@ -511,14 +517,16 @@ function QuestBoard({
             <button type="button" data-qtab="challenges"
               className={`qb-tab-btn ${activeQTab === "challenges" ? "qb-tab-active" : ""}`}
               onClick={() => setActiveQTab("challenges")}>
-              <span>⚔️</span> {t.challengesTab || "Challenges"}
-              {challengePendingCount > 0 ? (
-                <span className="qb-tab-count" style={{ background: "color-mix(in srgb, var(--color-primary) 30%, transparent)", color: "var(--color-primary)" }}>
-                  {challengePendingCount}
-                </span>
-              ) : (
-                <span className="qb-tab-count">{challengeDoneToday}/{accepted.length || challenges.length}</span>
-              )}
+              <div className="qb-tab-inner">
+                <span>⚔️ {t.challengesTab || "Challenges"}</span>
+                {challengePendingCount > 0 ? (
+                  <span className="qb-tab-count" style={{ color: "var(--color-primary)" }}>
+                    {challengePendingCount} new
+                  </span>
+                ) : (
+                  <span className="qb-tab-count">{challengeDoneToday}/{accepted.length || challenges.length}</span>
+                )}
+              </div>
             </button>
           )}
         </div>
