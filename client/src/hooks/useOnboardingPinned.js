@@ -54,6 +54,10 @@ function useOnboardingPinned({
   // brand-new users (guides them through it too) and can also fire on its
   // own for existing users who reset the tour from Settings.
   const [showTour, setShowTour] = useState(false);
+  // 2-step wizard inside the setup modal: 0 = name+handle, 1 = habits.
+  // The tour can drive this too (onEnter jumps the wizard to the page
+  // whose field we're highlighting).
+  const [wizardStep, setWizardStep] = useState(0);
   const [onboardingName, setOnboardingName] = useState("");
   const [onboardingQuestIds, setOnboardingQuestIds] = useState([]);
   const [onboardingQuestSearch, setOnboardingQuestSearch] = useState("");
@@ -126,6 +130,7 @@ function useOnboardingPinned({
   function resetOnLogout() {
     setShowOnboarding(false);
     setShowTour(false);
+    setWizardStep(0);
     setShowPinnedReplaceModal(false);
     setReplacePinnedQuestIds([]);
     setReplacePinnedSearch("");
@@ -263,6 +268,10 @@ function useOnboardingPinned({
       : [];
     const needsOnboarding = gameStateResponse?.needsOnboarding === true;
     setShowOnboarding(needsOnboarding);
+    // Fresh wizard starts on page 0 (name + handle) every time the
+    // modal opens — otherwise a previous partial attempt could land the
+    // user directly on the habits page.
+    if (needsOnboarding) setWizardStep(0);
     // Server tells us whether the user has already finished the animated
     // tour. For brand-new users this will be true alongside needsOnboarding
     // — the tour walks them through the setup fields.
@@ -555,6 +564,8 @@ function useOnboardingPinned({
     showOnboarding,
     showTour,
     setShowTour,
+    wizardStep,
+    setWizardStep,
     onboardingName,
     setOnboardingName,
     onboardingQuestIds,

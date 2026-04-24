@@ -43,8 +43,17 @@ function OnboardingModal({
   onDeleteCustomQuest,
   selectionLimit = 2,
   randomQuestCount = 2,
-  authUsername = ""
+  authUsername = "",
+  wizardStep = 0,
+  onWizardStepChange
 }) {
+  const TOTAL_STEPS = 2;
+  const setStep = (n) => {
+    const clamped = Math.max(0, Math.min(TOTAL_STEPS - 1, n));
+    if (typeof onWizardStepChange === "function") onWizardStepChange(clamped);
+  };
+  // Touch swipe state for sliding between wizard pages.
+  const swipeRef = useRef({ startX: 0, startY: 0, active: false });
   const SELECTION_LIMIT = Math.max(1, Number(selectionLimit) || 2);
   const RANDOM_COUNT = Math.max(1, Number(randomQuestCount) || 2);
   const { t, tf, translateCategory } = useTheme();
@@ -188,6 +197,10 @@ function OnboardingModal({
   // allowed through — the server revalidates on the mutation call.
   const handleBlocksSubmit = handleStatus === "taken" || handleStatus === "invalid" || handleStatus === "short";
   const primaryDisabled = onboardingSaving || !onboardingName.trim() || !selectionComplete || handleBlocksSubmit;
+  // Wizard page 0 → 1 gate: nickname filled and handle isn't failing.
+  // "checking" is allowed through so typing the handle doesn't block
+  // forward progress on a slow network.
+  const canAdvanceFromStep0 = Boolean(onboardingName.trim()) && !handleBlocksSubmit && !onboardingSaving;
   const progressPct = Math.min(100, Math.round((selectedCount / SELECTION_LIMIT) * 100));
   const normalizedHandle = normalizeHandleLocal(handleInput);
 
@@ -270,25 +283,25 @@ function OnboardingModal({
             </button>
           </div>
 
-          {/* Progress bar lives in the fixed top header — always visible
-              regardless of scroll position, same layout as the Reroll
-              Habits modal so the two screens feel consistent. */}
+          {/* Step wizard progress — "Step N of 2" with a fill that
+              advances as the user moves between pages. The old
+              "N/2 selected" chip moves inside the habits page. */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                 <span style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#cbd5e1" }}>
-                  {t.onboardingSelected
-                    ? `${selectedCount} / ${SELECTION_LIMIT} ${t.onboardingSelected}`
-                    : `${selectedCount} / ${SELECTION_LIMIT}`}
+                  {tf
+                    ? tf("onboardingStepOf", { current: wizardStep + 1, total: TOTAL_STEPS })
+                    : `Step ${wizardStep + 1} / ${TOTAL_STEPS}`}
                 </span>
               </div>
               <div style={{ height: 6, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
                 <div
                   style={{
-                    width: `${progressPct}%`,
+                    width: `${Math.round(((wizardStep + 1) / TOTAL_STEPS) * 100)}%`,
                     height: "100%",
-                    background: selectionComplete ? "var(--color-accent)" : "var(--color-primary)",
-                    transition: "width 200ms ease"
+                    background: "linear-gradient(90deg, var(--color-primary), var(--color-accent))",
+                    transition: "width 260ms cubic-bezier(0.4, 0, 0.2, 1)"
                   }}
                 />
               </div>
@@ -299,11 +312,60 @@ function OnboardingModal({
         <div
           style={{
             flex: 1,
-            overflowY: "auto",
-            WebkitOverflowScrolling: "touch",
-            padding: "12px 16px 16px"
+            overflow: "hidden",
+            position: "relative"
+          }}
+          onTouchStart={(e) => {
+            const tp = e.touches?.[0];
+            if (!tp) return;
+            swipeRef.current = { startX: tp.clientX, startY: tp.clientY, active: true };
+          }}
+          onTouchMove={(e) => {
+            if (!swipeRef.current.active) return;
+            const tp = e.touches?.[0];
+            if (!tp) return;
+            const dx = tp.clientX - swipeRef.current.startX;
+            const dy = tp.clientY - swipeRef.current.startY;
+            // If the user is clearly scrolling vertically, disarm the
+            // swipe so we don't steal the gesture.
+            if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) {
+              swipeRef.current.active = false;
+            }
+          }}
+          onTouchEnd={(e) => {
+            if (!swipeRef.current.active) return;
+            const tp = e.changedTouches?.[0];
+            swipeRef.current.active = false;
+            if (!tp) return;
+            const dx = tp.clientX - swipeRef.current.startX;
+            const dy = tp.clientY - swipeRef.current.startY;
+            if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)) return;
+            if (dx < 0 && wizardStep < TOTAL_STEPS - 1 && canAdvanceFromStep0) {
+              setStep(wizardStep + 1);
+            } else if (dx > 0 && wizardStep > 0) {
+              setStep(wizardStep - 1);
+            }
           }}
         >
+          <div
+            style={{
+              display: "flex",
+              width: "200%",
+              height: "100%",
+              transform: `translateX(-${wizardStep * 50}%)`,
+              transition: "transform 320ms cubic-bezier(0.4, 0, 0.2, 1)"
+            }}
+          >
+          <section
+            aria-hidden={wizardStep !== 0}
+            style={{
+              width: "50%",
+              height: "100%",
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch",
+              padding: "12px 16px 16px"
+            }}
+          >
           <div data-tour="setup-name">
             <label
               className="cinzel"
@@ -439,6 +501,40 @@ function OnboardingModal({
           <p style={{ margin: "6px 2px 0", fontSize: 11, color: "var(--color-muted)", lineHeight: 1.4 }}>
             {t.onboardingHandleHint || "3–20 letters / digits / underscore. Others find you by this."}
           </p>
+          </div>
+          </section>
+
+          <section
+            aria-hidden={wizardStep !== 1}
+            style={{
+              width: "50%",
+              height: "100%",
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch",
+              padding: "12px 16px 16px"
+            }}
+          >
+          {/* "N / 2 selected" chip — was in the header before the wizard
+              refactor, now lives directly above the habits list where
+              it's most relevant. */}
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#cbd5e1" }}>
+                {t.onboardingSelected
+                  ? `${selectedCount} / ${SELECTION_LIMIT} ${t.onboardingSelected}`
+                  : `${selectedCount} / ${SELECTION_LIMIT}`}
+              </span>
+            </div>
+            <div style={{ height: 4, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+              <div
+                style={{
+                  width: `${progressPct}%`,
+                  height: "100%",
+                  background: selectionComplete ? "var(--color-accent)" : "var(--color-primary)",
+                  transition: "width 200ms ease"
+                }}
+              />
+            </div>
           </div>
 
           <div data-tour="setup-habits">
@@ -591,6 +687,8 @@ function OnboardingModal({
             )}
           </div>
           </div>
+          </section>
+          </div>
         </div>
 
         <div
@@ -605,57 +703,132 @@ function OnboardingModal({
               {onboardingError}
             </p>
           ) : null}
-          <div style={{ display: "flex", gap: 10 }}>
-            <button
-              type="button"
-              onClick={() => {
-                if (!onboardingName.trim() || onboardingSaving || handleBlocksSubmit) return;
-                onSkip?.(normalizedHandle);
-              }}
-              disabled={onboardingSaving || !onboardingName.trim() || !onSkip || handleBlocksSubmit}
-              className="cinzel mobile-pressable"
-              title={!onboardingName.trim() ? t.nicknameRequired : undefined}
-              style={{
-                flex: 1,
-                minHeight: 48,
-                borderRadius: 12,
-                background: "transparent",
-                border: "1px solid var(--card-border-idle)",
-                color: !onboardingName.trim() ? "#64748b" : "#cbd5e1",
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: (!onboardingName.trim() || onboardingSaving || handleBlocksSubmit) ? "not-allowed" : "pointer",
-                letterSpacing: "0.05em",
-                opacity: (!onboardingName.trim() || onboardingSaving || handleBlocksSubmit) ? 0.7 : 1
-              }}
-            >
-              {t.onboardingSkipLater || "I'll do it later"}
-            </button>
-            <button
-              type="button"
-              data-tour="setup-begin"
-              onClick={handleStartRequest}
-              disabled={primaryDisabled}
-              className="cinzel mobile-pressable"
-              style={{
-                flex: 2,
-                minHeight: 48,
-                borderRadius: 12,
-                background: primaryDisabled
-                  ? "rgba(255,255,255,0.08)"
-                  : "linear-gradient(90deg, var(--color-primary), var(--color-accent))",
-                border: "none",
-                color: primaryDisabled ? "#64748b" : "#0b1120",
-                fontSize: 13,
-                fontWeight: 800,
-                cursor: primaryDisabled ? "not-allowed" : "pointer",
-                letterSpacing: "0.05em",
-                boxShadow: primaryDisabled ? "none" : "0 8px 20px rgba(56,189,248,0.2)"
-              }}
-            >
-              {onboardingSaving ? t.onboardingSaving : t.onboardingBegin}
-            </button>
-          </div>
+          {wizardStep === 0 ? (
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!onboardingName.trim() || onboardingSaving || handleBlocksSubmit) return;
+                  onSkip?.(normalizedHandle);
+                }}
+                disabled={onboardingSaving || !onboardingName.trim() || !onSkip || handleBlocksSubmit}
+                className="cinzel mobile-pressable"
+                title={!onboardingName.trim() ? t.nicknameRequired : undefined}
+                style={{
+                  flex: 1,
+                  minHeight: 48,
+                  borderRadius: 12,
+                  background: "transparent",
+                  border: "1px solid var(--card-border-idle)",
+                  color: !onboardingName.trim() ? "#64748b" : "#cbd5e1",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: (!onboardingName.trim() || onboardingSaving || handleBlocksSubmit) ? "not-allowed" : "pointer",
+                  letterSpacing: "0.05em",
+                  opacity: (!onboardingName.trim() || onboardingSaving || handleBlocksSubmit) ? 0.7 : 1
+                }}
+              >
+                {t.onboardingSkipLater || "I'll do it later"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!canAdvanceFromStep0) return;
+                  setStep(1);
+                }}
+                disabled={!canAdvanceFromStep0 || onboardingSaving}
+                className="cinzel mobile-pressable"
+                style={{
+                  flex: 2,
+                  minHeight: 48,
+                  borderRadius: 12,
+                  background: (!canAdvanceFromStep0)
+                    ? "rgba(255,255,255,0.08)"
+                    : "linear-gradient(90deg, var(--color-primary), var(--color-accent))",
+                  border: "none",
+                  color: (!canAdvanceFromStep0) ? "#64748b" : "#0b1120",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: !canAdvanceFromStep0 ? "not-allowed" : "pointer",
+                  letterSpacing: "0.05em",
+                  boxShadow: !canAdvanceFromStep0 ? "none" : "0 8px 20px rgba(56,189,248,0.2)"
+                }}
+              >
+                {t.onboardingContinue || "Continue →"}
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setStep(0)}
+                disabled={onboardingSaving}
+                className="cinzel mobile-pressable"
+                aria-label={t.onboardingBack || "Back"}
+                style={{
+                  minHeight: 48,
+                  width: 48,
+                  borderRadius: 12,
+                  background: "transparent",
+                  border: "1px solid var(--card-border-idle)",
+                  color: "#cbd5e1",
+                  fontSize: 18,
+                  fontWeight: 600,
+                  cursor: onboardingSaving ? "not-allowed" : "pointer"
+                }}
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!onboardingName.trim() || onboardingSaving || handleBlocksSubmit) return;
+                  onSkip?.(normalizedHandle);
+                }}
+                disabled={onboardingSaving || !onboardingName.trim() || !onSkip || handleBlocksSubmit}
+                className="cinzel mobile-pressable"
+                style={{
+                  flex: 1,
+                  minHeight: 48,
+                  borderRadius: 12,
+                  background: "transparent",
+                  border: "1px solid var(--card-border-idle)",
+                  color: !onboardingName.trim() ? "#64748b" : "#cbd5e1",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: (!onboardingName.trim() || onboardingSaving || handleBlocksSubmit) ? "not-allowed" : "pointer",
+                  letterSpacing: "0.05em",
+                  opacity: (!onboardingName.trim() || onboardingSaving || handleBlocksSubmit) ? 0.7 : 1
+                }}
+              >
+                {t.onboardingSkipLater || "I'll do it later"}
+              </button>
+              <button
+                type="button"
+                data-tour="setup-begin"
+                onClick={handleStartRequest}
+                disabled={primaryDisabled}
+                className="cinzel mobile-pressable"
+                style={{
+                  flex: 2,
+                  minHeight: 48,
+                  borderRadius: 12,
+                  background: primaryDisabled
+                    ? "rgba(255,255,255,0.08)"
+                    : "linear-gradient(90deg, var(--color-primary), var(--color-accent))",
+                  border: "none",
+                  color: primaryDisabled ? "#64748b" : "#0b1120",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: primaryDisabled ? "not-allowed" : "pointer",
+                  letterSpacing: "0.05em",
+                  boxShadow: primaryDisabled ? "none" : "0 8px 20px rgba(56,189,248,0.2)"
+                }}
+              >
+                {onboardingSaving ? t.onboardingSaving : t.onboardingBegin}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

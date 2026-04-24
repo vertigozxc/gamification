@@ -274,6 +274,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     showOnboarding,
     showTour,
     setShowTour,
+    wizardStep,
+    setWizardStep,
     onboardingName,
     setOnboardingName,
     onboardingQuestIds,
@@ -377,6 +379,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         isSatisfied: () => onboardingName.trim().length >= 1,
         // Don't auto-advance mid-typing — let the user finish and tap Next.
         autoAdvance: false,
+        onEnter: () => setWizardStep(0),
         scroll: true
       });
       list.push({
@@ -385,6 +388,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         title: t.tourSetupHandleTitle || "Your @username",
         text: t.tourSetupHandleText || "A short handle for friends to find you. The suggested one is already free.",
         gate: "next",
+        onEnter: () => setWizardStep(0),
         scroll: true
       });
       list.push({
@@ -395,6 +399,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         gate: "condition",
         isSatisfied: () => Array.isArray(onboardingQuestIds) && onboardingQuestIds.length >= pinnedLimit,
         autoAdvance: false,
+        onEnter: () => setWizardStep(1),
         scroll: true
       });
       list.push({
@@ -408,6 +413,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         // happens outside the tour and we want to follow it through.
         isSatisfied: () => !showOnboarding,
         autoAdvance: true,
+        onEnter: () => setWizardStep(1),
         scroll: true
       });
     }
@@ -1805,6 +1811,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         selectionLimit={Number(state.questSlots?.pinned) || 2}
         randomQuestCount={Number(state.questSlots?.random) || 2}
         authUsername={authUser?.uid || ""}
+        wizardStep={wizardStep}
+        onWizardStepChange={setWizardStep}
       />
 
       <PinnedReplacementModal

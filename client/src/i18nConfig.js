@@ -413,6 +413,9 @@ export const languagePacks = {
       pickExactly4PreferredQuests: "Pick exactly {n} habit quests.",
       onboardingSetupComplete: "✅ Setup complete! Your {pinned} habit quests are now pinned daily.",
       setupFailed: "Setup failed. Please try again.",
+      onboardingStepOf: "Step {current} of {total}",
+      onboardingContinue: "Continue →",
+      onboardingBack: "Back",
       // ── Animated onboarding tour ──────────────────────────────────
       tourWelcomeEyebrow: "GoHabit",
       tourWelcomeTitle: "Welcome aboard!",
@@ -1496,6 +1499,9 @@ export const languagePacks = {
       pickExactly4PreferredQuests: "Выберите ровно {n} привычки.",
       onboardingSetupComplete: "✅ Настройка завершена! Ваши {pinned} привычки теперь закреплены каждый день.",
       setupFailed: "Не удалось завершить настройку. Попробуйте еще раз.",
+      onboardingStepOf: "Шаг {current} из {total}",
+      onboardingContinue: "Дальше →",
+      onboardingBack: "Назад",
       // ── Анимированный онбординг-тур ───────────────────────────────
       tourWelcomeEyebrow: "GoHabit",
       tourWelcomeTitle: "Привет!",
