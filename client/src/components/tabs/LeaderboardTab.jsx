@@ -23,6 +23,43 @@ let screenIdSeq = 0;
 // client-side but POST /api/challenges will 409 on submit.
 const MAX_ACTIVE_CHALLENGES = 2;
 
+function useNow(intervalMs = 60_000) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(id);
+  }, [intervalMs]);
+  return now;
+}
+
+// Weekly leaderboard window on the server runs Mon 00:00 UTC → Sun 23:59 UTC
+// (see `currentWeekDayKeys` in server/src/index.js). Reset fires at the next
+// Monday 00:00 UTC.
+function nextWeekResetMs(nowMs) {
+  const d = new Date(nowMs);
+  const utcMidnight = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  const dow = new Date(utcMidnight).getUTCDay();
+  const daysUntilMonday = dow === 0 ? 1 : 8 - dow;
+  return utcMidnight + daysUntilMonday * 86_400_000;
+}
+
+function formatResetCountdown(remainingMs, t) {
+  const total = Math.max(0, Math.floor(remainingMs / 1000));
+  const days = Math.floor(total / 86400);
+  const hours = Math.floor((total % 86400) / 3600);
+  const mins = Math.floor((total % 3600) / 60);
+  const day = (n) => (t.communityTimeDays || "{n}d").replace("{n}", String(n));
+  const hour = (n) => (t.communityTimeHours || "{n}h").replace("{n}", String(n));
+  const min = (n) => (t.communityTimeMins || "{n}m").replace("{n}", String(n));
+  if (days > 0) return `${day(days)} ${hour(hours)}`;
+  if (hours > 0) return `${hour(hours)} ${min(mins)}`;
+  return min(Math.max(1, mins));
+}
+
+function formatThousands(n) {
+  return Math.floor(Number(n) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
+
 export default function LeaderboardTab({ authUser, t: tProp }) {
   const { t: tTheme, languageId } = useTheme();
   const t = tProp || tTheme;
@@ -196,84 +233,71 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
         touchAction: "pan-y",
       }}
     >
-      <div style={{ padding: "10px 14px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
-        {/* Title */}
-        <header style={{ padding: "4px 2px 0" }}>
-          <h1 className="cinzel sb-title-xl" style={{
-            fontFamily: "var(--font-heading)",
-            fontSize: 28,
-            fontWeight: 800,
-            letterSpacing: "-0.02em",
-            background: "var(--heading-gradient)",
-            backgroundClip: "text",
-            WebkitBackgroundClip: "text",
-            color: "transparent",
-            lineHeight: 1.1,
-          }}>
-            {t.communityTitle || "Community"}
-          </h1>
-        </header>
+      <div style={{ paddingTop: 10, paddingBottom: 24, display: "flex", flexDirection: "column", gap: 14 }}>
+        <CommunityHero t={t} leaderboard={leaderboard} meUid={meUid} />
 
-        {/* iOS segmented control */}
-        <div data-tour="community-tabs" role="tablist" className="cm-tabs" style={{ "--count": tabs.length }}>
-          <div
-            className="cm-tabs-slider"
-            aria-hidden="true"
-            style={{ transform: `translateX(${selectedIdx * 100}%)` }}
-          />
-          {tabs.map((tb) => (
-            <button
-              key={tb.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === tb.id}
-              onClick={() => setTab(tb.id)}
-              className="cm-tab"
-              data-tour={tb.id === "challenges" ? "cm-challenges" : undefined}
-            >
-              <span className="cm-tab-ico">{tb.icon}</span>
-              <span className="cm-tab-label">{tb.label}</span>
-              {tb.badge ? <span className="cm-tab-badge">{tb.badge}</span> : null}
-            </button>
-          ))}
+        <div style={{ padding: "0 14px", display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* iOS segmented control */}
+          <div data-tour="community-tabs" role="tablist" className="cm-tabs" style={{ "--count": tabs.length }}>
+            <div
+              className="cm-tabs-slider"
+              aria-hidden="true"
+              style={{ transform: `translateX(${selectedIdx * 100}%)` }}
+            />
+            {tabs.map((tb) => (
+              <button
+                key={tb.id}
+                type="button"
+                role="tab"
+                aria-selected={tab === tb.id}
+                onClick={() => setTab(tb.id)}
+                className="cm-tab"
+                data-tour={tb.id === "challenges" ? "cm-challenges" : undefined}
+              >
+                <span className="cm-tab-ico">{tb.icon}</span>
+                <span className="cm-tab-label">{tb.label}</span>
+                {tb.badge ? <span className="cm-tab-badge">{tb.badge}</span> : null}
+              </button>
+            ))}
+          </div>
+
+          {loading && !leaderboard ? (
+            <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
+              <div className="sb-spinner" />
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {tab === "activity" && (
+                <ActivityTab leaderboard={leaderboard} meUid={meUid} t={t} onOpenProfile={pushProfile} />
+              )}
+              {tab === "challenges" && (
+                <ChallengesInlineTab
+                  pendingChallenges={pendingChallenges}
+                  activeChallenges={activeChallenges}
+                  endedChallenges={endedChallenges}
+                  canCreate={canCreate}
+                  blockReason={blockReason}
+                  dailyCreateLimit={dailyCreateLimit}
+                  t={t}
+                  onOpenChallenge={pushChallenge}
+                  onOpenCreate={pushCreate}
+                />
+              )}
+              {tab === "friends" && (
+                <FriendsInlineTab
+                  friends={friends}
+                  requests={requests}
+                  busy={busy}
+                  t={t}
+                  onOpenProfile={pushProfile}
+                  onOpenSearch={pushSearch}
+                  onRespond={handleRespond}
+                  onRemoveRequest={(f) => setConfirmRemove({ username: f.username, displayName: f.displayName || f.username })}
+                />
+              )}
+            </div>
+          )}
         </div>
-
-        {loading && !leaderboard ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
-            <div className="sb-spinner" />
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {tab === "activity" && (
-              <ActivityTab leaderboard={leaderboard} meUid={meUid} t={t} onOpenProfile={pushProfile} />
-            )}
-            {tab === "challenges" && (
-              <ChallengesInlineTab
-                pendingChallenges={pendingChallenges}
-                activeChallenges={activeChallenges}
-                endedChallenges={endedChallenges}
-                canCreate={canCreate}
-                blockReason={blockReason}
-                dailyCreateLimit={dailyCreateLimit}
-                t={t}
-                onOpenChallenge={pushChallenge}
-                onOpenCreate={pushCreate}
-              />
-            )}
-            {tab === "friends" && (
-              <FriendsInlineTab
-                friends={friends}
-                requests={requests}
-                busy={busy}
-                t={t}
-                onOpenProfile={pushProfile}
-                onOpenSearch={pushSearch}
-                onRespond={handleRespond}
-                onRemoveRequest={(f) => setConfirmRemove({ username: f.username, displayName: f.displayName || f.username })}
-              />
-            )}
-          </div>
-        )}
       </div>
 
       {confirmRemove && (
@@ -288,6 +312,83 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
           onConfirm={() => doRemove(confirmRemove.username)}
         />
       )}
+    </div>
+  );
+}
+
+/* ============================================================================
+ * Community hero — framed card matching City hero (same width, same frame).
+ * Shows weekly reset countdown + the player's rank + XP earned this week.
+ * ========================================================================== */
+
+function CommunityHero({ t, leaderboard, meUid }) {
+  const users = Array.isArray(leaderboard?.users) ? leaderboard.users : [];
+  const meFromList = meUid ? users.find((u) => u.username === meUid) : null;
+  const me = leaderboard?.me || meFromList || null;
+  const myRank = me?.rank ?? null;
+  const myWeeklyXp = Number(me?.weeklyXp) || 0;
+
+  const now = useNow(60_000);
+  const resetAt = nextWeekResetMs(now);
+  const countdown = formatResetCountdown(resetAt - now, t);
+
+  return (
+    <div className="city-hero-surface mobile-card top-screen-block p-4">
+      <div className="relative z-10 flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h3
+            className="cinzel text-[1.35rem] font-bold tracking-wide leading-tight m-0"
+            style={{ color: "var(--color-primary)" }}
+          >
+            {t.communityTitle || "Community"}
+          </h3>
+          <p
+            className="text-xs leading-relaxed mt-2 mb-0"
+            style={{ color: "var(--color-text)", opacity: 0.88 }}
+          >
+            <span style={{ opacity: 0.72 }}>{t.communityWeekResetLabel || "Week resets in"} </span>
+            <span style={{ color: "var(--color-primary)", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+              {countdown}
+            </span>
+          </p>
+        </div>
+
+        <div className="city-kpi-chip text-center shrink-0 min-w-[88px]">
+          <p
+            className="text-[9px] uppercase tracking-[0.18em] mb-1"
+            style={{ color: "var(--color-muted)" }}
+          >
+            {t.communityRankLabel || "Rank"}
+          </p>
+          <p
+            className="cinzel text-xl font-bold leading-none m-0"
+            style={{ color: "var(--color-primary)", fontVariantNumeric: "tabular-nums" }}
+          >
+            {myRank ? `#${myRank}` : "—"}
+          </p>
+        </div>
+      </div>
+
+      <div className="relative z-10 mt-3 flex items-center justify-between">
+        <span
+          className="text-[10px] uppercase tracking-[0.14em]"
+          style={{ color: "var(--color-muted)" }}
+        >
+          {t.communityWeekXpLabel || "This week"}
+        </span>
+        <span
+          className="cinzel"
+          style={{
+            color: "var(--color-primary)",
+            fontSize: 14,
+            fontWeight: 800,
+            letterSpacing: "-0.01em",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          ⚡ {formatThousands(myWeeklyXp)} XP
+        </span>
+      </div>
     </div>
   );
 }
