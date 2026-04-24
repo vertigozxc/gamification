@@ -383,110 +383,103 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
   );
 }
 
+// Invite-friends popup — reuses the logout-confirm overlay/card so it
+// feels like every other modal in the app, and shows friends in the
+// same cc-friend-chip grid the Create-challenge wizard uses.
 function InviteFriendsSheet({ friends, existingUserIds, selected, onToggle, onCancel, onConfirm, busy, error, t }) {
   const eligible = (Array.isArray(friends) ? friends : []).filter((f) => !existingUserIds.has(f.username));
+  const confirmLabel = busy
+    ? (t.onboardingSaving || "Saving...")
+    : selected.length === 0
+      ? (t.arenaPactInviteSelectHint || "Pick at least one")
+      : (t.arenaPactInviteConfirm || `Invite ${selected.length}`).replace("{n}", String(selected.length));
+
   return (
     <div
-      className="logout-confirm-overlay"
+      className="logout-confirm-overlay logout-session-overlay social-block"
       onClick={(e) => { if (e.target === e.currentTarget && !busy) onCancel?.(); }}
-      style={{ zIndex: 95, background: "rgba(0,0,0,0.72)", padding: 16 }}
+      style={{ zIndex: 95 }}
     >
       <div
+        className="logout-confirm-card logout-session-card"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%",
-          maxWidth: 440,
-          background: "var(--panel-bg)",
-          border: "1px solid var(--card-border-idle)",
-          borderRadius: 18,
-          padding: "18px 16px calc(18px + env(safe-area-inset-bottom, 0px))",
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-          maxHeight: "80vh"
-        }}
+        style={{ maxHeight: "min(620px, 86dvh)", display: "flex", flexDirection: "column" }}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-          <h3 className="cinzel" style={{ color: "var(--color-accent)", margin: 0, fontSize: 16, fontWeight: 700 }}>
-            ＋ {t.arenaPactInviteTitle || "Invite friends"}
-          </h3>
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={busy}
-            aria-label={t.arenaCancel || "Close"}
-            className="ui-close-x"
-          >
-            ✕
-          </button>
+        <div className="logout-session-halo" aria-hidden="true">
+          <div className="logout-confirm-icon logout-session-icon">＋</div>
         </div>
-        <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
-          {eligible.length === 0 ? (
-            <p style={{ color: "var(--color-muted)", fontSize: 13, textAlign: "center", padding: "24px 0" }}>
-              {t.arenaPactInviteEmpty || "No friends available to invite."}
-            </p>
-          ) : (
-            eligible.map((f) => {
+        <h2 className="cinzel logout-confirm-title logout-session-title">
+          {t.arenaPactInviteTitle || "Invite friends"}
+        </h2>
+        <p className="logout-confirm-msg logout-session-msg" style={{ marginBottom: 14 }}>
+          {t.arenaPactInviteHint || "Pick friends to join this pact."}
+        </p>
+
+        {eligible.length === 0 ? (
+          <p style={{ color: "var(--color-muted)", fontSize: 13, textAlign: "center", padding: "10px 0 18px", position: "relative", zIndex: 1 }}>
+            {t.arenaPactInviteEmpty || "No friends available to invite."}
+          </p>
+        ) : (
+          <div
+            className="cc-friends-grid"
+            style={{
+              position: "relative",
+              zIndex: 1,
+              maxHeight: "min(42dvh, 320px)",
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch",
+              marginBottom: 14,
+            }}
+          >
+            {eligible.map((f) => {
               const chosen = selected.includes(f.username);
               return (
                 <button
                   key={f.username}
                   type="button"
                   onClick={() => onToggle?.(f.username)}
-                  className="mobile-pressable"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "10px 12px",
-                    borderRadius: 12,
-                    border: `1px solid ${chosen ? "var(--color-primary)" : "var(--card-border-idle)"}`,
-                    background: chosen ? "color-mix(in srgb, var(--color-primary) 14%, transparent)" : "rgba(255,255,255,0.03)",
-                    cursor: "pointer",
-                    textAlign: "left"
-                  }}
+                  disabled={busy}
+                  aria-pressed={chosen}
+                  className={`cc-friend-chip press ${chosen ? "picked" : ""}`}
                 >
-                  <Avatar photoUrl={f.photoUrl} displayName={f.displayName} size={32} />
-                  <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "var(--color-text)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {f.displayName || f.username}
-                  </span>
-                  <span
-                    aria-hidden
-                    style={{
-                      width: 20,
-                      height: 20,
-                      borderRadius: 999,
-                      border: `2px solid ${chosen ? "var(--color-primary)" : "rgba(148,163,184,0.35)"}`,
-                      background: chosen ? "var(--color-primary)" : "transparent",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#0f172a",
-                      fontSize: 11,
-                      fontWeight: 900
-                    }}
-                  >
-                    {chosen ? "✓" : ""}
-                  </span>
+                  {chosen && <span className="cc-friend-chip-badge" aria-hidden="true">✓</span>}
+                  <div className="cc-friend-chip-avatar">
+                    <Avatar photoUrl={f.photoUrl} displayName={f.displayName} size={40} />
+                  </div>
+                  <span className="cc-friend-chip-name">{f.displayName || f.username}</span>
+                  {typeof f.level === "number" && (
+                    <span className="cc-friend-chip-meta">{t.arenaLvlShort || "Lv"} {f.level}</span>
+                  )}
                 </button>
               );
-            })
-          )}
+            })}
+          </div>
+        )}
+
+        {error && (
+          <p style={{ color: "#f87171", fontSize: 12, margin: "0 0 10px", textAlign: "center", position: "relative", zIndex: 1 }}>
+            {error}
+          </p>
+        )}
+
+        <div className="logout-confirm-actions logout-session-actions">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={busy}
+            className="logout-confirm-cancel logout-session-cancel cinzel press"
+          >
+            {t.communityCancel || t.arenaCancel || "Cancel"}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={busy || selected.length === 0}
+            className="logout-confirm-proceed logout-session-proceed cinzel press"
+          >
+            {confirmLabel}
+          </button>
         </div>
-        {error ? <p style={{ color: "#f87171", fontSize: 12, margin: 0, textAlign: "center" }}>{error}</p> : null}
-        <button
-          type="button"
-          onClick={onConfirm}
-          disabled={busy || selected.length === 0}
-          className="sb-primary-btn press"
-          style={{ width: "100%", padding: 12, opacity: (busy || selected.length === 0) ? 0.55 : 1 }}
-        >
-          {busy
-            ? (t.onboardingSaving || "Saving...")
-            : selected.length === 0
-              ? (t.arenaPactInviteSelectHint || "Pick at least one")
-              : (t.arenaPactInviteConfirm || `Invite ${selected.length}`).replace("{n}", String(selected.length))}
-        </button>
       </div>
     </div>
   );
@@ -518,133 +511,146 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, i
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* HERO — circular day progress + chips */}
+      {/* HERO + MISSION — merged into one card so the pact title, day
+          ring, chips and the daily mission read as one unit. A thin
+          divider separates the two blocks; the mission sub-section
+          still tints green when the user has finished today. */}
       <div
         style={{
           position: "relative",
-          padding: "18px 16px 20px",
           borderRadius: 18,
-          border: "1px solid var(--panel-border)",
+          border: "1px solid color-mix(in srgb, var(--card-border-idle) 65%, transparent)",
           background: `radial-gradient(120% 120% at 50% 0%, color-mix(in srgb, var(--color-primary) 18%, var(--panel-bg)) 0%, var(--panel-bg) 60%)`,
           overflow: "hidden"
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-          <DayRing elapsed={groupDays} total={total} ended={ended} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <p
-                style={{
-                  fontSize: 10,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: "var(--color-muted)",
-                  margin: 0,
-                  fontWeight: 700
-                }}
-              >
-                {ended ? (t.arenaPactEndedWord || "Ended") : `${daysLeft} ${t.arenaDaysLeftUnit || "days left"}`}
-              </p>
-              {!ended && !isActivated ? (
-                <span
+        {/* Top — day ring + title + completion */}
+        <div style={{ padding: "18px 16px 14px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+            <DayRing elapsed={groupDays} total={total} ended={ended} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <p
                   style={{
-                    fontSize: 9,
-                    letterSpacing: "0.08em",
+                    fontSize: 10,
+                    letterSpacing: "0.14em",
                     textTransform: "uppercase",
-                    fontWeight: 800,
-                    padding: "2px 8px",
-                    borderRadius: 999,
-                    background: "rgba(148,163,184,0.18)",
-                    border: "1px solid rgba(148,163,184,0.35)",
-                    color: "var(--color-muted)"
+                    color: "var(--color-muted)",
+                    margin: 0,
+                    fontWeight: 700
                   }}
                 >
-                  ⏳ {t.arenaWaitingForPlayersShort || "Waiting for players"}
-                </span>
-              ) : null}
+                  {ended ? (t.arenaPactEndedWord || "Ended") : `${daysLeft} ${t.arenaDaysLeftUnit || "days left"}`}
+                </p>
+                {!ended && !isActivated ? (
+                  <span
+                    style={{
+                      fontSize: 9,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      fontWeight: 800,
+                      padding: "2px 8px",
+                      borderRadius: 999,
+                      background: "rgba(148,163,184,0.18)",
+                      border: "1px solid rgba(148,163,184,0.35)",
+                      color: "var(--color-muted)"
+                    }}
+                  >
+                    ⏳ {t.arenaWaitingForPlayersShort || "Waiting for players"}
+                  </span>
+                ) : null}
+              </div>
+              <h2 className="cinzel" style={{ fontSize: 18, fontWeight: 800, margin: "4px 0 0", color: "var(--color-text)", lineHeight: 1.25 }}>
+                {challenge.title}
+              </h2>
+              <p
+                className="cinzel"
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "var(--color-primary)",
+                  margin: "4px 0 0",
+                  letterSpacing: "0.04em",
+                  fontVariantNumeric: "tabular-nums"
+                }}
+              >
+                {`${pct}% ${t.arenaCompletionTotal || "completion"}`}
+              </p>
             </div>
-            <h2 className="cinzel" style={{ fontSize: 18, fontWeight: 800, margin: "4px 0 0", color: "var(--color-text)", lineHeight: 1.25 }}>
-              {challenge.title}
-            </h2>
-            <p
-              className="cinzel"
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: "var(--color-primary)",
-                margin: "4px 0 0",
-                letterSpacing: "0.04em",
-                fontVariantNumeric: "tabular-nums"
-              }}
-            >
-              {`${pct}% ${t.arenaCompletionTotal || "completion"}`}
-            </p>
+          </div>
+          <div style={{ display: "flex", gap: 6, marginTop: 14, flexWrap: "wrap" }}>
+            <HeroChip icon="✓" value={totalCompletions} label={t.arenaTotalDone || "total done"} />
+            <HeroChip icon="👥" value={active.length} label={t.arenaPlayers || "players"} />
+            <HeroChip
+              icon={completedToday ? "✓" : "⚬"}
+              value={completedToday ? (t.arenaDoneTodayShort || "done") : (t.arenaNotYet || "not yet")}
+              label={t.arenaToday || "today"}
+            />
           </div>
         </div>
-        <div style={{ display: "flex", gap: 6, marginTop: 14, flexWrap: "wrap" }}>
-          <HeroChip icon="✓" value={totalCompletions} label={t.arenaTotalDone || "total done"} />
-          <HeroChip icon="👥" value={active.length} label={t.arenaPlayers || "players"} />
-          <HeroChip
-            icon={completedToday ? "✓" : "⚬"}
-            value={completedToday ? (t.arenaDoneTodayShort || "done") : (t.arenaNotYet || "not yet")}
-            label={t.arenaToday || "today"}
-          />
-        </div>
-      </div>
 
-      {/* MISSION — prominent daily task */}
-      <div
-        style={{
-          padding: 16,
-          borderRadius: 18,
-          border: `1px solid ${completedToday ? "rgba(48,209,88,0.45)" : "var(--panel-border)"}`,
-          background: completedToday
-            ? "color-mix(in srgb, #10b981 14%, var(--panel-bg))"
-            : "var(--panel-bg)",
-          display: "flex",
-          gap: 14,
-          alignItems: "flex-start"
-        }}
-      >
+        {/* Divider */}
+        <div
+          aria-hidden="true"
+          style={{
+            height: 1,
+            margin: "0 16px",
+            background: "color-mix(in srgb, var(--card-border-idle) 55%, transparent)"
+          }}
+        />
+
+        {/* Mission — daily task. Tints green when completedToday. */}
         <div
           style={{
-            flexShrink: 0,
-            width: 48,
-            height: 48,
-            borderRadius: 14,
-            background: completedToday
-              ? "color-mix(in srgb, #10b981 25%, transparent)"
-              : "color-mix(in srgb, var(--color-primary) 18%, transparent)",
+            padding: 14,
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 24
+            gap: 14,
+            alignItems: "flex-start",
+            background: completedToday
+              ? "color-mix(in srgb, #10b981 14%, transparent)"
+              : "transparent"
           }}
         >
-          {completedToday ? "✓" : "🎯"}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p
+          <div
             style={{
-              fontSize: 10,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: completedToday ? "#6ee7b7" : "var(--color-muted)",
-              margin: 0,
-              fontWeight: 700
+              flexShrink: 0,
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              background: completedToday
+                ? "color-mix(in srgb, #10b981 25%, transparent)"
+                : "color-mix(in srgb, var(--color-primary) 18%, transparent)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 24
             }}
           >
-            {completedToday ? (t.arenaMissionDone || "Done today") : (t.arenaDailyRitual || "Daily mission")}
-          </p>
-          <p className="sb-headline" style={{ fontSize: 15, margin: "4px 0 0", color: "var(--color-text)", lineHeight: 1.3 }}>
-            {challenge.questTitle}
-            {challenge.needsTimer && challenge.timeEstimateMin ? (
-              <span style={{ color: "var(--color-muted)", fontWeight: 500, fontSize: 13 }}> · ⏱ {challenge.timeEstimateMin} {t.arenaMinAbbrev || "min"}</span>
-            ) : null}
-          </p>
-          {challenge.questDescription && (
-            <p className="sb-caption" style={{ marginTop: 6 }}>{challenge.questDescription}</p>
-          )}
+            {completedToday ? "✓" : "🎯"}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p
+              style={{
+                fontSize: 10,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: completedToday ? "#6ee7b7" : "var(--color-muted)",
+                margin: 0,
+                fontWeight: 700
+              }}
+            >
+              {completedToday ? (t.arenaMissionDone || "Done today") : (t.arenaDailyRitual || "Daily mission")}
+            </p>
+            <p className="sb-headline" style={{ fontSize: 15, margin: "4px 0 0", color: "var(--color-text)", lineHeight: 1.3 }}>
+              {challenge.questTitle}
+              {challenge.needsTimer && challenge.timeEstimateMin ? (
+                <span style={{ color: "var(--color-muted)", fontWeight: 500, fontSize: 13 }}> · ⏱ {challenge.timeEstimateMin} {t.arenaMinAbbrev || "min"}</span>
+              ) : null}
+            </p>
+            {challenge.questDescription && (
+              <p className="sb-caption" style={{ marginTop: 6 }}>{challenge.questDescription}</p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -734,8 +740,7 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, i
               // + gaps ≈ 260 px feels right.
               maxHeight: 260,
               overflowY: "auto",
-              WebkitOverflowScrolling: "touch",
-              paddingRight: 2
+              WebkitOverflowScrolling: "touch"
             }}
           >
             {(challenge.logs || []).length === 0 && (
