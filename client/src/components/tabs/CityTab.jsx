@@ -435,6 +435,35 @@ export default function CityTab({
 
   const [lockedInfoOpen, setLockedInfoOpen] = useState(false);
   const [claimSuccessPopup, setClaimSuccessPopup] = useState(null); // "freeze" | "vacation" | null
+
+  // Custom city name — user-editable, persisted in localStorage per-username.
+  // Falls back to the translated default (Embervale / Эмбервейл).
+  const [cityName, setCityName] = useState("");
+  const [cityNameModalOpen, setCityNameModalOpen] = useState(false);
+  const [cityNameDraft, setCityNameDraft] = useState("");
+  const [cityNameError, setCityNameError] = useState("");
+  useEffect(() => {
+    if (!username) { setCityName(""); return; }
+    try {
+      const v = localStorage.getItem(`city_name_${username}`);
+      setCityName(v || "");
+    } catch { setCityName(""); }
+  }, [username]);
+  const effectiveCityName = cityName || t.cityNameDefault || "Embervale";
+  const openCityNameEdit = useCallback(() => {
+    setCityNameDraft(cityName || t.cityNameDefault || "");
+    setCityNameError("");
+    setCityNameModalOpen(true);
+  }, [cityName, t]);
+  const saveCityName = useCallback(() => {
+    const trimmed = String(cityNameDraft || "").trim().slice(0, 24);
+    if (!trimmed) { setCityNameError(t.cityNameEditError || "1–24 characters"); return; }
+    if (username) {
+      try { localStorage.setItem(`city_name_${username}`, trimmed); } catch {}
+    }
+    setCityName(trimmed);
+    setCityNameModalOpen(false);
+  }, [cityNameDraft, username, t]);
   const handleDistrictClick = useCallback((_districtId, idx, meta) => {
     if (meta?.locked) {
       setLockedInfoOpen(true);
@@ -675,21 +704,47 @@ export default function CityTab({
       {(() => {
         const districtSum = (districtLevels || []).slice(0, 5).reduce((a, l) => a + Math.max(0, Math.floor(Number(l) || 0)), 0);
         const developmentPercent = Math.round((districtSum / 25) * 100);
-        const citizens = computeCitizens(districtLevels, userStreak);
-        const streakMult = streakMultiplier(userStreak);
+        // Citizens are a pure function of district development — no streak
+        // multiplier. The number grows as districts level up, which is
+        // enough signal on its own.
+        const citizens = computeCitizens(districtLevels, 0);
         return (
           <div data-tour="city-hero" className="city-hero-surface mobile-card top-screen-block p-4">
             <div className="relative z-10 flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] uppercase tracking-[0.2em] mb-1" style={{ color: "var(--color-muted)" }}>
-                  {t.mobileCityLabel}
-                </p>
-                <h3 className="cinzel text-[1.15rem] font-bold tracking-wide leading-tight m-0 flex items-center gap-2" style={{ color: "var(--color-primary)" }}>
-                  <span>🏙</span>
-                  <span className="truncate">{t.landingGrowCityTitle}</span>
+                <h3
+                  className="cinzel text-[1.35rem] font-bold tracking-wide leading-tight m-0 flex items-center gap-2"
+                  style={{ color: "var(--color-primary)" }}
+                >
+                  <span className="truncate" style={{ minWidth: 0 }}>{effectiveCityName}</span>
+                  <button
+                    type="button"
+                    onClick={openCityNameEdit}
+                    aria-label={t.cityNameEditLabel || "Rename city"}
+                    className="mobile-pressable"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 26,
+                      height: 26,
+                      padding: 0,
+                      borderRadius: 8,
+                      border: "1px solid color-mix(in srgb, var(--color-primary) 50%, transparent)",
+                      background: "color-mix(in srgb, var(--color-primary) 12%, transparent)",
+                      color: "var(--color-primary)",
+                      cursor: "pointer",
+                      flexShrink: 0
+                    }}
+                  >
+                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                    </svg>
+                  </button>
                 </h3>
                 <p className="text-xs leading-relaxed mt-2 mb-0" style={{ color: "var(--color-text)", opacity: 0.88 }}>
-                  {t.cityExpansionText}
+                  {t.cityHeroTagline}
                 </p>
               </div>
 
@@ -699,9 +754,6 @@ export default function CityTab({
                 </p>
                 <p className="cinzel text-xl font-bold leading-none m-0" style={{ color: "var(--color-primary)" }}>
                   {formatThousands(citizens)}
-                </p>
-                <p className="text-[10px] mt-1 mb-0" style={{ color: "var(--color-text)", opacity: 0.78 }}>
-                  ×{streakMult.toFixed(2)} 🔥
                 </p>
               </div>
             </div>
@@ -1396,6 +1448,101 @@ export default function CityTab({
                 }}
               >
                 {t.proceedLabel || "OK"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {cityNameModalOpen && createPortal(
+        <div
+          className="logout-confirm-overlay"
+          onClick={() => setCityNameModalOpen(false)}
+        >
+          <div
+            className="logout-confirm-card"
+            role="dialog"
+            aria-modal="true"
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              border: "2px solid color-mix(in srgb, var(--color-primary) 55%, transparent)",
+              boxShadow: "0 0 40px color-mix(in srgb, var(--color-primary) 18%, transparent), 0 25px 50px rgba(0, 0, 0, 0.5)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 14
+            }}
+          >
+            <div className="logout-confirm-icon" style={{ fontSize: "2.4rem" }}>🏷️</div>
+            <h3 className="cinzel logout-confirm-title" style={{ color: "var(--color-primary)", textAlign: "center", marginBottom: 0 }}>
+              {t.cityNameEditTitle || "Rename your city"}
+            </h3>
+            <input
+              type="text"
+              value={cityNameDraft}
+              onChange={(e) => { setCityNameDraft(e.target.value); if (cityNameError) setCityNameError(""); }}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveCityName(); } }}
+              placeholder={t.cityNameEditPlaceholder || "Enter city name"}
+              maxLength={24}
+              autoFocus
+              style={{
+                width: "100%",
+                padding: "12px 14px",
+                borderRadius: 12,
+                border: `1.5px solid ${cityNameError ? "#e14b5a" : "var(--panel-border)"}`,
+                background: "color-mix(in srgb, var(--panel-bg) 95%, transparent)",
+                color: "var(--color-text)",
+                fontSize: 16,
+                fontWeight: 600,
+                outline: "none",
+                boxSizing: "border-box"
+              }}
+            />
+            {cityNameError && (
+              <span style={{ fontSize: 12, color: "#e14b5a", fontWeight: 600, textAlign: "center", marginTop: -6 }}>
+                {cityNameError}
+              </span>
+            )}
+            <div className="logout-confirm-actions" style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => setCityNameModalOpen(false)}
+                className="cinzel qt-btn mobile-pressable"
+                style={{
+                  flex: 1,
+                  minHeight: 46,
+                  borderRadius: 12,
+                  border: "1.5px solid var(--panel-border)",
+                  background: "color-mix(in srgb, var(--panel-bg) 80%, transparent)",
+                  color: "var(--color-muted)",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  cursor: "pointer"
+                }}
+              >
+                {t.cityNameEditCancel || "Cancel"}
+              </button>
+              <button
+                type="button"
+                onClick={saveCityName}
+                className="cinzel qt-btn mobile-pressable"
+                style={{
+                  flex: 1,
+                  minHeight: 46,
+                  borderRadius: 12,
+                  border: "1.5px solid var(--color-primary)",
+                  background: "color-mix(in srgb, var(--color-primary) 22%, var(--panel-bg))",
+                  color: "var(--color-primary)",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  cursor: "pointer"
+                }}
+              >
+                {t.cityNameEditSave || "Save"}
               </button>
             </div>
           </div>

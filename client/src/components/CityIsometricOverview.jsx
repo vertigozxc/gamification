@@ -1775,16 +1775,24 @@ function PlotOverlay({ district, level, palette, t, isSelected, isLocked }) {
   const labelKey = `district${district.id.charAt(0).toUpperCase() + district.id.slice(1)}`;
   const label = t?.[labelKey] || DISTRICT_FALLBACK_NAMES[district.id] || district.id;
   const labelX = cx;
-  const labelY = c.s.y + DEPTH + 18;
+  // Pill sits INSIDE the plot diamond, just below its centre, so the label is
+  // visually anchored to the district it belongs to. Previously the pill
+  // hung below the south tip of the diamond, which in the iso grid put it
+  // geometrically "on top of" the plot of the row below — users couldn't
+  // tell which label belonged to which district.
+  const labelY = cy + 22;
+  const pillW = 146;
+  const pillH = 22;
+  const pillFontSize = 12;
 
   if (isLocked) {
     return (
       <g style={{ pointerEvents: "none" }}>
-        <rect x={labelX - 78} y={labelY - 10} width={156} height={20} rx={10}
+        <rect x={labelX - pillW / 2} y={labelY - pillH / 2} width={pillW} height={pillH} rx={11}
           fill="rgba(26, 31, 43, 0.92)"
           stroke="#4a5568"
           strokeWidth={0.8} />
-        <text x={labelX} y={labelY + 3} textAnchor="middle" fontSize={11} fontWeight={700}
+        <text x={labelX} y={labelY + 4} textAnchor="middle" fontSize={pillFontSize} fontWeight={700}
           fill="#8a97ac" style={{ letterSpacing: "0.2px" }}>
           🔒 {label} · LOCKED
         </text>
@@ -1794,11 +1802,11 @@ function PlotOverlay({ district, level, palette, t, isSelected, isLocked }) {
 
   return (
     <g>
-      <rect x={labelX - 78} y={labelY - 10} width={156} height={20} rx={10}
+      <rect x={labelX - pillW / 2} y={labelY - pillH / 2} width={pillW} height={pillH} rx={11}
         fill={isSelected ? "#ffd24a" : palette.labelBg}
         stroke={isSelected ? "#b47f00" : palette.stroke}
         strokeWidth={isSelected ? 1.2 : 0.8} />
-      <text x={labelX} y={labelY + 3} textAnchor="middle" fontSize={11} fontWeight={700}
+      <text x={labelX} y={labelY + 4} textAnchor="middle" fontSize={pillFontSize} fontWeight={700}
         fill={isSelected ? "#3d2600" : palette.labelText}
         style={{ pointerEvents: "none", letterSpacing: "0.2px" }}>
         {label} · {level}/5
@@ -1949,9 +1957,22 @@ export default function CityIsometricOverview({ levels = [0, 0, 0, 0, 0], select
         {clipDefs}
       </defs>
       <style>{`
-        .city-iso-district { transition: filter 0.15s ease; }
-        .city-iso-district:hover { filter: brightness(1.12) drop-shadow(0 0 6px rgba(255,210,74,0.6)); }
-        .city-iso-district:active { filter: brightness(1.25) drop-shadow(0 0 10px rgba(255,210,74,0.8)); }
+        /* Filter transitions use an asymmetric delay: entering :active waits
+           ~140ms before the bright highlight fades in, but leaving :active
+           is instant. This way a scroll/pan gesture (which starts with a
+           brief finger-down on a plot before the drag threshold is met)
+           never triggers a visible flash — by the time the delay elapses
+           the user has already moved far enough that InteractiveMapWrapper
+           suppresses the click, and the finger moving off the plot's
+           hit-test region during the drag releases :active cleanly. */
+        .city-iso-district { transition: filter 0.2s ease; }
+        @media (hover: hover) {
+          .city-iso-district:hover { filter: brightness(1.12) drop-shadow(0 0 6px rgba(255,210,74,0.6)); }
+        }
+        .city-iso-district:active {
+          filter: brightness(1.25) drop-shadow(0 0 10px rgba(255,210,74,0.8));
+          transition: filter 0.2s ease 140ms;
+        }
       `}</style>
       <Landscape
         minX={minX}
