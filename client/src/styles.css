@@ -1667,14 +1667,15 @@ body[data-theme="light"] .delete-profile-confirm-cancel {
 .qb-tab-count-alert{opacity:1;color:#fde68a;background:rgba(250,204,21,.24);border-radius:999px;padding:.05rem .38rem;font-size:.6rem;font-weight:700}
 
 /* Challenge item — gold accent separates it from daily-board quests. */
-.qb-chal-item{border-color:rgba(250,204,21,.38)}
+.qb-chal-item{border-color:rgba(250,204,21,.38);background:color-mix(in srgb,#facc15 9%,var(--quest-item-bg));box-shadow:0 4px 16px rgba(234,179,8,.12),inset 0 1px #ffffff0d}
 .qb-chal-item .qb-check{border-color:rgba(253,224,71,.5)}
 .qb-chal-item .qb-check-done{background:#eab308;border-color:#eab308;box-shadow:0 2px 8px rgba(234,179,8,.45)}
 .qb-chal-item .qb-cat{color:#fde68a;background:rgba(250,204,21,.18);border-color:rgba(253,224,71,.34)}
 .qb-chal-item .qb-xp{color:#fde68a}
+.qb-chal-item.qb-quest-done{background:color-mix(in srgb,#facc15 5%,var(--quest-item-done-bg))}
 body[data-theme="light"] .qb-tab-bar-expand .qb-tab-active[data-qtab="challenges"]{background:rgba(250,204,21,.2);border-color:rgba(217,119,6,.55);box-shadow:0 4px 14px rgba(217,119,6,.22)}
 body[data-theme="light"] .qb-tab-count-alert{color:#92400e;background:rgba(250,204,21,.3)}
-body[data-theme="light"] .qb-chal-item{border-color:rgba(217,119,6,.4)}
+body[data-theme="light"] .qb-chal-item{border-color:rgba(217,119,6,.4);background:color-mix(in srgb,#facc15 12%,var(--quest-item-bg))}
 body[data-theme="light"] .qb-chal-item .qb-cat{color:#92400e;background:rgba(250,204,21,.2)}
 body[data-theme="light"] .qb-chal-item .qb-xp{color:#92400e}
 .qb-tab-fresh{pointer-events:none;position:absolute;top:-12px;right:-8px;z-index:8;display:inline-flex;align-items:center;gap:.2rem;padding:.14rem .4rem .12rem;border-radius:999px;background:linear-gradient(135deg,#ffe28a,#ffc947);border:1px solid rgba(255,221,112,.68);box-shadow:0 12px 20px -12px rgba(255,190,11,.95),0 0 0 1px rgba(255,255,255,.35) inset;transform:rotate(-4deg);animation:qbFreshBadgeFloat 2.2s ease-in-out infinite}
