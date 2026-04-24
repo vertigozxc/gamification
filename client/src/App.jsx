@@ -391,15 +391,52 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         onEnter: () => setWizardStep(0),
         scroll: true
       });
+      // New: explicitly prompt the user to tap Continue rather than
+      // auto-jumping the wizard onto the habits page.
       list.push({
-        id: "setup-habits",
-        target: '[data-tour="setup-habits"]',
-        title: t.tourSetupHabitsTitle || "Pick your daily habits",
-        text: (tf && tf("tourSetupHabitsText", { n: pinnedLimit })) || `Choose ${pinnedLimit} habits — these are your daily anchors.`,
+        id: "setup-continue",
+        target: '[data-tour="setup-continue"]',
+        title: t.tourSetupContinueTitle || "Nice — next up",
+        text: t.tourSetupContinueText || "Tap Continue to move on to picking your daily habits.",
+        gate: "condition",
+        isSatisfied: () => wizardStep === 1,
+        autoAdvance: true,
+        onEnter: () => setWizardStep(0),
+        bubblePlacement: "top",
+        scroll: true
+      });
+      // Intro popup before the habits page — plain center card, no
+      // spotlight. Explains what this page is about.
+      list.push({
+        id: "habits-intro",
+        kind: "center",
+        title: t.tourHabitsIntroTitle || "Pick your daily habits",
+        text: t.tourHabitsIntroText || "On this page, choose 2 daily habits you want to build. They'll become your daily anchors.",
+        gate: "next",
+        onEnter: () => setWizardStep(1)
+      });
+      // Custom habits block — bubble always on top so it never covers
+      // the quests below while the user scrolls.
+      list.push({
+        id: "habits-custom",
+        target: '[data-tour="my-custom-habits"]',
+        title: t.tourHabitsCustomTitle || "Your own habits",
+        text: t.tourHabitsCustomText || "You can create your own habit here, or pick one from the catalog below — tap next to see it.",
+        gate: "next",
+        onEnter: () => setWizardStep(1),
+        bubblePlacement: "top",
+        scroll: true
+      });
+      list.push({
+        id: "habits-browse",
+        target: '[data-tour="browse-habits"]',
+        title: t.tourHabitsBrowseTitle || "Catalog",
+        text: t.tourHabitsBrowseText || "Browse ready-made habits by category, or search. Tap a card to pick it.",
         gate: "condition",
         isSatisfied: () => Array.isArray(onboardingQuestIds) && onboardingQuestIds.length >= pinnedLimit,
         autoAdvance: false,
         onEnter: () => setWizardStep(1),
+        bubblePlacement: "top",
         scroll: true
       });
       list.push({
@@ -417,6 +454,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         scroll: true
       });
     }
+    // Main tour, post-setup. Order per user ask:
+    // dashboard → city → store → community → profile.
     list.push({
       id: "quest-board",
       target: '[data-tour="quest-board"]',
@@ -424,18 +463,6 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       text: t.tourQuestBoardText || "Plain quests finish on a long tap. Some have a timer or a counter — run the mechanic and the quest closes itself.",
       gate: "next",
       onEnter: () => { startTransition(() => setMobileTab("dashboard")); },
-      scroll: true
-    });
-    list.push({
-      id: "community",
-      target: '[data-tour="community-tabs"]',
-      title: t.tourCommunityTitle || "Community & challenges",
-      text: t.tourCommunityText || "Here you race friends, join shared challenges and see the leaderboard.",
-      gate: "next",
-      onEnter: () => {
-        try { window.__pendingSocialSubTab = "challenges"; } catch { /* noop */ }
-        startTransition(() => setMobileTab("leaderboard"));
-      },
       scroll: true
     });
     list.push({
@@ -457,6 +484,18 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       scroll: true
     });
     list.push({
+      id: "community",
+      target: '[data-tour="community-tabs"]',
+      title: t.tourCommunityTitle || "Community & challenges",
+      text: t.tourCommunityText || "Here you race friends, join shared challenges and see the leaderboard.",
+      gate: "next",
+      onEnter: () => {
+        try { window.__pendingSocialSubTab = "challenges"; } catch { /* noop */ }
+        startTransition(() => setMobileTab("leaderboard"));
+      },
+      scroll: true
+    });
+    list.push({
       id: "profile-settings",
       target: '[data-tour="profile-settings"]',
       title: t.tourProfileTitle || "Your profile",
@@ -467,7 +506,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     });
     return list;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t, tf, showOnboarding, onboardingName, onboardingQuestIds, state?.questSlots?.pinned]);
+  }, [t, tf, showOnboarding, onboardingName, onboardingQuestIds, state?.questSlots?.pinned, wizardStep]);
 
   useEffect(() => {
     uidRef.current = authUser ? authUser.uid : null;

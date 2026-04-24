@@ -205,11 +205,9 @@ function OnboardingModal({
   const normalizedHandle = normalizeHandleLocal(handleInput);
 
   const handleStartRequest = () => {
-    if (onboardingName.trim() === "" || selectedCount !== SELECTION_LIMIT) {
-      onComplete(normalizedHandle); // let parent show error
-    } else {
-      setShowWarning(true);
-    }
+    // No confirm step — tapping Begin submits directly. The parent
+    // still validates name + selection count and surfaces any error.
+    onComplete(normalizedHandle);
   };
 
   const handleCloseClick = () => {
@@ -226,7 +224,7 @@ function OnboardingModal({
         alignItems: "stretch",
         justifyContent: "stretch",
         padding: 0,
-        background: "rgba(0,0,0,0.72)"
+        background: "var(--card-bg, #0f172a)"
       }}
     >
       <div
@@ -458,7 +456,7 @@ function OnboardingModal({
               }}
             />
             <p style={{ margin: "6px 2px 0", fontSize: 11, color: "var(--color-muted)", lineHeight: 1.4 }}>
-              {t.onboardingNameHint || "Your public name that other players see."}
+              {t.onboardingNameHint || "Enter your name — it will be publicly visible to other players."}
             </p>
           </div>
 
@@ -532,7 +530,10 @@ function OnboardingModal({
                 color: "#e2e8f0",
                 fontSize: 14,
                 outline: "none",
-                fontFamily: "var(--font-heading)"
+                // Plain sans — no heading font — so lowercase letters
+                // actually render lowercase (Cinzel is all-caps only).
+                fontFamily: "inherit",
+                textTransform: "lowercase"
               }}
             />
             <span
@@ -574,57 +575,63 @@ function OnboardingModal({
             }}
           >
           <div data-tour="setup-habits">
-          {/* Section-start header for the habit picker. A primary-coloured
-              accent bar sits above the title as the lone divider — no
-              dot, no separator border. */}
-          <div style={{ marginTop: 22, marginBottom: 10, paddingTop: 14, position: "relative" }}>
-            <span
-              aria-hidden
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: 88,
-                height: 2,
-                background: "var(--color-primary)",
-                borderRadius: 2
-              }}
-            />
-            <h3
-              className="cinzel"
-              style={{
-                margin: 0,
-                fontSize: 16,
-                fontWeight: 800,
-                letterSpacing: "0.06em",
-                color: "var(--color-primary)",
-                textTransform: "uppercase",
-                lineHeight: 1.25
-              }}
-            >
-              {tf("onboardingPick", { pinned: SELECTION_LIMIT })}
-            </h3>
+          {/* Section-start header for the habit picker. The accent bar
+              above the title matches the title's own text width — uses
+              inline-block + an absolutely-positioned 100%-width ::before
+              line so it shrinks/grows with the copy. */}
+          <div style={{ marginTop: 22, marginBottom: 10 }}>
+            <div style={{ display: "inline-block", position: "relative", paddingTop: 10 }}>
+              <span
+                aria-hidden
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 2,
+                  background: "var(--color-primary)",
+                  borderRadius: 2
+                }}
+              />
+              <h3
+                className="cinzel"
+                style={{
+                  margin: 0,
+                  fontSize: 16,
+                  fontWeight: 800,
+                  letterSpacing: "0.06em",
+                  color: "var(--color-primary)",
+                  textTransform: "uppercase",
+                  lineHeight: 1.25,
+                  whiteSpace: "nowrap"
+                }}
+              >
+                {tf("onboardingPick", { pinned: SELECTION_LIMIT })}
+              </h3>
+            </div>
             <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--color-muted)", lineHeight: 1.4 }}>
               {t.onboardingPickSubtitle || "Pick from the existing list or create your own"}
             </p>
           </div>
 
-          <CustomHabitManager
-            customQuests={customQuests}
-            selectedIds={onboardingQuestIds}
-            onToggleSelect={onToggleOnboardingQuest}
-            selectionLimitReached={selectedCount >= SELECTION_LIMIT}
-            accentVar="--color-primary"
-            allowDelete={true}
-            onCreateCustomQuest={onCreateCustomQuest}
-            onUpdateCustomQuest={onUpdateCustomQuest}
-            onDeleteCustomQuest={onDeleteCustomQuest}
-            customSaving={customSaving}
-            customError={customError}
-            onClearCustomError={onClearCustomError}
-          />
+          <div data-tour="my-custom-habits">
+            <CustomHabitManager
+              customQuests={customQuests}
+              selectedIds={onboardingQuestIds}
+              onToggleSelect={onToggleOnboardingQuest}
+              selectionLimitReached={selectedCount >= SELECTION_LIMIT}
+              accentVar="--color-primary"
+              allowDelete={true}
+              onCreateCustomQuest={onCreateCustomQuest}
+              onUpdateCustomQuest={onUpdateCustomQuest}
+              onDeleteCustomQuest={onDeleteCustomQuest}
+              customSaving={customSaving}
+              customError={customError}
+              onClearCustomError={onClearCustomError}
+            />
+          </div>
 
-          <div style={{ marginTop: 16 }}>
+          <div data-tour="browse-habits" style={{ marginTop: 16 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <span
                 className="cinzel"
@@ -743,6 +750,7 @@ function OnboardingModal({
             <div style={{ display: "flex", gap: 10 }}>
               <button
                 type="button"
+                data-tour="setup-continue"
                 onClick={() => {
                   if (!canAdvanceFromStep0) return;
                   setStep(1);
