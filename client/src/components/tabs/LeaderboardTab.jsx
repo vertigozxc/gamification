@@ -464,13 +464,7 @@ function PlayerRow({ entry, isMe, meHighlight, t, onOpenProfile }) {
       type="button"
       onClick={() => onOpenProfile(entry.username)}
       className="cm-row press"
-      style={{
-        background: meHighlight
-          ? "rgba(var(--color-primary-rgb,251,191,36),0.14)"
-          : isMe
-            ? "rgba(var(--color-primary-rgb,251,191,36),0.06)"
-            : "transparent",
-      }}
+      style={{ background: "transparent" }}
     >
       <span className="cm-row-rank" style={{ color: entry.rank && entry.rank <= 3 ? "var(--color-primary)" : "var(--color-muted)" }}>
         {entry.rank ? entry.rank : "—"}

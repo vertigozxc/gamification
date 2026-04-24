@@ -958,7 +958,7 @@ export default function CityTab({
           className="mt-3"
           style={{
             padding: "14px 16px",
-            background: "color-mix(in srgb, var(--panel-bg) 70%, transparent)",
+            background: "var(--panel-bg)",
             border: "1px solid var(--panel-border)",
             borderRadius: 16,
             display: "flex",
@@ -1136,7 +1136,7 @@ export default function CityTab({
             <div
               style={{
                 padding: "14px 16px",
-                background: "color-mix(in srgb, var(--panel-bg) 70%, transparent)",
+                background: "var(--panel-bg)",
                 border: "1px solid var(--panel-border)",
                 borderRadius: 16,
                 display: "flex",
@@ -1152,8 +1152,8 @@ export default function CityTab({
                     flexDirection: "column",
                     gap: 10,
                     padding: "12px 14px",
-                    background: "color-mix(in srgb, var(--color-primary) 10%, transparent)",
-                    border: "1px dashed color-mix(in srgb, var(--color-primary) 55%, transparent)",
+                    background: "color-mix(in srgb, var(--panel-bg) 60%, transparent)",
+                    border: "1px solid var(--panel-border)",
                     borderRadius: 12
                   }}
                 >
