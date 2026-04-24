@@ -141,7 +141,16 @@ export default function AchievementsSection({ username, t, languageId, onModalOp
         </span>
       </button>
 
-      {expanded ? (
+      <div
+        style={{
+          display: "grid",
+          gridTemplateRows: expanded ? "1fr" : "0fr",
+          opacity: expanded ? 1 : 0,
+          transition: "grid-template-rows 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 240ms ease",
+        }}
+        aria-hidden={!expanded}
+      >
+        <div style={{ overflow: "hidden", minHeight: 0 }}>
       <div className="grid grid-cols-5 gap-2">
         {ordered.map((item) => {
           const Icon = ACHIEVEMENT_ICONS[item.code];
@@ -179,7 +188,8 @@ export default function AchievementsSection({ username, t, languageId, onModalOp
           );
         })}
       </div>
-      ) : null}
+        </div>
+      </div>
 
       {expanded && loading && !data ? (
         <p className="text-[11px] text-center opacity-60" style={{ color: "var(--color-muted)" }}>…</p>

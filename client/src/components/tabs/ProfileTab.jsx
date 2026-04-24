@@ -388,23 +388,33 @@ function StreakFreezeCard({ t, charges, streak, languageId }) {
         </span>
       </button>
 
-      {hintOpen ? (
-        <p
-          className="mt-3 mb-0"
-          style={{
-            fontSize: 12,
-            lineHeight: 1.4,
-            color: "var(--color-muted)",
-            padding: "10px 12px",
-            background: "color-mix(in srgb, #5ba0e0 6%, transparent)",
-            borderRadius: 10,
-            borderLeft: "3px solid color-mix(in srgb, #5ba0e0 55%, transparent)",
-          }}
-        >
-          {t.streakFreezeAutoHint
-            || "If you miss a day, 1 charge is spent automatically and your streak survives — no action needed. When charges hit 0, the next miss burns the streak."}
-        </p>
-      ) : null}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateRows: hintOpen ? "1fr" : "0fr",
+          opacity: hintOpen ? 1 : 0,
+          transition: "grid-template-rows 280ms cubic-bezier(0.4, 0, 0.2, 1), opacity 220ms ease",
+        }}
+        aria-hidden={!hintOpen}
+      >
+        <div style={{ overflow: "hidden", minHeight: 0 }}>
+          <p
+            className="mt-3 mb-0"
+            style={{
+              fontSize: 12,
+              lineHeight: 1.4,
+              color: "var(--color-muted)",
+              padding: "10px 12px",
+              background: "color-mix(in srgb, #5ba0e0 6%, transparent)",
+              borderRadius: 10,
+              borderLeft: "3px solid color-mix(in srgb, #5ba0e0 55%, transparent)",
+            }}
+          >
+            {t.streakFreezeAutoHint
+              || "If you miss a day, 1 charge is spent automatically and your streak survives — no action needed. When charges hit 0, the next miss burns the streak."}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
