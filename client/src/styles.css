@@ -79,8 +79,8 @@ body[data-theme="adventure"] {
     --quest-check-done-bg: #34c759;
     --border-radius-card: 0.75rem;
     --border-radius-panel: 1.5rem;
-    /* Adventure (gold) — warm obsidian base, gold orb, stone-cool inactive. */
-    --mobile-tab-bg: rgba(14, 10, 4, 0.97);
+    /* Adventure (gold) — tab bg matches page bg (#0a0e14) for seamless blend. */
+    --mobile-tab-bg: rgba(10, 14, 20, 0.97);
     /* Literal values (not var()) so getComputedStyle().getPropertyValue()
        returns a resolvable color for the RN shell — custom-property
        getters don't substitute nested var() references. */
@@ -168,8 +168,8 @@ body[data-theme="balance"] {
     --quest-check-done-bg: #22c55e;
     --border-radius-card: 1rem;
     --border-radius-panel: 1.5rem;
-    /* Balance (green) — deep forest base, emerald orb, neutral inactive. */
-    --mobile-tab-bg: rgba(6, 22, 14, 0.98);
+    /* Balance (green) — tab bg matches page bg (#0a1612) for seamless blend. */
+    --mobile-tab-bg: rgba(10, 22, 18, 0.98);
     /* Literal values (not var()) — see adventure block for why. */
     --mobile-tab-active: #4ade80;
     --mobile-tab-inactive: #6b7280;
