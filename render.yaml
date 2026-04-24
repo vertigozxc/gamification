@@ -37,6 +37,26 @@ services:
       - key: CLIENT_ORIGIN
         value: https://life-rpg-client.onrender.com
 
+  # Daily streak decay job. Runs at 00:05 UTC and burns the streak (or
+  # auto-consumes a freeze charge) for every user who didn't make the
+  # 3-completion bar yesterday. Lives next to the US service so they
+  # share the same Postgres; the EU service writes to the same DB so
+  # one cron is enough for both regions.
+  - type: cron
+    name: life-rpg-streak-decay
+    region: oregon
+    runtime: node
+    rootDir: server
+    schedule: "5 0 * * *"
+    plan: starter
+    buildCommand: npm install; npm run prisma:generate
+    startCommand: node src/jobs/streakDecay.js
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: DATABASE_URL
+        sync: false
+
   - type: web
     runtime: static
     name: life-rpg-client

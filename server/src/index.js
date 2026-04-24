@@ -40,6 +40,11 @@ import {
   evaluateAchievements,
   fetchUserAchievements
 } from "./achievements.js";
+import {
+  evaluateStreakDecay,
+  previousUtcDayKey,
+  streakDecayAlreadyDoneForUtcDay
+} from "./streakDecay.js";
 
 // Fire-and-forget achievement evaluation. Never lets a failure break the
 // triggering action — every caller should await this at the end of a
@@ -4738,6 +4743,30 @@ app.post("/api/streak/use-freeze", async (req, res) => {
   }
 });
 
+// Client calls this once after the "your streak burned out" dialog
+// closes, so the next /game-state no longer surfaces the notice. Both
+// burn fields are cleared together — `streakBurnedFromValue` keeps no
+// independent meaning once the at-timestamp is null.
+app.post("/api/streak/dismiss-burn-notice", async (req, res) => {
+  const schema = z.object({ username: z.string().min(2).max(64) });
+  try {
+    const { username } = schema.parse(req.body);
+    const user = await prisma.user.findUnique({ where: { username: slugifyUsername(username) } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user.streakBurnedAt) {
+      return res.json({ ok: true, alreadyDismissed: true });
+    }
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { streakBurnedAt: null, streakBurnedFromValue: 0 }
+    });
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error(`[Dismiss Burn Notice Error] ${error?.message || error}`);
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
 // Dev helper: bumps level/tokens/streak by +1 each. Not gated — used by the
 // testing button next to +1 in the district controls while gating mechanics
 // are tuned.
@@ -4805,7 +4834,7 @@ app.post("/api/reset-daily", async (req, res) => {
 
     const tUserLoad = Date.now();
     const username = slugifyUsername(parsed.username);
-    const user = await prisma.user.findUnique({ where: { username } });
+    let user = await prisma.user.findUnique({ where: { username } });
     pushTiming("db_user", tUserLoad);
 
     if (!user) {
@@ -4817,8 +4846,57 @@ app.post("/api/reset-daily", async (req, res) => {
 
     const now = new Date();
     const today = getDateKey(now);
-    const streakDecayData = {};
     let todayRows = [];
+
+    // Streak decay — runs at most once per UTC day per user, BEFORE the
+    // rotation idempotency check below. Independent of `isReroll`,
+    // `force`, and admin endpoints because the bookkeeping rides on
+    // its own column (`lastStreakDecayCheckAt`), not on the shared
+    // `lastDailyResetAt`. This is what stops a reroll or an admin
+    // reset from silently swallowing the day's burn evaluation.
+    if (!streakDecayAlreadyDoneForUtcDay(user, now)) {
+      const evaluationDayKey = previousUtcDayKey(now);
+      const tDecayRows = Date.now();
+      const decayCount = await prisma.questCompletion.count({
+        where: { userId: user.id, dayKey: evaluationDayKey }
+      });
+      pushTiming("db_decay_rows", tDecayRows);
+
+      const decayResult = evaluateStreakDecay({
+        user,
+        now,
+        evaluationDayKey,
+        decayCompletionsCount: decayCount
+      });
+
+      // Apply the ledger + any streak/freeze change atomically. Re-read
+      // user so the rest of the handler (rotation, productivity, quest
+      // composition) sees the post-decay numbers — important when a
+      // streak just burned to 0, since quest slots and streak-XP
+      // multipliers depend on it.
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: decayResult.streakDecayData
+      });
+
+      if (decayResult.kind === "burned" || decayResult.kind === "freeze_consumed") {
+        recordEvent({
+          type: decayResult.kind === "burned" ? "streak_burned" : "streak_freeze_auto_consumed",
+          level: "info",
+          userId: user.id,
+          username: user.username,
+          message: decayResult.kind === "burned"
+            ? `streak burned out (was ${decayResult.previousStreak})`
+            : `freeze charge auto-consumed (streak ${decayResult.previousStreak} preserved)`,
+          meta: {
+            evaluationDayKey,
+            previousStreak: decayResult.previousStreak,
+            completions: decayCount,
+            source: "reset-daily"
+          }
+        }).catch(() => {});
+      }
+    }
 
     // Idempotency: the client calls /api/reset-daily on every fresh mount of
     // the app to handle day rollover. If it's already been called today for a
@@ -4858,44 +4936,13 @@ app.post("/api/reset-daily", async (req, res) => {
       }
     }
 
+    // Move-back step: completions stamped with today's dayKey but
+    // submitted before the user's first reset-daily of the day belong
+    // to "yesterday" semantically — they happened before the rollover
+    // animation. Reroll keeps today's completions intact (the user is
+    // mid-day, not crossing a boundary), so the move only runs on
+    // non-reroll calls.
     if (!parsed.isReroll) {
-      // On the first reset of a new UTC day, streak rules should be evaluated
-      // against the previous day completions (the day that just ended).
-      const lastDailyResetKey = user.lastDailyResetAt ? getDateKey(new Date(user.lastDailyResetAt)) : null;
-      const isFirstResetForUtcDay = lastDailyResetKey !== today;
-      const streakEvaluationDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-      if (isFirstResetForUtcDay) {
-        streakEvaluationDate.setUTCDate(streakEvaluationDate.getUTCDate() - 1);
-      }
-      const streakEvaluationDayKey = getDateKey(streakEvaluationDate);
-
-      const tDecayRows = Date.now();
-      const decayRows = await prisma.questCompletion.findMany({
-        where: { userId: user.id, dayKey: streakEvaluationDayKey },
-        select: { id: true, questId: true }
-      });
-      pushTiming("db_decay_rows", tDecayRows);
-
-      const freezeActive = user.streakFreezeExpiresAt
-        ? getDateKey(new Date(user.streakFreezeExpiresAt)) >= streakEvaluationDayKey
-        : false;
-      const streakWouldBurn = decayRows.length < 3 && user.streak > 0;
-      const charges = Number(user.streakFreezeCharges) || 0;
-
-      // Vacation mode was removed — "vacation" is now just a pile of
-      // streakFreezeCharges that auto-consume as needed, same as any
-      // other charge source. The only protections left here are an
-      // already-active freeze window (from a prior auto-consume) and the
-      // charge pool itself.
-      if (streakWouldBurn && !freezeActive && charges > 0) {
-        // Auto-consume 1 charge: extend freeze expiry by 1 day from today, decrement pool, keep streak.
-        const nextExpiry = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
-        streakDecayData.streakFreezeCharges = { decrement: 1 };
-        streakDecayData.streakFreezeExpiresAt = nextExpiry;
-      } else if (streakWouldBurn && !freezeActive) {
-        streakDecayData.streak = 0;
-      }
-
       const tTodayRows = Date.now();
       todayRows = await prisma.questCompletion.findMany({
         where: { userId: user.id, dayKey: today },
@@ -5068,8 +5115,7 @@ app.post("/api/reset-daily", async (req, res) => {
         lastStreakIncreaseAt: parsed.isReroll ? user.lastStreakIncreaseAt : null,
         randomQuestIds: newRandomQuestIds, // Always replace or clear it!
         previousRandomQuestIds: previousRandomIdsNext,
-        ...rerollStateData,
-        ...streakDecayData
+        ...rerollStateData
       }
     });
     pushTiming("db_user_update", tUserUpdate);

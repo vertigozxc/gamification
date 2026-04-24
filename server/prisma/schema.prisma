@@ -48,6 +48,9 @@ model User {
   onboardingSkippedAt       DateTime?
   onboardingTourCompletedAt DateTime?
   handle                    String?                @unique
+  streakBurnedAt            DateTime?
+  streakBurnedFromValue     Int                    @default(0)
+  lastStreakDecayCheckAt    DateTime?
   createdAt                 DateTime               @default(now())
   updatedAt                 DateTime               @updatedAt
   customQuests              CustomQuest[]

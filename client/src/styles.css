@@ -2926,3 +2926,83 @@ body[data-theme="light"] .tour-finale-cta { color: #f8fafc; }
     background: color-mix(in srgb, #ef4444 90%, var(--panel-bg));
     transform: scale(0.97);
 }
+
+/* Streak-burned notice — shown once after the daily streak resets to 0.
+   Appearance is deliberately quiet: muted icon, no alarming red, primary
+   CTA carries the recovery message. Theme-driven via CSS variables so
+   adventure / balance / light all read correctly. */
+.streak-burned-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    background: rgba(2, 6, 23, 0.72);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    opacity: 0;
+    transition: opacity 200ms ease-out;
+}
+.streak-burned-overlay[data-enter="in"] {
+    opacity: 1;
+}
+.streak-burned-card {
+    width: min(380px, 100%);
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 1.5rem;
+    padding: 1.75rem 1.5rem 1.5rem;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+    transform: translateY(8px) scale(0.98);
+    opacity: 0;
+    transition: transform 260ms cubic-bezier(0.32, 0.72, 0, 1), opacity 200ms ease-out;
+}
+.streak-burned-overlay[data-enter="in"] .streak-burned-card {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+}
+.streak-burned-icon {
+    width: 88px;
+    height: 88px;
+    margin: 0 auto 1rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--panel-border) 70%, transparent);
+    background: color-mix(in srgb, var(--card-bg) 60%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-muted);
+    opacity: 0.85;
+}
+.streak-burned-title {
+    font-size: 1.2rem;
+    line-height: 1.3;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0 0 0.6rem;
+}
+.streak-burned-body {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--color-muted);
+    margin: 0 0 1.4rem;
+}
+.streak-burned-cta {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border-radius: 0.9rem;
+    border: 1px solid color-mix(in srgb, var(--color-primary) 55%, transparent);
+    background: color-mix(in srgb, var(--color-primary) 18%, var(--panel-bg));
+    color: var(--color-text);
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: background 160ms ease-out, border-color 160ms ease-out, transform 120ms ease-out;
+}
+.streak-burned-cta:active:not(:disabled) {
+    background: color-mix(in srgb, var(--color-primary) 32%, var(--panel-bg));
+    border-color: color-mix(in srgb, var(--color-primary) 80%, transparent);
+}

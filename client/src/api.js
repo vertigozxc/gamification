@@ -733,6 +733,13 @@ export function claimMonthlyFreeze(username) {
   });
 }
 
+export function dismissStreakBurnNotice(username) {
+  return request("/api/streak/dismiss-burn-notice", {
+    method: "POST",
+    body: JSON.stringify({ username })
+  });
+}
+
 export function useFreeze(username, days = 1) {
   return request("/api/streak/use-freeze", {
     method: "POST",

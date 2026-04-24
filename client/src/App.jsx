@@ -50,9 +50,10 @@ import {
 import PortalPreloader from "./components/PortalPreloader";
 import NetworkRetryBanner from "./components/NetworkRetryBanner";
 import PullToRefresh from "./components/PullToRefresh";
-import { evictCommunityCache, resetCity } from "./api";
+import { evictCommunityCache, resetCity, dismissStreakBurnNotice } from "./api";
 
 const FreezeSuccessModal = lazy(() => import("./components/modals/FreezeSuccessModal"));
+const StreakBurnedDialog = lazy(() => import("./components/modals/StreakBurnedDialog"));
 const RerollConfirmModal = lazy(() => import("./components/modals/RerollConfirmModal"));
 const LogoutConfirmModal = lazy(() => import("./components/modals/LogoutConfirmModal"));
 const NotesModal = lazy(() => import("./components/modals/NotesModal"));
@@ -167,6 +168,10 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showRerollConfirm, setShowRerollConfirm] = useState(false);
   const [showFreezeSuccess, setShowFreezeSuccess] = useState(false);
+  // ISO timestamp when the user's streak burned out, or null if no notice
+  // is pending. Server sets it via cron / /api/reset-daily; we surface it
+  // once via a modal and clear it through /api/streak/dismiss-burn-notice.
+  const [streakBurnedNoticeAt, setStreakBurnedNoticeAt] = useState(null);
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
@@ -855,6 +860,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         setCharacterName(userData.displayName || profileName);
         setNameDraft(userData.displayName || profileName);
         setPortraitData(userData.photoUrl || "");
+        if (userData.streakBurnedAt) setStreakBurnedNoticeAt(userData.streakBurnedAt);
         const preferredQuestIds = applyServerBootstrap(gameStateResponse, characterName);
         if (Array.isArray(gameStateResponse?.completedQuestIds)) {
         if (userData.theme) setThemeId(userData.theme);
@@ -933,6 +939,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         setQuests(nextQuests);
         const userData = gameStateResponse.user || {};
         if (userData.theme) setThemeId(userData.theme);
+        if (userData.streakBurnedAt) setStreakBurnedNoticeAt(userData.streakBurnedAt);
         setState((prev) => ({
           ...prev,
           completed: Array.isArray(gameStateResponse?.completedQuestIds) ? gameStateResponse.completedQuestIds : [],
@@ -1789,6 +1796,16 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       </Suspense>
 
       <FreezeSuccessModal open={showFreezeSuccess} onClose={() => setShowFreezeSuccess(false)} />
+
+      <StreakBurnedDialog
+        open={Boolean(streakBurnedNoticeAt)}
+        onClose={() => {
+          setStreakBurnedNoticeAt(null);
+          if (authUser?.uid) {
+            dismissStreakBurnNotice(authUser.uid).catch(() => {});
+          }
+        }}
+      />
 
       <RerollConfirmModal
         open={showRerollConfirm}
