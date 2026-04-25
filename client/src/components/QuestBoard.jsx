@@ -438,9 +438,15 @@ function QuestBoard({
   const challengeDoneToday = accepted.filter((c) => c.myLastCompletionDayKey === tKey || optimisticSet.has(c.id)).length;
   const challengePendingCount = challenges.length - accepted.length;
 
-  // Tab-bar grid template: active tab = 3fr, others = 1fr.
+  // Tab-bar grid template:
+  //  - 2 tabs (no Challenges): 1fr / 1fr — equal split, both labels visible.
+  //  - 3 tabs: active = 2fr, inactive = 1fr — collapses inactive labels to
+  //    just the icon to fit Challenges + Habits + Quests on mobile.
   // Animated via CSS transition on grid-template-columns.
-  const gridTemplateColumns = tabs.map((tab) => (tab === activeQTab ? "2fr" : "1fr")).join(" ");
+  const isEqualLayout = tabs.length <= 2;
+  const gridTemplateColumns = isEqualLayout
+    ? tabs.map(() => "1fr").join(" ")
+    : tabs.map((tab) => (tab === activeQTab ? "2fr" : "1fr")).join(" ");
 
   return (
     <div className={`relative ${compact ? "" : "lg:col-span-2"}`}>
@@ -464,7 +470,7 @@ function QuestBoard({
           smoothly between states. */}
       {tabs.length > 1 && (
         <div
-          className="qb-tab-bar qb-tab-bar-expand mb-4"
+          className={`qb-tab-bar qb-tab-bar-expand mb-4${isEqualLayout ? " qb-tab-bar-equal" : ""}`}
           style={{ gridTemplateColumns }}
         >
           {hasPinned && (

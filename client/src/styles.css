@@ -1656,12 +1656,17 @@ body[data-theme="light"] .delete-profile-confirm-cancel {
 .qb-tab-active{color:#f8fafc}
 .qb-tab-count{opacity:.5;font-variant-numeric:tabular-nums;font-size:.62rem}
 
-/* Dashboard variant — expanding-active grid with button-as-pill. */
+/* Dashboard variant — expanding-active grid with button-as-pill.
+   overflow:visible so the absolute "NEW" badge on the Daily tab can
+   sit outside the button bounds without being clipped. The label
+   itself owns the overflow:hidden + max-width collapse animation. */
 .qb-tab-bar-expand{display:grid;gap:.15rem;padding:.15rem;transition:grid-template-columns .36s cubic-bezier(.22,1,.36,1);align-items:stretch;min-height:2.6rem}
-.qb-tab-bar-expand .qb-tab-btn{border:1.5px solid transparent;padding:.35rem .5rem;gap:.3rem;transition:color .25s,background .24s,border-color .24s,box-shadow .24s;min-width:0;overflow:hidden}
+.qb-tab-bar-expand .qb-tab-btn{border:1.5px solid transparent;padding:.35rem .5rem;gap:.3rem;transition:color .25s,background .24s,border-color .24s,box-shadow .24s;min-width:0;overflow:visible}
 .qb-tab-bar-expand .qb-tab-icon{font-size:.95rem;line-height:1;flex-shrink:0}
-.qb-tab-bar-expand .qb-tab-label{max-width:0;opacity:0;overflow:hidden;transition:max-width .34s cubic-bezier(.22,1,.36,1),opacity .22s ease-out;margin:0}
+.qb-tab-bar-expand .qb-tab-label{max-width:0;opacity:0;overflow:hidden;white-space:nowrap;transition:max-width .34s cubic-bezier(.22,1,.36,1),opacity .22s ease-out;margin:0}
 .qb-tab-bar-expand .qb-tab-active .qb-tab-label{max-width:140px;opacity:1}
+/* 2-tab equal layout — always show both labels (no expand/collapse). */
+.qb-tab-bar-expand.qb-tab-bar-equal .qb-tab-label{max-width:140px;opacity:1}
 .qb-tab-bar-expand .qb-tab-count{flex-shrink:0}
 .qb-tab-bar-expand .qb-tab-active{background:#6366f173;border-color:#818cf899;box-shadow:0 4px 12px #6366f14d}
 /* Challenges tab gets a gold hue to signal it's outside the daily-
