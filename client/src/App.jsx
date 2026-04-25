@@ -194,6 +194,12 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const [achievementModalOpen, setAchievementModalOpen] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
+  // Bumping this key forces AchievementsSection to refetch even if it's
+  // already mounted and expanded. Driven by events that may unlock new
+  // achievements server-side without going through a full game-state
+  // refresh — e.g. quiz pass (scholar), language change (polyglot).
+  const [achievementsRefreshKey, setAchievementsRefreshKey] = useState(0);
+  const bumpAchievements = () => setAchievementsRefreshKey((v) => v + 1);
   const [questCompletePopup, setQuestCompletePopup] = useState(null);
   const [deleteProfileOpen, setDeleteProfileOpen] = useState(false);
   // These are also referenced in the mobile-shell-state useEffect dependency
@@ -1517,8 +1523,17 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     setLanguageId(id);
     setShowLanguagePicker(false);
     // Persist language on the server so the `polyglot` achievement can
-    // unlock and the preference survives across devices.
-    if (authUser?.uid) updatePreferredLanguage(authUser.uid, id).catch(() => {});
+    // unlock and the preference survives across devices. The server
+    // awaits trackAchievements before responding, so by the time the
+    // promise resolves any newly-eligible row is already in the DB —
+    // bumping the refresh key triggers a fresh fetch in
+    // AchievementsSection so the polyglot trophy appears immediately
+    // (no app restart required).
+    if (authUser?.uid) {
+      updatePreferredLanguage(authUser.uid, id)
+        .then(() => bumpAchievements())
+        .catch(() => {});
+    }
   }
 
   function handlePortraitUpload(event) {
@@ -1956,16 +1971,13 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           open={showQuiz}
           username={authUser?.uid}
           onClose={() => setShowQuiz(false)}
-          onPassed={({ tokensGranted, justUnlocked }) => {
-            // Mirror the server-side grant locally so the Profile token
-            // count refreshes without waiting for the next game-state
-            // refetch. Achievements card re-fetches its list on next
-            // open via its existing `username` dep.
-            if (justUnlocked && Number(tokensGranted) > 0) {
-              setState((prev) => ({
-                ...prev,
-                tokens: (Number(prev.tokens) || 0) + Number(tokensGranted)
-              }));
+          onPassed={({ justUnlocked }) => {
+            // Quiz no longer auto-credits tokens — scholar's reward
+            // flows through the unified achievement claim flow. Just
+            // bump the refresh key so AchievementsSection picks up the
+            // freshly-unlocked row and the user can claim from there.
+            if (justUnlocked) {
+              bumpAchievements();
             }
           }}
         />
@@ -2370,6 +2382,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 onOpenAbout={() => setShowAbout(true)}
                 onOpenQuiz={() => setShowQuiz(true)}
                 onOpenNotesHistory={() => setShowNotesHistory(true)}
+                achievementsRefreshKey={achievementsRefreshKey}
                 onAchievementTokensClaimed={(amount) => {
                   // Mirror the server-side token grant locally so the
                   // Profile balance updates instantly without waiting

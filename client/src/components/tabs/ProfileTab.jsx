@@ -49,6 +49,7 @@ export default function ProfileTab({
   onDeleteConfirmStateChange,
   onAchievementModalChange,
   onAchievementTokensClaimed,
+  achievementsRefreshKey,
   onRestartTour
 }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -254,6 +255,7 @@ export default function ProfileTab({
           languageId={languageId}
           onModalOpenChange={onAchievementModalChange}
           onTokensClaimed={onAchievementTokensClaimed}
+          refreshKey={achievementsRefreshKey}
         />
       </div>
 

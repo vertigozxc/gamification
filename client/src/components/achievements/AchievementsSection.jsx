@@ -89,7 +89,7 @@ function formatDate(value, languageId) {
   }
 }
 
-export default function AchievementsSection({ username, t, languageId, onModalOpenChange, prefetched, onTokensClaimed }) {
+export default function AchievementsSection({ username, t, languageId, onModalOpenChange, prefetched, onTokensClaimed, refreshKey = 0 }) {
   const [data, setData] = useState(prefetched || null);
   const [loading, setLoading] = useState(!prefetched);
   const [focused, setFocused] = useState(null);
@@ -121,16 +121,22 @@ export default function AchievementsSection({ username, t, languageId, onModalOp
   }, [username]);
 
   useEffect(() => {
-    // If data was prefetched upstream (e.g. ProfileScreen holds the load
-    // until both profile + achievements resolve), skip the internal fetch
-    // and just mirror the incoming value on change.
+    // If data was prefetched upstream (e.g. ProfileScreen holds the
+    // load until both profile + achievements resolve), skip the
+    // internal fetch and just mirror the incoming value on change.
     if (prefetched) {
       setData(prefetched);
       setLoading(false);
       return;
     }
+    // Otherwise refetch on every dep change: mount, expand/collapse,
+    // and any refreshKey bump (quiz pass, language change, etc.).
+    // The endpoint is small and the server already runs
+    // evaluateAchievements on each call, so a slightly chatty client
+    // here means newly-unlocked achievements appear in real time
+    // without app restart.
     load();
-  }, [load, prefetched]);
+  }, [load, prefetched, expanded, refreshKey]);
 
   // Fetch stats on first popup open (or when expanded). The /achievements/stats
   // endpoint is cached server-side for 10 minutes so this is cheap, but we
