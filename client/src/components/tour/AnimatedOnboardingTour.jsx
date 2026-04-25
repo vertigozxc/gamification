@@ -5,10 +5,11 @@ import { useTheme } from "../../ThemeContext";
 const TYPE_MS_PER_CHAR = 22;      // typewriter speed
 const TYPE_PUNCT_PAUSE_MS = 90;   // extra pause after . ! ? ,
 const MASK_PAD = 8;               // spotlight padding around target
+const MASK_RADIUS = 14;           // rounded-rect cutout corner radius
 const BUBBLE_MARGIN = 14;         // gap between spotlight and bubble
 const DEFAULT_BUBBLE_HEIGHT = 220; // fallback until the real one is measured
-const POSITION_POLL_MS = 320;     // fallback re-measure interval (keyboards, animations)
 const SCROLL_DELAY_MS = 240;
+const RAF_SETTLE_FRAMES = 24;     // re-measure for first ~400ms after step transition
 
 // ── utilities ─────────────────────────────────────────────────────────
 function readSafeAreaTop() {
@@ -50,6 +51,36 @@ function getTargetRect(selector) {
   } catch {
     return null;
   }
+}
+
+// Build an SVG <path d=…> string with two subpaths: an outer rect that
+// covers the entire viewport and an inner rounded-rect "hole" around the
+// spotlight target. Combined with fill-rule="evenodd" this paints the
+// dim everywhere EXCEPT inside the hole — a single, gap-free overlay
+// that replaces the old 4-curtain strip layout (which left subpixel
+// seams at corners and let pointer events leak through them).
+function buildSpotlightPath(vw, vh, hole) {
+  const radius = Math.max(0, Math.min(MASK_RADIUS, hole.width / 2, hole.height / 2));
+  const x1 = hole.left;
+  const y1 = hole.top;
+  const x2 = hole.left + hole.width;
+  const y2 = hole.top + hole.height;
+  // Outer rect (clockwise) + inner rounded rect (counter-clockwise),
+  // joined into one path string. With fill-rule:evenodd the inner area
+  // is treated as outside, leaving a transparent hole.
+  return [
+    `M0,0`, `H${vw}`, `V${vh}`, `H0`, `Z`,
+    `M${x1 + radius},${y1}`,
+    `H${x2 - radius}`,
+    `Q${x2},${y1} ${x2},${y1 + radius}`,
+    `V${y2 - radius}`,
+    `Q${x2},${y2} ${x2 - radius},${y2}`,
+    `H${x1 + radius}`,
+    `Q${x1},${y2} ${x1},${y2 - radius}`,
+    `V${y1 + radius}`,
+    `Q${x1},${y1} ${x1 + radius},${y1}`,
+    `Z`
+  ].join(" ");
 }
 
 // ── typewriter hook ───────────────────────────────────────────────────
@@ -286,27 +317,89 @@ export default function AnimatedOnboardingTour({
     }
   }, [open, step]);
 
-  // Re-measure target rect every animation frame for a few cycles after
-  // a step transition (layout settles after scroll/animation), then fall
-  // back to a cheap poll.
+  // Track the target rect via real DOM observers — no polling. The old
+  // implementation re-measured on a 320 ms setInterval which produced
+  // visible jitter when the target sat inside an animated container
+  // (the spotlight visibly "stepped" between measurements). Now:
+  //   • a short RAF burst right after the step transition catches the
+  //     final position once scroll/animation/layout has settled, and
+  //   • a ResizeObserver on the target element + its closest ancestors
+  //     fires synchronously the moment its rect actually changes — no
+  //     fixed interval, no idle work, zero jitter when nothing moves.
+  // A scoped MutationObserver on the target's parent picks up the case
+  // where the target itself is removed and re-inserted (e.g. tab swap).
   useEffect(() => {
-    if (!open || !step || step.kind === "center") return undefined;
-    let raf;
-    let polled = 0;
+    if (!open || !step || step.kind === "center" || step.kind === "tab-switch") return undefined;
+    const selector = step.target;
+    if (!selector) return undefined;
+
+    let raf = null;
+    let frames = 0;
+    let cancelled = false;
+    let ro = null;
+    let mo = null;
+    let attachRaf = null;
+    let attachTries = 0;
+
+    const refresh = () => setRectTick((n) => n + 1);
+
+    // RAF burst — covers the first ~400 ms while scroll-into-view and
+    // CSS transitions on neighbouring cards are still settling.
     const kick = () => {
-      setRectTick((n) => n + 1);
-      polled += 1;
-      if (polled < 12) {
+      if (cancelled) return;
+      refresh();
+      frames += 1;
+      if (frames < RAF_SETTLE_FRAMES) {
         raf = requestAnimationFrame(kick);
       }
     };
     raf = requestAnimationFrame(kick);
-    const poll = setInterval(() => setRectTick((n) => n + 1), POSITION_POLL_MS);
-    const onScroll = () => setRectTick((n) => n + 1);
+
+    // Attach ResizeObserver / MutationObserver as soon as the target is
+    // in the DOM. Some steps run inside a Suspense boundary so the
+    // element may not be there on the very first frame — retry on RAF
+    // up to ~1 s before giving up.
+    const attach = () => {
+      if (cancelled) return;
+      let el = null;
+      try { el = document.querySelector(selector); } catch { /* invalid selector */ }
+      if (!el) {
+        attachTries += 1;
+        if (attachTries < 60) {
+          attachRaf = requestAnimationFrame(attach);
+        }
+        return;
+      }
+      if (typeof ResizeObserver === "function") {
+        ro = new ResizeObserver(() => {
+          if (!cancelled) refresh();
+        });
+        ro.observe(el);
+        // Watch a few ancestors too — they catch reflows triggered by
+        // sibling content (e.g. the quest list growing).
+        let parent = el.parentElement;
+        for (let i = 0; i < 3 && parent; i += 1) {
+          ro.observe(parent);
+          parent = parent.parentElement;
+        }
+      }
+      if (typeof MutationObserver === "function") {
+        const root = el.parentElement || document.body;
+        mo = new MutationObserver(() => { if (!cancelled) refresh(); });
+        mo.observe(root, { childList: true, subtree: false });
+      }
+    };
+    attach();
+
+    const onScroll = () => refresh();
     window.addEventListener("scroll", onScroll, true);
+
     return () => {
+      cancelled = true;
       if (raf) cancelAnimationFrame(raf);
-      clearInterval(poll);
+      if (attachRaf) cancelAnimationFrame(attachRaf);
+      if (ro) { try { ro.disconnect(); } catch { /* noop */ } }
+      if (mo) { try { mo.disconnect(); } catch { /* noop */ } }
       window.removeEventListener("scroll", onScroll, true);
     };
   }, [open, step]);
@@ -508,23 +601,28 @@ export default function AnimatedOnboardingTour({
   const rawPct = finaleOpen ? 100 : Math.round((trackableIndex / divisor) * 100);
   const pct = Math.max(0, Math.min(100, rawPct));
   const maskRect = layout?.kind === "spotlight" ? layout.rect : null;
-  const curtains = maskRect
+
+  // Build the spotlight cutout rect (target rect + safety padding,
+  // clamped inside the viewport). The same rect feeds both the SVG
+  // overlay path and the visible glow ring.
+  const cutout = maskRect
     ? {
-        top: { top: 0, left: 0, right: 0, height: Math.max(0, maskRect.top - MASK_PAD) },
-        bottom: { bottom: 0, left: 0, right: 0, top: Math.min(viewport.h, maskRect.bottom + MASK_PAD) },
-        left: { top: Math.max(0, maskRect.top - MASK_PAD), left: 0, width: Math.max(0, maskRect.left - MASK_PAD), height: Math.max(0, maskRect.height + 2 * MASK_PAD) },
-        right: { top: Math.max(0, maskRect.top - MASK_PAD), right: 0, left: Math.min(viewport.w, maskRect.right + MASK_PAD), height: Math.max(0, maskRect.height + 2 * MASK_PAD) }
+        left: Math.max(0, Math.round(maskRect.left - MASK_PAD)),
+        top: Math.max(0, Math.round(maskRect.top - MASK_PAD)),
+        width: Math.max(0, Math.min(viewport.w, Math.round(maskRect.width + 2 * MASK_PAD))),
+        height: Math.max(0, Math.min(viewport.h, Math.round(maskRect.height + 2 * MASK_PAD)))
       }
     : null;
 
-  const highlight = maskRect
-    ? {
-        top: Math.round(maskRect.top - MASK_PAD),
-        left: Math.round(maskRect.left - MASK_PAD),
-        width: Math.round(maskRect.width + 2 * MASK_PAD),
-        height: Math.round(maskRect.height + 2 * MASK_PAD)
-      }
+  // Single SVG path covering the full viewport with the cutout punched
+  // out via fill-rule: evenodd. Replaces the old 4-div curtain strip
+  // (top / bottom / left / right) which left subpixel seams at the
+  // corners of the spotlight and let pointer events leak through them.
+  const spotlightPathD = cutout
+    ? buildSpotlightPath(viewport.w, viewport.h, cutout)
     : null;
+
+  const highlight = cutout; // same rect — keeps the existing CSS happy
 
   const canAdvanceNow =
     step.gate === "tap"
@@ -542,21 +640,31 @@ export default function AnimatedOnboardingTour({
 
   return (
     <div className={`tour-root ${finaleOpen ? "tour-root--finale" : ""}`} aria-live="polite">
-      {/* curtains (dim). Welcome / center / tab-switch / missing all
-          use one full-screen curtain; spotlight steps use the 4-curtain
-          cutout so the target stays clickable. */}
+      {/* Dim layer.
+          • Welcome / center / tab-switch / missing → solid full-screen dim.
+          • Spotlight steps → single SVG with a rounded-rect cutout.
+          The SVG approach is gap-free (the old 4-div strip left subpixel
+          seams) and pointer-events:visiblePainted on the path means
+          clicks land on the dim ONLY where it's painted — the cutout
+          area passes events straight through to the spotlit element. */}
       {isWelcome || layout?.kind === "center" || layout?.kind === "missing" || layout?.kind === "tab-switch" ? (
         <div className="tour-curtain tour-curtain-full" onPointerDown={(e) => e.stopPropagation()} />
-      ) : curtains ? (
-        <>
-          <div className="tour-curtain" style={{ position: "fixed", ...curtains.top }} />
-          <div className="tour-curtain" style={{ position: "fixed", ...curtains.bottom }} />
-          <div className="tour-curtain" style={{ position: "fixed", ...curtains.left }} />
-          <div className="tour-curtain" style={{ position: "fixed", ...curtains.right }} />
-        </>
+      ) : spotlightPathD ? (
+        <svg
+          className="tour-mask-svg"
+          width={viewport.w}
+          height={viewport.h}
+          viewBox={`0 0 ${viewport.w} ${viewport.h}`}
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path d={spotlightPathD} fillRule="evenodd" />
+        </svg>
       ) : null}
 
-      {/* highlight ring — spotlight steps only */}
+      {/* Glowing highlight ring on top of the SVG cutout — purely
+          decorative, no pointer events. Re-uses the existing
+          .tour-highlight pulse animation. */}
       {!isWelcome && highlight ? (
         <div
           className="tour-highlight"
@@ -569,6 +677,33 @@ export default function AnimatedOnboardingTour({
           }}
         />
       ) : null}
+
+      {/* Pulsing glow ring at the bottom edge of the WebView for
+          tab-switch steps. The native iOS tab bar lives BELOW the
+          WebView (outside the DOM), so we can't truly highlight a
+          tab button — instead we draw a prominent ring at the
+          calculated tab x-position right above the safe area, with
+          the existing bubble's down-arrow pointing at it. */}
+      {layout?.kind === "tab-switch" ? (() => {
+        const TAB_ORDER = ["city", "leaderboard", "dashboard", "store", "profile"];
+        const idx = TAB_ORDER.indexOf(step.tabAnchor);
+        if (idx < 0) return null;
+        const tabCenterX = ((idx + 0.5) * viewport.w) / TAB_ORDER.length;
+        const RING = 88;
+        return (
+          <div
+            className="tour-tab-glow"
+            aria-hidden="true"
+            style={{
+              position: "fixed",
+              left: Math.round(tabCenterX - RING / 2),
+              bottom: Math.max(0, safeBottom - 6),
+              width: RING,
+              height: RING
+            }}
+          />
+        );
+      })() : null}
 
       {/* Top progress strip removed per design — progress now lives
           inside the bubble (see below) and inside the welcome card. */}

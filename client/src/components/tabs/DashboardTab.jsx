@@ -134,7 +134,7 @@ export default function DashboardTab({
       </div>
 
       {/* Daily Board Section */}
-      <div className="mobile-card flex flex-col gap-4" style={{ background: "var(--panel-bg)" }}>
+      <div data-tour="daily-board" className="mobile-card flex flex-col gap-4" style={{ background: "var(--panel-bg)" }}>
         <div className="flex flex-col shrink-0">
           <div className="flex items-center justify-between mb-2 px-1">
             <span className="cinzel text-[11px] font-bold tracking-[0.15em] uppercase drop-shadow-sm flex items-center gap-1.5" style={{ color: "var(--color-primary)" }}>

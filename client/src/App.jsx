@@ -534,13 +534,19 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     });
     list.push({
       id: "daily-board",
-      // Spotlight the actual "DAILY BOARD X/Y" segmented progress panel
-      // (above the quest list), not the quest list itself.
-      target: '[data-tour="daily-board-panel"]',
+      // Spotlight the actual "DAILY BOARD X/Y" segmented progress card on
+      // the Dashboard (above the quest list), NOT the quest list itself.
+      // The previous target (`daily-board-panel`) was a desktop-only
+      // element living in ProfilePanel.jsx — never rendered on the mobile
+      // shell, so the tour fell back to a "missing" state and the user
+      // could keep tapping the quest list. The mobile Daily Board card is
+      // in DashboardTab.jsx and carries `data-tour="daily-board"`.
+      target: '[data-tour="daily-board"]',
       title: t.tourDailyBoardTitle || "Full board = bonus",
       text: t.tourDailyBoardText || "Close the whole board and your streak grows — plus extra tokens.",
       gate: "next",
-      scroll: true
+      scroll: true,
+      scrollBlock: "center"
     });
     // CITY: user taps the City tab themselves → tour highlights districts etc
     list.push({

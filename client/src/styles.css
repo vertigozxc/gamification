@@ -2306,6 +2306,27 @@ body[data-theme="balance"] .tour-curtain { background: rgba(4, 22, 14, 0.74); }
     inset: 0;
 }
 
+/* SVG-based spotlight overlay. One element, fills the viewport, with a
+   rounded-rect cutout punched out via fill-rule:evenodd. Replaces the
+   old 4-div curtain strip — no subpixel seams at the cutout corners,
+   and pointer-events:visiblePainted means clicks on the cutout pass
+   straight through to the spotlit element while the dim area still
+   blocks every other tap. */
+.tour-mask-svg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+.tour-mask-svg path {
+    fill: rgba(7, 12, 24, 0.74);
+    pointer-events: visiblePainted;
+}
+body[data-theme="light"] .tour-mask-svg path { fill: rgba(30, 41, 59, 0.58); }
+body[data-theme="balance"] .tour-mask-svg path { fill: rgba(4, 22, 14, 0.74); }
+
 .tour-highlight {
     pointer-events: none;
     border-radius: 14px;
@@ -2730,6 +2751,45 @@ body[data-theme="light"] .tour-welcome-start { color: #f8fafc; }
 @keyframes tour-arrow-bounce {
     0%, 100% { transform: translateY(0); opacity: 0.85; }
     50%      { transform: translateY(12px); opacity: 1; }
+}
+
+/* Pulsing glow ring at the bottom edge of the WebView for tab-switch
+   steps. The native iOS tab bar lives outside the WebView, so we
+   can't truly highlight a tab button — this ring is the next best
+   thing: a strong visual anchor right above the safe-area inset, at
+   the calculated x-position of the target tab. The bubble's down-
+   arrow points at it. Themed via --color-primary so it follows the
+   active interface theme (amber / green / pink). */
+.tour-tab-glow {
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(
+        circle at center,
+        color-mix(in srgb, var(--color-primary) 35%, transparent) 0%,
+        color-mix(in srgb, var(--color-primary) 18%, transparent) 45%,
+        transparent 72%
+    );
+    box-shadow:
+        0 0 0 2px color-mix(in srgb, var(--color-primary) 80%, transparent),
+        0 0 0 8px color-mix(in srgb, var(--color-primary) 22%, transparent),
+        0 0 36px 6px color-mix(in srgb, var(--color-primary) 55%, transparent);
+    animation: tour-tab-glow-pulse 1400ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes tour-tab-glow-pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow:
+            0 0 0 2px color-mix(in srgb, var(--color-primary) 75%, transparent),
+            0 0 0 6px color-mix(in srgb, var(--color-primary) 18%, transparent),
+            0 0 30px 4px color-mix(in srgb, var(--color-primary) 45%, transparent);
+    }
+    50% {
+        transform: scale(1.12);
+        box-shadow:
+            0 0 0 2px color-mix(in srgb, var(--color-primary) 95%, transparent),
+            0 0 0 12px color-mix(in srgb, var(--color-primary) 12%, transparent),
+            0 0 48px 10px color-mix(in srgb, var(--color-primary) 65%, transparent);
+    }
 }
 
 /* Onboarding habits segmented slide bar — Presets ↔ Custom. */
