@@ -922,23 +922,30 @@ export default function AnimatedOnboardingTour({
         </div>
       ) : null}
 
-      {/* skip confirm */}
+      {/* skip confirm — matches the project-wide logout-confirm popup
+          chrome (gradient card, blurred overlay, centred icon + title +
+          message + two-button actions). */}
       {askSkipConfirm ? (
-        <div className="tour-skip-confirm" onClick={() => setAskSkipConfirm(false)}>
-          <div className="tour-skip-card" onClick={(e) => e.stopPropagation()}>
-            <h4 className="cinzel">{t.tourSkipConfirmTitle || "Skip the tour?"}</h4>
-            <p>{t.tourSkipConfirmText || "You'll miss the +1 level bonus. You can restart the tour later in Profile → Settings."}</p>
-            <div className="tour-skip-buttons">
+        <div className="logout-confirm-overlay" onClick={() => setAskSkipConfirm(false)} style={{ zIndex: 10010 }}>
+          <div className="logout-confirm-card" onClick={(e) => e.stopPropagation()}>
+            <div className="logout-confirm-icon" aria-hidden>🚪</div>
+            <h2 className="cinzel logout-confirm-title">
+              {t.tourSkipConfirmTitle || "Skip the tour?"}
+            </h2>
+            <p className="logout-confirm-msg">
+              {t.tourSkipConfirmText || "You'll miss the +1 level bonus."}
+            </p>
+            <div className="logout-confirm-actions">
               <button
                 type="button"
-                className="tour-skip-cancel mobile-pressable cinzel"
+                className="logout-confirm-cancel mobile-pressable cinzel"
                 onClick={() => setAskSkipConfirm(false)}
               >
                 {t.tourSkipConfirmBack || "Keep going"}
               </button>
               <button
                 type="button"
-                className="tour-skip-confirm-cta mobile-pressable cinzel"
+                className="logout-confirm-proceed mobile-pressable cinzel"
                 onClick={() => {
                   setAskSkipConfirm(false);
                   if (typeof onSkip === "function") onSkip();

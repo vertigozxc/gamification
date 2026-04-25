@@ -2922,74 +2922,11 @@ body[data-theme="light"] .tour-finale-cta { color: #f8fafc; }
     100% { transform: translateY(100vh) rotate(540deg); opacity: 0; }
 }
 
-/* ── Skip confirm dialog ───────────────────────────────────────── */
-.tour-skip-confirm {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(2, 6, 12, 0.72);
-    z-index: 200;
-    padding: 20px;
-    animation: tour-fade-in 180ms ease;
-}
-.tour-skip-card {
-    max-width: 340px;
-    width: 100%;
-    padding: 20px 20px 16px;
-    border-radius: 18px;
-    background: var(--panel-bg);
-    border: 1px solid color-mix(in srgb, var(--color-muted) 40%, var(--panel-border));
-    color: var(--color-text);
-    text-align: center;
-}
-.tour-skip-card h4 {
-    margin: 0 0 8px;
-    font-size: 17px;
-    color: var(--color-primary);
-    letter-spacing: 0.03em;
-}
-.tour-skip-card p {
-    margin: 0 0 16px;
-    font-size: 13px;
-    line-height: 1.5;
-    color: var(--color-text);
-    opacity: 0.82;
-}
-.tour-skip-buttons {
-    display: flex;
-    gap: 10px;
-}
-.tour-skip-cancel,
-.tour-skip-confirm-cta {
-    flex: 1;
-    min-height: 42px;
-    border-radius: 12px;
-    font-size: 12.5px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    cursor: pointer;
-    font-family: var(--font-heading);
-}
-.tour-skip-cancel {
-    background: transparent;
-    color: var(--color-text);
-    border: 1px solid color-mix(in srgb, var(--color-muted) 40%, var(--panel-border));
-}
-.tour-skip-cancel:active:not(:disabled) {
-    background: color-mix(in srgb, var(--color-primary) 12%, transparent);
-}
-.tour-skip-confirm-cta {
-    border: none;
-    background: color-mix(in srgb, #ef4444 70%, var(--panel-bg));
-    color: #fff;
-}
-.tour-skip-confirm-cta:active:not(:disabled) {
-    background: color-mix(in srgb, #ef4444 90%, var(--panel-bg));
-    transform: scale(0.97);
-}
+/* Skip-the-tour confirm dialog reuses the standard .logout-confirm-*
+   chrome (overlay + gradient card + red destructive CTA) so it reads
+   the same as every other confirm in the app. No bespoke styles
+   here — kept this slot for future tour-only overrides if we need
+   any. */
 
 /* Streak-burned notice — shown once after the daily streak resets to 0.
    Appearance is deliberately quiet: muted icon, no alarming red, primary

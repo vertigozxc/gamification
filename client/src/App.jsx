@@ -368,7 +368,14 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   // apply the returned user state so the badge updates instantly, then
   // close the tour.
   const finalizeTour = async ({ awardLevel }) => {
+    // Hard tear-down: drop the tour open flag AND every piece of
+    // tour-only state in the same tick. Without these resets a
+    // mid-tour Skip could leave forcedHabitsTab pinning the habit
+    // tab or tourStepId blocking lockBegin checks elsewhere — the
+    // result on screen is "looks closed but some UI is still inert".
     setShowTour(false);
+    setForcedHabitsTab(null);
+    setTourStepId(null);
     // Land the user on the dashboard after the tour completes, no
     // matter which tab the last step ended on.
     startTransition(() => setMobileTab("dashboard"));
@@ -487,7 +494,10 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     list.push({
       id: "habits-browse",
       hidden: hideSetup,
-      target: '[data-tour="habits-picker"]',
+      // Anchor the bubble at the segmented Presets/Custom slide-bar
+      // (a tighter target than the full habits-picker) so the arrow
+      // visibly points down at the tabs the user should care about.
+      target: '[data-tour="habits-tabs"]',
       title: t.tourHabitsBrowseTitle || "Pick your habits",
       text: t.tourHabitsBrowseText || "Choose 2 habits you want to build daily. Filter by category, search, or open the Custom tab to add your own.",
       // Manual Next: the user picks 2 habits, the Next button on the
@@ -500,14 +510,13 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       autoAdvance: false,
       hideNext: false,
       onEnter: () => { setWizardStep(1); setForcedHabitsTab("presets"); },
-      // Pin the bubble at the bottom edge of the WebView, JUST ABOVE
-      // the (locked-but-visible) tab bar. The bubble useMemo reads
-      // --mobile-footer-offset so the bottom-reserved space includes
-      // the tab bar height — without that fix the bubble would slide
-      // under the tab bar and lose its bottom 60-ish pixels.
-      bubblePlacement: "bottom",
-      fillBottom: true,
-      scroll: false
+      // Bubble sits ABOVE the tabs and the arrow points down at them
+      // (Presets / Custom). Scrolling the slide-bar to top makes sure
+      // the bubble has room above it and the user immediately sees
+      // the tabs — no need to chase them with a finger.
+      bubblePlacement: "top",
+      scroll: true,
+      scrollBlock: "start"
     });
     list.push({
       id: "setup-begin",

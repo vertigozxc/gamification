@@ -71,7 +71,7 @@ function OnboardingModal({
   // on-screen when the tour stops on them. Null = user controls.
   forcedHabitsTab = null
 }) {
-  const TOTAL_STEPS = 3;
+  const TOTAL_STEPS = 2;
   const setStep = (n) => {
     const clamped = Math.max(0, Math.min(TOTAL_STEPS - 1, n));
     if (typeof onWizardStepChange === "function") onWizardStepChange(clamped);
@@ -332,16 +332,12 @@ function OnboardingModal({
   // allowed through — the server revalidates on the mutation call.
   const handleBlocksSubmit = handleStatus === "taken" || handleStatus === "invalid" || handleStatus === "short";
   const primaryDisabled = onboardingSaving || !onboardingName.trim() || !selectionComplete || handleBlocksSubmit || lockBegin;
-  // Wizard page 0 → 1 gate: nickname filled and handle isn't failing.
-  // "checking" is allowed through so typing the handle doesn't block
-  // forward progress on a slow network.
-  const canAdvanceFromStep0 = Boolean(onboardingName.trim()) && !handleBlocksSubmit && !onboardingSaving;
-  // Wizard page 1 → 2 gate: empty input = ok (user is skipping the
-  // code), otherwise the lookup must have succeeded ("found"). Hard
-  // failures block forward motion. "checking" / "network_error" pass
-  // through — server revalidates on redeem.
+  // Wizard page 0 → 1 gate: nickname filled, handle isn't failing,
+  // and the optional referral code (if any) didn't fail server lookup.
+  // "checking" / "network_error" pass through — server revalidates on
+  // redeem after onboarding completes.
   const referralBlocksAdvance = ["not_found", "invalid", "too_short", "too_long", "blocked", "self", "already_redeemed"].includes(referralStatus);
-  const canAdvanceFromStep1 = !referralBlocksAdvance && !onboardingSaving;
+  const canAdvanceFromStep0 = Boolean(onboardingName.trim()) && !handleBlocksSubmit && !referralBlocksAdvance && !onboardingSaving;
   const progressPct = Math.min(100, Math.round((selectedCount / SELECTION_LIMIT) * 100));
   const normalizedHandle = normalizeHandleLocal(handleInput);
   const normalizedReferralCode = normalizeReferralLocal(referralCode);
@@ -459,19 +455,16 @@ function OnboardingModal({
           <div
             style={{
               display: "flex",
-              width: "300%",
+              width: "200%",
               height: "100%",
-              // 100% / 3 steps = 33.3333…% per step. Tiny rounding
-              // difference vs (-wizardStep * 100/3) is below visible
-              // threshold.
-              transform: `translateX(-${(wizardStep * 100) / 3}%)`,
+              transform: `translateX(-${wizardStep * 50}%)`,
               transition: "transform 320ms cubic-bezier(0.4, 0, 0.2, 1)"
             }}
           >
           <section
             aria-hidden={wizardStep !== 0}
             style={{
-              width: "33.3333%",
+              width: "50%",
               height: "100%",
               overflowY: "auto",
               WebkitOverflowScrolling: "touch",
@@ -569,119 +562,89 @@ function OnboardingModal({
             {t.onboardingHandleHint || "Your username is publicly shown on your profile — friends can find you by it. It's your unique identifier."}
           </p>
           </div>
+
+          {/* Referral code (optional) — sits on the same wizard page
+              as Name + @handle so the user fills everything in one
+              pass. Empty by default; leaving it blank just skips the
+              redeem step. Both sides get +50 tokens when the new
+              user reaches level 5. */}
+          <div data-tour="setup-referral" style={{ marginTop: 14 }}>
+            <label
+              className="cinzel"
+              style={{
+                display: "block",
+                marginBottom: 6,
+                fontSize: 11,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "var(--color-primary)"
+              }}
+            >
+              {t.referralStepInputLabel}
+            </label>
+            <InputWithClear
+              value={referralCode}
+              onChange={(next) => {
+                if (typeof onReferralCodeChange === "function") {
+                  onReferralCodeChange(normalizeReferralLocal(next));
+                }
+              }}
+              maxLength={REFERRAL_MAX_LENGTH}
+              placeholder={t.referralStepInputPlaceholder || "IVAN2026"}
+              clearAriaLabel={t.clearLabel || "Clear"}
+              inputStyle={{
+                padding: "9px 12px",
+                borderRadius: 10,
+                background: "rgba(0,0,0,0.35)",
+                border: "1px solid var(--card-border-idle)",
+                color: "#e2e8f0",
+                fontSize: 14,
+                minHeight: 38,
+                outline: "none",
+                fontFamily: "var(--font-heading)",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase"
+              }}
+            />
+            {(() => {
+              // Map current status → message + colour. Empty input
+              // shows nothing (skip is implicit).
+              const map = {
+                idle: { text: "", color: "var(--color-muted)" },
+                checking: { text: t.referralsCreateChecking || "Checking…", color: "var(--color-muted)" },
+                found: {
+                  text: referralOwnerHandle
+                    ? tf("referralStepHintFound", { handle: referralOwnerHandle })
+                    : (t.referralStepHintFoundNoHandle || "Code is valid"),
+                  color: "var(--color-accent)"
+                },
+                not_found: { text: t.referralStepHintNotFound, color: "#fca5a5" },
+                invalid: { text: t.referralStepHintInvalid, color: "#fca5a5" },
+                too_short: { text: t.referralStepHintTooShort, color: "#fca5a5" },
+                too_long: { text: t.referralStepHintTooLong, color: "#fca5a5" },
+                blocked: { text: t.referralStepHintBlocked, color: "#fca5a5" },
+                self: { text: t.referralStepHintSelf, color: "#fca5a5" },
+                already_redeemed: { text: t.referralStepHintAlreadyRedeemed, color: "#fca5a5" },
+                network_error: { text: "", color: "var(--color-muted)" }
+              };
+              const hint = map[referralStatus] || map.idle;
+              if (!hint.text) return null;
+              return (
+                <p style={{ margin: "6px 2px 0", fontSize: 11, color: hint.color, lineHeight: 1.4 }}>
+                  {hint.text}
+                </p>
+              );
+            })()}
+            <p style={{ margin: "6px 2px 0", fontSize: 11, color: "var(--color-muted)", lineHeight: 1.45 }}>
+              {t.referralStepBody}
+            </p>
+          </div>
           </section>
 
-          {/* WIZARD STEP 1 — referral code (optional). The user can
-              redeem a friend's code here; both sides get +50 tokens
-              when the new user reaches level 5. Leaving it blank is
-              fine — the field is opt-in. */}
           <section
             aria-hidden={wizardStep !== 1}
             style={{
-              width: "33.3333%",
-              height: "100%",
-              overflowY: "auto",
-              WebkitOverflowScrolling: "touch",
-              padding: "12px 16px 16px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 14
-            }}
-          >
-            <div data-tour="setup-referral">
-              <h3
-                className="cinzel"
-                style={{
-                  margin: 0,
-                  fontSize: 16,
-                  fontWeight: 800,
-                  letterSpacing: "0.06em",
-                  color: "var(--color-primary)",
-                  textTransform: "uppercase",
-                  lineHeight: 1.25
-                }}
-              >
-                {t.referralStepTitle || "Referral code"}
-              </h3>
-              <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--color-muted)", lineHeight: 1.45 }}>
-                {t.referralStepBody}
-              </p>
-            </div>
-
-            <div>
-              <label
-                className="cinzel"
-                style={{
-                  display: "block",
-                  marginBottom: 6,
-                  fontSize: 11,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: "var(--color-primary)"
-                }}
-              >
-                {t.referralStepInputLabel}
-              </label>
-              <InputWithClear
-                value={referralCode}
-                onChange={(next) => {
-                  if (typeof onReferralCodeChange === "function") {
-                    onReferralCodeChange(normalizeReferralLocal(next));
-                  }
-                }}
-                maxLength={REFERRAL_MAX_LENGTH}
-                placeholder={t.referralStepInputPlaceholder || "IVAN2026"}
-                clearAriaLabel={t.clearLabel || "Clear"}
-                inputStyle={{
-                  padding: "9px 12px",
-                  borderRadius: 10,
-                  background: "rgba(0,0,0,0.35)",
-                  border: "1px solid var(--card-border-idle)",
-                  color: "#e2e8f0",
-                  fontSize: 14,
-                  minHeight: 38,
-                  outline: "none",
-                  fontFamily: "var(--font-heading)",
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase"
-                }}
-              />
-              {(() => {
-                // Map current status → message + colour. Empty input
-                // shows nothing (skip is the implicit default).
-                const map = {
-                  idle: { text: "", color: "var(--color-muted)" },
-                  checking: { text: t.referralsCreateChecking || "Checking…", color: "var(--color-muted)" },
-                  found: {
-                    text: referralOwnerHandle
-                      ? tf("referralStepHintFound", { handle: referralOwnerHandle })
-                      : (t.referralStepHintFoundNoHandle || "Code is valid"),
-                    color: "var(--color-accent)"
-                  },
-                  not_found: { text: t.referralStepHintNotFound, color: "#fca5a5" },
-                  invalid: { text: t.referralStepHintInvalid, color: "#fca5a5" },
-                  too_short: { text: t.referralStepHintTooShort, color: "#fca5a5" },
-                  too_long: { text: t.referralStepHintTooLong, color: "#fca5a5" },
-                  blocked: { text: t.referralStepHintBlocked, color: "#fca5a5" },
-                  self: { text: t.referralStepHintSelf, color: "#fca5a5" },
-                  already_redeemed: { text: t.referralStepHintAlreadyRedeemed, color: "#fca5a5" },
-                  network_error: { text: "", color: "var(--color-muted)" }
-                };
-                const hint = map[referralStatus] || map.idle;
-                if (!hint.text) return null;
-                return (
-                  <p style={{ margin: "6px 2px 0", fontSize: 11, color: hint.color, lineHeight: 1.4 }}>
-                    {hint.text}
-                  </p>
-                );
-              })()}
-            </div>
-          </section>
-
-          <section
-            aria-hidden={wizardStep !== 2}
-            style={{
-              width: "33.3333%",
+              width: "50%",
               height: "100%",
               overflowY: "auto",
               WebkitOverflowScrolling: "touch",
@@ -724,6 +687,7 @@ function OnboardingModal({
               under the labels like an iOS control. */}
           <div
             role="tablist"
+            data-tour="habits-tabs"
             className="onb-habits-tabs"
             style={{ "--onb-tabs-count": 2, "--onb-tabs-active": habitsTab === "custom" ? 1 : 0 }}
           >
@@ -972,90 +936,11 @@ function OnboardingModal({
                 {t.onboardingContinue || "Continue →"}
               </button>
             </div>
-          ) : wizardStep === 1 ? (
-            // STEP 1 footer — Back + Continue (gated by referral lookup
-            // status) + a separate Skip text-link below for users who
-            // don't have a code.
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <div style={{ display: "flex", gap: 10 }}>
-                <button
-                  type="button"
-                  onClick={() => setStep(0)}
-                  disabled={onboardingSaving}
-                  className="cinzel mobile-pressable"
-                  style={{
-                    flex: 1,
-                    minHeight: 48,
-                    borderRadius: 12,
-                    background: "transparent",
-                    border: "1px solid var(--card-border-idle)",
-                    color: "#cbd5e1",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    letterSpacing: "0.05em",
-                    textTransform: "uppercase",
-                    cursor: onboardingSaving ? "not-allowed" : "pointer"
-                  }}
-                >
-                  {t.onboardingBack || "Back"}
-                </button>
-                <button
-                  type="button"
-                  data-tour="setup-referral-continue"
-                  onClick={() => {
-                    if (!canAdvanceFromStep1) return;
-                    setStep(2);
-                  }}
-                  disabled={!canAdvanceFromStep1}
-                  className="cinzel mobile-pressable"
-                  style={{
-                    flex: 2,
-                    minHeight: 48,
-                    borderRadius: 12,
-                    background: !canAdvanceFromStep1
-                      ? "rgba(255,255,255,0.08)"
-                      : "linear-gradient(90deg, var(--color-primary), var(--color-accent))",
-                    border: "none",
-                    color: !canAdvanceFromStep1 ? "#64748b" : "#0b1120",
-                    fontSize: 13,
-                    fontWeight: 800,
-                    cursor: !canAdvanceFromStep1 ? "not-allowed" : "pointer",
-                    letterSpacing: "0.05em",
-                    boxShadow: !canAdvanceFromStep1 ? "none" : "0 8px 20px rgba(56,189,248,0.2)"
-                  }}
-                >
-                  {t.onboardingContinue || "Continue →"}
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  if (typeof onReferralCodeChange === "function") onReferralCodeChange("");
-                  setStep(2);
-                }}
-                disabled={onboardingSaving}
-                className="cinzel mobile-pressable"
-                style={{
-                  alignSelf: "center",
-                  background: "transparent",
-                  border: "none",
-                  color: "var(--color-muted)",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  padding: "6px 10px",
-                  cursor: onboardingSaving ? "not-allowed" : "pointer"
-                }}
-              >
-                {t.referralStepSkip || "Skip"} →
-              </button>
-            </div>
           ) : (
             <div style={{ display: "flex", gap: 10 }}>
               <button
                 type="button"
-                onClick={() => setStep(1)}
+                onClick={() => setStep(0)}
                 disabled={onboardingSaving}
                 className="cinzel mobile-pressable"
                 style={{
