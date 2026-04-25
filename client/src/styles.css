@@ -1651,6 +1651,20 @@ body[data-theme="light"] .delete-profile-confirm-cancel {
 .dash-progress-strip{align-items:center;gap:.65rem;padding:0 .15rem;display:flex}
 .dash-milestone{-webkit-backdrop-filter:blur(12px);background:color-mix(in srgb,var(--card-bg) 82%,transparent);border:1px solid color-mix(in srgb,var(--card-border-idle) 70%,transparent);border-radius:1rem;flex-direction:column;justify-content:center;align-items:center;gap:.25rem;padding:.65rem .25rem;transition:all .3s cubic-bezier(.2,.8,.2,1);display:flex;position:relative;overflow:hidden}
 .dash-milestone-on{background:color-mix(in srgb,var(--color-primary) 16%,transparent);border-color:color-mix(in srgb,var(--color-primary) 42%,transparent);box-shadow:inset 0 0 12px color-mix(in srgb,var(--color-primary) 18%,transparent)}
+/* Jackpot milestone — three reward pills (XP / token / streak), each
+   with a kind-specific tint so they read distinctly inside the
+   ~110px-wide milestone card. Wrap is allowed on extra-narrow screens
+   but the pills are sized to fit a single row at iPhone 13/14 width. */
+.dash-milestone-pills{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:3px;padding:0 2px;width:100%}
+.dash-milestone-pill{display:inline-flex;align-items:center;gap:2px;padding:2px 5px;border-radius:999px;border:1px solid transparent;font-size:9.5px;font-weight:800;letter-spacing:.01em;line-height:1;white-space:nowrap}
+.dash-milestone-pill-icon{display:inline-flex;align-items:center;font-size:11px;line-height:1}
+.dash-milestone-pill-amount{display:inline-flex;align-items:center;line-height:1}
+.dash-milestone-pill-xp{background:color-mix(in srgb,var(--color-primary) 18%,transparent);border-color:color-mix(in srgb,var(--color-primary) 42%,transparent);color:var(--color-primary)}
+.dash-milestone-pill-token{background:color-mix(in srgb,#d9a441 22%,transparent);border-color:color-mix(in srgb,#d9a441 50%,transparent);color:#f0c469}
+.dash-milestone-pill-streak{background:color-mix(in srgb,#f97316 22%,transparent);border-color:color-mix(in srgb,#f97316 50%,transparent);color:#fb923c}
+[data-theme="light"] .dash-milestone-pill-token{color:#a06b1a}
+[data-theme="light"] .dash-milestone-pill-streak{color:#c2410c}
+[data-theme="light"] .dash-milestone-pill-xp{color:#7a3aa6}
 /* Base tab-bar (used by Community/Leaderboard — original sliding pill). */
 .qb-tab-bar{background:var(--quest-tab-bar-bg);border:1.5px solid var(--quest-tab-bar-border);border-radius:999px;gap:0;margin-bottom:1.25rem;padding:0;display:flex;position:relative;overflow:visible}
 .qb-tab-indicator{box-sizing:border-box;pointer-events:none;z-index:0;background:#6366f173;border:1.5px solid #818cf899;border-radius:999px;height:100%;transition:transform .32s cubic-bezier(.22,1,.36,1),width .32s cubic-bezier(.22,1,.36,1);position:absolute;top:0;left:0;box-shadow:0 4px 12px #6366f14d}

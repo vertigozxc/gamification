@@ -173,28 +173,33 @@ export default function DashboardTab({
                 <div className="cinzel text-[11px] font-bold tracking-wider mb-0.5">
                   <span style={{ color: unlocked ? "var(--color-primary)" : isLight ? "#3d4450" : "var(--color-text)", opacity: unlocked ? 1 : isLight ? 1 : 0.6 }}>{step.target} <span className="text-[9px] uppercase tracking-widest opacity-60">{step.target >= 5 && t.itemLabelPlural ? t.itemLabelPlural : t.itemLabel}</span></span>
                 </div>
-                <div className="text-[10px] font-extrabold tracking-tight whitespace-nowrap flex flex-wrap items-center justify-center" style={{ color: unlocked ? "var(--color-text)" : isLight ? "#3d4450" : "var(--color-muted)", opacity: unlocked ? 1 : isLight ? 1 : 0.6, filter: unlocked ? "drop-shadow(0 0 2px var(--color-primary-glow))" : "none" }}>
-                  {step.reward.split(new RegExp(`(${t.streakIcon}|${t.tokenIcon})`)).map((part, i) => {
-                    if (part === t.streakIcon) {
-                      return (
-                        <span
-                          key={i}
-                          className="leading-none drop-shadow-sm"
-                          style={{ display: "inline-flex", alignItems: "center", color: "var(--streak-text)" }}
-                        >
-                          <IconFlame size={13} />
-                        </span>
-                      );
-                    }
-                    if (part === t.tokenIcon) {
-                      return <span key={i} className="text-[13px] leading-none drop-shadow-sm">{part}</span>;
-                    }
-                    // Strip the leading space that follows an icon so the
-                    // "+N" hugs the icon (no visible gap).
-                    const trimmed = part.replace(/^\s+/, '');
-                    return <span key={i}>{trimmed}</span>;
-                  })}
-                </div>
+                {Array.isArray(step.parts) && step.parts.length > 1 ? (
+                  // Multi-reward (jackpot) milestone — render each reward
+                  // as its own colored pill so XP / token / streak read
+                  // distinctly instead of mashing into one cramped line.
+                  <div className="dash-milestone-pills" style={{ opacity: unlocked ? 1 : 0.55 }}>
+                    {step.parts.map((p, i) => (
+                      <span key={`${p.kind}-${i}`} className={`dash-milestone-pill dash-milestone-pill-${p.kind}`}>
+                        {p.kind === "streak" ? (
+                          <span className="dash-milestone-pill-icon" aria-hidden="true">
+                            <IconFlame size={11} />
+                          </span>
+                        ) : (
+                          <span className="dash-milestone-pill-icon" aria-hidden="true">
+                            {p.kind === "token" ? t.tokenIcon : "⚡"}
+                          </span>
+                        )}
+                        <span className="dash-milestone-pill-amount">+{p.amount}</span>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  // Single-reward milestone (XP only) — keep the simple
+                  // centered "+N XP" rendering, no need for chips.
+                  <div className="text-[10px] font-extrabold tracking-tight whitespace-nowrap flex flex-wrap items-center justify-center" style={{ color: unlocked ? "var(--color-text)" : isLight ? "#3d4450" : "var(--color-muted)", opacity: unlocked ? 1 : isLight ? 1 : 0.6, filter: unlocked ? "drop-shadow(0 0 2px var(--color-primary-glow))" : "none" }}>
+                    +{(step.parts && step.parts[0]?.amount) || ""} {t.xpLabel}
+                  </div>
+                )}
               </div>
             );
           })}

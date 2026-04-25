@@ -1071,20 +1071,32 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const milestoneSteps = milestoneTargets.map((target, i) => {
     const isStreak = target === streakMilestoneTarget;
     const isFullBoard = target === maxDailyQuests;
+    // Structured reward parts — DashboardTab renders these as colored
+    // pill chips on the final/jackpot card so XP, token and streak each
+    // read distinctly. The legacy `reward` string is preserved for
+    // surfaces that haven't migrated yet (ProfilePanel, etc.).
+    const parts = [];
     let reward;
     if (isFullBoard) {
+      parts.push({ kind: "xp", amount: 25 });
+      parts.push({ kind: "token", amount: fullBoardTokenReward });
+      if (isStreak) parts.push({ kind: "streak", amount: 1 });
       const tokenPart = fullBoardTokenReward > 1
         ? `+${fullBoardTokenReward} ${t.tokenIcon}`
         : `+${t.tokenIcon}`;
       reward = `+25 ${t.xpLabel} / ${tokenPart}`;
       if (isStreak) reward += ` / +${t.streakIcon}`;
     } else if (isStreak) {
+      parts.push({ kind: "xp", amount: 20 });
+      parts.push({ kind: "streak", amount: 1 });
       reward = `+20 ${t.xpLabel} / +${t.streakIcon}`;
     } else {
+      const xpAmount = i === 1 ? 25 : 20;
+      parts.push({ kind: "xp", amount: xpAmount });
       // Mid milestone earns the heavier XP bump so the card isn't empty.
-      reward = `+${i === 1 ? 25 : 20} ${t.xpLabel}`;
+      reward = `+${xpAmount} ${t.xpLabel}`;
     }
-    return { target, reward, rune: milestoneRunes[i] };
+    return { target, reward, parts, rune: milestoneRunes[i] };
   });
   // Trust the actual preferredQuestIds length once state has loaded — even
   // if it's 0 (user skipped onboarding). Only fall back to the slot cap
