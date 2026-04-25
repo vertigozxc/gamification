@@ -764,7 +764,26 @@ export default function AnimatedOnboardingTour({
   const isWelcome = step.kind === "welcome";
 
   return (
-    <div className={`tour-root ${finaleOpen ? "tour-root--finale" : ""}`} aria-live="polite">
+    // While the iOS / Android virtual keyboard is open we hide the
+    // ENTIRE tour overlay — dim, cutout, highlight ring, bubble.
+    // Reasons:
+    //   1. iOS scrolls the visualViewport when an input is focused,
+    //      and the spotlight rect (computed from getBoundingClientRect)
+    //      ends up offset from where the field actually appears on
+    //      screen — the ring lands on the wrong field.
+    //   2. The bubble at the top of the visible viewport still
+    //      overlays the form below it; even without the rect
+    //      mismatch, anything visible over the form during typing
+    //      gets in the way.
+    // We use display:none rather than unmounting so component state
+    // (typewriter progress, finaleOpen, askSkipConfirm) is preserved
+    // across show/hide. The whole overlay reappears the moment the
+    // keyboard closes — Done button, tap-outside, swipe-down, etc.
+    <div
+      className={`tour-root ${finaleOpen ? "tour-root--finale" : ""}`}
+      aria-live="polite"
+      style={keyboardOpen ? { display: "none" } : undefined}
+    >
       {/* Dim layer.
           • Welcome / center / tab-switch / missing → solid full-screen dim.
           • Spotlight steps → single SVG with a rounded-rect cutout.
