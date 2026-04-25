@@ -275,26 +275,49 @@ function QuizModal({ open, username, onClose, onPassed }) {
         }}>
           {!result ? (
             <>
-              <button
-                type="button"
-                className="mobile-pressable"
-                onClick={goBack}
-                disabled={currentIdx === 0}
-                style={{
-                  flex: "0 0 auto",
-                  padding: "12px 18px",
-                  borderRadius: 999,
-                  border: "1.5px solid var(--panel-border)",
-                  background: "transparent",
-                  color: "var(--color-text)",
-                  fontWeight: 700,
-                  fontSize: 13,
-                  cursor: currentIdx === 0 ? "not-allowed" : "pointer",
-                  opacity: currentIdx === 0 ? 0.4 : 1
-                }}
-              >
-                {t.quizPrev || "Back"}
-              </button>
+              {/* On Q1 there's nothing to go back to — swap Back for
+                  Close so the secondary slot is actually useful. From
+                  Q2 onward it returns to the previous question as
+                  before. */}
+              {currentIdx === 0 ? (
+                <button
+                  type="button"
+                  className="mobile-pressable"
+                  onClick={onClose}
+                  style={{
+                    flex: "0 0 auto",
+                    padding: "12px 18px",
+                    borderRadius: 999,
+                    border: "1.5px solid var(--panel-border)",
+                    background: "transparent",
+                    color: "var(--color-text)",
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: "pointer"
+                  }}
+                >
+                  {t.closeLabel || "Close"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="mobile-pressable"
+                  onClick={goBack}
+                  style={{
+                    flex: "0 0 auto",
+                    padding: "12px 18px",
+                    borderRadius: 999,
+                    border: "1.5px solid var(--panel-border)",
+                    background: "transparent",
+                    color: "var(--color-text)",
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: "pointer"
+                  }}
+                >
+                  {t.quizPrev || "Back"}
+                </button>
+              )}
               {!isLast ? (
                 <button
                   type="button"
