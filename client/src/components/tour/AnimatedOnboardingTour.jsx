@@ -704,6 +704,31 @@ export default function AnimatedOnboardingTour({
         </svg>
       ) : null}
 
+      {/* Transparent blocker over the spotlight cutout for steps that
+          should NOT let the user interact with the spotlit element.
+          By default the SVG cutout passes pointer events through so
+          the user can tap whatever's spotlit (a habit, the Park
+          district, etc.); for intro-only steps (quest-board overview,
+          daily-board overview, etc.) we want them to read the bubble
+          and tap Next, not start completing tasks mid-tour. The
+          blocker sits between the SVG and the bubble in the stacking
+          order so the bubble's Next button still works. */}
+      {!isWelcome && highlight && step.blockInteraction ? (
+        <div
+          className="tour-cutout-blocker"
+          aria-hidden="true"
+          style={{
+            position: "fixed",
+            top: highlight.top,
+            left: highlight.left,
+            width: highlight.width,
+            height: highlight.height
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : null}
+
       {/* Glowing highlight ring on top of the SVG cutout — gated by
           targetSettled so the user never sees it mid-flight between
           steps. Keyed by step.id so React unmounts/remounts on every

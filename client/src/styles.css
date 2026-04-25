@@ -2327,6 +2327,19 @@ body[data-theme="balance"] .tour-curtain { background: rgba(4, 22, 14, 0.74); }
 body[data-theme="light"] .tour-mask-svg path { fill: rgba(30, 41, 59, 0.58); }
 body[data-theme="balance"] .tour-mask-svg path { fill: rgba(4, 22, 14, 0.74); }
 
+/* Transparent click blocker over the spotlight cutout. Used by
+   intro-only tour steps (e.g. the quest-board overview) to keep the
+   user from interacting with the spotlit element — they should read
+   the bubble and tap Next, not start completing habits mid-tour.
+   Sits at the same z-index as the rest of the tour root so the
+   bubble (rendered later in the DOM) ends up on top via paint
+   order. */
+.tour-cutout-blocker {
+    background: transparent;
+    cursor: not-allowed;
+    pointer-events: auto;
+}
+
 /* Highlight ring around the spotlight target. The component only
    renders this element AFTER the target rect has gone still for ~220
    ms, and the element is keyed by step.id so every step transition

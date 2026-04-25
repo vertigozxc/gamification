@@ -186,6 +186,11 @@ export default function ProfileTab({
         languageId={languageId}
       />
 
+      {/* Quick Stats Grid + Overall Statistics — wrapped together so
+          the onboarding tour can spotlight the user's actual stats
+          chunk (4 KPI cards + per-row stats list) rather than the
+          whole profile page. */}
+      <div data-tour="profile-stats" className="flex flex-col gap-4">
       {/* Quick Stats Grid */}
       <div className="grid grid-cols-2 gap-3">
         <div className="mobile-card flex flex-col items-center py-4" style={{ background: "var(--panel-bg)" }}>
@@ -246,6 +251,7 @@ export default function ProfileTab({
           </div>
         </div>
       </div>
+      </div>{/* /profile-stats */}
 
       {/* Achievements — lives between stats and settings so it's a
           first-class feature, not buried deep. */}

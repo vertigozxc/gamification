@@ -479,8 +479,19 @@ function ActivityTab({ leaderboard, meUid, t, onOpenProfile }) {
         {t.communityActivityLead || "Players ranked by XP earned this week."}
       </p>
 
+      {/* Top 3 are wrapped in a measurable sub-block so the onboarding
+          tour can spotlight just them. The wrapper is display:block
+          (NOT display:contents) because getBoundingClientRect needs
+          a real layout box for the spotlight cutout maths. The rows
+          inside still stack normally so there's no visible layout
+          shift for non-tour users. */}
       <div className="cm-list">
-        {users.map((u) => (
+        <div data-tour="community-top3">
+          {users.slice(0, 3).map((u) => (
+            <PlayerRow key={u.username} entry={u} isMe={u.username === meUid} t={t} onOpenProfile={onOpenProfile} />
+          ))}
+        </div>
+        {users.slice(3).map((u) => (
           <PlayerRow key={u.username} entry={u} isMe={u.username === meUid} t={t} onOpenProfile={onOpenProfile} />
         ))}
       </div>

@@ -165,6 +165,10 @@ export default function WebAppScreen({ onShellReady }) {
   const [injectedUser, setInjectedUser] = useState(null);
   const [errorText, setErrorText] = useState("");
   const [showTabBar, setShowTabBar] = useState(false);
+  // When true, the tab bar is rendered (visible) but ignores taps and
+  // dims slightly. Set by the WebView during the onboarding tour so
+  // the user can't manually navigate away from the scripted flow.
+  const [tabBarLocked, setTabBarLocked] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [theme, setTheme] = useState({ bg: "rgba(255, 255, 255, 0.92)", active: "#ff5c8a", inactive: "#96a0af", orb: "#ff5c8a", orbText: "#ffffff", pageBg: "#020617" });
   const [pressedTab, setPressedTab] = useState("");
@@ -467,6 +471,11 @@ export default function WebAppScreen({ onShellReady }) {
           }, minPreloaderMs);
         }
         setShowTabBar(Boolean(data?.showTabBar) && !Boolean(data?.loading));
+        // Tab bar is rendered as usual but locked from receiving taps
+        // while the onboarding tour is running — the tour drives every
+        // tab transition itself, and a stray manual tap would jump the
+        // user off the script.
+        setTabBarLocked(Boolean(data?.tabBarLocked));
         if (data?.activeTab) {
           setActiveTab(normalizeMobileTab(data.activeTab));
         }
@@ -586,11 +595,20 @@ export default function WebAppScreen({ onShellReady }) {
               {
                 bottom: 0,
                 paddingBottom: Math.max(2, insets.bottom + 2),
-                opacity: tabBarAnim,
+                // When the WebView reports tabBarLocked (onboarding
+                // tour is active), render the bar at reduced opacity
+                // so the user can still see where they are without
+                // being able to tap it.
+                opacity: tabBarLocked
+                  ? tabBarAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.45] })
+                  : tabBarAnim,
                 transform: [{ translateY: tabBarAnim.interpolate({ inputRange: [0, 1], outputRange: [26, 0] }) }]
               }
             ]}
-            pointerEvents="box-none"
+            // pointerEvents:none completely intercepts tap events on the
+            // tab bar while locked; box-none otherwise lets the
+            // individual Pressables handle their own taps.
+            pointerEvents={tabBarLocked ? "none" : "box-none"}
           >
             <View style={[styles.tabBar, { backgroundColor: theme.bg }]}>
             {TAB_ITEMS.map((item) => {
@@ -604,8 +622,8 @@ export default function WebAppScreen({ onShellReady }) {
                 <Pressable
                   key={item.key}
                   style={[styles.tabButton, item.center ? styles.centerTabButton : null]}
-                  onPress={() => syncMobileTab(item.key)}
-                  onPressIn={() => setPressedTab(item.key)}
+                  onPress={() => { if (!tabBarLocked) syncMobileTab(item.key); }}
+                  onPressIn={() => { if (!tabBarLocked) setPressedTab(item.key); }}
                   onPressOut={() => setPressedTab("")}
                   android_ripple={{ color: "rgba(255,255,255,0.12)", borderless: true }}
                 >

@@ -521,6 +521,12 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       text: t.tourQuestBoardText || "This is where you close habits every day.",
       gate: "next",
       hideBack: true,
+      // Block taps inside the spotlight — the user should read the
+      // bubble and tap Next, not start completing actual habits
+      // mid-tour. Otherwise a misfired long-press would mark a habit
+      // done and shift the daily progress bars while the tour is
+      // still introducing what they are.
+      blockInteraction: true,
       // First post-setup step — make sure we're on the dashboard.
       onEnter: () => { startTransition(() => setMobileTab("dashboard")); },
       scroll: true
@@ -538,6 +544,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       title: t.tourDailyBoardTitle || "Full board = bonus",
       text: t.tourDailyBoardText || "Close the whole board and your streak grows — plus extra tokens.",
       gate: "next",
+      blockInteraction: true,
       scroll: true,
       scrollBlock: "center"
     });
@@ -552,6 +559,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       title: t.tourCityTitle || "Your city",
       text: t.tourCityText || "Every habit you complete grows this city. Let's take a walk through it.",
       gate: "next",
+      blockInteraction: true,
       onEnter: () => { startTransition(() => setMobileTab("city")); },
       scroll: true
     });
@@ -588,6 +596,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       title: t.tourSpinWheelTitle || "Daily spin",
       text: t.tourSpinWheelText || "Tap the spin button to collect your daily reward.",
       gate: "next",
+      blockInteraction: true,
       bubblePlacement: "top",
       scroll: true
     });
@@ -598,45 +607,48 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       title: t.tourStoreTitle || "The store",
       text: t.tourStoreText || "Spend tokens on streak freezes, extra rerolls or an XP boost.",
       gate: "next",
+      blockInteraction: true,
       onEnter: () => { startTransition(() => setMobileTab("store")); },
       scroll: true
     });
     // COMMUNITY — auto-switch tab + pre-select the Activity sub-tab.
-    // Spotlight target is the SECTION wrapper (hero + tabs together)
-    // rather than the slide bar alone, so the user sees the whole
-    // community surface lit up, not just a 40-px-tall pill row.
+    // Spotlight target is just the top-3 player rows. The hero
+    // (your-rank tile, weekly XP) and the tab bar are above; the
+    // long tail of players (#4+) is below — neither is interesting
+    // for a "here's the leaderboard" intro, so we keep the cutout
+    // tight on the podium.
     list.push({
       id: "community",
-      target: '[data-tour="community-section"]',
+      target: '[data-tour="community-top3"]',
       title: t.tourCommunityTitle || "Community",
       text: t.tourCommunityText || "See the week's active players, add friends, take on group challenges.",
       gate: "next",
+      blockInteraction: true,
       onEnter: () => {
         startTransition(() => setMobileTab("leaderboard"));
         try { window.__pendingSocialSubTab = "activity"; } catch { /* noop */ }
       },
       bubblePlacement: "bottom",
       scroll: true,
-      scrollBlock: "start"
+      scrollBlock: "center"
     });
-    // PROFILE — single step that spotlights the WHOLE visible
-    // profile screen (hero + achievements + settings) instead of
-    // walking the user through three separate sub-cards. fillBottom
-    // anchors the cutout to the hero card's top edge and stretches
-    // it down to the viewport bottom, so everything currently on
-    // screen is part of the active zone. Auto-switches to the
-    // profile tab on enter.
+    // PROFILE — single step that spotlights the user's stats chunk:
+    // the 4 KPI cards (Total XP, Streak, Tokens, Level) plus the
+    // Overall Statistics list. The hero (avatar + name) and the
+    // achievements / settings sections aren't part of the spotlight
+    // — the stats block is the substantive thing the user wants
+    // to know exists. Auto-switches to the profile tab on enter.
     list.push({
       id: "profile-overview",
-      target: '[data-tour="profile-hero"]',
+      target: '[data-tour="profile-stats"]',
       title: t.tourProfileTitle || "Your profile",
-      text: t.tourProfileText || "Name, level, XP, streak, tokens, achievements and settings — everything that's yours lives on this screen.",
+      text: t.tourProfileText || "Total XP, streak, tokens, level and the rest of your stats live here.",
       gate: "next",
+      blockInteraction: true,
       onEnter: () => { startTransition(() => setMobileTab("profile")); },
-      bubblePlacement: "top",
-      fillBottom: true,
+      bubblePlacement: "auto",
       scroll: true,
-      scrollBlock: "start"
+      scrollBlock: "center"
     });
     return list;
   // Note: mobileTab intentionally omitted — the tour drives tab swaps
@@ -723,14 +735,12 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
 
     const anyOverlayOpen = Boolean(
       showOnboarding
-      // Hide the native tab bar entirely while the animated tour is
-      // running. The tour drives all tab transitions itself via
-      // onEnter callbacks, and letting the user tap a tab manually
-      // would jump them off the script. The native shell can't be
-      // told "disabled but visible" without native code, so the
-      // pragmatic solution is to hide it for the ~2-minute duration
-      // of the tour.
-      || showTour
+      // Note: showTour is intentionally NOT in this set anymore. We
+      // keep the native tab bar VISIBLE during the onboarding tour
+      // and instead lock its taps via the separate tabBarLocked
+      // flag below. That gives the user a sense of place ("I can
+      // see I'm on Dashboard / City / Store / etc.") without
+      // letting them jump off the scripted flow.
       || cityFullscreen
       || showPinnedReplaceModal
       || pinnedReplacementOpening
@@ -759,6 +769,11 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       bridge.postMessage(JSON.stringify({
         type: "mobile-shell-state",
         showTabBar: Boolean(authUser) && !authLoading && !dataLoading && initialDataResolved && !anyOverlayOpen,
+        // Tab bar stays VISIBLE during the tour but locked from
+        // taps — see the comment on anyOverlayOpen above. The native
+        // shell honours this flag by rendering the bar at reduced
+        // opacity with pointerEvents:none.
+        tabBarLocked: Boolean(showTour),
         loading: Boolean(authLoading || dataLoading || (authUser && !initialDataResolved)),
         activeTab: mobileTab,
         languageId
