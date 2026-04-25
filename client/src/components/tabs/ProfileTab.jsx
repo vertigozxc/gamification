@@ -141,7 +141,18 @@ export default function ProfileTab({
                 value={nameDraft}
                 onChange={(event) => onNameDraftChange(event.target.value)}
                 className="w-full max-w-[220px] cinzel text-lg border rounded-xl px-3 py-2"
-                style={{ borderColor: "var(--color-primary)" }}
+                style={{
+                  // Without explicit background + color the input falls
+                  // back to the browser default (white box, black text)
+                  // and on Adventure / Balance themes the user sees an
+                  // invisible name on a white slab.
+                  borderColor: "var(--color-primary)",
+                  background: "color-mix(in srgb, var(--panel-bg) 92%, rgba(0,0,0,0.25))",
+                  color: "var(--color-text)",
+                  caretColor: "var(--color-primary)",
+                  outline: "none",
+                  boxShadow: "0 0 0 1px color-mix(in srgb, var(--color-primary) 30%, transparent)"
+                }}
                 maxLength={15}
                 autoFocus
                 onBlur={onSubmitNameEdit}
