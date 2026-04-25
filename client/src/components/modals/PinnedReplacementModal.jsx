@@ -197,45 +197,46 @@ function PinnedReplacementModal({
             </button>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginTop: 10 }}>
+          {/* Single row: compact cost chip on the left, token balance
+              on the right. Replaces the previous 2-row layout to keep
+              the header tight. */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 10 }}>
             <div
               style={{
-                padding: "6px 10px",
-                borderRadius: 10,
-                border: "1px solid var(--card-border-idle)",
-                background: "rgba(0,0,0,0.25)",
-                display: "flex",
+                padding: "5px 10px",
+                borderRadius: 999,
+                background: isFreePinnedReroll
+                  ? "rgba(16,185,129,0.15)"
+                  : "rgba(255,255,255,0.05)",
+                border: `1px solid ${isFreePinnedReroll ? "rgba(16,185,129,0.45)" : "var(--card-border-idle)"}`,
+                display: "inline-flex",
                 alignItems: "center",
-                gap: 6
+                gap: 5,
+                flexShrink: 0
               }}
             >
-              <span style={{ fontSize: 14 }}>🪙</span>
-              <span className="cinzel" style={{ fontSize: 13, color: "#fbbf24", fontWeight: 700 }}>
+              <span style={{ fontSize: 13 }}>{isFreePinnedReroll ? "🎁" : "🪙"}</span>
+              <span className="cinzel" style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: isFreePinnedReroll ? "#6ee7b7" : "var(--color-text)" }}>
+                {isFreePinnedReroll ? (t.freeLabel || "Free") : `${TOKEN_COST} ${t.tokenPlural || "tokens"}`}
+              </span>
+            </div>
+            <div
+              style={{
+                padding: "5px 10px",
+                borderRadius: 999,
+                border: "1px solid var(--card-border-idle)",
+                background: "rgba(0,0,0,0.25)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                flexShrink: 0
+              }}
+            >
+              <span style={{ fontSize: 13 }}>🪙</span>
+              <span className="cinzel" style={{ fontSize: 12, color: "#fbbf24", fontWeight: 700 }}>
                 {Number(tokens) || 0}
               </span>
             </div>
-          </div>
-
-          <div
-            style={{
-              marginTop: 10,
-              padding: "8px 12px",
-              borderRadius: 10,
-              background: isFreePinnedReroll
-                ? "linear-gradient(90deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))"
-                : "rgba(255,255,255,0.04)",
-              border: `1px solid ${isFreePinnedReroll ? "rgba(16,185,129,0.35)" : "var(--card-border-idle)"}`,
-              display: "flex",
-              alignItems: "center",
-              gap: 8
-            }}
-          >
-            <span style={{ fontSize: 16 }}>{isFreePinnedReroll ? "🎁" : "🪙"}</span>
-            <span style={{ fontSize: 12, color: isFreePinnedReroll ? "#6ee7b7" : "#e2e8f0" }}>
-              {isFreePinnedReroll
-                ? t.replacePinnedFreeCost
-                : t.replacePinnedCost}
-            </span>
           </div>
         </div>
 
@@ -289,7 +290,7 @@ function PinnedReplacementModal({
               marginBottom: 12,
               padding: "10px 12px",
               borderRadius: 12,
-              background: "transparent"
+              background: "var(--card-bg, #0f172a)"
             }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, gap: 10 }}>
@@ -359,13 +360,13 @@ function PinnedReplacementModal({
                   placeholder={t.replacePinnedSearchPlaceholder || t.onboardingSearch}
                   clearAriaLabel={t.clearLabel || "Clear"}
                   inputStyle={{
-                    padding: "12px 14px",
-                    borderRadius: 12,
+                    padding: "8px 12px",
+                    borderRadius: 10,
                     background: "rgba(255,255,255,0.07)",
                     border: "1px solid var(--card-border-idle)",
                     color: "#e2e8f0",
-                    fontSize: 14,
-                    minHeight: 44,
+                    fontSize: 13,
+                    minHeight: 36,
                     outline: "none"
                   }}
                 />
@@ -501,7 +502,7 @@ function PinnedReplacementModal({
                 ? t.onboardingSaving
                 : isFreePinnedReroll
                   ? t.rerollFree
-                  : `${t.customizePrefix} · ${TOKEN_COST} 🪙`}
+                  : `${t.customizePrefix} ${TOKEN_COST} 🪙`}
             </button>
           </div>
         </div>

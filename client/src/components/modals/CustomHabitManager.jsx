@@ -127,7 +127,7 @@ function CustomHabitManager({
   const handleSave = async () => {
     const cleanTitle = title.trim();
     if (!cleanTitle) return;
-    const minutes = needsTimer ? Math.max(1, Math.min(480, parseInt(timeMinutes, 10) || 0)) : 0;
+    const minutes = needsTimer ? Math.max(1, Math.min(180, parseInt(timeMinutes, 10) || 0)) : 0;
     const payload = {
       title: cleanTitle,
       description: desc.trim(),
@@ -441,7 +441,7 @@ function CustomHabitManager({
                           type="number"
                           inputMode="numeric"
                           min={1}
-                          max={480}
+                          max={180}
                           value={timeMinutes}
                           onChange={(e) => setTimeMinutes(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
                           className="rounded-md px-3 py-2 text-slate-100"

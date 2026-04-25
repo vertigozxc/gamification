@@ -470,7 +470,9 @@ function OnboardingModal({
             </p>
           </div>
 
-          {/* @handle — public username, auto-assigned on open. Read-only. */}
+          {/* @handle — public username, auto-assigned on open. Read-only.
+              Rendered as a static "tag chip" (no border, dim background)
+              so it doesn't read as an editable input. */}
           <div data-tour="setup-handle">
           <label
             className="cinzel"
@@ -488,52 +490,36 @@ function OnboardingModal({
           </label>
           <div
             style={{
-              display: "flex",
+              display: "inline-flex",
               alignItems: "center",
-              padding: "0 12px",
-              borderRadius: 10,
-              background: "rgba(0,0,0,0.20)",
-              border: "1px solid var(--card-border-idle)",
-              minHeight: 38
+              gap: 6,
+              padding: "6px 12px",
+              borderRadius: 999,
+              background: "color-mix(in srgb, var(--color-primary) 10%, transparent)",
+              color: "var(--color-primary)",
+              border: "none",
+              userSelect: "none",
+              cursor: "default"
             }}
           >
             <span
               aria-hidden
               style={{
-                color: "var(--color-muted)",
                 fontSize: 14,
                 fontWeight: 700,
-                marginRight: 4,
-                userSelect: "none"
+                opacity: 0.8
               }}
             >@</span>
             <span
               style={{
-                flex: 1,
-                minWidth: 0,
-                padding: "9px 0",
-                color: "#e2e8f0",
                 fontSize: 14,
-                fontFamily: "inherit",
-                userSelect: "none"
+                fontWeight: 700,
+                fontFamily: "inherit"
               }}
             >
               {normalizedHandle || handleInput}
             </span>
-            {(handleStatus === "available" || handleStatus === "idle") && (normalizedHandle || handleInput) ? (
-              <span
-                style={{
-                  marginLeft: 8,
-                  color: "#10b981",
-                  display: "inline-flex",
-                  alignItems: "center"
-                }}
-              ><IconCheck size={14} strokeWidth={2.6} /></span>
-            ) : null}
           </div>
-          <p style={{ margin: "6px 2px 0", fontSize: 11, color: "var(--color-muted)", lineHeight: 1.4 }}>
-            {t.onboardingHandleHint || "3–20 letters / digits / underscore. Others find you by this."}
-          </p>
           </div>
           </section>
 
@@ -619,7 +605,7 @@ function OnboardingModal({
               marginBottom: 12,
               padding: "10px 12px",
               borderRadius: 12,
-              background: "transparent"
+              background: "var(--card-bg, #0f172a)"
             }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, gap: 10 }}>
@@ -690,13 +676,13 @@ function OnboardingModal({
                   placeholder={t.onboardingSearch}
                   clearAriaLabel={t.clearLabel || "Clear"}
                   inputStyle={{
-                    padding: "12px 14px",
-                    borderRadius: 12,
+                    padding: "8px 12px",
+                    borderRadius: 10,
                     background: "rgba(255,255,255,0.07)",
                     border: "1px solid var(--card-border-idle)",
                     color: "#e2e8f0",
-                    fontSize: 14,
-                    minHeight: 44,
+                    fontSize: 13,
+                    minHeight: 36,
                     outline: "none"
                   }}
                 />
