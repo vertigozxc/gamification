@@ -405,7 +405,7 @@ function ReferralsModal({ open, onClose, username, onTokensClaimed }) {
               read as a family. Hidden in create-mode (the create
               form takes over the whole body and tabs would be
               meaningless there). */}
-          {mode === "list" && !loading ? (
+          {mode === "list" ? (
             <div
               role="tablist"
               className="onb-habits-tabs"
