@@ -477,7 +477,7 @@ const COPY_EN = {
           <Bullets items={[
             "Habits are the quests you've pinned for yourself. They don't shuffle.",
             "Every habit gives a flat 30 XP, no matter its base reward.",
-            "Complete the same habit 21 days in a row → earn a +10 token bonus.",
+            "Complete the same habit 21 days in a row → earn a +20 token bonus.",
             "Want to swap a habit? Use the Replace Habits button — free once every 21 days, otherwise 7 tokens.",
             "You can also create your own custom habits, up to 20 total."
           ]} />
@@ -540,7 +540,7 @@ const COPY_EN = {
           <Bullets items={[
             "Level up — tokens per level scale: 1 (lvl 2–10), 2 (11–20), 3 (21–30), 4 (31–50), 5 (51+).",
             "Daily board — 3 tokens for filling all 4 milestone slots.",
-            "Habit milestone — +10 token bonus for completing the same habit 21 days in a row.",
+            "Habit milestone — +20 token bonus for completing the same habit 21 days in a row.",
             "Business district — claim a daily token bundle (1–5 tokens based on district level).",
             "Square district — at level 1+, filling the full daily board gives extra tokens equal to district level.",
             "Wheel of Fortune — tokens are one of the possible spin rewards.",
@@ -781,7 +781,7 @@ const COPY_RU = {
         <Bullets items={[
           "Привычки — это закреплённые квесты, которые вы выбрали сами. Они не меняются каждый день.",
           "За любую привычку вы получаете 30 XP независимо от её базовой награды.",
-          "Закрыли одну привычку 21 день подряд → +10 токенов бонусом.",
+          "Закрыли одну привычку 21 день подряд → +20 токенов бонусом.",
           "Хочется поменять? Кнопка «Заменить привычки» — раз в 21 день бесплатно, иначе 7 токенов.",
           "Можете создать свои собственные привычки, до 20 штук."
         ]} />
@@ -843,7 +843,7 @@ const COPY_RU = {
           <Bullets items={[
             "Новый уровень — шкала токенов за уровень: 1 (ур. 2–10), 2 (11–20), 3 (21–30), 4 (31–50), 5 (51+).",
             "Дейли борд — 3 токена за заполнение всех 4 вех.",
-            "Веха привычки — +10 токенов бонусом за закрытие одной привычки 21 день подряд.",
+            "Веха привычки — +20 токенов бонусом за закрытие одной привычки 21 день подряд.",
             "Район Бизнес — раз в день забираете пачку токенов (1–5 в зависимости от уровня района).",
             "Район Площадь — с 1 уровня за полный дейли борд начисляются дополнительные токены, равные уровню района.",
             "Колесо удачи — токены это одна из возможных наград за спин.",

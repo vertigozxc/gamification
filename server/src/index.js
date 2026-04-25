@@ -3187,7 +3187,7 @@ async function processQuestCompletion({ user, quest, dayKey, availableQuests, cu
     const nextPinnedQuestStreak = await getQuestConsecutiveDaysForUser(user.id, quest.id);
     if (previousPinnedQuestStreak < 21 && nextPinnedQuestStreak >= 21) {
       habitMilestoneReached = true;
-      habitMilestoneTokens = 10;
+      habitMilestoneTokens = 20;
     }
   }
 
