@@ -241,6 +241,16 @@ export function createReferralCode(username, code) {
   });
 }
 
+// Soft-delete one of the caller's referral codes. Server keeps the
+// row + its Referral children; new redemptions are blocked.
+export function deleteReferralCode(username, codeId) {
+  return request(`/api/referrals/codes/${encodeURIComponent(codeId)}`, {
+    method: "DELETE",
+    body: JSON.stringify({ username }),
+    idempotent: true
+  });
+}
+
 export function redeemReferralCode(username, code) {
   return request("/api/referrals/redeem", {
     method: "POST",

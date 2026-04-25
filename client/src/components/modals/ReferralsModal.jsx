@@ -20,7 +20,8 @@ import {
   redeemReferralCode as apiRedeemReferralCode,
   claimReferralReward as apiClaimReferralReward,
   checkReferralCodeAvailable as apiCheckAvailable,
-  lookupReferralCode as apiLookupCode
+  lookupReferralCode as apiLookupCode,
+  deleteReferralCode as apiDeleteReferralCode
 } from "../../api";
 
 const MIN_LEN = 4;
@@ -229,6 +230,21 @@ function ReferralsModal({ open, onClose, username, onTokensClaimed }) {
       // user cancelled — silently fall through to clipboard fallback
     }
     handleCopy(text);
+  }
+
+  async function handleDeleteCode(codeId, codeText) {
+    if (!codeId) return;
+    const confirmText = (t.referralsCodeDeleteConfirm || "Delete code {code}? Existing referrals stay yours, but nobody new can use this code.").replace("{code}", codeText || "");
+    if (typeof window !== "undefined" && typeof window.confirm === "function") {
+      if (!window.confirm(confirmText)) return;
+    }
+    setError("");
+    try {
+      const resp = await apiDeleteReferralCode(username, codeId);
+      setData(resp);
+    } catch (err) {
+      setError(err?.message || "Delete failed");
+    }
   }
 
   async function handleCreate() {
@@ -459,6 +475,7 @@ function ReferralsModal({ open, onClose, username, onTokensClaimed }) {
                 copiedCode={copiedCode}
                 onCopy={handleCopy}
                 onShare={handleShare}
+                onDelete={handleDeleteCode}
                 onCreateClick={() => setMode("create")}
               />
 
@@ -499,7 +516,7 @@ function ReferralsModal({ open, onClose, username, onTokensClaimed }) {
 // coupled to the modal's i18n + handler closure and not reused elsewhere.
 // ─────────────────────────────────────────────────────────────────────
 
-function MyCodesBlock({ t, tf, codes, codesLimit, canCreateMore, copiedCode, onCopy, onShare, onCreateClick }) {
+function MyCodesBlock({ t, tf, codes, codesLimit, canCreateMore, copiedCode, onCopy, onShare, onDelete, onCreateClick }) {
   return (
     <div style={{ marginBottom: 22 }}>
       <SectionHeader
@@ -520,6 +537,7 @@ function MyCodesBlock({ t, tf, codes, codesLimit, canCreateMore, copiedCode, onC
               copied={copiedCode === c.code}
               onCopy={() => onCopy(c.code)}
               onShare={() => onShare(c.code)}
+              onDelete={typeof onDelete === "function" ? () => onDelete(c.id, c.code) : undefined}
               t={t}
               tf={tf}
             />
@@ -555,7 +573,7 @@ function MyCodesBlock({ t, tf, codes, codesLimit, canCreateMore, copiedCode, onC
   );
 }
 
-function CodeCard({ code, usageCount, copied, onCopy, onShare, t, tf }) {
+function CodeCard({ code, usageCount, copied, onCopy, onShare, onDelete, t, tf }) {
   let usageText = "";
   if (Number(usageCount) === 1) {
     usageText = t.referralsCodeUsageOne || "Used by 1 person";
@@ -634,6 +652,30 @@ function CodeCard({ code, usageCount, copied, onCopy, onShare, t, tf }) {
         >
           {t.referralsCodeShare || "Share"}
         </button>
+        {typeof onDelete === "function" ? (
+          <button
+            type="button"
+            onClick={onDelete}
+            aria-label={t.referralsCodeDelete || "Delete"}
+            className="cinzel mobile-pressable"
+            style={{
+              flex: "0 0 auto",
+              minHeight: 36,
+              padding: "0 14px",
+              borderRadius: 10,
+              background: "transparent",
+              border: "1px solid color-mix(in srgb, #f87171 45%, transparent)",
+              color: "#f87171",
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+              cursor: "pointer"
+            }}
+          >
+            {t.referralsCodeDelete || "Delete"}
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -666,7 +708,7 @@ function RedeemBlock({ t, tf, input, setInput, status, ownerHandle, saving, disa
           value={input}
           onChange={(event) => setInput(event.target.value)}
           maxLength={MAX_LEN}
-          placeholder={t.referralStepInputPlaceholder || "IVAN2026"}
+          placeholder={t.referralStepInputPlaceholder || ""}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="characters"
@@ -875,12 +917,33 @@ function ReferralRow({ row, isClaiming, onClaim, t, tf }) {
       <div className="ref-row-body">
         <div className="ref-row-line1">
           <span className="ref-row-name">{displayName}</span>
-          <span className="ref-row-level cinzel">⭐{level}</span>
         </div>
         {handle ? (
           <p className="ref-row-handle">{handle}</p>
         ) : null}
       </div>
+      {/* Level chip — plain "Level N" text, vertically centered against
+          the row by the wrapper's flex alignItems. The previous "⭐N"
+          glyph chip read as a starred rating instead of a level
+          indicator and sat awkwardly above the avatar baseline. */}
+      <span
+        className="cinzel"
+        style={{
+          flexShrink: 0,
+          alignSelf: "center",
+          padding: "4px 10px",
+          borderRadius: 999,
+          background: "color-mix(in srgb, var(--color-primary) 14%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--color-primary) 35%, transparent)",
+          color: "var(--color-primary)",
+          fontSize: 11,
+          fontWeight: 800,
+          letterSpacing: "0.04em",
+          whiteSpace: "nowrap"
+        }}
+      >
+        {(t.referralsRefereeLevel || "Level {level}").replace("{level}", String(level))}
+      </span>
       <div className="ref-row-right">
         {rightSlot}
       </div>
@@ -907,7 +970,7 @@ function CreateForm({ t, input, setInput, status, saving, disabled, onSubmit, on
         value={input}
         onChange={(event) => setInput(event.target.value)}
         maxLength={MAX_LEN}
-        placeholder="IVAN2026"
+        placeholder=""
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="characters"

@@ -309,6 +309,13 @@ model ReferralCode {
   ownerUserId String
   code        String     @unique
   createdAt   DateTime   @default(now())
+  // Soft-delete: when set, the code is hidden from the owner's My
+  // Codes list and rejected at redemption. Existing Referral rows are
+  // preserved so referees stay on the owner's My Referrals list and
+  // both sides keep earning their level-5 reward. We never hard-DELETE
+  // ReferralCode rows because Referral.codeId cascades — and that
+  // would orphan referees the user already converted.
+  deletedAt   DateTime?
   owner       User       @relation("UserReferralCodes", fields: [ownerUserId], references: [id], onDelete: Cascade)
   referrals   Referral[]
 

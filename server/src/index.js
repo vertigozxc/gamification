@@ -7012,6 +7012,48 @@ app.post("/api/referrals/codes", async (req, res) => {
   }
 });
 
+// Soft-delete a referral code the caller owns. The Referral rows
+// attached to this code stay in the DB — referees keep showing on the
+// owner's My Referrals list and both sides keep earning the level-5
+// reward. The code string itself stays unique-locked in the DB so
+// nobody else can recreate it. Idempotent: deleting an already-deleted
+// code is a no-op success. 404 if the code doesn't belong to caller.
+app.delete("/api/referrals/codes/:codeId", async (req, res) => {
+  const schema = z.object({ username: z.string().min(2).max(64) });
+  try {
+    const { username } = schema.parse(req.body || {});
+    const codeId = String(req.params.codeId || "").trim();
+    if (!codeId) return res.status(400).json({ error: "Missing codeId" });
+
+    const user = await prisma.user.findUnique({
+      where: { username: slugifyUsername(username) },
+      select: { id: true }
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const codeRow = await prisma.referralCode.findUnique({
+      where: { id: codeId },
+      select: { id: true, ownerUserId: true, deletedAt: true }
+    });
+    if (!codeRow || codeRow.ownerUserId !== user.id) {
+      return res.status(404).json({ error: "Code not found", code: "not_found" });
+    }
+
+    if (!codeRow.deletedAt) {
+      await prisma.referralCode.update({
+        where: { id: codeId },
+        data: { deletedAt: new Date() }
+      });
+    }
+
+    const payload = await buildMyReferralsPayload(prisma, user.id);
+    res.json({ ok: true, ...payload });
+  } catch (error) {
+    console.error(`[Referrals Delete] ${error?.message || error}`);
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
 app.post("/api/referrals/redeem", async (req, res) => {
   // Redeem someone else's referral code. Once per lifetime per user.
   // Triggers an immediate evaluateAchievements run so a user who's

@@ -47,6 +47,11 @@ export function validateCode(raw) {
 
 // True if this code already exists in the DB (any owner). Used by the
 // availability check endpoint and by code creation.
+//
+// Note: deletedAt is NOT consulted here — once a code string is taken
+// (even by a deleted-but-still-DB-resident row), nobody else can claim
+// the same string. The unique constraint on `code` would block it
+// anyway; this just keeps the user-facing message accurate.
 export async function codeIsTaken(prisma, code) {
   if (!code) return false;
   const row = await prisma.referralCode.findUnique({
@@ -56,21 +61,25 @@ export async function codeIsTaken(prisma, code) {
   return Boolean(row);
 }
 
-// Counts how many codes a user currently owns (for the 3-code limit).
+// Counts how many ACTIVE (non-deleted) codes a user currently owns
+// — drives the 3-code limit. Soft-deleted rows don't count toward
+// the limit, freeing the slot for a fresh code.
 export async function countUserCodes(prisma, userId) {
-  return prisma.referralCode.count({ where: { ownerUserId: userId } });
+  return prisma.referralCode.count({
+    where: { ownerUserId: userId, deletedAt: null }
+  });
 }
 
-// Look up the user-id behind a code — null if the code doesn't exist.
-// Used by redemption: we need to make sure the redeemer isn't trying to
-// use their own code (self-referral) and to find the codeId for the
-// Referral row.
+// Look up the user-id behind a code — null if the code doesn't exist
+// OR has been soft-deleted. Used by lookup + redemption: a deleted
+// code must read as "not found" to the redeemer so they can't tie
+// their account to an owner who closed the door.
 export async function findCodeWithOwner(prisma, code) {
   if (!code) return null;
   return prisma.referralCode.findUnique({
     where: { code },
-    select: { id: true, code: true, ownerUserId: true }
-  });
+    select: { id: true, code: true, ownerUserId: true, deletedAt: true }
+  }).then((row) => (row && !row.deletedAt ? row : null));
 }
 
 // Has this user already redeemed someone's code? (Once per lifetime.)
@@ -93,8 +102,13 @@ export async function getRefereeRedemption(prisma, userId) {
 // I've already redeemed someone else's code (and if so — which code).
 export async function buildMyReferralsPayload(prisma, userId) {
   const [codes, referrals, myRedemption] = await Promise.all([
+    // Only ACTIVE codes here — deleted codes are hidden from the
+    // owner's My Codes list. Their referrals still surface below
+    // because we query Referral by code.ownerUserId (not by code id),
+    // so the owner keeps credit for everyone they brought in even
+    // after the code itself is gone.
     prisma.referralCode.findMany({
-      where: { ownerUserId: userId },
+      where: { ownerUserId: userId, deletedAt: null },
       orderBy: { createdAt: "asc" },
       select: {
         id: true,
