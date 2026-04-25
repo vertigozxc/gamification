@@ -347,6 +347,31 @@ function QuizModal({ open, username, onClose, onPassed }) {
                 </button>
               )}
             </>
+          ) : result.passed ? (
+            // Passed — single primary "Finish" button. Retrying after a
+            // pass adds nothing (achievement and tokens are already
+            // claimed via the popup), so we hide that path entirely.
+            <button
+              type="button"
+              className="mobile-pressable"
+              onClick={onClose}
+              style={{
+                flex: 1,
+                padding: "12px 18px",
+                borderRadius: 999,
+                border: "1.5px solid color-mix(in srgb, var(--color-primary) 70%, transparent)",
+                background: "color-mix(in srgb, var(--color-primary) 30%, transparent)",
+                color: "var(--color-primary)",
+                fontWeight: 800,
+                fontSize: 14,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                cursor: "pointer",
+                boxShadow: "0 4px 18px color-mix(in srgb, var(--color-primary) 25%, transparent)"
+              }}
+            >
+              {t.quizFinish || "Finish"}
+            </button>
           ) : (
             <>
               <button
