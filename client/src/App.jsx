@@ -98,8 +98,14 @@ function ModalLazyFallback() {
     </div>
   );
 }
-const QuestTimerControls = lazy(() => import("./components/QuestTimerControls"));
-const QuestCounterInline = lazy(() => import("./components/QuestCounterInline"));
+// Eagerly imported — these render inline on the dashboard quest cards.
+// Lazy-loading them caused a visible 1-3s flicker where timer/counter
+// quests rendered without their UI (Suspense fallback was null), making
+// timer quests look like simple instant-complete tasks until the chunk
+// arrived. The chunk is tiny (~5KB raw / ~1.9KB gzipped each), so the
+// extra round-trip costs more than it saves.
+import QuestTimerControls from "./components/QuestTimerControls";
+import QuestCounterInline from "./components/QuestCounterInline";
 const QuestNoteModal = lazy(() => import("./components/modals/QuestNoteModal"));
 const NotesHistoryModal = lazy(() => import("./components/modals/NotesHistoryModal"));
 const QuestCompletePopup = lazy(() => import("./components/QuestCompletePopup"));
@@ -1368,20 +1374,18 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     if (quest.mechanic === "counter") {
       const entry = (state.activeCounters || []).find((c) => Number(c.questId) === Number(quest.id)) || null;
       return (
-        <Suspense fallback={null}>
-          <QuestCounterInline
-            quest={quest}
-            count={entry?.count || 0}
-            target={Number(quest.targetCount) || 1}
-            windowStartAt={entry?.windowStartAt || null}
-            windowTicks={Number(entry?.windowTicks || 0)}
-            cooldownMin={Number(quest.counterCooldownMin) || 15}
-            maxInWindow={Number(quest.counterMaxPerTick) || 3}
-            pending={counterPendingId === quest.id}
-            onTick={() => handleCounterTick(quest)}
-            unitLabel={t.counterGlassUnit}
-          />
-        </Suspense>
+        <QuestCounterInline
+          quest={quest}
+          count={entry?.count || 0}
+          target={Number(quest.targetCount) || 1}
+          windowStartAt={entry?.windowStartAt || null}
+          windowTicks={Number(entry?.windowTicks || 0)}
+          cooldownMin={Number(quest.counterCooldownMin) || 15}
+          maxInWindow={Number(quest.counterMaxPerTick) || 3}
+          pending={counterPendingId === quest.id}
+          onTick={() => handleCounterTick(quest)}
+          unitLabel={t.counterGlassUnit}
+        />
       );
     }
     if (quest.mechanic === "note" || quest.mechanic === "words") {
@@ -2381,17 +2385,15 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 xpBoostExpiresAt={state.user?.xpBoostExpiresAt ?? null}
                 maxDailyQuests={maxDailyQuests}
                 renderQuestTimer={(quest) => (
-                  <Suspense fallback={null}>
-                    <QuestTimerControls
-                      quest={quest}
-                      session={timerSessionsByQuestId[quest.id]}
-                      elapsedMs={getTimerElapsedMs(quest.id)}
-                      onStart={handleTimerStart}
-                      onPause={pauseQuestTimerAction}
-                      onResume={resumeQuestTimerAction}
-                      onStop={handleTimerStop}
-                    />
-                  </Suspense>
+                  <QuestTimerControls
+                    quest={quest}
+                    session={timerSessionsByQuestId[quest.id]}
+                    elapsedMs={getTimerElapsedMs(quest.id)}
+                    onStart={handleTimerStart}
+                    onPause={pauseQuestTimerAction}
+                    onResume={resumeQuestTimerAction}
+                    onStop={handleTimerStop}
+                  />
                 )}
                 renderQuestMechanic={(quest) => renderQuestMechanicNode(quest)}
                 emptyPinnedSlotCount={emptyPinnedSlotCount}
@@ -2555,17 +2557,15 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             streakBonusPercent={streakBonusPercent}
             maxDailyQuests={maxDailyQuests}
             renderQuestTimer={(quest) => (
-              <Suspense fallback={null}>
-                <QuestTimerControls
-                  quest={quest}
-                  session={timerSessionsByQuestId[quest.id]}
-                  elapsedMs={getTimerElapsedMs(quest.id)}
-                  onStart={handleTimerStart}
-                  onPause={pauseQuestTimerAction}
-                  onResume={resumeQuestTimerAction}
-                  onStop={handleTimerStop}
-                />
-              </Suspense>
+              <QuestTimerControls
+                quest={quest}
+                session={timerSessionsByQuestId[quest.id]}
+                elapsedMs={getTimerElapsedMs(quest.id)}
+                onStart={handleTimerStart}
+                onPause={pauseQuestTimerAction}
+                onResume={resumeQuestTimerAction}
+                onStop={handleTimerStop}
+              />
             )}
             renderQuestMechanic={(quest) => renderQuestMechanicNode(quest)}
             emptyPinnedSlotCount={emptyPinnedSlotCount}
