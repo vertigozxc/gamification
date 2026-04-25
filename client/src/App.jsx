@@ -57,6 +57,7 @@ const FreezeSuccessModal = lazy(() => import("./components/modals/FreezeSuccessM
 const ResidentialAutoGrantModal = lazy(() => import("./components/modals/ResidentialAutoGrantModal"));
 const QuizModal = lazy(() => import("./components/modals/QuizModal"));
 const TierUnlockModal = lazy(() => import("./components/modals/TierUnlockModal"));
+const ActivityLogsModal = lazy(() => import("./components/modals/ActivityLogsModal"));
 const StreakBurnedDialog = lazy(() => import("./components/modals/StreakBurnedDialog"));
 const RerollConfirmModal = lazy(() => import("./components/modals/RerollConfirmModal"));
 const LogoutConfirmModal = lazy(() => import("./components/modals/LogoutConfirmModal"));
@@ -199,6 +200,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const [achievementModalOpen, setAchievementModalOpen] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
+  const [showActivityLogs, setShowActivityLogs] = useState(false);
   // Bumping this key forces AchievementsSection to refetch even if it's
   // already mounted and expanded. Driven by events that may unlock new
   // achievements server-side without going through a full game-state
@@ -712,6 +714,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       setShowLanguagePicker(false);
       setShowAbout(false);
       setShowQuiz(false);
+      setShowActivityLogs(false);
       setSingleHabitPickerOpen(false);
       setMobileTab(normalizeMobileTab(event?.detail));
     };
@@ -759,6 +762,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       || pinnedReplacementOpening
       || showAbout
       || showQuiz
+      || showActivityLogs
       || tierUnlock
       || showLogoutConfirm
       || showLevelUp
@@ -789,7 +793,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   }, [
     isEmbeddedApp, authUser, authLoading, dataLoading, initialDataResolved,
     showOnboarding, mobileTab, cityFullscreen, showPinnedReplaceModal, pinnedReplacementOpening,
-    showAbout, showQuiz, tierUnlock, showLogoutConfirm, showLevelUp, showHabitMilestone,
+    showAbout, showQuiz, showActivityLogs, tierUnlock, showLogoutConfirm, showLevelUp, showHabitMilestone,
     showFreezeSuccess, showRerollConfirm, showNotesModal, showThemePicker,
     showLanguagePicker, achievementModalOpen, showNotesHistory, deleteProfileOpen, questCompletePopup, timerLimitPopup,
     singleHabitPickerOpen, languageId
@@ -1978,6 +1982,11 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
 
       <Suspense fallback={null}>
         <AboutAppModal open={showAbout} onClose={() => setShowAbout(false)} />
+        <ActivityLogsModal
+          open={showActivityLogs}
+          username={authUser?.uid}
+          onClose={() => setShowActivityLogs(false)}
+        />
         <QuizModal
           open={showQuiz}
           username={authUser?.uid}
@@ -2392,6 +2401,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 onAchievementModalChange={setAchievementModalOpen}
                 onOpenAbout={() => setShowAbout(true)}
                 onOpenQuiz={() => setShowQuiz(true)}
+                onOpenActivityLogs={() => setShowActivityLogs(true)}
                 onOpenNotesHistory={() => setShowNotesHistory(true)}
                 achievementsRefreshKey={achievementsRefreshKey}
                 onAchievementTokensClaimed={(amount) => {

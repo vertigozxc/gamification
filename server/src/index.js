@@ -6217,6 +6217,177 @@ app.get("/api/users/:username/achievements", async (req, res) => {
   }
 });
 
+// Activity feed — synthesizes a unified event log from the user's
+// existing tables (questCompletion, userAchievement, friendship,
+// challengeParticipant, groupChallenge, event). No dedicated audit
+// table; rows live where they always did, the endpoint just
+// normalizes them to a common shape and merges by createdAt desc.
+//
+// Each item: { id, kind, at, title, subtitle?, meta? }. The client
+// renders it directly and supports substring search across title +
+// subtitle. Pagination is single-page top-N (default 200) — covers
+// typical session use without server-side cursor complexity.
+app.get("/api/users/:username/activity", async (req, res) => {
+  try {
+    const username = slugifyUsername(req.params.username);
+    if (!username) return res.status(400).json({ error: "Invalid username" });
+    const language = getRequestLanguage(req);
+    const limit = Math.min(500, Math.max(20, Number(req.query.limit) || 200));
+    const user = await prisma.user.findUnique({
+      where: { username },
+      select: { id: true, displayName: true }
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Pre-build a id→title lookup so quest completion rows can be
+    // labelled with human-readable titles in the active language.
+    const pool = getQuestPool({ language });
+    const questTitleById = new Map(pool.map((q) => [Number(q.id), q.title || `#${q.id}`]));
+
+    const customQuestRows = await prisma.customQuest.findMany({
+      where: { userId: user.id },
+      select: { id: true, title: true }
+    });
+    const customTitleByVirtualId = new Map(customQuestRows.map((row) => [
+      // mirror toCustomVirtualId: -1, -2, … (negative ints).
+      -Number(row.id),
+      row.title || ""
+    ]));
+
+    const items = [];
+
+    // 1. Quest completions (most recent 100) — cap to keep payload small
+    //    on long-time users.
+    const completions = await prisma.questCompletion.findMany({
+      where: { userId: user.id },
+      orderBy: { completedAt: "desc" },
+      take: 100,
+      select: { id: true, questId: true, dayKey: true, completedAt: true, completionPercent: true }
+    });
+    for (const row of completions) {
+      const qid = Number(row.questId);
+      const title = qid < 0
+        ? (customTitleByVirtualId.get(qid) || `Custom #${Math.abs(qid)}`)
+        : (questTitleById.get(qid) || `Quest #${qid}`);
+      items.push({
+        id: `qc:${row.id}`,
+        kind: "quest_completed",
+        at: row.completedAt,
+        title,
+        subtitle: row.completionPercent < 100
+          ? `Partial · ${row.completionPercent}%`
+          : null,
+        meta: { questId: qid, completionPercent: row.completionPercent }
+      });
+    }
+
+    // 2. Achievement unlocks + claims (separate items so search lights
+    //    up on both states).
+    const userAchievements = await prisma.userAchievement.findMany({
+      where: { userId: user.id },
+      orderBy: { unlockedAt: "desc" },
+      take: 60
+    });
+    for (const row of userAchievements) {
+      items.push({
+        id: `ua:${row.id}:u`,
+        kind: "achievement_unlocked",
+        at: row.unlockedAt,
+        title: row.code,
+        subtitle: null,
+        meta: { code: row.code }
+      });
+      if (row.claimedAt) {
+        items.push({
+          id: `ua:${row.id}:c`,
+          kind: "achievement_claimed",
+          at: row.claimedAt,
+          title: row.code,
+          subtitle: null,
+          meta: { code: row.code }
+        });
+      }
+    }
+
+    // 3. Friendships (created → friend added).
+    const friendships = await prisma.friendship.findMany({
+      where: { OR: [{ userAId: user.id }, { userBId: user.id }] },
+      orderBy: { createdAt: "desc" },
+      take: 40,
+      include: {
+        userA: { select: { username: true, displayName: true, handle: true } },
+        userB: { select: { username: true, displayName: true, handle: true } }
+      }
+    });
+    for (const row of friendships) {
+      const other = row.userAId === user.id ? row.userB : row.userA;
+      const handle = other?.handle ? `@${other.handle}` : (other?.displayName || other?.username || "user");
+      items.push({
+        id: `fr:${row.id}`,
+        kind: "friend_added",
+        at: row.createdAt,
+        title: handle,
+        subtitle: null,
+        meta: { username: other?.username || null }
+      });
+    }
+
+    // 4. Challenge memberships (joined / created).
+    const myParticipants = await prisma.challengeParticipant.findMany({
+      where: { userId: user.id, acceptedAt: { not: null } },
+      orderBy: { acceptedAt: "desc" },
+      take: 40,
+      include: { challenge: { select: { id: true, title: true, durationDays: true, creatorId: true } } }
+    });
+    for (const p of myParticipants) {
+      const c = p.challenge;
+      if (!c) continue;
+      const isCreator = c.creatorId === user.id;
+      items.push({
+        id: `cp:${p.id}`,
+        kind: isCreator ? "challenge_created" : "challenge_joined",
+        at: p.acceptedAt,
+        title: c.title || `Challenge #${c.id}`,
+        subtitle: c.durationDays ? `${c.durationDays} days` : null,
+        meta: { challengeId: c.id }
+      });
+    }
+
+    // 5. Native Event rows (admin/manual entries, future audit logs).
+    let eventRows = [];
+    try {
+      eventRows = await prisma.event.findMany({
+        where: { OR: [{ userId: user.id }, { username: user.displayName || "" }] },
+        orderBy: { createdAt: "desc" },
+        take: 50
+      });
+    } catch (eventErr) {
+      console.warn(`[Activity] event read failed: ${eventErr?.message || eventErr}`);
+    }
+    for (const e of eventRows) {
+      items.push({
+        id: `ev:${e.id}`,
+        kind: e.type || "event",
+        at: e.createdAt,
+        title: e.message || e.type || "Event",
+        subtitle: e.level && e.level !== "info" ? e.level : null,
+        meta: e.meta ? safeJsonParse(e.meta) : null
+      });
+    }
+
+    // Sort merged feed desc by `at` and cap at limit.
+    items.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+    res.json({ items: items.slice(0, limit), total: items.length });
+  } catch (error) {
+    console.error(`[Activity Feed Error] ${error?.message || error}`);
+    res.status(500).json({ error: "Failed to load activity", detail: error?.message });
+  }
+});
+
+function safeJsonParse(s) {
+  try { return JSON.parse(s || ""); } catch { return null; }
+}
+
 // Knowledge Quiz — unlock-only. The achievement row is created here
 // when the user scores 10/10 for the first time; the token reward is
 // claimed separately via POST /api/achievements/claim, same flow as

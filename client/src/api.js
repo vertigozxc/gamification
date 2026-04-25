@@ -641,6 +641,13 @@ export function fetchAchievements(username) {
   return request(`/api/users/${encodeURIComponent(username)}/achievements`);
 }
 
+export function fetchActivityFeed(username, params = {}) {
+  const qs = new URLSearchParams();
+  if (params.limit) qs.set("limit", String(params.limit));
+  const suffix = qs.toString();
+  return request(`/api/users/${encodeURIComponent(username)}/activity${suffix ? `?${suffix}` : ""}`);
+}
+
 export function claimQuizScholar(username) {
   return request("/api/quiz/scholar/claim", {
     method: "POST",

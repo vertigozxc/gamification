@@ -46,6 +46,7 @@ export default function ProfileTab({
   onOpenAbout,
   onOpenNotesHistory,
   onOpenQuiz,
+  onOpenActivityLogs,
   onDeleteConfirmStateChange,
   onAchievementModalChange,
   onAchievementTokensClaimed,
@@ -306,6 +307,16 @@ export default function ProfileTab({
               <div className="flex-1 text-left">
                 <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.aboutAppLabel || "About the app"}</p>
                 <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{t.aboutAppHint || "Rules, mechanics, formulas"}</p>
+              </div>
+              <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
+            </button>
+          ) : null}
+          {onOpenActivityLogs ? (
+            <button className="profile-settings-row" onClick={onOpenActivityLogs}>
+              <span className="text-xl w-8 text-center">📊</span>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.activityLogsLabel || "Activity Logs"}</p>
+                <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{t.activityLogsHint || "Everything you've done — searchable history"}</p>
               </div>
               <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
             </button>
