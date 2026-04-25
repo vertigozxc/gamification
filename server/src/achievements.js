@@ -28,9 +28,9 @@ export const ACHIEVEMENT_CODES = [
 
 // Token rewards per achievement, claimed via POST /api/achievements/claim.
 // Scaled by difficulty: trivial (1 click) → 2, easy (a week's effort or
-// quiz pass) → 6–20, medium (month / serious play) → 30–40, hard
-// (long-haul) → 50–100, and legendary (lvl_100) → 200. Total bank if
-// everything is claimed: 590.
+// quiz pass) → 6–20, medium (month / serious play / social leverage)
+// → 20–40, hard (long-haul) → 60–100, and legendary (lvl_100) → 200.
+// Total bank if everything is claimed: 560.
 export const ACHIEVEMENT_REWARDS = {
   polyglot: 2,
   first_coin: 2,
@@ -38,11 +38,11 @@ export const ACHIEVEMENT_REWARDS = {
   week_warrior: 10,
   scholar: 10,
   lvl_10: 20,
-  champion: 30,
+  champion: 20,
+  mentor: 30,
   month_monk: 30,
   high_roller: 30,
   phoenix: 40,
-  mentor: 50,
   lvl_30: 60,
   hundred_club: 100,
   lvl_100: 200
