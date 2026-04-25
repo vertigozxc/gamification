@@ -7,7 +7,7 @@ import QuestGroupCard from "../QuestGroupCard";
 import CategoryFilterRow from "../CategoryFilterRow";
 import InputWithClear from "../InputWithClear";
 import { groupQuests, availableCategories, matchesCategory } from "../../utils/questGrouping";
-import { IconSparkle, IconClose } from "../icons/Icons";
+import { IconSparkle, IconClose, IconList } from "../icons/Icons";
 
 // Dedicated screen for filling ONE unlocked habit slot (triggered from the
 // "New Habit Unlocked" card). Distinct from PinnedReplacementModal which
@@ -194,44 +194,34 @@ export default function SingleHabitPickerModal({
           </div>
 
           {onCreateCustom ? (
-            <div style={{ display: "flex", gap: 6, marginTop: 12, padding: 3, borderRadius: 12, background: "rgba(0,0,0,0.3)", border: "1px solid var(--panel-border)" }}>
+            // Same segmented slide-bar pattern as OnboardingModal /
+            // PinnedReplacementModal so the picker reads as part of
+            // the same family of habit screens.
+            <div
+              role="tablist"
+              className="onb-habits-tabs"
+              style={{ "--onb-tabs-count": 2, "--onb-tabs-active": mode === "create" ? 1 : 0, marginTop: 12 }}
+            >
+              <div className="onb-habits-tabs-slider" aria-hidden />
               <button
                 type="button"
+                role="tab"
+                aria-selected={mode === "pick"}
                 onClick={() => setMode("pick")}
-                className="cinzel mobile-pressable"
-                style={{
-                  flex: 1,
-                  padding: "8px 10px",
-                  borderRadius: 9,
-                  border: "none",
-                  background: mode === "pick" ? "color-mix(in srgb, #4ade80 18%, transparent)" : "transparent",
-                  color: mode === "pick" ? "#bbf7d0" : "var(--color-muted)",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  letterSpacing: "0.06em",
-                  cursor: "pointer"
-                }}
+                className="onb-habits-tab cinzel mobile-pressable"
               >
-                {pickTabLabel}
+                <span className="onb-habits-tab-ico" aria-hidden style={{ display: "inline-flex" }}><IconList size={14} /></span>
+                <span className="onb-habits-tab-label">{pickTabLabel}</span>
               </button>
               <button
                 type="button"
+                role="tab"
+                aria-selected={mode === "create"}
                 onClick={() => setMode("create")}
-                className="cinzel mobile-pressable"
-                style={{
-                  flex: 1,
-                  padding: "8px 10px",
-                  borderRadius: 9,
-                  border: "none",
-                  background: mode === "create" ? "color-mix(in srgb, #4ade80 18%, transparent)" : "transparent",
-                  color: mode === "create" ? "#bbf7d0" : "var(--color-muted)",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  letterSpacing: "0.06em",
-                  cursor: "pointer"
-                }}
+                className="onb-habits-tab cinzel mobile-pressable"
               >
-                + {createTabLabel}
+                <span className="onb-habits-tab-ico" aria-hidden style={{ display: "inline-flex" }}><IconSparkle size={14} /></span>
+                <span className="onb-habits-tab-label">{createTabLabel}</span>
               </button>
             </div>
           ) : null}
