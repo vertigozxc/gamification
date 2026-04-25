@@ -1668,7 +1668,8 @@ body[data-theme="light"] .delete-profile-confirm-cancel {
 .qb-tab-bar-expand .qb-tab-indicator-chal{background:rgba(250,204,21,.22);border-color:rgba(253,224,71,.6);box-shadow:0 4px 14px rgba(250,204,21,.26)}
 .qb-tab-bar-expand .qb-tab-btn{border:1.5px solid transparent;padding:.35rem .5rem;gap:.3rem;transition:color .25s;min-width:0;overflow:visible;background:transparent}
 .qb-tab-bar-expand .qb-tab-btn:hover,.qb-tab-bar-expand .qb-tab-active{background:transparent;border-color:transparent;box-shadow:none}
-.qb-tab-bar-expand .qb-tab-icon{font-size:.95rem;line-height:1;flex-shrink:0}
+.qb-tab-bar-expand .qb-tab-icon{font-size:.95rem;line-height:1;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center}
+.qb-tab-bar-expand .qb-tab-icon svg{display:block}
 .qb-tab-bar-expand .qb-tab-label{max-width:0;opacity:0;overflow:hidden;white-space:nowrap;transition:max-width .34s cubic-bezier(.22,1,.36,1),opacity .22s ease-out;margin:0}
 .qb-tab-bar-expand .qb-tab-active .qb-tab-label{max-width:140px;opacity:1}
 /* 2-tab equal layout — always show both labels (no expand/collapse). */
@@ -1689,7 +1690,7 @@ body[data-theme="light"] .qb-chal-item{border-color:rgba(217,119,6,.4);backgroun
 body[data-theme="light"] .qb-chal-item .qb-cat{color:#92400e;background:rgba(250,204,21,.2)}
 body[data-theme="light"] .qb-chal-item .qb-xp{color:#92400e}
 .qb-tab-fresh{pointer-events:none;position:absolute;top:-12px;right:-8px;z-index:8;display:inline-flex;align-items:center;gap:.2rem;padding:.14rem .4rem .12rem;border-radius:999px;background:linear-gradient(135deg,#ffe28a,#ffc947);border:1px solid rgba(255,221,112,.68);box-shadow:0 12px 20px -12px rgba(255,190,11,.95),0 0 0 1px rgba(255,255,255,.35) inset;transform:rotate(-4deg);animation:qbFreshBadgeFloat 2.2s ease-in-out infinite}
-.qb-tab-fresh__spark{font-size:.5rem;line-height:1;color:#7c2d12;opacity:.9}
+.qb-tab-fresh__spark{font-size:.5rem;line-height:1;color:#7c2d12;opacity:.9;display:inline-flex;align-items:center}
 .qb-tab-fresh__label{font-family:"Caveat",var(--font-heading);font-size:.8rem;line-height:1;color:#111827;font-weight:700;letter-spacing:.03em;text-transform:none}
 /* -webkit-backdrop-filter removed: on iOS Safari it combined with
    border-radius + opacity transitions to leave ~1px dark halo pixels

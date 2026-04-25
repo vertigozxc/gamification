@@ -12,7 +12,8 @@ import {
   IconCalendar,
   IconGlobe,
   IconBook,
-  IconTrash
+  IconTrash,
+  IconFlame
 } from "../icons/Icons";
 
 function ChevronToggle({ open }) {
@@ -188,7 +189,7 @@ export default function ProfileTab({
           <p className="text-[10px] uppercase tracking-wider mt-1" style={{ color: "var(--color-muted)" }}>{t.totalXpLabel}</p>
         </div>
         <div className="mobile-card flex flex-col items-center py-4" style={{ background: "var(--panel-bg)" }}>
-          <span className="text-2xl mb-1">{t.streakIcon}</span>
+          <span style={{ display: "inline-flex", color: "var(--streak-text)", marginBottom: 4 }}><IconFlame size={26} /></span>
           <p className="cinzel text-2xl font-bold" style={{ color: "var(--color-primary)" }}>{state.streak}</p>
           <p className="text-[10px] uppercase tracking-wider mt-1" style={{ color: "var(--color-muted)" }}>{t.currentStreak}</p>
         </div>
@@ -213,7 +214,7 @@ export default function ProfileTab({
             <span className="cinzel font-bold text-sm" style={{ color: "var(--color-primary)" }}>{profileStats?.totalQuestsCompleted ?? "—"}</span>
           </div>
           <div className="flex items-center justify-between py-2 border-b border-[var(--panel-border)]">
-            <span className="flex items-center gap-2 text-sm"><span className="text-lg">{t.streakIcon}</span> {t.profileBestStreakLabel}</span>
+            <span className="flex items-center gap-2 text-sm"><span style={{ display: "inline-flex", color: "var(--streak-text)" }}><IconFlame size={18} /></span> {t.profileBestStreakLabel}</span>
             <span className="cinzel font-bold text-sm" style={{ color: "var(--color-primary)" }}>{profileStats?.maxStreak ?? "—"}</span>
           </div>
           <div className="flex items-center justify-between py-2 border-b border-[var(--panel-border)]">

@@ -3,6 +3,7 @@ import QuestBoard from "../QuestBoard";
 import { useTheme } from "../../ThemeContext";
 import { completeChallenge, fetchUserChallenges, joinChallenge, leaveChallenge } from "../../api";
 import { IconFlame } from "../icons/Icons";
+// (IconFlame is also used inside the milestone-reward renderer below.)
 
 function todayKey() {
   const d = new Date();
@@ -173,13 +174,26 @@ export default function DashboardTab({
                   <span style={{ color: unlocked ? "var(--color-primary)" : isLight ? "#3d4450" : "var(--color-text)", opacity: unlocked ? 1 : isLight ? 1 : 0.6 }}>{step.target} <span className="text-[9px] uppercase tracking-widest opacity-60">{step.target >= 5 && t.itemLabelPlural ? t.itemLabelPlural : t.itemLabel}</span></span>
                 </div>
                 <div className="text-[10px] font-extrabold tracking-tight whitespace-nowrap flex flex-wrap items-center justify-center" style={{ color: unlocked ? "var(--color-text)" : isLight ? "#3d4450" : "var(--color-muted)", opacity: unlocked ? 1 : isLight ? 1 : 0.6, filter: unlocked ? "drop-shadow(0 0 2px var(--color-primary-glow))" : "none" }}>
-                  {step.reward.split(new RegExp(`(${t.streakIcon}|${t.tokenIcon})`)).map((part, i) => (
-                    part === t.streakIcon || part === t.tokenIcon ? (
-                      <span key={i} className="text-[13px] leading-none ml-0.5 drop-shadow-sm">{part}</span>
-                    ) : (
-                      <span key={i}>{part}</span>
-                    )
-                  ))}
+                  {step.reward.split(new RegExp(`(${t.streakIcon}|${t.tokenIcon})`)).map((part, i) => {
+                    if (part === t.streakIcon) {
+                      return (
+                        <span
+                          key={i}
+                          className="leading-none drop-shadow-sm"
+                          style={{ display: "inline-flex", alignItems: "center", color: "var(--streak-text)" }}
+                        >
+                          <IconFlame size={13} />
+                        </span>
+                      );
+                    }
+                    if (part === t.tokenIcon) {
+                      return <span key={i} className="text-[13px] leading-none drop-shadow-sm">{part}</span>;
+                    }
+                    // Strip the leading space that follows an icon so the
+                    // "+N" hugs the icon (no visible gap).
+                    const trimmed = part.replace(/^\s+/, '');
+                    return <span key={i}>{trimmed}</span>;
+                  })}
                 </div>
               </div>
             );
