@@ -396,6 +396,15 @@ export default function WebAppScreen({ onShellReady }) {
         return;
       }
       if (data?.type === "google-login-request") {
+        // Defensive reset of the auth-reload guard. Without this, a
+        // second login attempt within 90 s of the previous successful
+        // one (e.g. user logs out in-app then re-taps Login with Google)
+        // hits the `triggerAuthReload` no-op branch — bridge user is
+        // fetched but never injected back into the WebView, so the user
+        // bounces straight back to LoginScreen and can only recover by
+        // killing the app. Every fresh OAuth attempt deserves a clean
+        // guard regardless of how recently the previous one finished.
+        authReloadTriggeredRef.current = false;
         const returnScheme = "com.liferpg.mobile";
         const redirectUri = `${resolveApiBase()}/api/auth/google-callback`;
         const clientId = "381152713640-o1cnhofvud2lna05gbor9o5cnplfm2e1.apps.googleusercontent.com";
