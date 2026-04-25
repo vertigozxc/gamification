@@ -56,6 +56,7 @@ import { IconTimer } from "./components/icons/Icons";
 const FreezeSuccessModal = lazy(() => import("./components/modals/FreezeSuccessModal"));
 const ResidentialAutoGrantModal = lazy(() => import("./components/modals/ResidentialAutoGrantModal"));
 const QuizModal = lazy(() => import("./components/modals/QuizModal"));
+const TierUnlockModal = lazy(() => import("./components/modals/TierUnlockModal"));
 const StreakBurnedDialog = lazy(() => import("./components/modals/StreakBurnedDialog"));
 const RerollConfirmModal = lazy(() => import("./components/modals/RerollConfirmModal"));
 const LogoutConfirmModal = lazy(() => import("./components/modals/LogoutConfirmModal"));
@@ -175,6 +176,10 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   // lazy /api/game-state response (when 30-day or 365-day cycles
   // elapsed during the user's absence). { freeze, vacation } | null.
   const [residentialAutoGrant, setResidentialAutoGrant] = useState(null);
+  // Server-detected tier crossing — see TierUnlockModal. Null when no
+  // pending unlock; populated with the diff payload from the most
+  // recent quest completion that crossed a level/streak threshold.
+  const [tierUnlock, setTierUnlock] = useState(null);
   const surfacePendingGrants = (response) => {
     const pg = response?.pendingGrants;
     if (pg && (Number(pg.freeze) > 0 || Number(pg.vacation) > 0)) {
@@ -754,6 +759,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       || pinnedReplacementOpening
       || showAbout
       || showQuiz
+      || tierUnlock
       || showLogoutConfirm
       || showLevelUp
       || showHabitMilestone
@@ -783,7 +789,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   }, [
     isEmbeddedApp, authUser, authLoading, dataLoading, initialDataResolved,
     showOnboarding, mobileTab, cityFullscreen, showPinnedReplaceModal, pinnedReplacementOpening,
-    showAbout, showQuiz, showLogoutConfirm, showLevelUp, showHabitMilestone,
+    showAbout, showQuiz, tierUnlock, showLogoutConfirm, showLevelUp, showHabitMilestone,
     showFreezeSuccess, showRerollConfirm, showNotesModal, showThemePicker,
     showLanguagePicker, achievementModalOpen, showNotesHistory, deleteProfileOpen, questCompletePopup, timerLimitPopup,
     singleHabitPickerOpen, languageId
@@ -1181,6 +1187,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     setShowHabitMilestone,
     setHabitMilestoneTitle,
     setHabitMilestoneTokens,
+    setTierUnlock,
     levelDisplayRef,
     questRenderCountRef,
     vocab: t
@@ -1855,6 +1862,10 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         <ResidentialAutoGrantModal
           grant={residentialAutoGrant}
           onClose={() => setResidentialAutoGrant(null)}
+        />
+        <TierUnlockModal
+          tier={tierUnlock}
+          onAcknowledge={() => setTierUnlock(null)}
         />
       </Suspense>
 

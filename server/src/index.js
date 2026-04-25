@@ -3210,6 +3210,12 @@ async function processQuestCompletion({ user, quest, dayKey, availableQuests, cu
 // Run the XP award + token/streak bookkeeping transaction shared by
 // /api/quests/complete and the timer stop endpoint.
 async function awardQuestCompletion({ user, quest, dayKey, availableQuests, customQuests, completionPercent, elapsedMs, now }) {
+  // Snapshot the user's tier slots BEFORE awarding XP so we can detect
+  // a tier crossing (more habit/daily slots, higher difficulty cap)
+  // after the transaction settles. The diff travels back to the client
+  // as `tierUnlock` and triggers the mandatory progression popup.
+  const prevSlots = getQuestSlotsForLevel(user.level || 1, user.streak || 0);
+
   const {
     questForXp,
     milestoneReward,
@@ -3347,6 +3353,24 @@ async function awardQuestCompletion({ user, quest, dayKey, availableQuests, cust
     // "X more to grow your streak" dynamically.
     todayHundredCount,
     streakThreshold: Number(getStreakRuleConfig().successThresholdCompletedQuests) || 4,
+    // tierUnlock fires when this completion crossed a level / streak
+    // boundary that changed the user's slot mix or difficulty cap.
+    // Client treats this as a mandatory popup explaining what just
+    // unlocked (extra habit slot, extra daily, harder quests, etc.).
+    tierUnlock: (() => {
+      const next = getQuestSlotsForLevel(finalUser.level || 1, finalUser.streak || 0);
+      const pinnedDelta = next.pinned - prevSlots.pinned;
+      const randomDelta = next.random - prevSlots.random;
+      const effortDelta = next.maxEffort - prevSlots.maxEffort;
+      if (pinnedDelta <= 0 && randomDelta <= 0 && effortDelta <= 0) return null;
+      return {
+        previous: prevSlots,
+        current: next,
+        diff: { pinned: pinnedDelta, random: randomDelta, maxEffort: effortDelta },
+        reachedLevel: finalUser.level || 1,
+        reachedStreak: finalUser.streak || 0
+      };
+    })(),
     ...buildServerTimeMeta(now)
   };
 }

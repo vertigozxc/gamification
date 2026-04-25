@@ -34,6 +34,7 @@ function useGameplayActions({
   setShowHabitMilestone,
   setHabitMilestoneTitle,
   setHabitMilestoneTokens,
+  setTierUnlock,
   levelDisplayRef,
   questRenderCountRef,
   vocab
@@ -273,6 +274,14 @@ function useGameplayActions({
                 }
               }, 10);
             }
+          }
+
+          // Server-detected tier crossing — slot mix or difficulty cap
+          // changed because of this completion (level milestone or
+          // streak hitting 14 for the first time). Mandatory popup so
+          // the player notices what just unlocked.
+          if (completionResult?.tierUnlock && typeof setTierUnlock === "function") {
+            setTierUnlock(completionResult.tierUnlock);
           }
 
           const milestoneSuffix = milestoneBonusXp > 0
