@@ -5246,17 +5246,29 @@ app.post("/api/shop/extra-reroll", async (req, res) => {
     if (user.tokens < rerollCost) {
       return res.status(400).json({ error: "Not enough tokens" });
     }
-    const updatedUser = rerollCost > 0
-      ? await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            tokens: { decrement: rerollCost },
-            tokensSpentTotal: { increment: rerollCost }
-          }
-        })
-      : user;
+    // Always grant +1 extra reroll, even for free purchases (rerollCost === 0
+    // when the residential discount is large enough). Without the increment,
+    // the daily-reroll guard in /api/reset-daily ("Daily reroll already used")
+    // rejects the next reroll because user.extraRerollsToday stayed at 0 —
+    // the symptom the user saw: tokens debited, quests didn't change.
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        ...(rerollCost > 0 ? {
+          tokens: { decrement: rerollCost },
+          tokensSpentTotal: { increment: rerollCost }
+        } : {}),
+        extraRerollsToday: { increment: 1 }
+      }
+    });
     if (rerollCost > 0) trackAchievements(user.id);
-    res.json({ ok: true, tokens: updatedUser.tokens, cost: rerollCost, discount });
+    res.json({
+      ok: true,
+      tokens: updatedUser.tokens,
+      cost: rerollCost,
+      discount,
+      extraRerollsToday: Number(updatedUser.extraRerollsToday || 0)
+    });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
   }
