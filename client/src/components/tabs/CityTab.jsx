@@ -8,8 +8,8 @@ import InteractiveMapWrapper from "../InteractiveMapWrapper";
 import useEdgeSwipeBack from "../../hooks/useEdgeSwipeBack";
 import SpinWheelModal from "../SpinWheelModal";
 import { useTheme } from "../../ThemeContext";
-import { pluralizeDays } from "../../i18nConfig";
-import { citySpinStatus, upgradeDistrict, downgradeDistrict, devGrantStats, claimBusinessTokens, claimMonthlyFreeze, startVacation, updateCityName } from "../../api";
+import { pluralizeDays, pluralizeCharges } from "../../i18nConfig";
+import { citySpinStatus, upgradeDistrict, downgradeDistrict, devGrantStats, claimBusinessTokens, updateCityName } from "../../api";
 
 const DISTRICT_MAX_LEVEL = 5;
 
@@ -46,11 +46,13 @@ function tpl(str, vars) {
   return String(str || "").replace(/\{(\w+)\}/g, (_, k) => (k in vars ? String(vars[k]) : ""));
 }
 
-// Residential free-freeze status — 30-day rolling cycle.
-// Cap: lvl 2–3 = 1 per cycle; lvl ≥4 = 2 per cycle.
-// Returns { cap, used, remaining, nextResetInDays, availableNow } where
-// nextResetInDays counts down to the end of the current cycle (if the cap is
-// exhausted); 0 otherwise.
+// Residential free-freeze auto-grant status — 30-day rolling cycle.
+// Cap: lvl 2–3 = 1 per cycle; lvl ≥4 = 2 per cycle. Charges are issued
+// automatically by the server (in /api/game-state and on the threshold
+// upgrade itself); this helper only computes how many days remain until
+// the next auto-grant so the City UI can render a countdown.
+// New JSON shape: { lastGrantAt: ISO }. Legacy { cycleStartAt, count }
+// rows are read forward by treating cycleStartAt as the previous grant.
 const FREEZE_CYCLE_DAYS = 30;
 const FREEZE_CYCLE_MS = FREEZE_CYCLE_DAYS * 24 * 3600_000;
 const VACATION_COOLDOWN_DAYS = 365;
@@ -58,21 +60,17 @@ const VACATION_COOLDOWN_MS = VACATION_COOLDOWN_DAYS * 24 * 3600_000;
 
 function residentialFreezeStatus(resLvl, monthlyFreezeClaimsJson, nowMs) {
   const cap = resLvl >= 4 ? 2 : resLvl >= 2 ? 1 : 0;
-  if (cap === 0) return { cap: 0, used: 0, remaining: 0, nextResetInDays: 0, availableNow: false };
+  if (cap === 0) return { cap: 0, nextResetInDays: 0 };
   let parsed = null;
   try { parsed = JSON.parse(monthlyFreezeClaimsJson || "{}"); } catch { parsed = null; }
-  const cycleStartMs = parsed?.cycleStartAt ? new Date(parsed.cycleStartAt).getTime() : NaN;
-  const count = Math.max(0, Number(parsed?.count) || 0);
-  const inCycle = Number.isFinite(cycleStartMs) && (nowMs - cycleStartMs) < FREEZE_CYCLE_MS;
-  if (!inCycle) {
-    return { cap, used: 0, remaining: cap, nextResetInDays: 0, availableNow: true };
+  const lastGrantSrc = parsed?.lastGrantAt || parsed?.cycleStartAt;
+  const lastGrantMs = lastGrantSrc ? new Date(lastGrantSrc).getTime() : NaN;
+  if (!Number.isFinite(lastGrantMs)) {
+    return { cap, nextResetInDays: FREEZE_CYCLE_DAYS };
   }
-  const used = Math.min(cap, count);
-  const remaining = Math.max(0, cap - used);
-  const nextResetInDays = remaining > 0
-    ? 0
-    : Math.max(0, Math.ceil((cycleStartMs + FREEZE_CYCLE_MS - nowMs) / (24 * 3600_000)));
-  return { cap, used, remaining, nextResetInDays, availableNow: remaining > 0 };
+  const dueAtMs = lastGrantMs + FREEZE_CYCLE_MS;
+  const nextResetInDays = Math.max(0, Math.ceil((dueAtMs - nowMs) / (24 * 3600_000)));
+  return { cap, nextResetInDays };
 }
 
 // Residential vacation claim status — 365-day rolling cooldown.
@@ -262,7 +260,7 @@ function ReqChip({ icon, label, met, current }) {
 // level swaps in the primary accent instead of green so the user
 // immediately sees "you are here". Rows intentionally render as
 // non-interactive <div>s — taps here shouldn't trigger anything.
-function PerkRow({ lvl, levelShort = "LVL", text, unlocked, isCurrent }) {
+function PerkRow({ lvl, levelShort = "LVL", text, unlocked, isCurrent, subline = null }) {
   const circleColor = isCurrent
     ? "var(--color-primary)"
     : unlocked
@@ -337,14 +335,38 @@ function PerkRow({ lvl, levelShort = "LVL", text, unlocked, isCurrent }) {
       </span>
       <span
         style={{
-          fontSize: 13,
-          fontWeight: isCurrent ? 700 : 600,
-          color: unlocked ? "var(--color-text)" : "var(--color-muted)",
           flex: 1,
-          lineHeight: 1.25
+          minWidth: 0,
+          display: "flex",
+          flexDirection: "column",
+          gap: subline ? 3 : 0
         }}
       >
-        {text}
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: isCurrent ? 700 : 600,
+            color: unlocked ? "var(--color-text)" : "var(--color-muted)",
+            lineHeight: 1.25
+          }}
+        >
+          {text}
+        </span>
+        {subline ? (
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: "var(--color-muted)",
+              lineHeight: 1.3,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4
+            }}
+          >
+            {subline}
+          </span>
+        ) : null}
       </span>
     </div>
   );
@@ -491,7 +513,10 @@ export default function CityTab({
   const [lockedInfoOpen, setLockedInfoOpen] = useState(false);
   // Unified success popup. `type` selects icon/copy; `amount` is shown
   // for payloads that have a numeric delta (business profits).
-  const [claimSuccessPopup, setClaimSuccessPopup] = useState(null); // { type: "freeze" | "vacation" | "business", amount?: number } | null
+  const [claimSuccessPopup, setClaimSuccessPopup] = useState(null); // { type: "freeze" | "vacation" | "business" | "residentialGrant", amount?: number, freezeCount?: number, vacationCount?: number } | null
+  // Residential auto-grant from an upgrade waits for the upgrade popup
+  // to be dismissed, then fires its own confirmation.
+  const [pendingResidentialPopup, setPendingResidentialPopup] = useState(null);
 
   // Custom city name — user-editable, persisted server-side (Prisma
   // `User.cityName`, POST /api/profiles/city-name). We keep a localStorage
@@ -577,6 +602,17 @@ export default function CityTab({
       const newLevel = Number(result?.level) || 0;
       const localizedName = t?.[`district${districtId.charAt(0).toUpperCase() + districtId.slice(1)}`] || districtId;
       const perk = t?.[perkKey(districtId, newLevel)] || "";
+      // If the server auto-granted Residential perks on this upgrade
+      // (lvl 1→2 and 3→4 hand out a Streak Freeze charge; first lvl 3
+      // hands out a 20-charge Vacation bundle), surface that as a
+      // queued popup so it fires right after the upgrade celebration.
+      const grants = result?.grants;
+      if (grants && (Number(grants.freeze) > 0 || Number(grants.vacation) > 0)) {
+        setPendingResidentialPopup({
+          freeze: Number(grants.freeze) || 0,
+          vacation: Number(grants.vacation) || 0
+        });
+      }
       setUpgradePopup({ districtId, level: newLevel, previousLevel, name: localizedName, perk });
       setFireworksActive(true);
       // Park upgrades shorten the spin-wheel cooldown window. The server
@@ -659,44 +695,10 @@ export default function CityTab({
     }
   }, [username, onStatsGranted]);
 
-  const handleResidentialFreeze = useCallback(async () => {
-    if (!username) return;
-    try {
-      const result = await claimMonthlyFreeze(username);
-      const nextMonthlyClaims = result.cycleStartAt
-        ? JSON.stringify({ cycleStartAt: result.cycleStartAt, count: result.used })
-        : undefined;
-      onStatsGranted?.({
-        streakFreezeCharges: result.streakFreezeCharges,
-        ...(nextMonthlyClaims ? { monthlyFreezeClaims: nextMonthlyClaims } : {})
-      });
-      setClaimSuccessPopup({ type: "freeze" });
-    } catch (err) {
-      setActionMsg(err?.data?.error || err?.message || "Failed");
-      setTimeout(() => setActionMsg(""), 3000);
-    }
-  }, [username, onStatsGranted]);
-
-  const handleStartVacation = useCallback(async () => {
-    if (!username) return;
-    try {
-      const result = await startVacation(username);
-      // Server no longer starts an active vacation window — it simply
-      // grants 20 freeze charges. Clear any legacy vacation fields that
-      // may still linger on the cached user so the Profile tab's
-      // freeze card stops showing a stale "Freeze period" for them.
-      onStatsGranted?.({
-        streakFreezeCharges: result.streakFreezeCharges,
-        vacationStartedAt: null,
-        vacationEndsAt: null,
-        lastVacationAt: result.lastVacationAt ?? null
-      });
-      setClaimSuccessPopup({ type: "vacation" });
-    } catch (err) {
-      setActionMsg(err?.data?.error || err?.message || "Failed");
-      setTimeout(() => setActionMsg(""), 3000);
-    }
-  }, [username, onStatsGranted]);
+  // (Residential freeze + vacation are now auto-granted server-side; no
+  // manual claim handlers needed — the popup that confirms an auto
+  // grant is fired from the upgrade-district success path and from the
+  // game-state lazy-grant payload.)
 
   // Check localStorage cache on mount
   useEffect(() => {
@@ -991,30 +993,10 @@ export default function CityTab({
             const districtName = t?.[`district${d.id.charAt(0).toUpperCase() + d.id.slice(1)}`] || d.id;
             const unlocked = lvl > 0;
 
-            // Residential — overview row intentionally stays a single-line
-            // "Custom benefits" chip; specifics (freeze cycle, vacation
-            // timer) live inside the district detail screen.
+            // Residential perk countdowns live INSIDE the district
+            // detail (per-level Benefits rows), not in the overview
+            // grid — keep this empty here on purpose.
             const timers = [];
-            if (false && d.id === "residential" && unlocked) {
-              const fz = residentialFreezeStatus(lvl, monthlyFreezeClaims, nowMs);
-              if (fz.cap > 0) {
-                if (fz.remaining > 0) {
-                  timers.push(tpl(t.residentialFreezeAvailable || "Free freeze ready · {remaining} left this cycle", { remaining: fz.remaining, cap: fz.cap }));
-                } else {
-                  timers.push(tpl(t.residentialFreezeNextIn || "Next cycle in {days} {dayWord}", { days: fz.nextResetInDays, dayWord: pluralizeDays(fz.nextResetInDays, languageId) }));
-                }
-              }
-              const vac = residentialVacationStatus(lvl, lastVacationAt, vacationEndsAt, nowMs);
-              if (vac.unlocked) {
-                if (vac.active) {
-                  timers.push(tpl(t.residentialVacationActive || "Vacation active · ends in {days} {dayWord}", { days: vac.endsInDays, dayWord: pluralizeDays(vac.endsInDays, languageId) }));
-                } else if (vac.availableNow) {
-                  timers.push(t.residentialVacationAvailable || "Vacation available");
-                } else if (typeof vac.nextAvailableInDays === "number") {
-                  timers.push(tpl(t.residentialVacationNextIn || "Next vacation in {days} {dayWord}", { days: vac.nextAvailableInDays, dayWord: pluralizeDays(vac.nextAvailableInDays, languageId) }));
-                }
-              }
-            }
 
             return (
               <button
@@ -1246,6 +1228,42 @@ export default function CityTab({
                   {[1, 2, 3, 4, 5].map((lvl) => {
                     const unlocked = level >= lvl;
                     const isCurrent = level > 0 && lvl === level;
+
+                    // Residential rows show a "next auto-grant in N days"
+                    // sub-line on the source-level row that powers each
+                    // perk: lvl 2 (1/mo freeze) is the source while the
+                    // player is at lvl 2–3; lvl 4 (2/mo freeze) takes
+                    // over once the player reaches lvl 4+; lvl 3 owns
+                    // the Vacation 365-day timer.
+                    let subline = null;
+                    if (district.id === "residential" && unlocked) {
+                      if (lvl === 2 && level >= 2 && level <= 3) {
+                        const fz = residentialFreezeStatus(level, monthlyFreezeClaims, nowMs);
+                        if (fz.cap > 0) {
+                          subline = "⏱ " + tpl(
+                            t.residentialFreezeNextIn || "Next charge in {days} {dayWord}",
+                            { days: fz.nextResetInDays, dayWord: pluralizeDays(fz.nextResetInDays, languageId) }
+                          );
+                        }
+                      } else if (lvl === 4 && level >= 4) {
+                        const fz = residentialFreezeStatus(level, monthlyFreezeClaims, nowMs);
+                        if (fz.cap > 0) {
+                          subline = "⏱ " + tpl(
+                            t.residentialFreezeNextIn || "Next charge in {days} {dayWord}",
+                            { days: fz.nextResetInDays, dayWord: pluralizeDays(fz.nextResetInDays, languageId) }
+                          );
+                        }
+                      } else if (lvl === 3 && level >= 3) {
+                        const vac = residentialVacationStatus(level, lastVacationAt, vacationEndsAt, nowMs);
+                        if (vac.unlocked && typeof vac.nextAvailableInDays === "number" && vac.nextAvailableInDays > 0) {
+                          subline = "⏱ " + tpl(
+                            t.residentialVacationNextIn || "Next vacation in {days} {dayWord}",
+                            { days: vac.nextAvailableInDays, dayWord: pluralizeDays(vac.nextAvailableInDays, languageId) }
+                          );
+                        }
+                      }
+                    }
+
                     return (
                       <PerkRow
                         key={lvl}
@@ -1254,6 +1272,7 @@ export default function CityTab({
                         text={perkText(t, district.id, lvl)}
                         unlocked={unlocked}
                         isCurrent={isCurrent}
+                        subline={subline}
                       />
                     );
                   })}
@@ -1334,90 +1353,11 @@ export default function CityTab({
         );
       })()}
 
-      {/* Residential: Claim monthly freeze + Start vacation. At lvl 0 and 1
-          neither action is unlocked yet, so return null early — otherwise
-          the wrapper div (with `mt-3` + flex gap) still occupies space and
-          visually pushes the benefits/upgrade card much further below the
-          map than in other districts. */}
-      {selectedDistrictIdx >= 0 && DISTRICTS[selectedDistrictIdx]?.id === "residential" && (() => {
-        const resLvl = Math.max(0, Math.min(DISTRICT_MAX_LEVEL, Math.floor(Number(districtLevels[selectedDistrictIdx]) || 0)));
-        if (resLvl < 2) return null;
-        const fz = residentialFreezeStatus(resLvl, monthlyFreezeClaims, nowMs);
-        const vac = residentialVacationStatus(resLvl, lastVacationAt, vacationEndsAt, nowMs);
-        const freezeDisabled = fz.cap === 0 || fz.remaining === 0;
-        const vacationDisabled = !vac.unlocked || vac.active || (vac.nextAvailableInDays > 0);
-        return (
-          <div className="mt-3 flex flex-col gap-2" style={{ order: 5 }}>
-            {resLvl >= 2 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <button
-                  onClick={freezeDisabled ? undefined : handleResidentialFreeze}
-                  disabled={freezeDisabled}
-                  className="qt-btn"
-                  style={{
-                    width: "100%",
-                    minHeight: 48,
-                    padding: "12px 14px",
-                    borderRadius: 14,
-                    border: `1.5px solid ${freezeDisabled ? "var(--panel-border)" : "#5ba0e0"}`,
-                    background: freezeDisabled
-                      ? "color-mix(in srgb, var(--panel-bg) 70%, transparent)"
-                      : "color-mix(in srgb, #5ba0e0 15%, var(--panel-bg))",
-                    color: freezeDisabled ? "var(--color-muted)" : "#5ba0e0",
-                    fontWeight: 800,
-                    fontSize: 14,
-                    cursor: freezeDisabled ? "not-allowed" : "pointer",
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase"
-                  }}
-                >
-                  {t.residentialFreezeBtn || "Claim Streak Freeze"}
-                </button>
-                <span className="text-[11px] text-center" style={{ color: "var(--color-muted)", lineHeight: 1.3 }}>
-                  ⏱{" "}
-                  {fz.remaining > 0
-                    ? tpl(t.residentialFreezeAvailable || "Free freeze ready · {remaining} left this cycle", { remaining: fz.remaining, cap: fz.cap })
-                    : tpl(t.residentialFreezeNextIn || "Next cycle in {days} {dayWord}", { days: fz.nextResetInDays, dayWord: pluralizeDays(fz.nextResetInDays, languageId) })}
-                </span>
-              </div>
-            )}
-            {resLvl >= 3 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <button
-                  onClick={vacationDisabled ? undefined : handleStartVacation}
-                  disabled={vacationDisabled}
-                  className="qt-btn"
-                  style={{
-                    width: "100%",
-                    minHeight: 48,
-                    padding: "12px 14px",
-                    borderRadius: 14,
-                    border: `1.5px solid ${vacationDisabled ? "var(--panel-border)" : "#4fa85e"}`,
-                    background: vacationDisabled
-                      ? "color-mix(in srgb, var(--panel-bg) 70%, transparent)"
-                      : "color-mix(in srgb, #4fa85e 15%, var(--panel-bg))",
-                    color: vacationDisabled ? "var(--color-muted)" : "#4fa85e",
-                    fontWeight: 800,
-                    fontSize: 14,
-                    cursor: vacationDisabled ? "not-allowed" : "pointer",
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase"
-                  }}
-                >
-                  {t.residentialVacationBtn || "Start 20-day Vacation"}
-                </button>
-                {/* Status ('Vacation active · ends in N') intentionally
-                    removed — it was showing next to the Start button even
-                    when vacation wasn't actually running, which was
-                    confusing. The cycle hint below is enough context. */}
-                <span className="text-[10px] text-center" style={{ color: "var(--color-muted)", opacity: 0.7, lineHeight: 1.3 }}>
-                  {t.residentialVacationCycleHint || "365-day cycle · grants 20 charges at once"}
-                </span>
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      {/* Residential perks (monthly freeze, vacation bundle) auto-grant.
+          The countdown to the next auto-grant lives inside the per-level
+          PerkRow on the source-level row (lvl 2 / 4 for freeze, lvl 3
+          for vacation) — see the Benefits list below. No manual claim
+          button is needed. */}
 
       {actionMsg && (
         <div
@@ -1514,7 +1454,22 @@ export default function CityTab({
       {upgradePopup && createPortal(
         <div
           className="logout-confirm-overlay"
-          onClick={() => setUpgradePopup(null)}
+          onClick={() => {
+            setUpgradePopup(null);
+            if (pendingResidentialPopup) {
+              const grant = pendingResidentialPopup;
+              setPendingResidentialPopup(null);
+              // Defer one frame so the upgrade overlay's exit transition
+              // doesn't overlap with the next overlay's entry.
+              requestAnimationFrame(() => {
+                setClaimSuccessPopup({
+                  type: "residentialGrant",
+                  freezeCount: grant.freeze,
+                  vacationCount: grant.vacation
+                });
+              });
+            }
+          }}
         >
           <div
             className="logout-confirm-card"
@@ -1562,7 +1517,22 @@ export default function CityTab({
               </div>
             )}
             <button
-              onClick={() => setUpgradePopup(null)}
+              onClick={() => {
+            setUpgradePopup(null);
+            if (pendingResidentialPopup) {
+              const grant = pendingResidentialPopup;
+              setPendingResidentialPopup(null);
+              // Defer one frame so the upgrade overlay's exit transition
+              // doesn't overlap with the next overlay's entry.
+              requestAnimationFrame(() => {
+                setClaimSuccessPopup({
+                  type: "residentialGrant",
+                  freezeCount: grant.freeze,
+                  vacationCount: grant.vacation
+                });
+              });
+            }
+          }}
               className="cinzel qt-btn"
               style={{
                 width: "100%",
@@ -1596,19 +1566,48 @@ export default function CityTab({
       {claimSuccessPopup && createPortal(
         (() => {
           const popupType = claimSuccessPopup.type;
-          const icon = popupType === "freeze" ? "❄️" : popupType === "business" ? "🪙" : "🏖️";
-          const title = popupType === "freeze"
-            ? (t.residentialClaimFreezeTitle || "Streak Freeze claimed")
-            : popupType === "business"
-              ? (t.businessClaimSuccessTitle || "Profits Collected")
-              : (t.residentialClaimVacationTitle || "Vacation charges claimed");
-          const body = popupType === "freeze"
-            ? (t.residentialClaimFreezeBody || "Your Streak Freeze charges are waiting in your Profile.")
-            : popupType === "business"
-              ? tpl(t.businessClaimSuccessBody || "+{amount} 🪙 added to your balance.", {
-                  amount: Number(claimSuccessPopup.amount) || 0
-                })
-              : (t.residentialVacationClaimed || "20 streak-freeze charges added to your profile.");
+          const isResidentialGrant = popupType === "residentialGrant";
+          const grantedFreeze = isResidentialGrant ? Number(claimSuccessPopup.freezeCount) || 0 : 0;
+          const grantedVacation = isResidentialGrant ? Number(claimSuccessPopup.vacationCount) || 0 : 0;
+          const totalGranted = grantedFreeze + grantedVacation;
+          const icon = isResidentialGrant
+            ? (grantedVacation > 0 ? "🏖️" : "❄️")
+            : popupType === "freeze" ? "❄️" : popupType === "business" ? "🪙" : "🏖️";
+          const title = isResidentialGrant
+            ? (t.residentialAutoGrantTitle || "Streak Freeze charges added")
+            : popupType === "freeze"
+              ? (t.residentialClaimFreezeTitle || "Streak Freeze claimed")
+              : popupType === "business"
+                ? (t.businessClaimSuccessTitle || "Profits Collected")
+                : (t.residentialClaimVacationTitle || "Vacation charges claimed");
+          const body = isResidentialGrant
+            ? (() => {
+                if (grantedVacation > 0 && grantedFreeze > 0) {
+                  return tpl(
+                    t.residentialAutoGrantBodyBoth || "Vacation unlocked: +{vacation} charges. Monthly cycle: +{freeze}. All in your Profile.",
+                    { vacation: grantedVacation, freeze: grantedFreeze }
+                  );
+                }
+                if (grantedVacation > 0) {
+                  return tpl(
+                    t.residentialAutoGrantBodyVacation || "Vacation perk unlocked — {amount} Streak Freeze charges added to your Profile.",
+                    { amount: grantedVacation }
+                  );
+                }
+                return tpl(
+                  t.residentialAutoGrantBodyFreeze || "+{amount} Streak Freeze {chargeWord} added to your Profile.",
+                  { amount: grantedFreeze, chargeWord: pluralizeCharges(grantedFreeze, languageId) }
+                );
+              })()
+            : popupType === "freeze"
+              ? (t.residentialClaimFreezeBody || "Your Streak Freeze charges are waiting in your Profile.")
+              : popupType === "business"
+                ? tpl(t.businessClaimSuccessBody || "+{amount} 🪙 added to your balance.", {
+                    amount: Number(claimSuccessPopup.amount) || 0
+                  })
+                : (t.residentialVacationClaimed || "20 streak-freeze charges added to your profile.");
+          // Suppress popup if grant is empty (defensive fallback)
+          if (isResidentialGrant && totalGranted === 0) return null;
           return (
             <div
               className="logout-confirm-overlay"

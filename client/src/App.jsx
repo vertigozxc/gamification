@@ -53,6 +53,7 @@ import PullToRefresh from "./components/PullToRefresh";
 import { evictCommunityCache, resetCity, dismissStreakBurnNotice } from "./api";
 
 const FreezeSuccessModal = lazy(() => import("./components/modals/FreezeSuccessModal"));
+const ResidentialAutoGrantModal = lazy(() => import("./components/modals/ResidentialAutoGrantModal"));
 const StreakBurnedDialog = lazy(() => import("./components/modals/StreakBurnedDialog"));
 const RerollConfirmModal = lazy(() => import("./components/modals/RerollConfirmModal"));
 const LogoutConfirmModal = lazy(() => import("./components/modals/LogoutConfirmModal"));
@@ -168,6 +169,19 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showRerollConfirm, setShowRerollConfirm] = useState(false);
   const [showFreezeSuccess, setShowFreezeSuccess] = useState(false);
+  // Surfaces auto-granted Residential perks delivered by the server's
+  // lazy /api/game-state response (when 30-day or 365-day cycles
+  // elapsed during the user's absence). { freeze, vacation } | null.
+  const [residentialAutoGrant, setResidentialAutoGrant] = useState(null);
+  const surfacePendingGrants = (response) => {
+    const pg = response?.pendingGrants;
+    if (pg && (Number(pg.freeze) > 0 || Number(pg.vacation) > 0)) {
+      setResidentialAutoGrant({
+        freeze: Number(pg.freeze) || 0,
+        vacation: Number(pg.vacation) || 0
+      });
+    }
+  };
   // ISO timestamp when the user's streak burned out, or null if no notice
   // is pending. Server sets it via cron / /api/reset-daily; we surface it
   // once via a modal and clear it through /api/streak/dismiss-burn-notice.
@@ -853,6 +867,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         setDataLoading(false);
         setInitialDataResolved(true);
         applyServerTimeSync(gameStateResponse);
+        surfacePendingGrants(gameStateResponse);
         const nextQuests = Array.isArray(gameStateResponse?.quests) ? gameStateResponse.quests.map(normalizeLocalizedQuest) : [];
         setQuests(nextQuests);
         seedAllQuestOptions(allQuestsResponse);
@@ -935,6 +950,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           return;
         }
         applyServerTimeSync(gameStateResponse);
+        surfacePendingGrants(gameStateResponse);
         const nextQuests = Array.isArray(gameStateResponse?.quests) ? gameStateResponse.quests.map(normalizeLocalizedQuest) : [];
         setQuests(nextQuests);
         const userData = gameStateResponse.user || {};
@@ -1667,6 +1683,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       const gameStateResponse = await fetchGameState(authUser.uid);
       if (gameStateResponse?.forceLogout) return;
       applyServerTimeSync(gameStateResponse);
+      surfacePendingGrants(gameStateResponse);
       const nextQuests = Array.isArray(gameStateResponse?.quests) ? gameStateResponse.quests.map(normalizeLocalizedQuest) : [];
       setQuests(nextQuests);
       const userData = gameStateResponse.user || {};
@@ -1801,7 +1818,13 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         />
       </Suspense>
 
-      <FreezeSuccessModal open={showFreezeSuccess} onClose={() => setShowFreezeSuccess(false)} />
+      <Suspense fallback={null}>
+        <FreezeSuccessModal open={showFreezeSuccess} onClose={() => setShowFreezeSuccess(false)} />
+        <ResidentialAutoGrantModal
+          grant={residentialAutoGrant}
+          onClose={() => setResidentialAutoGrant(null)}
+        />
+      </Suspense>
 
       <StreakBurnedDialog
         open={Boolean(streakBurnedNoticeAt)}
@@ -2138,11 +2161,24 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                   }));
                 }}
                 onDistrictUpgraded={(result) => {
-                  setState((prev) => ({
-                    ...prev,
-                    tokens: typeof result?.tokens === "number" ? result.tokens : prev.tokens,
-                    districtLevels: Array.isArray(result?.districtLevels) ? result.districtLevels : prev.districtLevels
-                  }));
+                  setState((prev) => {
+                    const next = {
+                      ...prev,
+                      tokens: typeof result?.tokens === "number" ? result.tokens : prev.tokens,
+                      districtLevels: Array.isArray(result?.districtLevels) ? result.districtLevels : prev.districtLevels
+                    };
+                    // Residential auto-grant on threshold upgrade — mirror
+                    // the server's bumped streakFreezeCharges / cycle clock
+                    // into local state so the Profile freeze card updates
+                    // immediately without waiting for the next refetch.
+                    if (typeof result?.streakFreezeCharges === "number") {
+                      next.user = {
+                        ...(prev.user || {}),
+                        streakFreezeCharges: result.streakFreezeCharges
+                      };
+                    }
+                    return next;
+                  });
                 }}
                 onStatsGranted={(result) => {
                   setState((prev) => ({

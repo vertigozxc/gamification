@@ -2718,6 +2718,31 @@ app.get("/api/game-state/:username", async (req, res) => {
     user.xpNext = correctXpNext;
   }
 
+  // Residential auto-grant — apply any pending free-freeze cycles or
+  // vacation bundle before composing the response so the client sees
+  // the freshly granted charges in the same payload. We surface the
+  // delta in `pendingGrants` so the City tab can pop a confirmation.
+  let pendingGrants = { freeze: 0, vacation: 0 };
+  try {
+    const grantResult = computeResidentialAutoGrants(user, now);
+    if (grantResult.freezeGranted > 0 || grantResult.vacationGranted > 0 || Object.keys(grantResult.dataPatch).length > 0) {
+      const updated = await prisma.user.update({
+        where: { id: user.id },
+        data: grantResult.dataPatch,
+        select: { streakFreezeCharges: true, monthlyFreezeClaims: true, lastVacationAt: true }
+      });
+      user.streakFreezeCharges = updated.streakFreezeCharges;
+      user.monthlyFreezeClaims = updated.monthlyFreezeClaims;
+      user.lastVacationAt = updated.lastVacationAt;
+      pendingGrants = {
+        freeze: grantResult.freezeGranted,
+        vacation: grantResult.vacationGranted
+      };
+    }
+  } catch (grantErr) {
+    console.error(`[game-state] residential auto-grant failed: ${grantErr?.message || grantErr}`);
+  }
+
   // Lazy-backfill the public @handle for accounts created before the
   // feature existed. Onboarding-path already assigns one, but legacy
   // users hit this path on their first login after the deploy.
@@ -2841,6 +2866,7 @@ app.get("/api/game-state/:username", async (req, res) => {
     activeTimers,
     activeCounters,
     isDevTester: Boolean(user.isDevTester) || user.username === LEGACY_DEV_TEST_USER_ID,
+    pendingGrants,
     ...buildServerTimeMeta(now)
   });
 });
@@ -4483,13 +4509,42 @@ app.post("/api/city/upgrade-district", async (req, res) => {
     levels[idx] = currentLevel + 1;
     const nextLevelsStr = serializeDistrictLevels(levels);
 
+    // Residential threshold grants — when a level transition raises the
+    // player's monthly-freeze cap (lvl 1→2 unlocks 1/mo, lvl 3→4 doubles
+    // to 2/mo) we hand out a charge immediately and start the 30-day
+    // cycle clock from now. First time crossing into lvl 3 also unlocks
+    // the Vacation perk (one-shot 20-charge bundle, 365-day cooldown).
+    const now = new Date();
+    let residentialFreezeGranted = 0;
+    let residentialVacationGranted = 0;
+    const residentialPatch = {};
+    if (districtId === "residential") {
+      const oldCap = residentialMonthlyFreezeCap(currentLevel);
+      const newCap = residentialMonthlyFreezeCap(levels[idx]);
+      if (newCap > oldCap) {
+        residentialFreezeGranted = 1;
+        residentialPatch.monthlyFreezeClaims = serializeResidentialFreezeState(now);
+      }
+      if (levels[idx] >= 3 && !user.lastVacationAt) {
+        residentialVacationGranted = 20;
+        residentialPatch.lastVacationAt = now;
+      }
+    }
+
+    const data = {
+      tokens: isTourFreebie ? undefined : { decrement: req_.tokens },
+      districtLevels: nextLevelsStr,
+      ...residentialPatch
+    };
+    const totalChargeBump = residentialFreezeGranted + residentialVacationGranted;
+    if (totalChargeBump > 0) {
+      data.streakFreezeCharges = { increment: totalChargeBump };
+    }
+
     const updated = await prisma.user.update({
       where: { id: user.id },
-      data: {
-        tokens: isTourFreebie ? undefined : { decrement: req_.tokens },
-        districtLevels: nextLevelsStr
-      },
-      select: { tokens: true, districtLevels: true }
+      data,
+      select: { tokens: true, districtLevels: true, streakFreezeCharges: true }
     });
 
     return res.json({
@@ -4499,7 +4554,12 @@ app.post("/api/city/upgrade-district", async (req, res) => {
       cost: isTourFreebie ? 0 : req_.tokens,
       tourFreebie: isTourFreebie,
       tokens: updated.tokens,
-      districtLevels: parseDistrictLevels(updated.districtLevels)
+      districtLevels: parseDistrictLevels(updated.districtLevels),
+      streakFreezeCharges: updated.streakFreezeCharges,
+      grants: {
+        freeze: residentialFreezeGranted,
+        vacation: residentialVacationGranted
+      }
     });
   } catch (error) {
     console.error(`[District Upgrade Error] ${error?.message || error}`);
@@ -4583,122 +4643,112 @@ app.post("/api/city/business/claim", async (req, res) => {
   }
 });
 
-// Residential — claim free streak freezes on a 30-day rolling cycle
-// (lvl 2–3 = 1 per cycle, lvl ≥4 = 2 per cycle).
-// Each claim adds a charge to the Profile pool; users activate from Profile.
+// Residential — auto-grant free streak freezes on a 30-day rolling cycle
+// (lvl 2–3 = 1 per cycle, lvl ≥4 = 2 per cycle). Charges land in the
+// Profile pool and auto-consume on missed days. No manual claim — the
+// grants happen on (a) the threshold upgrade itself (lvl 1→2 and 3→4),
+// and (b) lazily during /api/game-state when a 30-day cycle has elapsed
+// since the last grant. We persist `lastGrantAt` (ISO) inside the
+// `monthlyFreezeClaims` field; legacy `{cycleStartAt,count}` rows are
+// read forward by treating cycleStartAt as the previous lastGrantAt.
 const FREEZE_CYCLE_DAYS = 30;
 const FREEZE_CYCLE_MS = FREEZE_CYCLE_DAYS * 24 * 3600_000;
+const VACATION_COOLDOWN_DAYS = 365;
+const VACATION_COOLDOWN_MS = VACATION_COOLDOWN_DAYS * 24 * 3600_000;
+// Sane cap on backfill so a user returning after a year-long absence
+// doesn't suddenly get 12 charges in one shot. Keep modest.
+const MAX_RESIDENTIAL_BACKFILL_CYCLES = 6;
 
-function readFreezeCycle(rawJson, now) {
+function parseResidentialFreezeState(rawJson) {
   let parsed = null;
   try { parsed = JSON.parse(rawJson || "{}"); } catch { parsed = null; }
-  const cycleStartAt = parsed?.cycleStartAt ? new Date(parsed.cycleStartAt) : null;
-  const count = Number(parsed?.count) || 0;
-  if (!cycleStartAt || Number.isNaN(cycleStartAt.getTime()) || (now.getTime() - cycleStartAt.getTime()) >= FREEZE_CYCLE_MS) {
-    return { cycleStartAt: null, count: 0, cycleExpired: true };
+  if (!parsed || typeof parsed !== "object") return { lastGrantAt: null };
+  if (parsed.lastGrantAt) {
+    const d = new Date(parsed.lastGrantAt);
+    if (!Number.isNaN(d.getTime())) return { lastGrantAt: d };
   }
-  return { cycleStartAt, count, cycleExpired: false };
+  // Legacy migration — treat the old `cycleStartAt` as the previous
+  // lastGrantAt so existing players keep their cycle clock.
+  if (parsed.cycleStartAt) {
+    const d = new Date(parsed.cycleStartAt);
+    if (!Number.isNaN(d.getTime())) return { lastGrantAt: d };
+  }
+  return { lastGrantAt: null };
 }
 
-app.post("/api/city/residential/claim-freeze", async (req, res) => {
-  const schema = z.object({ username: z.string().min(2).max(64) });
-  try {
-    const { username } = schema.parse(req.body);
-    const user = await prisma.user.findUnique({ where: { username: slugifyUsername(username) } });
-    if (!user) return res.status(404).json({ error: "User not found" });
-    const resLvl = districtLevelOf(user.districtLevels, "residential");
-    const cap = residentialMonthlyFreezeCap(resLvl);
-    if (cap <= 0) {
-      return res.status(400).json({ error: "Residential level too low", code: "not_unlocked" });
-    }
-    const now = new Date();
-    const cycle = readFreezeCycle(user.monthlyFreezeClaims, now);
-    const effectiveStart = cycle.cycleExpired ? now : cycle.cycleStartAt;
-    const effectiveCount = cycle.cycleExpired ? 0 : cycle.count;
-    if (effectiveCount >= cap) {
-      const nextCycleAt = new Date(effectiveStart.getTime() + FREEZE_CYCLE_MS);
-      return res.status(400).json({
-        error: "Cycle exhausted",
-        code: "exhausted",
-        cap,
-        used: effectiveCount,
-        cycleStartAt: effectiveStart.toISOString(),
-        nextCycleAt: nextCycleAt.toISOString()
-      });
-    }
-    const nextCount = effectiveCount + 1;
-    const nextClaims = { cycleStartAt: effectiveStart.toISOString(), count: nextCount };
-    const updated = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        streakFreezeCharges: { increment: 1 },
-        monthlyFreezeClaims: JSON.stringify(nextClaims)
-      },
-      select: { streakFreezeCharges: true, monthlyFreezeClaims: true }
-    });
-    return res.json({
-      ok: true,
-      cap,
-      used: nextCount,
-      remaining: cap - nextCount,
-      cycleStartAt: effectiveStart.toISOString(),
-      nextCycleAt: new Date(effectiveStart.getTime() + FREEZE_CYCLE_MS).toISOString(),
-      streakFreezeCharges: updated.streakFreezeCharges
-    });
-  } catch (error) {
-    console.error(`[Residential Claim Freeze Error] ${error?.message || error}`);
-    res.status(400).json({ error: "Invalid request", detail: error.message });
-  }
-});
+function serializeResidentialFreezeState(lastGrantAt) {
+  return JSON.stringify({ lastGrantAt: new Date(lastGrantAt).toISOString() });
+}
 
-// Residential — claim the "vacation" reward. Used to suspend streak
-// decay for 20 days on a rolling window; simplified to "grant 20
-// streak-freeze charges to the user's pool". The charges auto-consume
-// whenever the user completes <3 quests on a given UTC day, so the
-// end result (skip ~20 days without burning streak) is equivalent
-// while exposing a single, legible mechanic (charges) to the player.
-// Cooldown retained at 365 days so this remains a yearly bonus.
-app.post("/api/city/residential/start-vacation", async (req, res) => {
-  const schema = z.object({ username: z.string().min(2).max(64) });
-  try {
-    const { username } = schema.parse(req.body);
-    const user = await prisma.user.findUnique({ where: { username: slugifyUsername(username) } });
-    if (!user) return res.status(404).json({ error: "User not found" });
-    const resLvl = districtLevelOf(user.districtLevels, "residential");
-    if (resLvl < 3) {
-      return res.status(400).json({ error: "Residential level too low", code: "not_unlocked", required: 3 });
-    }
-    const now = new Date();
-    const VACATION_COOLDOWN_DAYS = 365;
-    if (user.lastVacationAt) {
-      const diff = now.getTime() - new Date(user.lastVacationAt).getTime();
-      const COOLDOWN_MS = VACATION_COOLDOWN_DAYS * 24 * 3600_000;
-      if (diff < COOLDOWN_MS) {
-        const nextAvailableAt = new Date(new Date(user.lastVacationAt).getTime() + COOLDOWN_MS);
-        return res.status(400).json({ error: "Vacation on cooldown", code: "cooldown", nextAvailableAt: nextAvailableAt.toISOString() });
+// Pure: compute the auto-grant deltas for a user's residential perks.
+// Returns { freezeGranted, vacationGranted, dataPatch } where dataPatch
+// is a Prisma update payload the caller merges into its own update.
+// Idempotent if no time has elapsed.
+function computeResidentialAutoGrants(user, now) {
+  const resLvl = districtLevelOf(user.districtLevels, "residential");
+  const cap = residentialMonthlyFreezeCap(resLvl);
+  let freezeGranted = 0;
+  let vacationGranted = 0;
+  const dataPatch = {};
+
+  if (cap > 0) {
+    const { lastGrantAt } = parseResidentialFreezeState(user.monthlyFreezeClaims);
+    if (!lastGrantAt) {
+      // No history — start the clock now without granting. The threshold
+      // grant on the upgrade endpoint covers the "you just unlocked it"
+      // moment; lazy fetches should never retroactively reward an old
+      // upgrade we never tracked.
+      dataPatch.monthlyFreezeClaims = serializeResidentialFreezeState(now);
+    } else {
+      const elapsedMs = now.getTime() - lastGrantAt.getTime();
+      if (elapsedMs >= FREEZE_CYCLE_MS) {
+        const cycles = Math.min(MAX_RESIDENTIAL_BACKFILL_CYCLES, Math.floor(elapsedMs / FREEZE_CYCLE_MS));
+        freezeGranted = cycles * cap;
+        const nextLastGrantAt = new Date(lastGrantAt.getTime() + cycles * FREEZE_CYCLE_MS);
+        dataPatch.monthlyFreezeClaims = serializeResidentialFreezeState(nextLastGrantAt);
       }
     }
-    const updated = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        // No more active-vacation state — charges live in the pool.
-        vacationStartedAt: null,
-        vacationEndsAt: null,
-        lastVacationAt: now,
-        streakFreezeCharges: { increment: 20 }
-      },
-      select: { lastVacationAt: true, streakFreezeCharges: true }
-    });
-    return res.json({
-      ok: true,
-      lastVacationAt: updated.lastVacationAt,
-      streakFreezeCharges: updated.streakFreezeCharges,
-      grantedCharges: 20
-    });
-  } catch (error) {
-    console.error(`[Start Vacation Error] ${error?.message || error}`);
-    res.status(400).json({ error: "Invalid request", detail: error.message });
   }
+
+  if (resLvl >= 3) {
+    if (!user.lastVacationAt) {
+      // Same rationale as above — don't backfill vacation for an old
+      // upgrade. Threshold grant in the upgrade endpoint owns this.
+      // We still set lastVacationAt = now so the cooldown clock starts.
+      dataPatch.lastVacationAt = now;
+    } else {
+      const elapsed = now.getTime() - new Date(user.lastVacationAt).getTime();
+      if (elapsed >= VACATION_COOLDOWN_MS) {
+        vacationGranted = 20;
+        dataPatch.lastVacationAt = now;
+      }
+    }
+  }
+
+  const totalCharges = freezeGranted + vacationGranted;
+  if (totalCharges > 0) {
+    dataPatch.streakFreezeCharges = { increment: totalCharges };
+  }
+  return { freezeGranted, vacationGranted, dataPatch };
+}
+
+// Deprecated: residential perks now grant automatically — on the
+// threshold upgrade itself and lazily when a 30-day cycle has elapsed
+// (game-state endpoint runs computeResidentialAutoGrants on each fetch).
+// The endpoints below stay 410-Gone so any cached old client gets a
+// clean error instead of double-granting via the legacy logic.
+app.post("/api/city/residential/claim-freeze", (_req, res) => {
+  res.status(410).json({
+    error: "Manual claim removed — Residential charges grant automatically.",
+    code: "auto_grant_only"
+  });
+});
+
+app.post("/api/city/residential/start-vacation", (_req, res) => {
+  res.status(410).json({
+    error: "Manual vacation start removed — the 20-charge bundle grants automatically when the cooldown elapses.",
+    code: "auto_grant_only"
+  });
 });
 
 // Consume N freeze charges to extend streak freeze expiry by N days.
