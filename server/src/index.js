@@ -6074,9 +6074,31 @@ process.on("uncaughtException", (err) => {
 
 const isMainModule = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 
+// One-shot wipe of the Event audit table before this cutoff. Event was
+// briefly surfaced inside Activity Logs and polluted the per-user feed
+// with system errors / admin pings. We've since stopped reading it
+// from that endpoint; the cutoff-gated deleteMany clears the historical
+// noise so anyone re-opening Activity Logs sees a fresh slate. Safe to
+// keep indefinitely — once executed, the WHERE clause matches nothing
+// and the call becomes a no-op on every subsequent boot.
+const EVENT_WIPE_BEFORE = new Date("2026-04-26T00:00:00Z");
+async function wipeStaleEventLog() {
+  try {
+    const result = await prisma.event.deleteMany({
+      where: { createdAt: { lt: EVENT_WIPE_BEFORE } }
+    });
+    if (result.count > 0) {
+      console.log(`[boot] wiped ${result.count} pre-cutoff Event rows`);
+    }
+  } catch (err) {
+    console.warn(`[boot] event wipe skipped: ${err?.message || err}`);
+  }
+}
+
 if (isMainModule) {
   const bootstrap = async () => {
     await ensureLeaderboardTestUsers();
+    await wipeStaleEventLog();
     app.listen(port, () => {
       console.log(`GoHabit API running on http://localhost:${port}`);
     });
@@ -6353,27 +6375,12 @@ app.get("/api/users/:username/activity", async (req, res) => {
       });
     }
 
-    // 5. Native Event rows (admin/manual entries, future audit logs).
-    let eventRows = [];
-    try {
-      eventRows = await prisma.event.findMany({
-        where: { OR: [{ userId: user.id }, { username: user.displayName || "" }] },
-        orderBy: { createdAt: "desc" },
-        take: 50
-      });
-    } catch (eventErr) {
-      console.warn(`[Activity] event read failed: ${eventErr?.message || eventErr}`);
-    }
-    for (const e of eventRows) {
-      items.push({
-        id: `ev:${e.id}`,
-        kind: e.type || "event",
-        at: e.createdAt,
-        title: e.message || e.type || "Event",
-        subtitle: e.level && e.level !== "info" ? e.level : null,
-        meta: e.meta ? safeJsonParse(e.meta) : null
-      });
-    }
+    // The Event table is a server-side audit / error log — it carries
+    // admin actions, error reports, force-logout pings and other
+    // operational noise the player has no business seeing in their
+    // own action history. Activity Logs is for "what I did", not
+    // "what the server logged about me", so we deliberately do NOT
+    // synthesize Event rows here.
 
     // Sort merged feed desc by `at` and cap at limit.
     items.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
@@ -6383,10 +6390,6 @@ app.get("/api/users/:username/activity", async (req, res) => {
     res.status(500).json({ error: "Failed to load activity", detail: error?.message });
   }
 });
-
-function safeJsonParse(s) {
-  try { return JSON.parse(s || ""); } catch { return null; }
-}
 
 // Knowledge Quiz — unlock-only. The achievement row is created here
 // when the user scores 10/10 for the first time; the token reward is
