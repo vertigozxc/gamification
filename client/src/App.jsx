@@ -289,6 +289,10 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       xpNext: Number.isFinite(Number(user.xpNext)) ? Number(user.xpNext) : prev.xpNext,
       tokens: Number.isFinite(Number(user.tokens)) ? Number(user.tokens) : prev.tokens
     }));
+    // Tour signal: any reward type (XP / tokens / freeze) flips the
+    // flag. The spin-wheel onboarding step's condition gate watches
+    // this so NEXT only enables after the user actually claimed.
+    setSpinTourClaimed(true);
   }
 
   function applyServerTimeSync(payload) {
@@ -402,14 +406,12 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
 
   const [tourStepId, setTourStepId] = useState(null);
   const [forcedHabitsTab, setForcedHabitsTab] = useState(null);
-  // Snapshot of the user's tokens at the moment the spin-wheel tour
-  // step is entered. The step's isSatisfied gate compares the live
-  // tokens count against this snapshot — when the user actually
-  // claims their daily reward inside the spin modal, tokens go up
-  // and the tour auto-advances. Lets us hide the bubble's Next
-  // button on this step (per UX spec: "the user must press Claim
-  // daily reward, not Next").
-  const spinTourSnapshotRef = useRef(null);
+  // Tour signal: flipped to true inside handleCityRewardClaimed when
+  // the user actually presses "Claim daily reward" inside the spin
+  // modal. The spin-wheel onboarding step uses this as its
+  // condition-gate satisfier so NEXT only becomes tappable after the
+  // claim — without a claim, the bubble is stuck on this step.
+  const [spinTourClaimed, setSpinTourClaimed] = useState(false);
 
   const handleRestartTour = async () => {
     const uname = authUser?.uid || username;
@@ -639,23 +641,17 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       id: "spin-wheel",
       target: '[data-tour="spin-wheel"]',
       title: t.tourSpinWheelTitle || "Daily spin",
-      text: t.tourSpinWheelText || "Tap the spin button and claim your daily reward — the tour will continue once you do.",
-      // Gate on the user actually CLAIMING the reward (tokens go up
-      // server-side via /api/city/spin → handleCityRewardClaimed →
-      // setState). The bubble's Next button is hidden so the only
-      // way forward is to do the action. blockInteraction stays OFF
-      // so the user can tap the spotlit Spin button.
+      text: t.tourSpinWheelText || "Tap the spin button and claim your daily reward — Next will light up after you do.",
+      // NEXT is rendered but DISABLED until the user actually claims
+      // the daily reward inside the spin modal (any reward type
+      // flips spinTourClaimed). Then the button enables and the
+      // user taps it to advance. blockInteraction stays OFF so the
+      // spotlit spin button itself remains tappable.
       gate: "condition",
-      isSatisfied: () => {
-        const snap = spinTourSnapshotRef.current;
-        if (!snap) return false;
-        return Number(state?.tokens) > Number(snap.tokens);
-      },
-      autoAdvance: true,
-      hideNext: true,
-      onEnter: () => {
-        spinTourSnapshotRef.current = { tokens: Number(state?.tokens) || 0 };
-      },
+      isSatisfied: () => spinTourClaimed,
+      autoAdvance: false,
+      hideNext: false,
+      onEnter: () => { setSpinTourClaimed(false); },
       bubblePlacement: "top",
       scroll: true
     });
@@ -712,12 +708,11 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     return list;
   // Note: mobileTab intentionally omitted — the tour drives tab swaps
   // via onEnter callbacks now, and including it would cause the whole
-  // step list to rebuild on every tab change. state?.tokens IS in
-  // the deps so the spin-wheel step's isSatisfied closure sees the
-  // post-claim token count (snapshot taken on enter, compared on
-  // each rebuild).
+  // step list to rebuild on every tab change. spinTourClaimed flips
+  // on the daily-reward claim, which makes the steps array rebuild
+  // and the bubble's NEXT button become tappable on the spin step.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t, tf, showOnboarding, onboardingName, onboardingQuestIds, state?.questSlots?.pinned, state?.districtLevels, state?.tokens, wizardStep]);
+  }, [t, tf, showOnboarding, onboardingName, onboardingQuestIds, state?.questSlots?.pinned, state?.districtLevels, spinTourClaimed, wizardStep]);
 
   useEffect(() => {
     uidRef.current = authUser ? authUser.uid : null;
@@ -2264,7 +2259,11 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         {isEmbeddedApp ? (
           <PullToRefresh
             onRefresh={handlePullRefresh}
-            disabled={Boolean(noteQuest) || showOnboarding}
+            // Also disabled during the animated tour — pulling down to
+            // refresh mid-step would scroll the spotlight target off-
+            // screen and break the per-step scroll lock that keeps the
+            // user anchored on what the bubble is talking about.
+            disabled={Boolean(noteQuest) || showOnboarding || showTour}
           >
           <div className="w-full max-w-3xl mx-auto embedded-content-safe">
             {mobileTab === "city" ? (

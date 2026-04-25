@@ -219,6 +219,14 @@ export default function AnimatedOnboardingTour({
   // Mirrors --mobile-footer-offset from the native shell. Bigger than
   // safeBottom when the (locked-but-visible) bottom tab bar is up.
   const [footerOffset, setFooterOffset] = useState(0);
+  // True when the iOS / Android virtual keyboard is open. Detected by
+  // comparing window.innerHeight (full screen) against visualViewport
+  // .height (visible portion above keyboard). When the keyboard is up,
+  // a "bottom"-anchored bubble would slide into the middle of the
+  // shrunken viewport and cover the very input the user is trying to
+  // fill — so the bubble useMemo flips placement to "top" while this
+  // is true.
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [shakeTick, setShakeTick] = useState(0);
   const enteredIdRef = useRef(null);
   const bubbleRef = useRef(null);
@@ -321,6 +329,15 @@ export default function AnimatedOnboardingTour({
       setSafeBottom(readSafeAreaBottom());
       setFooterOffset(readMobileFooterOffset());
       setViewport(readViewport());
+      // Keyboard detection: if window.innerHeight is meaningfully
+      // bigger than visualViewport.height, the virtual keyboard is
+      // taking up the difference. The 120 px threshold ignores small
+      // delta from things like the iOS bottom bar / refresh hint.
+      if (typeof window !== "undefined") {
+        const fullH = window.innerHeight || 0;
+        const visH = window.visualViewport?.height || fullH;
+        setKeyboardOpen(fullH - visH > 120);
+      }
     };
     update();
     window.addEventListener("resize", update);
@@ -638,13 +655,30 @@ export default function AnimatedOnboardingTour({
     if (prefer === "auto") {
       placement = spaceBelow >= (h + 20) ? "bottom" : spaceAbove >= (h + 20) ? "top" : (spaceBelow >= spaceAbove ? "bottom" : "top");
     }
+    // Keyboard override: when the iOS / Android virtual keyboard is
+    // up, a "bottom"-anchored bubble would slide into the middle of
+    // the SHRUNKEN visualViewport and cover the very input field
+    // the user just tapped. Force the bubble to "top" so it pins
+    // to the top of the visible viewport (status-bar / safe-area
+    // line) and the input field below stays unobstructed.
+    if (keyboardOpen && placement === "bottom") {
+      placement = "top";
+    }
     const leftRaw = r.left + r.width / 2 - BUBBLE_WIDTH / 2;
     const clampedLeft = Math.max(12, Math.min(viewport.w - BUBBLE_WIDTH - 12, leftRaw));
     let top;
     const arrow = placement;
     if (placement === "top") {
-      // Anchor bubble so its bottom sits above the target (never covers it).
-      top = Math.max(safeTop + 12, r.top - BUBBLE_MARGIN - h);
+      if (keyboardOpen) {
+        // Keyboard-open mode: hard-pin to the top of the visible
+        // viewport (no relation to the target position). The whole
+        // form below scrolls under the bubble naturally.
+        top = safeTop + 12;
+      } else {
+        // Anchor bubble so its bottom sits above the target (never
+        // covers it).
+        top = Math.max(safeTop + 12, r.top - BUBBLE_MARGIN - h);
+      }
     } else {
       top = Math.min(viewport.h - bottomReserved - h - 12, r.bottom + BUBBLE_MARGIN);
     }
@@ -654,7 +688,7 @@ export default function AnimatedOnboardingTour({
       width: BUBBLE_WIDTH,
       arrow
     };
-  }, [layout, viewport.w, viewport.h, safeTop, safeBottom, footerOffset, step, bubbleHeight]);
+  }, [layout, viewport.w, viewport.h, safeTop, safeBottom, footerOffset, keyboardOpen, step, bubbleHeight]);
 
   // After every render, measure the bubble's real height so the next
   // position calculation uses an accurate value — long text steps were

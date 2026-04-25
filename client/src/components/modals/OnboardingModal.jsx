@@ -596,7 +596,11 @@ function OnboardingModal({
                 }
               }}
               maxLength={REFERRAL_MAX_LENGTH}
-              placeholder={t.referralStepInputPlaceholder || "IVAN2026"}
+              // No fallback string — empty placeholder is intentional.
+              // Sample codes like "IVAN2026" used to read as a forgotten
+              // dev placeholder; the label above the field already says
+              // what the field is for.
+              placeholder={t.referralStepInputPlaceholder || ""}
               clearAriaLabel={t.clearLabel || "Clear"}
               inputStyle={{
                 padding: "9px 12px",
