@@ -270,6 +270,29 @@ export default function AnimatedOnboardingTour({
     setStepIndex(nextIdx);
   }, [open, step, stepIndex, stepCount]);
 
+  // Lock body / html scrolling while the tour is open. The user kept
+  // accidentally scrolling the page out from under the spotlight on
+  // long-content steps (the bubble would stay fixed, but the target
+  // would slide off-screen). Setting overflow:hidden on <html> + <body>
+  // blocks user-initiated scroll (touch / wheel) without affecting
+  // programmatic scrollIntoView, so the tour's own per-step scroll
+  // logic keeps working — and any spotlight target that has its own
+  // overflow:auto / overflow:scroll (e.g. the habits picker's slide
+  // bar or any inner list) keeps scrolling normally because we only
+  // lock the OUTER document scroll. Restored on unmount / close.
+  useEffect(() => {
+    if (!open) return undefined;
+    if (typeof document === "undefined") return undefined;
+    const prevBody = document.body.style.overflow;
+    const prevHtml = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevBody;
+      document.documentElement.style.overflow = prevHtml;
+    };
+  }, [open]);
+
   // Read safe-area paddings once on mount + on resize. Track the
   // visualViewport size separately so the overlay shrinks with the
   // keyboard instead of staying full-height and covering the field the

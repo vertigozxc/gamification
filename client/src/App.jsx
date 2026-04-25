@@ -1675,25 +1675,11 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     }
   }
 
-  async function handleCreateAndPinSingleHabit(payload) {
-    if (!username) return;
-    setSingleHabitPickerSaving(true);
-    setSingleHabitPickerError("");
-    try {
-      const created = await handleCreateCustomQuest(payload);
-      if (!created || !created.id) {
-        setSingleHabitPickerError("Could not create habit");
-        return;
-      }
-      await addPinnedQuest(username, Number(created.id));
-      await refreshFromServer();
-      setSingleHabitPickerOpen(false);
-    } catch (err) {
-      setSingleHabitPickerError(String(err?.message || "Could not create habit"));
-    } finally {
-      setSingleHabitPickerSaving(false);
-    }
-  }
+  // (The old `handleCreateAndPinSingleHabit` create-and-pin-in-one-step
+  // helper was dropped along with the SingleHabitPickerModal's
+  // create-only tab. The redesigned modal now embeds CustomHabitManager
+  // for browse + create, and the user picks the new custom from the
+  // list to confirm — same two-step flow as OnboardingModal.)
 
   async function refreshFromServer() {
     if (!authUser?.uid) return;
@@ -1992,9 +1978,21 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           saving={singleHabitPickerSaving}
           errorMessage={singleHabitPickerError}
           onPick={handlePickSingleHabit}
-          onCreateCustom={handleCreateAndPinSingleHabit}
-          createSaving={singleHabitPickerSaving}
-          createError={singleHabitPickerError}
+          // Custom-habit management surface — same wiring as the
+          // OnboardingModal so the user can browse + pick existing
+          // customs, edit/delete them, or create a new one. The
+          // create handler returns a custom quest object the user
+          // then taps to select before confirming with Add habit.
+          customQuests={(() => {
+            const pinnedSet = new Set(Array.isArray(state.preferredQuestIds) ? state.preferredQuestIds : []);
+            return (Array.isArray(customQuests) ? customQuests : []).filter((cq) => !pinnedSet.has(cq.id));
+          })()}
+          onCreateCustomQuest={handleCreateCustomQuest}
+          onUpdateCustomQuest={handleUpdateCustomQuest}
+          onDeleteCustomQuest={handleDeleteCustomQuest}
+          customSaving={customSaving}
+          customError={customError}
+          onClearCustomError={() => setCustomError("")}
         />
       </Suspense>
 

@@ -6,12 +6,24 @@ import { fuzzyMatch } from "../../utils/fuzzySearch";
 import QuestGroupCard from "../QuestGroupCard";
 import CategoryFilterRow from "../CategoryFilterRow";
 import InputWithClear from "../InputWithClear";
+import CustomHabitManager from "./CustomHabitManager";
 import { groupQuests, availableCategories, matchesCategory } from "../../utils/questGrouping";
 import { IconSparkle, IconClose, IconList } from "../icons/Icons";
 
 // Dedicated screen for filling ONE unlocked habit slot (triggered from the
 // "New Habit Unlocked" card). Distinct from PinnedReplacementModal which
 // replaces ALL pinned habits at once.
+//
+// Layout mirrors the OnboardingModal's habits picker so the two screens
+// read as members of the same family:
+//   • Slide bar: PRESETS | CUSTOM
+//   • Presets tab — curated quest catalog with category filter +
+//     compact search field (smaller padding, fontSize 13).
+//   • Custom tab — full CustomHabitManager: lists every existing
+//     custom habit the user already created (selectable, deletable),
+//     plus the inline form to create a new one. Replaces the old
+//     "create-only" tab which only let the user spawn a new habit
+//     and offered no way to pick one of their existing customs.
 export default function SingleHabitPickerModal({
   open,
   onClose,
@@ -19,32 +31,36 @@ export default function SingleHabitPickerModal({
   onPick,
   saving = false,
   errorMessage = "",
-  onCreateCustom,
-  createSaving = false,
-  createError = ""
+  // Custom-habit management surface. Match the OnboardingModal's prop
+  // shape so the same handlers from useOnboardingPinned can be wired
+  // to both screens without adapters.
+  customQuests = [],
+  onCreateCustomQuest,
+  onUpdateCustomQuest,
+  onDeleteCustomQuest,
+  customSaving = false,
+  customError = "",
+  onClearCustomError
 }) {
-  const { t, themeId, translateCategory } = useTheme();
-  const isLight = themeId === "light";
+  const { t, translateCategory } = useTheme();
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [sheetAnim, setSheetAnim] = useState(false);
-  const [mode, setMode] = useState("pick"); // "pick" | "create"
-  const [newTitle, setNewTitle] = useState("");
-  const [newDesc, setNewDesc] = useState("");
-  const [newNeedsTimer, setNewNeedsTimer] = useState(false);
-  const [newMinutes, setNewMinutes] = useState("30");
+  const [mode, setMode] = useState("presets"); // "presets" | "custom"
+  // The CustomHabitManager opens an inline create / edit form that
+  // pulls up the iOS keyboard. Mirror OnboardingModal's behaviour and
+  // collapse the sticky footer button while it's expanded so the
+  // form has the full visible viewport.
+  const [customFormExpanded, setCustomFormExpanded] = useState(false);
 
   useEffect(() => {
     if (!open) {
       setSearch("");
       setSelectedId(null);
       setSheetAnim(false);
-      setMode("pick");
-      setNewTitle("");
-      setNewDesc("");
-      setNewNeedsTimer(false);
-      setNewMinutes("30");
+      setMode("presets");
+      setCustomFormExpanded(false);
       return undefined;
     }
     const id = requestAnimationFrame(() => setSheetAnim(true));
@@ -72,9 +88,18 @@ export default function SingleHabitPickerModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  // Presets pool = all curated/non-custom quests from availableQuests.
+  // The Custom tab lives inside CustomHabitManager and gets its own
+  // raw `customQuests` list — so we explicitly drop isCustom entries
+  // here to avoid showing them twice.
+  const presetPool = useMemo(
+    () => availableQuests.filter((q) => !q?.isCustom),
+    [availableQuests]
+  );
+
   const filteredQuests = useMemo(() => {
     const term = search.trim();
-    let pool = availableQuests;
+    let pool = presetPool;
     if (term) {
       pool = pool.filter((quest) => {
         const hay = `${quest?.title || ""} ${quest?.desc || quest?.description || ""}`;
@@ -82,19 +107,19 @@ export default function SingleHabitPickerModal({
       });
     }
     return pool.filter((q) => matchesCategory(q, categoryFilter));
-  }, [availableQuests, search, categoryFilter]);
+  }, [presetPool, search, categoryFilter]);
 
-  const categoryOptions = useMemo(() => availableCategories(availableQuests), [availableQuests]);
+  const categoryOptions = useMemo(() => availableCategories(presetPool), [presetPool]);
   const categoryCounts = useMemo(() => {
     const counts = { ALL: 0 };
-    const groups = groupQuests(availableQuests);
+    const groups = groupQuests(presetPool);
     for (const group of groups) {
       const cat = String(group.representative?.category || "").toUpperCase();
       counts.ALL += 1;
       counts[cat] = (counts[cat] || 0) + 1;
     }
     return counts;
-  }, [availableQuests]);
+  }, [presetPool]);
 
   // Single picker starts with no selection; the only sort concern is to
   // keep tapped cards from jumping. Since the first tap snapshots the
@@ -111,31 +136,12 @@ export default function SingleHabitPickerModal({
   const placeholder = t.onboardingSearch || "Search habits…";
   const confirmLabel = t.singleHabitPickerConfirm || "Add habit";
   const empty = t.singleHabitPickerEmpty || "No matching habits.";
-  const pickTabLabel = t.singleHabitPickerTabPick || "Pick from list";
-  const createTabLabel = t.singleHabitPickerTabCreate || "Create new";
-  const createTitleLabel = t.customHabitTitleLabel || "Title";
-  const createDescLabel = t.customHabitDescLabel || "Description";
-  const createTimerLabel = t.customHabitUseTimer || "Use a timer";
-  const createMinutesLabel = t.customHabitMinutesLabel || "Session length (minutes)";
-  const createXpExplain = t.customHabitXpExplain
-    || "Up to 39 min → 30 XP · 40–49 min → 40 XP · 50+ min → 50 XP";
-  const createConfirmLabel = t.singleHabitPickerCreateConfirm || "Create & add";
-
-  const newMinutesNum = Math.max(0, parseInt(newMinutes, 10) || 0);
-  const previewXp = !newNeedsTimer ? 30 : newMinutesNum >= 50 ? 50 : newMinutesNum >= 40 ? 40 : 30;
-
-  const handleCreate = async () => {
-    if (!onCreateCustom) return;
-    const cleanTitle = newTitle.trim();
-    if (!cleanTitle) return;
-    const minutes = newNeedsTimer ? Math.max(1, Math.min(480, newMinutesNum)) : 0;
-    await onCreateCustom({
-      title: cleanTitle,
-      description: newDesc.trim(),
-      needsTimer: newNeedsTimer,
-      timeEstimateMin: minutes
-    });
-  };
+  // Reuse the OnboardingModal's i18n keys for tab labels so the
+  // wording stays in lock-step ("Presets" / "Custom") across both
+  // habit-picking surfaces.
+  const presetsTabLabel = t.onboardingTabPresets || "Presets";
+  const customTabLabel = t.onboardingTabCustom || "Custom";
+  const customCount = Array.isArray(customQuests) ? customQuests.length : 0;
 
   return createPortal(
     <div
@@ -193,40 +199,49 @@ export default function SingleHabitPickerModal({
             </button>
           </div>
 
-          {onCreateCustom ? (
-            // Same segmented slide-bar pattern as OnboardingModal /
-            // PinnedReplacementModal so the picker reads as part of
-            // the same family of habit screens.
-            <div
-              role="tablist"
-              className="onb-habits-tabs"
-              style={{ "--onb-tabs-count": 2, "--onb-tabs-active": mode === "create" ? 1 : 0, marginTop: 12 }}
+          {/* Same segmented slide-bar pattern as OnboardingModal /
+              PinnedReplacementModal — Presets vs Custom — so the picker
+              reads as part of the same family of habit screens. The
+              tab is always rendered (no longer gated on onCreateCustom)
+              because the Custom tab is now the canonical place to
+              browse existing custom habits, not just create new ones. */}
+          <div
+            role="tablist"
+            className="onb-habits-tabs"
+            style={{ "--onb-tabs-count": 2, "--onb-tabs-active": mode === "custom" ? 1 : 0, marginTop: 12 }}
+          >
+            <div className="onb-habits-tabs-slider" aria-hidden />
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === "presets"}
+              onClick={() => setMode("presets")}
+              className="onb-habits-tab cinzel mobile-pressable"
             >
-              <div className="onb-habits-tabs-slider" aria-hidden />
-              <button
-                type="button"
-                role="tab"
-                aria-selected={mode === "pick"}
-                onClick={() => setMode("pick")}
-                className="onb-habits-tab cinzel mobile-pressable"
-              >
-                <span className="onb-habits-tab-ico" aria-hidden style={{ display: "inline-flex" }}><IconList size={14} /></span>
-                <span className="onb-habits-tab-label">{pickTabLabel}</span>
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={mode === "create"}
-                onClick={() => setMode("create")}
-                className="onb-habits-tab cinzel mobile-pressable"
-              >
-                <span className="onb-habits-tab-ico" aria-hidden style={{ display: "inline-flex" }}><IconSparkle size={14} /></span>
-                <span className="onb-habits-tab-label">{createTabLabel}</span>
-              </button>
-            </div>
-          ) : null}
+              <span className="onb-habits-tab-ico" aria-hidden style={{ display: "inline-flex" }}><IconList size={14} /></span>
+              <span className="onb-habits-tab-label">{presetsTabLabel}</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === "custom"}
+              onClick={() => setMode("custom")}
+              className="onb-habits-tab cinzel mobile-pressable"
+            >
+              <span className="onb-habits-tab-ico" aria-hidden style={{ display: "inline-flex" }}><IconSparkle size={14} /></span>
+              <span className="onb-habits-tab-label">{customTabLabel}</span>
+              {customCount > 0 ? (
+                <span className="onb-habits-tab-count">{customCount}</span>
+              ) : null}
+            </button>
+          </div>
 
-          {mode === "pick" ? (
+          {/* Search input — Presets tab only. Style mirrors the
+              OnboardingModal's habit search (padding 8/12, fontSize
+              13, minHeight 36) so the two screens look like siblings
+              instead of one bulky input on the picker and a slim one
+              in setup. */}
+          {mode === "presets" ? (
             <div style={{ marginTop: 12 }}>
               <InputWithClear
                 value={search}
@@ -234,13 +249,13 @@ export default function SingleHabitPickerModal({
                 placeholder={placeholder}
                 clearAriaLabel={t.clearLabel || "Clear"}
                 inputStyle={{
-                  padding: "12px 14px",
-                  borderRadius: 12,
-                  background: "rgba(0,0,0,0.35)",
+                  padding: "8px 12px",
+                  borderRadius: 10,
+                  background: "rgba(255,255,255,0.07)",
                   border: "1px solid var(--card-border-idle)",
                   color: "#e2e8f0",
-                  fontSize: 16,
-                  minHeight: 44,
+                  fontSize: 13,
+                  minHeight: 36,
                   outline: "none"
                 }}
               />
@@ -249,88 +264,29 @@ export default function SingleHabitPickerModal({
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "12px 16px 100px" }}>
-        {mode === "create" ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div>
-              <label className="cinzel" style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-primary)", display: "block", marginBottom: 6 }}>
-                {createTitleLabel}
-              </label>
-              <input
-                type="text"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value.slice(0, 40))}
-                maxLength={40}
-                placeholder={t.customHabitTitlePlaceholder || "e.g. Morning meditation"}
-                style={{
-                  width: "100%", padding: "12px 14px", borderRadius: 12,
-                  background: "rgba(0,0,0,0.35)", border: "1px solid var(--card-border-idle)",
-                  color: "#e2e8f0", fontSize: 16, minHeight: 44, outline: "none"
-                }}
-              />
-            </div>
-            <div>
-              <label className="cinzel" style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-primary)", display: "block", marginBottom: 6 }}>
-                {createDescLabel}
-              </label>
-              <textarea
-                value={newDesc}
-                onChange={(e) => setNewDesc(e.target.value.slice(0, 120))}
-                maxLength={120}
-                rows={2}
-                placeholder={t.customHabitDescPlaceholder || "Optional note"}
-                style={{
-                  width: "100%", padding: "12px 14px", borderRadius: 12,
-                  background: "rgba(0,0,0,0.35)", border: "1px solid var(--card-border-idle)",
-                  color: "#e2e8f0", fontSize: 14, resize: "vertical", outline: "none"
-                }}
-              />
-            </div>
-            <div style={{ borderRadius: 12, border: "1px solid var(--panel-border)", padding: 12, background: "rgba(0,0,0,0.22)" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "#e2e8f0", cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={newNeedsTimer}
-                  onChange={(e) => setNewNeedsTimer(e.target.checked)}
-                  style={{ width: 18, height: 18, cursor: "pointer" }}
-                />
-                <span className="cinzel" style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-primary)" }}>
-                  {createTimerLabel}
-                </span>
-              </label>
-              {newNeedsTimer ? (
-                <div style={{ marginTop: 10 }}>
-                  <label className="cinzel" style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-muted)", display: "block", marginBottom: 6 }}>
-                    {createMinutesLabel}
-                  </label>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      min={1}
-                      max={480}
-                      value={newMinutes}
-                      onChange={(e) => setNewMinutes(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
-                      placeholder="30"
-                      style={{
-                        width: 100, padding: "10px 12px", borderRadius: 10,
-                        background: "rgba(0,0,0,0.35)", border: "1px solid var(--card-border-idle)",
-                        color: "#e2e8f0", fontSize: 15, minHeight: 42
-                      }}
-                    />
-                    <span style={{ fontSize: 12, color: "var(--color-muted)" }}>
-                      → <strong style={{ color: "#4ade80" }}>+{previewXp} XP</strong>
-                    </span>
-                  </div>
-                  <p style={{ fontSize: 11, color: "var(--color-muted)", marginTop: 8, lineHeight: 1.45 }}>
-                    {createXpExplain}
-                  </p>
-                </div>
-              ) : null}
-            </div>
-            {createError ? (
-              <p style={{ fontSize: 12, color: "#f87171", margin: 0 }}>{createError}</p>
-            ) : null}
-          </div>
+        {mode === "custom" ? (
+          // Custom tab — full CustomHabitManager surface. Existing custom
+          // habits are listed and tappable (single-select via the
+          // selectedIds adapter below); the "Create new" inline form is
+          // baked in. Replaces the old create-only mode that gave the
+          // user no way to pick from their own habits.
+          <CustomHabitManager
+            customQuests={customQuests}
+            selectedIds={selectedId ? [selectedId] : []}
+            onToggleSelect={(id) => setSelectedId((prev) => (prev === id ? null : id))}
+            // Single-pick: there is no per-tap limit. Tapping a different
+            // existing custom switches the selection rather than blocking.
+            selectionLimitReached={false}
+            accentVar="--color-primary"
+            allowDelete={true}
+            onCreateCustomQuest={onCreateCustomQuest}
+            onUpdateCustomQuest={onUpdateCustomQuest}
+            onDeleteCustomQuest={onDeleteCustomQuest}
+            customSaving={customSaving}
+            customError={customError}
+            onClearCustomError={onClearCustomError}
+            onFormStateChange={({ open: formOpen, hasKeyboard }) => setCustomFormExpanded(formOpen && hasKeyboard)}
+          />
         ) : (
           <>
             <div style={{ marginBottom: 10 }}>
@@ -372,7 +328,11 @@ export default function SingleHabitPickerModal({
             padding: "12px 16px calc(12px + env(safe-area-inset-bottom, 0px))",
             borderTop: "1px solid var(--panel-border)",
             background: "color-mix(in srgb, var(--panel-bg) 96%, transparent)",
-            backdropFilter: "blur(8px)"
+            backdropFilter: "blur(8px)",
+            // Mirror OnboardingModal: hide the sticky footer while the
+            // CustomHabitManager's create/edit form is up so the iOS
+            // keyboard doesn't push the Add Habit button off-screen.
+            display: customFormExpanded ? "none" : undefined
           }}
         >
           {errorMessage ? (
@@ -380,13 +340,9 @@ export default function SingleHabitPickerModal({
           ) : null}
           <button
             type="button"
-            disabled={mode === "create" ? (!newTitle.trim() || createSaving) : (!selectedId || saving)}
+            disabled={!selectedId || saving}
             onClick={() => {
-              if (mode === "create") {
-                handleCreate();
-              } else if (selectedId) {
-                onPick?.(selectedId);
-              }
+              if (selectedId) onPick?.(selectedId);
             }}
             className="cinzel mobile-pressable"
             style={{
@@ -397,18 +353,16 @@ export default function SingleHabitPickerModal({
               fontSize: 15,
               letterSpacing: "0.08em",
               border: "1px solid rgba(34,197,94,0.65)",
-              background: (mode === "create" ? Boolean(newTitle.trim()) : Boolean(selectedId))
+              background: selectedId
                 ? "linear-gradient(135deg, rgba(34,197,94,0.85), rgba(16,185,129,0.7))"
                 : "rgba(148,163,184,0.18)",
-              color: (mode === "create" ? Boolean(newTitle.trim()) : Boolean(selectedId)) ? "#ffffff" : "#94a3b8",
-              cursor: (mode === "create" ? Boolean(newTitle.trim()) : Boolean(selectedId)) ? "pointer" : "not-allowed",
-              boxShadow: (mode === "create" ? Boolean(newTitle.trim()) : Boolean(selectedId)) ? "0 6px 18px rgba(22,163,74,0.35)" : "none",
+              color: selectedId ? "#ffffff" : "#94a3b8",
+              cursor: selectedId ? "pointer" : "not-allowed",
+              boxShadow: selectedId ? "0 6px 18px rgba(22,163,74,0.35)" : "none",
               transition: "background 150ms ease, box-shadow 150ms ease"
             }}
           >
-            {mode === "create"
-              ? (createSaving ? (t.onboardingSaving || "Saving…") : createConfirmLabel)
-              : (saving ? (t.onboardingSaving || "Saving…") : confirmLabel)}
+            {saving ? (t.onboardingSaving || "Saving…") : confirmLabel}
           </button>
         </div>
       </div>

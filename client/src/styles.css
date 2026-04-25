@@ -3058,6 +3058,26 @@ body[data-theme="light"] .tour-finale-cta { color: #f8fafc; }
     border-color: color-mix(in srgb, var(--color-primary) 80%, transparent);
 }
 
+/* District upgrade button spinner. Inline 14×14 spinning ring that
+   sits inside the upgrade button while the API call is in flight —
+   gives the user immediate "yes, your tap landed" feedback during
+   the ~2-3 s server round-trip (especially noticeable on the free
+   Park upgrade during the onboarding tour). */
+.district-upgrade-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid color-mix(in srgb, #4fa85e 32%, transparent);
+    border-top-color: #4fa85e;
+    animation: district-upgrade-spin 720ms linear infinite;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+@keyframes district-upgrade-spin {
+    to { transform: rotate(360deg); }
+}
+
 /* ──────────────────────────────────────────────────────────────────
    Activity Logs — dense table-style row list
    ────────────────────────────────────────────────────────────────── */

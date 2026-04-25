@@ -505,6 +505,11 @@ export default function CityTab({
   const [cdRemaining, setCdRemaining] = useState(0);
   const [selectedDistrictIdx, setSelectedDistrictIdx] = useState(-1);
   const [upgradePopup, setUpgradePopup] = useState(null); // { districtId, level, name, perk } | null
+  // Which district is currently being upgraded (server round-trip can
+  // take ~2-3 s, especially during the onboarding tour's free Park
+  // upgrade). Drives an inline spinner + disabled state on the upgrade
+  // button so the user gets immediate feedback after their tap.
+  const [upgradingDistrictId, setUpgradingDistrictId] = useState(null);
   const cdIntervalRef = useRef(null);
   const { themeId, languageId } = useTheme();
   const grassBg = themeId === "light" ? "#7ec382" : "#1d3a28";
@@ -587,6 +592,13 @@ export default function CityTab({
 
   const handleQuickUpgrade = useCallback(async (districtId) => {
     if (!username) return;
+    // Guard against double-taps while the request is in flight — the
+    // backend round-trip is ~2-3 s on the free Park upgrade during
+    // onboarding and the user kept tapping again thinking nothing
+    // happened. The `upgradingDistrictId` state also drives the
+    // spinner + disabled visual on the button itself.
+    if (upgradingDistrictId) return;
+    setUpgradingDistrictId(districtId);
     // Snapshot the pre-upgrade level BEFORE the API call so the popup can
     // animate before → after. `districtLevels` is the prop-sourced array;
     // DISTRICTS defines the canonical index order (sport, business, park,
@@ -642,8 +654,10 @@ export default function CityTab({
       }
     } catch (err) {
       console.warn("[district quick upgrade]", err?.message || err);
+    } finally {
+      setUpgradingDistrictId(null);
     }
-  }, [username, onDistrictUpgraded, t, districtLevels]);
+  }, [username, onDistrictUpgraded, t, districtLevels, upgradingDistrictId]);
 
   const handleQuickDowngrade = useCallback(async (districtId) => {
     if (!username) return;
@@ -1100,7 +1114,8 @@ export default function CityTab({
         const districtName = t?.[`district${district.id.charAt(0).toUpperCase() + district.id.slice(1)}`] || district.id;
         const nextReq = !atMax ? DISTRICT_UPGRADE_REQS[level] : null;
         const isTourFree = !atMax && tourFreeUpgradeDistrict === district.id && level === 0;
-        const canUpgrade = !atMax && !!nextReq && (
+        const isUpgrading = upgradingDistrictId === district.id;
+        const canUpgrade = !atMax && !!nextReq && !isUpgrading && (
           isTourFree
           || (
             userLevel >= nextReq.level
@@ -1154,36 +1169,46 @@ export default function CityTab({
                       width: "100%",
                       minHeight: 46,
                       borderRadius: 12,
-                      border: canUpgrade
+                      border: (canUpgrade || isUpgrading)
                         ? "1.5px solid #4fa85e"
                         : "1.5px solid var(--panel-border)",
-                      background: canUpgrade
+                      background: (canUpgrade || isUpgrading)
                         ? "color-mix(in srgb, #4fa85e 22%, var(--panel-bg))"
                         : "color-mix(in srgb, var(--panel-border) 18%, var(--panel-bg))",
-                      color: canUpgrade ? "#4fa85e" : "var(--color-muted)",
+                      color: (canUpgrade || isUpgrading) ? "#4fa85e" : "var(--color-muted)",
                       fontSize: 14,
                       fontWeight: 800,
                       letterSpacing: "0.08em",
                       textTransform: "uppercase",
-                      cursor: canUpgrade ? "pointer" : "not-allowed",
+                      cursor: isUpgrading ? "wait" : canUpgrade ? "pointer" : "not-allowed",
                       transition: "all 0.2s ease",
                       opacity: 1,
                       display: "inline-flex",
                       alignItems: "center",
                       justifyContent: "center",
                       gap: 8,
-                      boxShadow: canUpgrade
+                      boxShadow: (canUpgrade || isUpgrading)
                         ? "0 2px 10px color-mix(in srgb, #4fa85e 22%, transparent)"
                         : "none"
                     }}
                   >
-                    {!canUpgrade && (
+                    {/* Visual order: spinner > lock > label. Spinner trumps
+                        the 🔒 because once you've actually tapped Upgrade,
+                        the request is on the way regardless of req gating. */}
+                    {isUpgrading ? (
+                      <span
+                        className="district-upgrade-spinner"
+                        aria-hidden="true"
+                      />
+                    ) : !canUpgrade ? (
                       <span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1 }}>🔒</span>
-                    )}
+                    ) : null}
                     <span>
-                      {isTourFree
-                        ? (t.districtUpgradeFreeCta || "Upgrade · Free")
-                        : (t.districtUpgradeCta || "Upgrade")}
+                      {isUpgrading
+                        ? (t.districtUpgradingLabel || "Upgrading…")
+                        : isTourFree
+                          ? (t.districtUpgradeFreeCta || "Upgrade · Free")
+                          : (t.districtUpgradeCta || "Upgrade")}
                     </span>
                   </button>
                 </div>
