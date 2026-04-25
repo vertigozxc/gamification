@@ -750,6 +750,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       setShowAbout(false);
       setShowQuiz(false);
       setShowActivityLogs(false);
+      setShowReferrals(false);
       setSingleHabitPickerOpen(false);
       setMobileTab(normalizeMobileTab(event?.detail));
     };
@@ -804,6 +805,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       || showAbout
       || showQuiz
       || showActivityLogs
+      || showReferrals
       || tierUnlock
       || showLogoutConfirm
       || showLevelUp
@@ -839,7 +841,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   }, [
     isEmbeddedApp, authUser, authLoading, dataLoading, initialDataResolved,
     showOnboarding, showTour, mobileTab, cityFullscreen, showPinnedReplaceModal, pinnedReplacementOpening,
-    showAbout, showQuiz, showActivityLogs, tierUnlock, showLogoutConfirm, showLevelUp, showHabitMilestone,
+    showAbout, showQuiz, showActivityLogs, showReferrals, tierUnlock, showLogoutConfirm, showLevelUp, showHabitMilestone,
     showFreezeSuccess, showRerollConfirm, showNotesModal, showThemePicker,
     showLanguagePicker, achievementModalOpen, showNotesHistory, deleteProfileOpen, questCompletePopup, timerLimitPopup,
     singleHabitPickerOpen, languageId

@@ -11,8 +11,9 @@
 // owns the loaded payload and re-fetches after mutating actions.
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTheme } from "../../ThemeContext";
-import { IconCheck, IconClose, IconList, IconSparkle } from "../icons/Icons";
+import { IconCheck, IconClose, IconList, IconSparkle, IconTrash } from "../icons/Icons";
 import Avatar from "../social/Avatar";
 import {
   fetchMyReferrals as apiFetchMyReferrals,
@@ -73,6 +74,12 @@ function ReferralsModal({ open, onClose, username, onTokensClaimed }) {
   // so a single id is enough.
   const [claimingId, setClaimingId] = useState(null);
   const [copiedCode, setCopiedCode] = useState(null);
+  // Pending delete-confirm popup. Holds { codeId, code } when the user
+  // tapped Delete on a code row; null otherwise. Replaces the previous
+  // window.confirm() so the prompt matches the rest of the app's
+  // styled confirmation dialogs.
+  const [deleteCodeTarget, setDeleteCodeTarget] = useState(null);
+  const [deletingCodeId, setDeletingCodeId] = useState(null);
 
   // Fetch on open. We don't subscribe — the user explicitly closes the
   // modal between sessions so the staleness window is small.
@@ -232,18 +239,24 @@ function ReferralsModal({ open, onClose, username, onTokensClaimed }) {
     handleCopy(text);
   }
 
-  async function handleDeleteCode(codeId, codeText) {
+  function handleDeleteCode(codeId, codeText) {
     if (!codeId) return;
-    const confirmText = (t.referralsCodeDeleteConfirm || "Delete code {code}? Existing referrals stay yours, but nobody new can use this code.").replace("{code}", codeText || "");
-    if (typeof window !== "undefined" && typeof window.confirm === "function") {
-      if (!window.confirm(confirmText)) return;
-    }
+    setDeleteCodeTarget({ codeId, code: codeText || "" });
+  }
+
+  async function confirmDeleteCode() {
+    if (!deleteCodeTarget) return;
+    const { codeId } = deleteCodeTarget;
+    setDeletingCodeId(codeId);
     setError("");
     try {
       const resp = await apiDeleteReferralCode(username, codeId);
       setData(resp);
+      setDeleteCodeTarget(null);
     } catch (err) {
       setError(err?.message || "Delete failed");
+    } finally {
+      setDeletingCodeId(null);
     }
   }
 
@@ -507,6 +520,79 @@ function ReferralsModal({ open, onClose, username, onTokensClaimed }) {
           )}
         </div>
       </div>
+
+      {/* Initial-load spinner — covers the body until the first fetch
+          resolves. Without this the user sees an empty sheet for a
+          beat plus the mobile tab bar lingers underneath; the overlay
+          masks both gaps with a clean centered ring. */}
+      {open && loading && !data ? (
+        <div
+          aria-hidden="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 88,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "color-mix(in srgb, var(--card-bg, #0f172a) 96%, transparent)",
+            backdropFilter: "blur(2px)"
+          }}
+        >
+          <div className="ref-spinner" />
+        </div>
+      ) : null}
+
+      {/* Delete-code confirmation. Same logout-confirm-overlay pattern
+          the rest of the app uses for destructive prompts (delete
+          profile, etc.) so the styling is consistent. Renders to body
+          via createPortal so it's not clipped by the parent modal's
+          overflow:hidden + safe-area padding. */}
+      {deleteCodeTarget && createPortal(
+        <div
+          className="logout-confirm-overlay"
+          onClick={() => { if (!deletingCodeId) setDeleteCodeTarget(null); }}
+          style={{ zIndex: 92 }}
+        >
+          <div
+            className="logout-confirm-card"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t.referralsCodeDeleteTitle || "Delete code?"}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="logout-confirm-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#dc2626" }}>
+              <IconTrash size={28} />
+            </div>
+            <h3 className="cinzel logout-confirm-title">
+              {t.referralsCodeDeleteTitle || "Delete code?"}
+            </h3>
+            <p className="logout-confirm-msg">
+              {(t.referralsCodeDeleteConfirm || "Delete code {code}? Existing referrals stay yours, but nobody new can use this code.")
+                .replace("{code}", deleteCodeTarget.code || "")}
+            </p>
+            <div className="logout-confirm-actions">
+              <button
+                className="logout-confirm-cancel cinzel"
+                disabled={Boolean(deletingCodeId)}
+                onClick={() => setDeleteCodeTarget(null)}
+              >
+                {t.cancelLabel || "Cancel"}
+              </button>
+              <button
+                className="logout-confirm-proceed cinzel"
+                disabled={Boolean(deletingCodeId)}
+                onClick={confirmDeleteCode}
+              >
+                {deletingCodeId
+                  ? (t.referralsDeleting || "Deleting…")
+                  : (t.referralsCodeDelete || "Delete")}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
