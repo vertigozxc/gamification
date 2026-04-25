@@ -467,15 +467,22 @@ function QuestBoard({
 
   // Slide the active-tab indicator pill under the current button —
   // mirrors the Community tab bar (LeaderboardTab) for a consistent
-  // visual + animation language across the app. The plain `.qb-tab-bar`
-  // variant has CSS transitions on transform/width baked in, so a
-  // single useLayoutEffect measurement is enough; no raf loop needed.
+  // visual + animation language across the app.
   //
-  // Deps include `tabs.join(",")` so the indicator re-anchors when the
-  // conditional Challenges tab appears or disappears mid-session.
-  // The first measurement after (re)mount snaps without transition to
-  // avoid the indicator briefly flashing at x=0 before sliding to the
-  // active tab.
+  // Two cases need to SNAP without transition (otherwise the
+  // indicator visibly resizes/slides for no user-initiated reason):
+  //   1. First mount — without snapping it would briefly flash at
+  //      x=0 before sliding to the active tab.
+  //   2. The tabs list changes (e.g. the conditional Challenges tab
+  //      appears mid-session because a new pending challenge arrived
+  //      from the server, or tab counts in the labels change width).
+  //      The active tab is the same in this case but its width
+  //      shrinks/grows because the row redistributes its grid cells —
+  //      animating that shrink reads as "the highlight is glitching"
+  //      from the user's perspective.
+  // Anything else (the user actively tapping a different tab, label
+  // text change inside the same tab) keeps the smooth sliding
+  // transition that makes the affordance feel polished.
   useLayoutEffect(() => {
     if (!tabsRowRef.current || !indicatorRef.current) return;
     const activeBtn = tabsRowRef.current.querySelector(`[data-qtab="${activeQTab}"]`);
@@ -486,8 +493,10 @@ function QuestBoard({
       indicatorRef.current.style.width = `${activeBtn.offsetWidth}px`;
       indicatorRef.current.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
     };
+    const tabsKey = tabs.join(",");
     const firstMeasure = ind.dataset.qbMeasured !== "1";
-    if (firstMeasure) {
+    const tabsChanged = ind.dataset.qbTabsKey !== tabsKey;
+    if (firstMeasure || tabsChanged) {
       const prev = ind.style.transition;
       ind.style.transition = "none";
       apply();
@@ -495,6 +504,7 @@ function QuestBoard({
       ind.offsetHeight; // force reflow so "transition: none" sticks
       ind.style.transition = prev;
       ind.dataset.qbMeasured = "1";
+      ind.dataset.qbTabsKey = tabsKey;
     } else {
       apply();
     }

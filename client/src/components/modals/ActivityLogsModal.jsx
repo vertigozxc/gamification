@@ -171,79 +171,35 @@ function ActivityLogsModal({ open, username, onClose }) {
                 : (t.activityLogsEmpty || "No activity yet.")}
             </p>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            // Table-style list: each row is a single line with a small
+            // icon, an inline LABEL · title, and the relative time on
+            // the right. No per-row card background — rows are
+            // separated by a thin divider, so the screen reads as a
+            // dense table instead of a stack of fat section blocks.
+            // Subtitle (when present) sits on a tight second line in
+            // muted text and only adds ~14 px of height to that row.
+            <div className="activity-log-table" role="list">
               {filtered.map((item) => (
                 <div
                   key={item.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    padding: "10px 12px",
-                    borderRadius: 12,
-                    background: "color-mix(in srgb, var(--panel-bg) 78%, rgba(255,255,255,0.04))",
-                    border: "1px solid var(--panel-border)"
-                  }}
+                  role="listitem"
+                  className="activity-log-row"
                 >
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 999,
-                      flexShrink: 0,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 16,
-                      background: "color-mix(in srgb, var(--color-primary) 12%, transparent)",
-                      border: "1px solid color-mix(in srgb, var(--color-primary) 30%, transparent)"
-                    }}
-                  >
+                  <span aria-hidden="true" className="activity-log-icon">
                     {item.icon}
                   </span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span
-                        className="cinzel"
-                        style={{
-                          fontSize: 10,
-                          letterSpacing: "0.1em",
-                          textTransform: "uppercase",
-                          color: "var(--color-primary)",
-                          fontWeight: 800,
-                          flexShrink: 0
-                        }}
-                      >
-                        {item.label}
-                      </span>
+                  <div className="activity-log-body">
+                    <div className="activity-log-line">
+                      <span className="activity-log-label cinzel">{item.label}</span>
+                      <span className="activity-log-sep" aria-hidden="true">·</span>
+                      <span className="activity-log-title">{item.title}</span>
                     </div>
-                    <p
-                      style={{
-                        margin: "3px 0 0",
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: "var(--color-text)",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap"
-                      }}
-                    >
-                      {item.title}
-                    </p>
                     {item.subtitle ? (
-                      <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--color-muted)" }}>
-                        {item.subtitle}
-                      </p>
+                      <span className="activity-log-subtitle">{item.subtitle}</span>
                     ) : null}
                   </div>
                   <span
-                    style={{
-                      fontSize: 11,
-                      color: "var(--color-muted)",
-                      flexShrink: 0,
-                      whiteSpace: "nowrap"
-                    }}
+                    className="activity-log-time"
                     title={item.dateText}
                   >
                     {item.timeText}

@@ -206,10 +206,18 @@ export default function AchievementsSection({ username, t, languageId, onModalOp
             style={{
               color: "var(--color-primary)",
               borderColor: "var(--color-primary-dim)",
-              background: "color-mix(in srgb, var(--color-primary) 10%, transparent)"
+              background: "color-mix(in srgb, var(--color-primary) 10%, transparent)",
+              minWidth: 42,
+              textAlign: "center"
             }}
+            aria-live="polite"
           >
-            {unlockedCount}/{total}
+            {/* While the achievements payload is in flight we show an
+                en-dash placeholder instead of a fake "0" — the badge
+                used to flash 0/14 → 2/14 the instant the fetch
+                resolved, and that misread as "you unlocked nothing"
+                for ~1 frame before correcting. */}
+            {loading ? "—" : unlockedCount}/{total}
           </span>
           <svg
             viewBox="0 0 24 24"
