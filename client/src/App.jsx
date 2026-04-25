@@ -458,7 +458,23 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       hidden: hideSetup,
       target: '[data-tour="setup-handle"]',
       title: t.tourSetupHandleTitle || "Your @username",
-      text: t.tourSetupHandleText || "A short handle for friends to find you. The suggested one is already free.",
+      text: t.tourSetupHandleText || "Unique player identifier for friends to find you.",
+      gate: "next",
+      onEnter: () => setWizardStep(0),
+      bubblePlacement: "bottom",
+      scrollBlock: "start",
+      scroll: true
+    });
+    list.push({
+      // NEW step: friend's referral-code input. Sits between
+      // @username and Continue so it shares the same wizardStep=0
+      // page. The input is OPTIONAL — the user can paste a code or
+      // just tap Next. Server treats empty as "no referral".
+      id: "setup-friends-code",
+      hidden: hideSetup,
+      target: '[data-tour="setup-referral"]',
+      title: t.tourSetupFriendsCodeTitle || "Have a friend's code?",
+      text: t.tourSetupFriendsCodeText || "Paste it here to grant +50 tokens to both of you when you reach level 5. Skip if you don't have one.",
       gate: "next",
       onEnter: () => setWizardStep(0),
       bubblePlacement: "bottom",
@@ -494,29 +510,34 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     list.push({
       id: "habits-browse",
       hidden: hideSetup,
-      // Anchor the bubble at the segmented Presets/Custom slide-bar
-      // (a tighter target than the full habits-picker) so the arrow
-      // visibly points down at the tabs the user should care about.
-      target: '[data-tour="habits-tabs"]',
+      // Spotlight covers the WHOLE habits picker — slide bar at top,
+      // category filter, search, and the habit list — so the user can
+      // freely tap habits, switch tabs, search, etc. Anything the user
+      // needs to interact with on this screen is inside the cutout.
+      target: '[data-tour="habits-picker"]',
       title: t.tourHabitsBrowseTitle || "Pick your habits",
-      text: t.tourHabitsBrowseText || "Choose 2 habits you want to build daily. Filter by category, search, or open the Custom tab to add your own.",
-      // Manual Next: the user picks 2 habits, the Next button on the
-      // bubble lights up, and they tap Next themselves. Previously the
-      // tour would autoAdvance the moment 2 were selected — that felt
-      // jumpy because the user might still want to read the third
-      // habit's blurb or change a pick. Now they're in control.
+      // Short copy on purpose — bubble sits at the bottom of the
+      // viewport INSIDE the cutout, so we want it as compact as
+      // possible to leave room for the habit cards above.
+      text: t.tourHabitsBrowseText || "Pick 2 habits to build daily. Use the Custom tab to add your own.",
+      // Manual Next: user picks 2 habits and taps Next themselves.
+      // Previously autoAdvance:true jumped the user to the next step
+      // the moment the second pick landed — felt yanky if they
+      // wanted to read the third blurb or swap a pick.
       gate: "condition",
       isSatisfied: () => Array.isArray(onboardingQuestIds) && onboardingQuestIds.length >= pinnedLimit,
       autoAdvance: false,
       hideNext: false,
       onEnter: () => { setWizardStep(1); setForcedHabitsTab("presets"); },
-      // Bubble sits ABOVE the tabs and the arrow points down at them
-      // (Presets / Custom). Scrolling the slide-bar to top makes sure
-      // the bubble has room above it and the user immediately sees
-      // the tabs — no need to chase them with a finger.
-      bubblePlacement: "top",
-      scroll: true,
-      scrollBlock: "start"
+      // fillBottom + bubblePlacement:"bottom" => spotlight extends
+      // from the picker's top edge to the viewport bottom, and the
+      // bubble lives INSIDE that cutout near the bottom edge. Keeps
+      // the slide-bar (Presets/Custom) and the first few habits
+      // unobstructed; the user can scroll the inner habit list past
+      // the bubble if they want a habit at the bottom of the list.
+      bubblePlacement: "bottom",
+      fillBottom: true,
+      scroll: false
     });
     list.push({
       id: "setup-begin",
