@@ -770,6 +770,14 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     }
 
     const handleMobileTabChange = (event) => {
+      // Drop the tap entirely while the onboarding flow is active.
+      // The native shell already gets `tabBarLocked:true` via the
+      // postMessage bridge and renders the bar at 0.45 opacity with
+      // pointerEvents:none — but that requires the iOS app to be
+      // rebuilt with the latest WebAppScreen.js. This client-side
+      // fallback makes the lock work even on a stale native build:
+      // if a tap event somehow reaches the WebView, we ignore it.
+      if (showOnboarding || showTour) return;
       // Tab-bar tap should return the user to the underlying screen —
       // dismiss any full-screen modal overlays first so the tab change
       // isn't invisible behind them.
@@ -786,7 +794,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
 
     window.addEventListener("life-rpg-mobile-tab", handleMobileTabChange);
     return () => window.removeEventListener("life-rpg-mobile-tab", handleMobileTabChange);
-  }, [isEmbeddedApp]);
+  }, [isEmbeddedApp, showOnboarding, showTour]);
 
   useEffect(() => {
     if (!isEmbeddedApp || typeof window === "undefined") {
