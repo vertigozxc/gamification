@@ -396,7 +396,7 @@ function CommunityHero({ t, leaderboard, meUid }) {
   const countdown = formatResetCountdown(resetAt - now, t);
 
   return (
-    <div className="city-hero-surface mobile-card top-screen-block p-4">
+    <div data-tour="community-hero" className="city-hero-surface mobile-card top-screen-block p-4">
       <div className="relative z-10">
         <h3
           className="cinzel text-[1.35rem] font-bold tracking-wide leading-tight m-0"

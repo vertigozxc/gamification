@@ -395,6 +395,14 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
 
   const [tourStepId, setTourStepId] = useState(null);
   const [forcedHabitsTab, setForcedHabitsTab] = useState(null);
+  // Snapshot of the user's tokens at the moment the spin-wheel tour
+  // step is entered. The step's isSatisfied gate compares the live
+  // tokens count against this snapshot — when the user actually
+  // claims their daily reward inside the spin modal, tokens go up
+  // and the tour auto-advances. Lets us hide the bubble's Next
+  // button on this step (per UX spec: "the user must press Claim
+  // daily reward, not Next").
+  const spinTourSnapshotRef = useRef(null);
 
   const handleRestartTour = async () => {
     const uname = authUser?.uid || username;
@@ -482,18 +490,21 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       target: '[data-tour="habits-picker"]',
       title: t.tourHabitsBrowseTitle || "Pick your habits",
       text: t.tourHabitsBrowseText || "Choose 2 habits you want to build daily. Filter by category, search, or open the Custom tab to add your own.",
+      // Manual Next: the user picks 2 habits, the Next button on the
+      // bubble lights up, and they tap Next themselves. Previously the
+      // tour would autoAdvance the moment 2 were selected — that felt
+      // jumpy because the user might still want to read the third
+      // habit's blurb or change a pick. Now they're in control.
       gate: "condition",
       isSatisfied: () => Array.isArray(onboardingQuestIds) && onboardingQuestIds.length >= pinnedLimit,
-      autoAdvance: true,
-      hideNext: true,
+      autoAdvance: false,
+      hideNext: false,
       onEnter: () => { setWizardStep(1); setForcedHabitsTab("presets"); },
-      // Pin the bubble to the BOTTOM of the viewport (inside the
-      // fillBottom spotlight) instead of trying to fit it above the
-      // slide bar. The Presets/Custom slide bar starts only ~80 px
-      // below the iPhone notch, so a top-anchored bubble would
-      // always overlap it. With "bottom" placement + fillBottom the
-      // bubble sits just above safe-area-bottom and the slide bar +
-      // search + first habits are all clear and tappable.
+      // Pin the bubble at the bottom edge of the WebView, JUST ABOVE
+      // the (locked-but-visible) tab bar. The bubble useMemo reads
+      // --mobile-footer-offset so the bottom-reserved space includes
+      // the tab bar height — without that fix the bubble would slide
+      // under the tab bar and lose its bottom 60-ish pixels.
       bubblePlacement: "bottom",
       fillBottom: true,
       scroll: false
@@ -598,9 +609,23 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       id: "spin-wheel",
       target: '[data-tour="spin-wheel"]',
       title: t.tourSpinWheelTitle || "Daily spin",
-      text: t.tourSpinWheelText || "Tap the spin button to collect your daily reward.",
-      gate: "next",
-      blockInteraction: true,
+      text: t.tourSpinWheelText || "Tap the spin button and claim your daily reward — the tour will continue once you do.",
+      // Gate on the user actually CLAIMING the reward (tokens go up
+      // server-side via /api/city/spin → handleCityRewardClaimed →
+      // setState). The bubble's Next button is hidden so the only
+      // way forward is to do the action. blockInteraction stays OFF
+      // so the user can tap the spotlit Spin button.
+      gate: "condition",
+      isSatisfied: () => {
+        const snap = spinTourSnapshotRef.current;
+        if (!snap) return false;
+        return Number(state?.tokens) > Number(snap.tokens);
+      },
+      autoAdvance: true,
+      hideNext: true,
+      onEnter: () => {
+        spinTourSnapshotRef.current = { tokens: Number(state?.tokens) || 0 };
+      },
       bubblePlacement: "top",
       scroll: true
     });
@@ -616,14 +641,14 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       scroll: true
     });
     // COMMUNITY — auto-switch tab + pre-select the Activity sub-tab.
-    // Spotlight target is just the top-3 player rows. The hero
-    // (your-rank tile, weekly XP) and the tab bar are above; the
-    // long tail of players (#4+) is below — neither is interesting
-    // for a "here's the leaderboard" intro, so we keep the cutout
-    // tight on the podium.
+    // Spotlight spans from the CommunityHero's TOP edge down to the
+    // BOTTOM of the third player row via extendBottomTo. The user
+    // sees the section header, the tabs and the podium all in one
+    // active zone; the long #4+ tail below stays in the dim area.
     list.push({
       id: "community",
-      target: '[data-tour="community-top3"]',
+      target: '[data-tour="community-hero"]',
+      extendBottomTo: '[data-tour="community-top3"]',
       title: t.tourCommunityTitle || "Community",
       text: t.tourCommunityText || "See the week's active players, add friends, take on group challenges.",
       gate: "next",
@@ -634,19 +659,19 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       },
       bubblePlacement: "bottom",
       scroll: true,
-      scrollBlock: "center"
+      scrollBlock: "start"
     });
-    // PROFILE — single step that spotlights the user's stats chunk:
-    // the 4 KPI cards (Total XP, Streak, Tokens, Level) plus the
-    // Overall Statistics list. The hero (avatar + name) and the
-    // achievements / settings sections aren't part of the spotlight
-    // — the stats block is the substantive thing the user wants
-    // to know exists. Auto-switches to the profile tab on enter.
+    // PROFILE — spotlight just the 4 KPI cards (Total XP, Streak,
+    // Tokens, Level). Tighter cutout than the previous profile-stats
+    // wrapper which also covered the Overall Statistics list below
+    // it — the 4 cards are the canonical "your stats at a glance"
+    // surface, and the per-row stats list isn't what we're
+    // introducing. Auto-switches to the profile tab.
     list.push({
       id: "profile-overview",
-      target: '[data-tour="profile-stats"]',
-      title: t.tourProfileTitle || "Your profile",
-      text: t.tourProfileText || "Total XP, streak, tokens, level and the rest of your stats live here.",
+      target: '[data-tour="profile-quickstats"]',
+      title: t.tourProfileTitle || "Your stats",
+      text: t.tourProfileText || "Total XP, streak, tokens, level — your stats at a glance.",
       gate: "next",
       blockInteraction: true,
       onEnter: () => { startTransition(() => setMobileTab("profile")); },
@@ -657,9 +682,12 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     return list;
   // Note: mobileTab intentionally omitted — the tour drives tab swaps
   // via onEnter callbacks now, and including it would cause the whole
-  // step list to rebuild on every tab change.
+  // step list to rebuild on every tab change. state?.tokens IS in
+  // the deps so the spin-wheel step's isSatisfied closure sees the
+  // post-claim token count (snapshot taken on enter, compared on
+  // each rebuild).
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t, tf, showOnboarding, onboardingName, onboardingQuestIds, state?.questSlots?.pinned, state?.districtLevels, wizardStep]);
+  }, [t, tf, showOnboarding, onboardingName, onboardingQuestIds, state?.questSlots?.pinned, state?.districtLevels, state?.tokens, wizardStep]);
 
   useEffect(() => {
     uidRef.current = authUser ? authUser.uid : null;

@@ -40,6 +40,23 @@ function readSafeAreaBottom() {
   }
 }
 
+// The native shell injects --mobile-footer-offset = safeBottomPx + 68
+// when the bottom tab bar is visible (and just safeBottomPx when not).
+// We use this for bubble positioning so a bottom-anchored bubble sits
+// JUST ABOVE the tab bar instead of overlapping with it. Without this
+// the bubble's bottom edge could slide under the (locked-but-visible)
+// tab bar during the onboarding tour.
+function readMobileFooterOffset() {
+  try {
+    const css = getComputedStyle(document.documentElement);
+    const raw = css.getPropertyValue("--mobile-footer-offset").trim() || "0px";
+    const parsed = parseFloat(raw);
+    return Number.isFinite(parsed) ? parsed : 0;
+  } catch {
+    return 0;
+  }
+}
+
 function getTargetRect(selector) {
   if (!selector) return null;
   try {
@@ -198,6 +215,9 @@ export default function AnimatedOnboardingTour({
   const [viewport, setViewport] = useState(readViewport);
   const [safeTop, setSafeTop] = useState(0);
   const [safeBottom, setSafeBottom] = useState(0);
+  // Mirrors --mobile-footer-offset from the native shell. Bigger than
+  // safeBottom when the (locked-but-visible) bottom tab bar is up.
+  const [footerOffset, setFooterOffset] = useState(0);
   const [shakeTick, setShakeTick] = useState(0);
   const enteredIdRef = useRef(null);
   const bubbleRef = useRef(null);
@@ -302,6 +322,7 @@ export default function AnimatedOnboardingTour({
     const update = () => {
       setSafeTop(readSafeAreaTop());
       setSafeBottom(readSafeAreaBottom());
+      setFooterOffset(readMobileFooterOffset());
       setViewport(readViewport());
     };
     update();
@@ -498,6 +519,30 @@ export default function AnimatedOnboardingTour({
         }
       };
     }
+    // extendBottomTo — span the spotlight from the target's top edge
+    // down to a SECOND element's bottom edge (e.g. spotlight from
+    // CommunityHero's top all the way down to the third player row).
+    // If the second element isn't in the DOM yet, gracefully fall
+    // back to the target's own rect.
+    if (step.extendBottomTo) {
+      const tail = getTargetRect(step.extendBottomTo);
+      if (tail) {
+        const left = Math.min(r.left, tail.rect.left);
+        const right = Math.max(r.right, tail.rect.right);
+        const bottom = tail.rect.bottom;
+        return {
+          kind: "spotlight",
+          rect: {
+            top: r.top,
+            left,
+            right,
+            bottom,
+            width: Math.max(0, right - left),
+            height: Math.max(0, bottom - r.top)
+          }
+        };
+      }
+    }
     return { kind: "spotlight", rect: r };
   // Re-run whenever viewport changes or rectTick increments.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -582,8 +627,15 @@ export default function AnimatedOnboardingTour({
     const r = layout.rect;
     const BUBBLE_WIDTH = Math.min(viewport.w - 32, 360);
     const h = bubbleHeight || DEFAULT_BUBBLE_HEIGHT;
+    // Reserved space at the bottom of the WebView. When the native
+    // tab bar is up (which it is during the onboarding tour, just
+    // locked from taps), --mobile-footer-offset includes its 68 px
+    // height; otherwise it falls back to safeBottom alone. Either
+    // way, a "bottom"-anchored bubble must sit ABOVE this reserve
+    // or it'll be hidden behind the tab bar.
+    const bottomReserved = Math.max(safeBottom, footerOffset);
     const spaceAbove = r.top - safeTop - 20;
-    const spaceBelow = viewport.h - r.bottom - safeBottom - 20;
+    const spaceBelow = viewport.h - r.bottom - bottomReserved - 20;
     const prefer = step?.bubblePlacement || "auto";
     let placement = prefer;
     if (prefer === "auto") {
@@ -597,7 +649,7 @@ export default function AnimatedOnboardingTour({
       // Anchor bubble so its bottom sits above the target (never covers it).
       top = Math.max(safeTop + 12, r.top - BUBBLE_MARGIN - h);
     } else {
-      top = Math.min(viewport.h - safeBottom - h - 12, r.bottom + BUBBLE_MARGIN);
+      top = Math.min(viewport.h - bottomReserved - h - 12, r.bottom + BUBBLE_MARGIN);
     }
     return {
       top: Math.round(top),
@@ -605,7 +657,7 @@ export default function AnimatedOnboardingTour({
       width: BUBBLE_WIDTH,
       arrow
     };
-  }, [layout, viewport.w, viewport.h, safeTop, safeBottom, step, bubbleHeight]);
+  }, [layout, viewport.w, viewport.h, safeTop, safeBottom, footerOffset, step, bubbleHeight]);
 
   // After every render, measure the bubble's real height so the next
   // position calculation uses an accurate value — long text steps were

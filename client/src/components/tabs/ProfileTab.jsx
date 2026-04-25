@@ -188,12 +188,13 @@ export default function ProfileTab({
       />
 
       {/* Quick Stats Grid + Overall Statistics — wrapped together so
-          the onboarding tour can spotlight the user's actual stats
-          chunk (4 KPI cards + per-row stats list) rather than the
-          whole profile page. */}
+          OTHER consumers (replay-tour, deep linking) can still target
+          the whole stats chunk via data-tour="profile-stats". The
+          onboarding tour itself spotlights only the inner 4-KPI grid
+          (data-tour="profile-quickstats") for a tighter focus. */}
       <div data-tour="profile-stats" className="flex flex-col gap-4">
-      {/* Quick Stats Grid */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Quick Stats Grid — Total XP / Streak / Tokens / Level */}
+      <div data-tour="profile-quickstats" className="grid grid-cols-2 gap-3">
         <div className="mobile-card flex flex-col items-center py-4" style={{ background: "var(--panel-bg)" }}>
           <span className="text-2xl mb-1">{t.logsIcon}</span>
           <p className="cinzel text-2xl font-bold" style={{ color: "var(--color-primary)" }}>{(() => { 
