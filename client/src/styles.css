@@ -1667,7 +1667,7 @@ body[data-theme="light"] .delete-profile-confirm-cancel {
    sit outside the button bounds without being clipped. The label
    itself owns the overflow:hidden + max-width collapse animation. */
 .qb-tab-bar-expand{display:grid;gap:.15rem;padding:.15rem;transition:grid-template-columns .36s cubic-bezier(.22,1,.36,1);align-items:stretch;min-height:2.6rem;position:relative}
-.qb-tab-bar-expand .qb-tab-indicator{box-sizing:border-box;pointer-events:none;z-index:0;position:absolute;top:.15rem;bottom:.15rem;left:0;width:0;transform:translateX(0);background:#6366f173;border:1.5px solid #818cf899;border-radius:999px;box-shadow:0 4px 12px #6366f14d;transition:background .26s,border-color .26s,box-shadow .26s}
+.qb-tab-bar-expand .qb-tab-indicator{box-sizing:border-box;pointer-events:none;z-index:0;position:absolute;top:.15rem;bottom:.15rem;height:auto;left:0;width:0;transform:translateX(0);background:#6366f173;border:1.5px solid #818cf899;border-radius:999px;box-shadow:0 4px 12px #6366f14d;transition:background .26s,border-color .26s,box-shadow .26s}
 .qb-tab-bar-expand .qb-tab-indicator-chal{background:rgba(250,204,21,.22);border-color:rgba(253,224,71,.6);box-shadow:0 4px 14px rgba(250,204,21,.26)}
 .qb-tab-bar-expand .qb-tab-btn{border:1.5px solid transparent;padding:.35rem .5rem;gap:.3rem;transition:color .25s;min-width:0;overflow:visible;background:transparent}
 .qb-tab-bar-expand .qb-tab-btn:hover,.qb-tab-bar-expand .qb-tab-active{background:transparent;border-color:transparent;box-shadow:none}
