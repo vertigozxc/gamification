@@ -2060,12 +2060,17 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           }}
         />
       </Suspense>
-      <Suspense fallback={null}>
+      {/* Activity Logs gets its own Suspense + ModalLazyFallback so
+          the user sees a continuous loading state during the lazy
+          chunk download (same as ReferralsModal). */}
+      <Suspense fallback={showActivityLogs ? <ModalLazyFallback /> : null}>
         <ActivityLogsModal
           open={showActivityLogs}
           username={authUser?.uid}
           onClose={() => setShowActivityLogs(false)}
         />
+      </Suspense>
+      <Suspense fallback={null}>
         <QuizModal
           open={showQuiz}
           username={authUser?.uid}

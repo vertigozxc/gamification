@@ -97,7 +97,7 @@ function ActivityLogsModal({ open, username, onClose }) {
           inset: 0,
           width: "100vw",
           height: "100dvh",
-          background: "var(--card-bg, var(--panel-bg))",
+          background: "var(--panel-bg, #0f172a)",
           display: "flex",
           flexDirection: "column",
           paddingTop: "env(safe-area-inset-top, 0px)",
@@ -158,13 +158,9 @@ function ActivityLogsModal({ open, username, onClose }) {
         </div>
 
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "10px 16px 18px" }}>
-          {loading ? (
-            <p style={{ textAlign: "center", color: "var(--color-muted)", margin: "32px 0", fontSize: 13 }}>
-              {t.activityLogsLoading || "Loading…"}
-            </p>
-          ) : error ? (
+          {error ? (
             <p style={{ textAlign: "center", color: "#fca5a5", margin: "32px 0", fontSize: 13 }}>{error}</p>
-          ) : filtered.length === 0 ? (
+          ) : !loading && filtered.length === 0 ? (
             <p style={{ textAlign: "center", color: "var(--color-muted)", margin: "32px 0", fontSize: 13 }}>
               {query
                 ? (t.activityLogsEmptyQuery || "No matches.")
@@ -209,6 +205,28 @@ function ActivityLogsModal({ open, username, onClose }) {
             </div>
           )}
         </div>
+
+        {/* Initial-load spinner — same pattern as ReferralsModal so
+            both full-screen sheets share one loading look. Shown only
+            on the very first fetch (no `data` cached yet) so a later
+            in-place refetch doesn't flash the screen. */}
+        {open && loading && items.length === 0 ? (
+          <div
+            aria-hidden="true"
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 96,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "color-mix(in srgb, var(--card-bg, #0f172a) 96%, transparent)",
+              backdropFilter: "blur(2px)"
+            }}
+          >
+            <div className="ref-spinner" />
+          </div>
+        ) : null}
       </div>
     </div>,
     document.body
