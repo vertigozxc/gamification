@@ -1595,7 +1595,13 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     });
   }
 
-  const rerollButtonLabel = completedToday >= 6 || allRandomCompleted ? t.rerollComplete : state.hasRerolledToday && state.extraRerollsToday === 0 ? t.rerollDone : t.rerollButton;
+  const rerollButtonLabel = completedToday >= 6 || allRandomCompleted
+    ? t.rerollComplete
+    : state.hasRerolledToday && state.extraRerollsToday === 0
+      ? t.rerollDone
+      : state.extraRerollsToday > 0
+        ? `${t.rerollButton} · ×${state.extraRerollsToday}`
+        : t.rerollButton;
   const rerollButtonTitle = allRandomCompleted ? t.allRandomTasksDone : state.hasRerolledToday && state.extraRerollsToday === 0 ? t.alreadyUsedToday : completedToday >= 6 ? t.allDoneUnavailable : t.oncePerDay;
 
   if (authLoading) {

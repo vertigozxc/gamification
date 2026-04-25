@@ -107,12 +107,6 @@ function TokenVault({
                 <span className="cinzel font-bold text-sm" style={{ color: costValueColor }}>{rerollCost}</span>
               </div>
             </div>
-            {extraRerollsToday > 0 && (
-              <div className="flex items-center gap-2 bg-violet-900/30 border border-violet-500/50 rounded-xl px-3 py-1.5">
-                <span className="text-violet-300">✦</span>
-                <span className="cinzel text-violet-300 text-xs font-bold tracking-widest">{extraRerollsToday} {extraRerollsToday > 1 ? t.rerollReadyPlural : t.rerollReady} {t.rerollReadySuffix}</span>
-              </div>
-            )}
             <button
               onClick={onBuyExtraReroll}
               disabled={tokens < rerollCost || !hasRerolledToday}
