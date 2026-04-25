@@ -2370,6 +2370,17 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 onOpenAbout={() => setShowAbout(true)}
                 onOpenQuiz={() => setShowQuiz(true)}
                 onOpenNotesHistory={() => setShowNotesHistory(true)}
+                onAchievementTokensClaimed={(amount) => {
+                  // Mirror the server-side token grant locally so the
+                  // Profile balance updates instantly without waiting
+                  // for the next /api/game-state refresh.
+                  if (Number(amount) > 0) {
+                    setState((prev) => ({
+                      ...prev,
+                      tokens: (Number(prev.tokens) || 0) + Number(amount)
+                    }));
+                  }
+                }}
                 onRestartTour={handleRestartTour}
                 onLogout={() => setShowLogoutConfirm(true)}
                 onDeleteProfile={handleDeleteProfile}

@@ -648,6 +648,17 @@ export function claimQuizScholar(username) {
   });
 }
 
+export function claimAchievement(username, code) {
+  return request("/api/achievements/claim", {
+    method: "POST",
+    body: JSON.stringify({ username, code })
+  });
+}
+
+export function fetchAchievementStats() {
+  return request("/api/achievements/stats");
+}
+
 export function deleteProfile(userId) {
   return request(`/api/profiles/${encodeURIComponent(userId)}`, { method: "DELETE" });
 }

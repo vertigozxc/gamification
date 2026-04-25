@@ -37,6 +37,7 @@ import {
 } from "./productivity.js";
 import {
   ACHIEVEMENT_CODES,
+  ACHIEVEMENT_REWARDS,
   evaluateAchievements,
   fetchUserAchievements
 } from "./achievements.js";
@@ -4324,6 +4325,8 @@ app.post("/api/city/spin", async (req, res) => {
     // immediately after the click — even if the user closes the app before
     // the animation finishes, they still got credit for the spin.
     const rewardedUser = await applyCitySpinReward(user, reward, todayKey);
+    // Fire-and-forget eval — covers level-up via wheel (lvl_10/30/100).
+    trackAchievements(user.id);
     try {
       await prisma.user.update({
         where: { id: user.id },
@@ -6119,8 +6122,18 @@ app.post("/api/profiles/language", async (req, res) => {
       where: { username },
       data: { preferredLanguage: lang }
     });
-    trackAchievements(user.id);
-    res.json({ ok: true, preferredLanguage: user.preferredLanguage });
+    // AWAIT the evaluation so the response is consistent with DB state.
+    // Previously this was fire-and-forget, which meant the client saw
+    // ok:true before the polyglot achievement row was actually written —
+    // and the next /api/users/:u/achievements call could still miss it.
+    // Now the response only returns after the row is in (or evaluation
+    // failed and was logged).
+    const newlyUnlocked = await trackAchievements(user.id);
+    res.json({
+      ok: true,
+      preferredLanguage: user.preferredLanguage,
+      newlyUnlocked
+    });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
   }
@@ -6153,13 +6166,12 @@ app.get("/api/users/:username/achievements", async (req, res) => {
   }
 });
 
-// Knowledge Quiz — idempotent reward grant. The quiz logic itself is
-// client-only (questions live in client/src/components/modals/quizPool.js)
-// so this endpoint trusts the caller for the score: in exchange we
-// guarantee the reward only fires once per user via the userAchievement
-// uniqueness constraint on (userId, code = "scholar"). Subsequent calls
-// after the first pass return justUnlocked: false with no token grant.
-const SCHOLAR_TOKEN_REWARD = 10;
+// Knowledge Quiz — unlock-only. The achievement row is created here
+// when the user scores 10/10 for the first time; the token reward is
+// claimed separately via POST /api/achievements/claim, same flow as
+// every other achievement. Subsequent quiz passes return justUnlocked:
+// false (the row already exists) and the user simply re-sees their
+// score, with no extra token grant.
 app.post("/api/quiz/scholar/claim", async (req, res) => {
   const schema = z.object({ username: z.string().min(2).max(64) });
   try {
@@ -6178,50 +6190,175 @@ app.post("/api/quiz/scholar/claim", async (req, res) => {
       return res.json({
         ok: true,
         justUnlocked: false,
-        tokensGranted: 0,
         tokens: Number(user.tokens) || 0
       });
     }
 
-    const now = new Date();
-    let tokensAfter = Number(user.tokens) || 0;
     try {
-      const updated = await prisma.$transaction(async (tx) => {
-        await tx.userAchievement.create({
-          data: { userId: user.id, code: "scholar", unlockedAt: now }
-        });
-        const u = await tx.user.update({
-          where: { id: user.id },
-          data: { tokens: { increment: SCHOLAR_TOKEN_REWARD } },
-          select: { tokens: true }
-        });
-        return u;
+      await prisma.userAchievement.create({
+        data: { userId: user.id, code: "scholar", unlockedAt: new Date() }
       });
-      tokensAfter = updated.tokens;
-    } catch (txErr) {
-      // Race condition — another claim slipped in just before us. Treat
-      // the achievement as already unlocked and don't double-grant.
-      const fresh = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { tokens: true }
-      });
+    } catch (createErr) {
+      // Likely a race against another claim — the unique (userId, code)
+      // constraint will reject the duplicate. Treat as already-unlocked.
       return res.json({
         ok: true,
         justUnlocked: false,
-        tokensGranted: 0,
-        tokens: Number(fresh?.tokens) || tokensAfter
+        tokens: Number(user.tokens) || 0
       });
     }
 
     return res.json({
       ok: true,
       justUnlocked: true,
-      tokensGranted: SCHOLAR_TOKEN_REWARD,
-      tokens: tokensAfter
+      tokens: Number(user.tokens) || 0
     });
   } catch (error) {
     console.error(`[Quiz Claim Error] ${error?.message || error}`);
     res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// Achievement reward claim — unified flow for every code. Idempotent:
+// the achievement must be unlocked AND not yet claimed; we set
+// claimedAt and credit the reward atomically. Repeat calls after a
+// successful claim return tokensGranted: 0.
+app.post("/api/achievements/claim", async (req, res) => {
+  const schema = z.object({
+    username: z.string().min(2).max(64),
+    code: z.string().min(1).max(64)
+  });
+  try {
+    const { username, code } = schema.parse(req.body);
+    if (!ACHIEVEMENT_CODES.includes(code)) {
+      return res.status(400).json({ error: "Unknown achievement code", code: "unknown_code" });
+    }
+    const reward = Number(ACHIEVEMENT_REWARDS[code]) || 0;
+    if (reward <= 0) {
+      return res.status(400).json({ error: "Achievement has no claimable reward", code: "no_reward" });
+    }
+    const user = await prisma.user.findUnique({
+      where: { username: slugifyUsername(username) },
+      select: { id: true, tokens: true }
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const ach = await prisma.userAchievement.findUnique({
+      where: { userId_code: { userId: user.id, code } }
+    }).catch(() => null);
+
+    if (!ach) {
+      return res.status(400).json({ error: "Achievement not unlocked", code: "not_unlocked" });
+    }
+    if (ach.claimedAt) {
+      return res.json({
+        ok: true,
+        alreadyClaimed: true,
+        tokensGranted: 0,
+        tokens: Number(user.tokens) || 0,
+        claimedAt: ach.claimedAt
+      });
+    }
+
+    const now = new Date();
+    try {
+      const updated = await prisma.$transaction(async (tx) => {
+        // Guard against race: only credit if claimedAt is still null.
+        const fresh = await tx.userAchievement.findUnique({
+          where: { userId_code: { userId: user.id, code } }
+        });
+        if (!fresh || fresh.claimedAt) {
+          return { tokens: Number(user.tokens) || 0, claimedAt: fresh?.claimedAt || now, raced: true };
+        }
+        await tx.userAchievement.update({
+          where: { userId_code: { userId: user.id, code } },
+          data: { claimedAt: now }
+        });
+        const u = await tx.user.update({
+          where: { id: user.id },
+          data: { tokens: { increment: reward } },
+          select: { tokens: true }
+        });
+        return { tokens: u.tokens, claimedAt: now, raced: false };
+      });
+      if (updated.raced) {
+        return res.json({
+          ok: true,
+          alreadyClaimed: true,
+          tokensGranted: 0,
+          tokens: updated.tokens,
+          claimedAt: updated.claimedAt
+        });
+      }
+      return res.json({
+        ok: true,
+        alreadyClaimed: false,
+        tokensGranted: reward,
+        tokens: updated.tokens,
+        claimedAt: updated.claimedAt
+      });
+    } catch (txErr) {
+      console.error(`[Achievement Claim Tx Error] ${txErr?.message || txErr}`);
+      return res.status(500).json({ error: "Claim failed", detail: txErr?.message });
+    }
+  } catch (error) {
+    console.error(`[Achievement Claim Error] ${error?.message || error}`);
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// Per-code unlock rate, expressed as a fraction of all eligible users
+// (anyone with at least one quest completion — keeps freshly registered
+// dormant accounts from depressing the percentages). Cached in-process
+// for ACHIEVEMENT_STATS_TTL_MS to avoid hammering the DB on every popup
+// open. The cache is single-instance (each Render worker has its own),
+// which is fine for this read-only stat — staleness up to the TTL is
+// acceptable, and exact precision matters less than freshness.
+const ACHIEVEMENT_STATS_TTL_MS = 10 * 60 * 1000; // 10 minutes
+let achievementStatsCache = { at: 0, payload: null };
+
+async function buildAchievementStats() {
+  // Total active player base: distinct users with at least one quest
+  // completion. Falls back to total user count if zero (e.g. fresh DB).
+  const activeRows = await prisma.questCompletion.findMany({
+    distinct: ["userId"],
+    select: { userId: true }
+  });
+  let total = activeRows.length;
+  if (!total) {
+    total = await prisma.user.count();
+  }
+  const safeTotal = Math.max(1, total);
+
+  const grouped = await prisma.userAchievement.groupBy({
+    by: ["code"],
+    _count: { _all: true }
+  });
+  const counts = new Map(grouped.map((r) => [r.code, r._count._all]));
+  const stats = {};
+  for (const code of ACHIEVEMENT_CODES) {
+    const c = Number(counts.get(code)) || 0;
+    stats[code] = {
+      unlockedCount: c,
+      eligibleTotal: safeTotal,
+      percent: (c / safeTotal) * 100
+    };
+  }
+  return { totalActiveUsers: safeTotal, stats };
+}
+
+app.get("/api/achievements/stats", async (_req, res) => {
+  try {
+    const now = Date.now();
+    if (achievementStatsCache.payload && (now - achievementStatsCache.at) < ACHIEVEMENT_STATS_TTL_MS) {
+      return res.json(achievementStatsCache.payload);
+    }
+    const fresh = await buildAchievementStats();
+    achievementStatsCache = { at: now, payload: fresh };
+    res.json(fresh);
+  } catch (error) {
+    console.error(`[Achievement Stats Error] ${error?.message || error}`);
+    res.status(500).json({ error: "Failed to load stats", detail: error?.message });
   }
 });
 

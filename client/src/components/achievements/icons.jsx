@@ -295,7 +295,71 @@ export function Phoenix() {
   );
 }
 
-/* 11. scholar — graduation cap on an open scroll, signalling "studied
+/* 11/12/13. lvl_10 / lvl_30 / lvl_100 — round medallion with the
+   threshold number stamped in the middle, surrounded by a stylized
+   laurel wreath. Tier metals: bronze (10) → silver (30) → gold (100)
+   so the legendary lvl_100 reads as "the big one" at a glance. */
+function LevelMedal({ code, number, palette }) {
+  const idBase = `lvl${code}`;
+  return (
+    <Icon code={idBase}>
+      <defs>
+        <linearGradient id={`${idBase}-metal`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={palette[0]} />
+          <stop offset="55%" stopColor={palette[1]} />
+          <stop offset="100%" stopColor={palette[2]} />
+        </linearGradient>
+        <radialGradient id={`${idBase}-glow`} cx="50%" cy="40%" r="60%">
+          <stop offset="0%" stopColor={palette[0]} stopOpacity="0.55" />
+          <stop offset="80%" stopColor={palette[2]} stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <circle cx="48" cy="48" r="30" fill={`url(#${idBase}-glow)`} />
+      <circle cx="48" cy="48" r="22" fill={`url(#${idBase}-metal)`} stroke={palette[2]} strokeWidth="1.4" />
+      <circle cx="48" cy="48" r="18" fill="none" stroke={palette[2]} strokeWidth="0.8" opacity="0.6" />
+      {/* Laurel */}
+      <g stroke={palette[1]} strokeWidth="1.4" strokeLinecap="round" fill="none">
+        <path d="M22 50 Q28 42 32 50 Q28 58 22 50" />
+        <path d="M22 50 Q28 38 36 38" />
+        <path d="M22 50 Q28 62 36 62" />
+        <path d="M74 50 Q68 42 64 50 Q68 58 74 50" />
+        <path d="M74 50 Q68 38 60 38" />
+        <path d="M74 50 Q68 62 60 62" />
+      </g>
+      <text
+        x="48"
+        y="55"
+        textAnchor="middle"
+        fontSize={number >= 100 ? 16 : 20}
+        fontWeight="900"
+        fontFamily="serif"
+        fill={palette[2]}
+        stroke={palette[2]}
+        strokeWidth="0.6"
+      >
+        {number}
+      </text>
+    </Icon>
+  );
+}
+
+export function Lvl10() {
+  // Bronze: warm copper palette
+  return <LevelMedal code="10" number={10} palette={["#fde7c0", "#c9772f", "#7c3a0e"]} />;
+}
+
+export function Lvl30() {
+  // Silver: cool steel palette
+  return <LevelMedal code="30" number={30} palette={["#f5f5f5", "#a8b0bd", "#4b5563"]} />;
+}
+
+export function Lvl100() {
+  // Gold: legendary palette, brighter highlight + deeper shadow than the
+  // standard medallion ring elsewhere in the file
+  return <LevelMedal code="100" number={100} palette={["#fff1a8", "#facc15", "#854d0e"]} />;
+}
+
+/* 14. scholar — graduation cap on an open scroll, signalling "studied
    the rules and aced the test". Same gold palette as the other
    knowledge-flavoured icons. */
 export function Scholar() {

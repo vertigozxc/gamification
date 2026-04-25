@@ -72,11 +72,15 @@ model User {
 }
 
 model UserAchievement {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   userId     String
   code       String
-  unlockedAt DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unlockedAt DateTime  @default(now())
+  // Nullable on purpose — set when the user claims the token reward
+  // tied to this achievement. Decoupled from unlockedAt so the popup
+  // surfaces a "Claim" CTA until the user actively collects.
+  claimedAt  DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, code])
   @@index([userId])

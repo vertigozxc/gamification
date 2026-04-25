@@ -48,6 +48,7 @@ export default function ProfileTab({
   onOpenQuiz,
   onDeleteConfirmStateChange,
   onAchievementModalChange,
+  onAchievementTokensClaimed,
   onRestartTour
 }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -247,7 +248,13 @@ export default function ProfileTab({
       {/* Achievements — lives between stats and settings so it's a
           first-class feature, not buried deep. */}
       <div data-tour="profile-achievements">
-        <AchievementsSection username={username} t={t} languageId={languageId} onModalOpenChange={onAchievementModalChange} />
+        <AchievementsSection
+          username={username}
+          t={t}
+          languageId={languageId}
+          onModalOpenChange={onAchievementModalChange}
+          onTokensClaimed={onAchievementTokensClaimed}
+        />
       </div>
 
       {/* Settings — iOS-style grouped table: rows share a card, separated
