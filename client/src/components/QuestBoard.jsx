@@ -372,6 +372,8 @@ function QuestBoard({
 
   const [activeQTab, setActiveQTab] = useState(tabs[0] || "habits");
   const [showFreshDailyBadge, setShowFreshDailyBadge] = useState(false);
+  const tabsRowRef = useRef(null);
+  const indicatorRef = useRef(null);
 
   const [pinnedListRef] = useAutoAnimate();
   const [otherListRef] = useAutoAnimate();
@@ -448,6 +450,36 @@ function QuestBoard({
     ? tabs.map(() => "1fr").join(" ")
     : tabs.map((tab) => (tab === activeQTab ? "2fr" : "1fr")).join(" ");
 
+  // Slide indicator: a single absolute pill that physically moves to the
+  // active tab via transform/width, instead of two fading background
+  // pills (which read as "teleport" rather than "slide"). Because the
+  // grid-template-columns is also transitioning, the active button's
+  // offsetWidth/offsetLeft change over the animation window — so we
+  // re-measure on every animation frame for ~420ms after the tab switch
+  // and let the indicator track the moving target.
+  useLayoutEffect(() => {
+    if (!tabsRowRef.current || !indicatorRef.current) return undefined;
+    let rafId = 0;
+    let startTs = 0;
+    const durationMs = 420;
+    const sync = (ts) => {
+      if (!startTs) startTs = ts;
+      const row = tabsRowRef.current;
+      const ind = indicatorRef.current;
+      if (!row || !ind) return;
+      const activeBtn = row.querySelector(`[data-qtab="${activeQTab}"]`);
+      if (activeBtn) {
+        ind.style.width = `${activeBtn.offsetWidth}px`;
+        ind.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
+      }
+      if (ts - startTs < durationMs) {
+        rafId = requestAnimationFrame(sync);
+      }
+    };
+    rafId = requestAnimationFrame(sync);
+    return () => { if (rafId) cancelAnimationFrame(rafId); };
+  }, [activeQTab, gridTemplateColumns, tabs.length]);
+
   return (
     <div className={`relative ${compact ? "" : "lg:col-span-2"}`}>
       {/* Timer row */}
@@ -470,9 +502,15 @@ function QuestBoard({
           smoothly between states. */}
       {tabs.length > 1 && (
         <div
+          ref={tabsRowRef}
           className={`qb-tab-bar qb-tab-bar-expand mb-4${isEqualLayout ? " qb-tab-bar-equal" : ""}`}
           style={{ gridTemplateColumns }}
         >
+          <div
+            ref={indicatorRef}
+            className={`qb-tab-indicator${activeQTab === "challenges" ? " qb-tab-indicator-chal" : ""}`}
+            aria-hidden="true"
+          />
           {hasPinned && (
             <button type="button" data-qtab="habits" data-tour="qb-tab-habits"
               className={`qb-tab-btn ${activeQTab === "habits" ? "qb-tab-active" : ""}`}
