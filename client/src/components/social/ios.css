@@ -530,69 +530,102 @@ body[data-theme="light"] .social-block .cm-tabs-slider {
  * friend chip grid and a live pact preview. Scoped under .social-block.
  * ============================================================================ */
 
-/* Stepper — mirrors OnboardingModal's Presets/Custom tab bar:
- * pill container with a primary→accent gradient slider that glides
- * under the active segment. No numbered circles — the active label
- * flips to dark text on the gradient; past/future steps stay muted. */
+/* Stepper — classic numbered-dot wizard.
+ *   ●━━━━━━━●─ ─ ─ ─○
+ *   1       2       3
+ * Past dots are primary-filled with a ✓, current is a primary ring
+ * with a soft halo, future is a muted hollow circle. Connectors are
+ * primary-solid before the active step and dashed-muted after.       */
 .social-block .cc-stepper {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(var(--cc-tabs-count, 3), 1fr);
-  align-items: stretch;
-  gap: 0;
-  padding: 4px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 8px 4px 4px;
   margin-bottom: 16px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--color-muted) 14%, var(--panel-bg));
-  border: 1px solid var(--card-border-idle);
-  overflow: hidden;
-}
-.social-block .cc-stepper-slider {
-  position: absolute;
-  top: 4px;
-  bottom: 4px;
-  left: 4px;
-  width: calc((100% - 8px) / var(--cc-tabs-count, 3));
-  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
-  border-radius: 10px;
-  transform: translateX(calc(var(--cc-tabs-active, 0) * 100%));
-  transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 6px 14px color-mix(in srgb, var(--color-primary) 22%, transparent);
-  pointer-events: none;
-  z-index: 0;
+  background: transparent;
+  border: none;
+  overflow: visible;
 }
 .social-block .cc-step {
-  position: relative;
-  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   border: none;
   background: transparent;
-  color: var(--color-muted);
-  font-family: var(--font-heading);
-  font-size: 11.5px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 10px 12px;
-  min-height: 42px;
-  display: flex;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  min-width: 0;
+}
+.social-block .cc-step:disabled { cursor: default; }
+.social-block .cc-step-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  cursor: pointer;
-  transition: color 180ms ease;
-  -webkit-tap-highlight-color: transparent;
+  font-family: var(--font-heading);
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+  background: transparent;
+  color: var(--color-muted);
+  border: 1.5px solid color-mix(in srgb, var(--card-border-idle) 70%, transparent);
+  transition: background-color 220ms ease, border-color 220ms ease,
+              color 220ms ease, box-shadow 220ms ease;
 }
-.social-block .cc-step[aria-selected="true"] { color: #0b1120; }
-body[data-theme="light"] .social-block .cc-step[aria-selected="true"] { color: #f8fafc; }
-.social-block .cc-step:disabled { cursor: default; }
+.social-block .cc-step-done .cc-step-dot {
+  background: var(--color-primary);
+  color: #1b1410;
+  border-color: var(--color-primary);
+}
+.social-block .cc-step-active .cc-step-dot {
+  background: color-mix(in srgb, var(--color-primary) 18%, transparent);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
 .social-block .cc-step-label {
-  line-height: 1;
+  font-family: var(--font-heading);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  transition: color 200ms ease;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1;
+}
+.social-block .cc-step-done .cc-step-label,
+.social-block .cc-step-active .cc-step-label {
+  color: var(--color-primary);
+}
+.social-block .cc-step-link {
+  flex: 1;
+  height: 2px;
+  margin: 13px 6px 0;
+  align-self: flex-start;
+  border-radius: 999px;
+  background: var(--color-primary);
+  transition: background-color 220ms ease;
+}
+.social-block .cc-step-link-future {
+  background: repeating-linear-gradient(
+    to right,
+    color-mix(in srgb, var(--card-border-idle) 75%, transparent) 0,
+    color-mix(in srgb, var(--card-border-idle) 75%, transparent) 5px,
+    transparent 5px,
+    transparent 9px
+  );
 }
 @media (prefers-reduced-motion: reduce) {
-  .social-block .cc-stepper-slider { transition: none; }
+  .social-block .cc-step-dot,
+  .social-block .cc-step-label,
+  .social-block .cc-step-link { transition: none; }
 }
 
 /* Step body — content below the stepper, stacked fields with 14px gaps. */

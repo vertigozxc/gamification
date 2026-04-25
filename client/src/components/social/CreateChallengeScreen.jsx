@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { createChallenge, fetchFriends } from "../../api";
 import Avatar from "./Avatar";
 import Screen from "./Screen";
@@ -205,34 +205,39 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
 }
 
 /* ────────────────────────────────────────────────────────────────
- * Stepper — pill with a primary→accent gradient slider that glides
- * under the active step (same visual language as the Presets/Custom
- * tab bar in OnboardingModal). Past steps are clickable, future ones
- * are gated by the form's validation.
+ * Stepper — classic numbered-dot wizard pattern: filled circle for
+ * past steps (with a ✓), primary-tinted ring for the current step,
+ * muted hollow circle for future steps, connected by primary-solid
+ * (done) and dashed-muted (future) lines. Reads as "steps in a
+ * process", not a tab switcher.
  * ──────────────────────────────────────────────────────────────── */
 function Stepper({ steps, current, onJump }) {
   return (
-    <div
-      className="cc-stepper"
-      role="tablist"
-      aria-label="Create challenge steps"
-      style={{ "--cc-tabs-count": steps.length, "--cc-tabs-active": current }}
-    >
-      <div className="cc-stepper-slider" aria-hidden="true" />
+    <div className="cc-stepper" role="tablist" aria-label="Create challenge steps">
       {steps.map((s, i) => {
+        const isDone = i < current;
         const isActive = i === current;
+        const status = isDone ? "done" : isActive ? "active" : "future";
         return (
-          <button
-            key={s.id}
-            type="button"
-            role="tab"
-            aria-selected={isActive}
-            onClick={() => onJump(i)}
-            disabled={i > current}
-            className="cc-step"
-          >
-            <span className="cc-step-label">{s.label}</span>
-          </button>
+          <Fragment key={s.id}>
+            {i > 0 && (
+              <span
+                className={`cc-step-link cc-step-link-${i <= current ? "done" : "future"}`}
+                aria-hidden="true"
+              />
+            )}
+            <button
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => onJump(i)}
+              disabled={i > current}
+              className={`cc-step cc-step-${status}`}
+            >
+              <span className="cc-step-dot">{isDone ? "✓" : i + 1}</span>
+              <span className="cc-step-label">{s.label}</span>
+            </button>
+          </Fragment>
         );
       })}
     </div>
