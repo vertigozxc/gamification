@@ -1,3 +1,5 @@
+import { IconSparkle } from "./icons/Icons";
+
 // Levels that unlock a new habit slot + a new daily-quest slot.
 const SLOT_UNLOCK_LEVELS = new Set([5, 20]);
 
@@ -47,7 +49,7 @@ export default function LevelUpPopup({ show, onClose, level, t }) {
               }}
             >
               <div className="flex items-start gap-3">
-                <span style={{ fontSize: 26, lineHeight: 1, flexShrink: 0 }}>✨</span>
+                <span style={{ display: "inline-flex", flexShrink: 0, color: "#fbbf24" }}><IconSparkle size={26} /></span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p
                     className="cinzel"

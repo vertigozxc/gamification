@@ -12,6 +12,7 @@ import Avatar from "./Avatar";
 import Screen from "./Screen";
 import Alert from "./Alert";
 import PullToRefresh from "../PullToRefresh";
+import { IconCheck, IconClose, IconTarget, IconFlame } from "../icons/Icons";
 
 function todayKey() {
   const d = new Date();
@@ -442,7 +443,7 @@ function InviteFriendsSheet({ friends, existingUserIds, selected, onToggle, onCa
                   aria-pressed={chosen}
                   className={`cc-friend-chip press ${chosen ? "picked" : ""}`}
                 >
-                  {chosen && <span className="cc-friend-chip-badge" aria-hidden="true">✓</span>}
+                  {chosen && <span className="cc-friend-chip-badge" aria-hidden="true" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconCheck size={11} strokeWidth={2.6} /></span>}
                   <div className="cc-friend-chip-avatar">
                     <Avatar photoUrl={f.photoUrl} displayName={f.displayName} size={40} />
                   </div>
@@ -579,10 +580,10 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, i
             </div>
           </div>
           <div style={{ display: "flex", gap: 6, marginTop: 14, flexWrap: "wrap" }}>
-            <HeroChip icon="✓" value={totalCompletions} label={t.arenaTotalDone || "total done"} />
+            <HeroChip IconComp={IconCheck} value={totalCompletions} label={t.arenaTotalDone || "total done"} />
             <HeroChip icon="👥" value={active.length} label={t.arenaPlayers || "players"} />
             <HeroChip
-              icon={completedToday ? "✓" : "⚬"}
+              IconComp={completedToday ? IconCheck : IconTarget}
               value={completedToday ? (t.arenaDoneTodayShort || "done") : (t.arenaNotYet || "not yet")}
               label={t.arenaToday || "today"}
             />
@@ -626,7 +627,7 @@ function Body({ challenge, meUid, me, active, ended, completedToday, isActive, i
               fontSize: 24
             }}
           >
-            {completedToday ? "✓" : "🎯"}
+            {completedToday ? <IconCheck size={22} strokeWidth={2.4} /> : <IconTarget size={22} />}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p
@@ -830,7 +831,7 @@ function DayRing({ elapsed, total, ended }) {
   );
 }
 
-function HeroChip({ icon, value, label }) {
+function HeroChip({ icon, IconComp, value, label }) {
   return (
     <span
       style={{
@@ -846,7 +847,9 @@ function HeroChip({ icon, value, label }) {
         fontWeight: 700
       }}
     >
-      <span style={{ fontSize: 12 }}>{icon}</span>
+      <span style={{ display: "inline-flex", alignItems: "center" }}>
+        {IconComp ? <IconComp size={12} /> : <span style={{ fontSize: 12 }}>{icon}</span>}
+      </span>
       <span style={{ fontVariantNumeric: "tabular-nums" }}>{value}</span>
       <span style={{ color: "var(--color-muted)", fontWeight: 500, textTransform: "lowercase" }}>{label}</span>
     </span>
@@ -921,7 +924,7 @@ function PodiumSpot({ rank, participant, height, emoji, meUid, t, onOpenProfile,
             zIndex: 2
           }}
         >
-          ✕
+          <IconClose size={11} strokeWidth={2.6} />
         </button>
       ) : null}
       <button
@@ -986,8 +989,8 @@ function PodiumSpot({ rank, participant, height, emoji, meUid, t, onOpenProfile,
         }}
       >
         <span style={{ fontSize: 18, lineHeight: 1 }}>{emoji}</span>
-        <span style={{ fontSize: 11, fontWeight: 800, color: "var(--color-text)", fontVariantNumeric: "tabular-nums" }}>
-          ✓ {participant.completions || 0}
+        <span style={{ fontSize: 11, fontWeight: 800, color: "var(--color-text)", fontVariantNumeric: "tabular-nums", display: "inline-flex", alignItems: "center", gap: 3 }}>
+          <IconCheck size={11} strokeWidth={2.4} /> {participant.completions || 0}
         </span>
       </div>
     </div>
@@ -1160,7 +1163,7 @@ function ParticipantRow({ rank, participant, meUid, t, onOpenProfile, canRemove,
             pointerEvents: "none"
           }}
         >
-          {doneToday ? "✓" : "✕"}
+          {doneToday ? <IconCheck size={11} strokeWidth={2.6} /> : <IconClose size={9} strokeWidth={2.6} />}
         </span>
       ) : null}
 
@@ -1194,7 +1197,7 @@ function ParticipantRow({ rank, participant, meUid, t, onOpenProfile, canRemove,
             padding: 0
           }}
         >
-          ✕
+          <IconClose size={11} strokeWidth={2.6} />
         </button>
       ) : null}
     </div>
@@ -1298,8 +1301,8 @@ function ParticipantCard_Legacy({ rank, participant, meUid, t, onOpenProfile, ca
             ) : null}
           </div>
           <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-            <Stat icon="✓" value={participant.completions || 0} label={t.arenaDone || "done"} />
-            <Stat icon="🔥" value={participant.consecutiveDays || 0} label={t.arenaStreakShort || "streak"} />
+            <Stat IconComp={IconCheck} value={participant.completions || 0} label={t.arenaDone || "done"} />
+            <Stat IconComp={IconFlame} value={participant.consecutiveDays || 0} label={t.arenaStreakShort || "streak"} />
             <Stat icon="🪙" value={participant.tokensEarned || 0} label={t.arenaTokens || "tokens"} />
           </div>
         </div>
@@ -1326,14 +1329,14 @@ function ParticipantCard_Legacy({ rank, participant, meUid, t, onOpenProfile, ca
             justifyContent: "center"
           }}
         >
-          ✕
+          <IconClose size={12} strokeWidth={2.6} />
         </button>
       ) : null}
     </div>
   );
 }
 
-function Stat({ icon, value, label }) {
+function Stat({ icon, IconComp, value, label }) {
   return (
     <span
       style={{
@@ -1349,7 +1352,9 @@ function Stat({ icon, value, label }) {
       }}
       title={label}
     >
-      <span>{icon}</span>
+      <span style={{ display: "inline-flex", alignItems: "center" }}>
+        {IconComp ? <IconComp size={11} /> : icon}
+      </span>
       <span style={{ fontVariantNumeric: "tabular-nums" }}>{value}</span>
     </span>
   );

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { IconCheck } from "./icons/Icons";
 
 export default function LanguageSelector({ languageId, languageIds, getLanguageMeta, onChange, compact, direction = "down" }) {
   const [open, setOpen] = useState(false);
@@ -106,7 +107,7 @@ export default function LanguageSelector({ languageId, languageIds, getLanguageM
                     <div style={{ fontSize: "11px", opacity: 0.5, fontWeight: 400 }}>{lang.label}</div>
                   )}
                 </div>
-                {isActive && <span style={{ marginLeft: "auto", fontSize: "14px" }}>✓</span>}
+                {isActive && <span style={{ marginLeft: "auto", display: "inline-flex" }}><IconCheck size={14} strokeWidth={2.4} /></span>}
               </button>
             );
           })}

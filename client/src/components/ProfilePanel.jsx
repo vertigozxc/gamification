@@ -1,5 +1,6 @@
 ﻿import PropTypes from "prop-types";
 import { useTheme } from "../ThemeContext";
+import { IconFlame } from "./icons/Icons";
 
 function ProfilePanel({
   portraitUploadRef,
@@ -75,7 +76,9 @@ function ProfilePanel({
               <div className="flex justify-between items-center mt-2 pt-2 border-t border-yellow-700/30">
                 <span className="cinzel text-[11px] tracking-widest uppercase" style={{ color: "var(--color-muted)" }}>{t.currentStreak}</span>
                 <span className="flex items-center gap-1.5">
-                  <span className="text-lg">🔥</span>
+                  <span style={{ display: "inline-flex", color: "var(--streak-text)" }}>
+                    <IconFlame size={16} />
+                  </span>
                   <span className="cinzel text-sm font-bold" style={{ color: "var(--streak-text)" }}>{state.streak}</span>
                 </span>
               </div>
@@ -91,7 +94,9 @@ function ProfilePanel({
               </div>
               <div className="flex items-center gap-4 h-full">
                 <div className="flex items-center gap-4">
-                  <p className={compact ? "text-4xl" : "text-5xl"}>🔥</p>
+                  <span style={{ display: "inline-flex", color: "var(--streak-text)" }}>
+                    <IconFlame size={compact ? 36 : 44} strokeWidth={1.6} />
+                  </span>
                   <div>
                     <p className="cinzel text-xs tracking-widest uppercase" style={{ color: "var(--streak-label)" }}>{t.currentStreak}</p>
                     <p className={`${compact ? "text-3xl" : "text-4xl"} font-black cinzel leading-none`} style={{ color: "var(--streak-text)" }}>{state.streak}</p>

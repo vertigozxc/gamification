@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { citySpin } from "../api";
+import { IconClose } from "./icons/Icons";
 
 const REWARDS = [
   { id: 1,  type: "xp",    amount: 25,  emoji: "✨", darkText: false },
@@ -167,7 +168,7 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
           className="ui-close-x"
           style={{ position: "absolute", top: 12, right: 12 }}
         >
-          ✕
+          <IconClose size={16} strokeWidth={2.4} />
         </button>
 
         {/* Title */}

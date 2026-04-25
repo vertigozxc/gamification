@@ -1,11 +1,12 @@
 import themes, { themeIds } from "../themeConfig";
+import { IconPalette, IconCheck } from "./icons/Icons";
 
 export default function ThemePickerModal({ open, onClose, themeId, onThemeChange, getThemeMeta, t }) {
   if (!open) return null;
   return (
     <div className="logout-confirm-overlay" onClick={onClose}>
       <div className="logout-confirm-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "360px" }}>
-        <div className="text-4xl mb-2">🎨</div>
+        <div className="mb-2 flex justify-center" style={{ color: "var(--color-primary)" }}><IconPalette size={36} /></div>
         <h2 className="cinzel logout-confirm-title" style={{ color: "var(--color-primary)" }}>{t.chooseThemeTitle}</h2>
         <div className="flex flex-col gap-3 mt-4">
           {themeIds.map((id) => (
@@ -24,7 +25,7 @@ export default function ThemePickerModal({ open, onClose, themeId, onThemeChange
                 <div className="text-sm">{getThemeMeta(id).label}</div>
                 <div className="text-xs font-normal opacity-60">{getThemeMeta(id).description}</div>
               </div>
-              {id === themeId && <span className="ml-auto text-lg">✓</span>}
+              {id === themeId && <span className="ml-auto" style={{ display: "inline-flex" }}><IconCheck size={16} strokeWidth={2.4} /></span>}
             </button>
           ))}
         </div>

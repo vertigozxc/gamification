@@ -10,6 +10,7 @@ import SpinWheelModal from "../SpinWheelModal";
 import { useTheme } from "../../ThemeContext";
 import { pluralizeDays, pluralizeCharges } from "../../i18nConfig";
 import { citySpinStatus, upgradeDistrict, downgradeDistrict, devGrantStats, claimBusinessTokens, updateCityName } from "../../api";
+import { IconCheck, IconClose, IconArrowRight, IconSparkle, IconTimer, IconTag } from "../icons/Icons";
 
 const DISTRICT_MAX_LEVEL = 5;
 
@@ -241,14 +242,12 @@ function ReqChip({ icon, label, met, current }) {
           width: 14,
           height: 14,
           borderRadius: 7,
-          fontSize: 9,
-          fontWeight: 900,
           color: "#fff",
           background: accent,
           lineHeight: 1
         }}
       >
-        {met ? "✓" : "✕"}
+        {met ? <IconCheck size={9} strokeWidth={2.6} /> : <IconClose size={7} strokeWidth={2.6} />}
       </span>
     </span>
   );
@@ -457,7 +456,7 @@ function DistrictUpgradeReveal({ districtId, previousLevel, newLevel }) {
         }}
       >
         <span style={{ opacity: 0.75 }}>LVL {fromLevel}</span>
-        <span aria-hidden style={{ color: "var(--color-primary)" }}>→</span>
+        <span aria-hidden style={{ color: "var(--color-primary)", display: "inline-flex" }}><IconArrowRight size={14} /></span>
         <span
           style={{
             color: "var(--color-primary)",
@@ -966,7 +965,7 @@ export default function CityTab({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", paddingBottom: 6, borderBottom: "1px solid color-mix(in srgb, var(--card-border-idle) 65%, transparent)" }}>
-            <span style={{ fontSize: 14 }}>✨</span>
+            <span style={{ display: "inline-flex", color: "var(--color-primary)" }}><IconSparkle size={14} /></span>
             <span
               className="cinzel"
               style={{
@@ -980,7 +979,7 @@ export default function CityTab({
             >
               {t.activeBenefitsLabel || "Active benefits"}
             </span>
-            <span style={{ fontSize: 14 }}>✨</span>
+            <span style={{ display: "inline-flex", color: "var(--color-primary)" }}><IconSparkle size={14} /></span>
           </div>
           {DISTRICTS.filter((d) => !d.locked).map((d) => {
             const actualIdx = DISTRICTS.findIndex((x) => x.id === d.id);
@@ -1081,7 +1080,7 @@ export default function CityTab({
                         gap: 6
                       }}
                     >
-                      <span style={{ color: "#5ba0e0", fontSize: 11 }}>⏱</span>
+                      <span style={{ color: "#5ba0e0", display: "inline-flex" }}><IconTimer size={11} /></span>
                       {line}
                     </span>
                   ))}
@@ -1203,7 +1202,7 @@ export default function CityTab({
                     textTransform: "uppercase"
                   }}
                 >
-                  ✓ {t.districtMaxLevel || "Max level reached"}
+                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}><IconCheck size={12} strokeWidth={2.4} /> {t.districtMaxLevel || "Max level reached"}</span>
                 </div>
               )}
 
@@ -1666,7 +1665,7 @@ export default function CityTab({
               gap: 14
             }}
           >
-            <div className="logout-confirm-icon" style={{ fontSize: "2.4rem" }}>🏷️</div>
+            <div className="logout-confirm-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-primary)" }}><IconTag size={36} /></div>
             <h3 className="cinzel logout-confirm-title" style={{ color: "var(--color-primary)", textAlign: "center", marginBottom: 0 }}>
               {t.cityNameEditTitle || "Rename your city"}
             </h3>

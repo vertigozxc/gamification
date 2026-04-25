@@ -7,6 +7,7 @@ import QuestGroupCard from "../QuestGroupCard";
 import CategoryFilterRow from "../CategoryFilterRow";
 import InputWithClear from "../InputWithClear";
 import { groupQuests, availableCategories, matchesCategory } from "../../utils/questGrouping";
+import { IconSparkle, IconClose } from "../icons/Icons";
 
 // Dedicated screen for filling ONE unlocked habit slot (triggered from the
 // "New Habit Unlocked" card). Distinct from PinnedReplacementModal which
@@ -172,7 +173,7 @@ export default function SingleHabitPickerModal({
                 fontSize: 20
               }}
             >
-              ✨
+              <span style={{ color: "#bbf7d0", display: "inline-flex" }}><IconSparkle size={20} /></span>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <h2 className="cinzel" style={{ color: "#bbf7d0", fontSize: 17, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>
@@ -188,7 +189,7 @@ export default function SingleHabitPickerModal({
               aria-label={t.cancelLabel || "Close"}
               className="ui-close-x"
             >
-              ✕
+              <IconClose size={16} strokeWidth={2.4} />
             </button>
           </div>
 

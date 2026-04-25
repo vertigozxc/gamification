@@ -1,4 +1,5 @@
 import usePullToRefresh from "../hooks/usePullToRefresh";
+import { IconCheck } from "./icons/Icons";
 
 // Native iOS-style pull-to-refresh.
 // Content translates down with the finger (rubber-banded by the hook),
@@ -111,7 +112,7 @@ function OverlayPTR({ state, progress, children }) {
         }}
       >
         {state === "refreshing" ? <Spinner /> : state === "done" ? (
-          <span style={{ width: 22, height: 22, borderRadius: 999, background: "var(--color-primary)", display: "flex", alignItems: "center", justifyContent: "center", color: "#0b1120", fontSize: 12, fontWeight: 900 }}>✓</span>
+          <span style={{ width: 22, height: 22, borderRadius: 999, background: "var(--color-primary)", display: "flex", alignItems: "center", justifyContent: "center", color: "#0b1120" }}><IconCheck size={12} strokeWidth={2.6} /></span>
         ) : <Arc progress={progress} />}
       </div>
       {children}

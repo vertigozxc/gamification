@@ -3,6 +3,7 @@ import { useTheme } from "../../ThemeContext";
 import { fetchNotesHistory, createPersonalNote, deletePersonalNote, updatePersonalNote } from "../../api";
 import { fuzzyMatch } from "../../utils/fuzzySearch";
 import InputWithClear from "../InputWithClear";
+import { IconClose } from "../icons/Icons";
 
 function formatDate(dayKey, languageId) {
   if (!dayKey) return "";
@@ -332,7 +333,7 @@ export default function NotesHistoryModal({ open, username, onClose }) {
               aria-label={t.closeLabel || "Close"}
               className="ui-close-x"
             >
-              ✕
+              <IconClose size={16} strokeWidth={2.4} />
             </button>
           </div>
 
@@ -710,7 +711,7 @@ export default function NotesHistoryModal({ open, username, onClose }) {
                 aria-label={t.closeLabel || "Close"}
                 className="ui-close-x"
               >
-                ✕
+                <IconClose size={16} strokeWidth={2.4} />
               </button>
             </div>
             <textarea

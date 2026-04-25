@@ -1,4 +1,5 @@
 import { forwardRef } from "react";
+import { IconClose } from "./icons/Icons";
 
 // Text input that renders a subtle ✕ clear button when non-empty.
 // All layout + theming is controlled by the caller through the
@@ -81,7 +82,7 @@ const InputWithClear = forwardRef(function InputWithClear(
             WebkitTapHighlightColor: "transparent"
           }}
         >
-          ✕
+          <IconClose size={11} strokeWidth={2.6} />
         </button>
       ) : null}
     </div>

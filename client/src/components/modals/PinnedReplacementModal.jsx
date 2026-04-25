@@ -6,6 +6,7 @@ import QuestGroupCard from "../QuestGroupCard";
 import CategoryFilterRow from "../CategoryFilterRow";
 import InputWithClear from "../InputWithClear";
 import { groupQuests, availableCategories, matchesCategory } from "../../utils/questGrouping";
+import { IconCheck, IconClose, IconList, IconSparkle } from "../icons/Icons";
 
 const TOKEN_COST = 7;
 
@@ -192,7 +193,7 @@ function PinnedReplacementModal({
               aria-label={t.cancelLabel}
               className="ui-close-x"
             >
-              ✕
+              <IconClose size={16} strokeWidth={2.4} />
             </button>
           </div>
 
@@ -261,7 +262,7 @@ function PinnedReplacementModal({
               onClick={() => setHabitsTab("presets")}
               className="onb-habits-tab cinzel mobile-pressable"
             >
-              <span className="onb-habits-tab-ico" aria-hidden>📋</span>
+              <span className="onb-habits-tab-ico" aria-hidden style={{ display: "inline-flex" }}><IconList size={14} /></span>
               <span className="onb-habits-tab-label">{t.onboardingTabPresets || "Presets"}</span>
               <span className="onb-habits-tab-count">{questGroups.length}</span>
             </button>
@@ -272,7 +273,7 @@ function PinnedReplacementModal({
               onClick={() => setHabitsTab("custom")}
               className="onb-habits-tab cinzel mobile-pressable"
             >
-              <span className="onb-habits-tab-ico" aria-hidden>✨</span>
+              <span className="onb-habits-tab-ico" aria-hidden style={{ display: "inline-flex" }}><IconSparkle size={14} /></span>
               <span className="onb-habits-tab-label">{t.onboardingTabCustom || "Custom"}</span>
               <span className="onb-habits-tab-count">{Array.isArray(customQuests) ? customQuests.length : 0}</span>
             </button>
@@ -319,10 +320,13 @@ function PinnedReplacementModal({
                   background: "color-mix(in srgb, var(--color-accent) 22%, transparent)",
                   color: "var(--color-accent)",
                   border: "1px solid color-mix(in srgb, var(--color-accent) 55%, transparent)",
-                  visibility: selectionComplete ? "visible" : "hidden"
+                  visibility: selectionComplete ? "visible" : "hidden",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4
                 }}
               >
-                ✓ {t.onboardingReady || "ready"}
+                <IconCheck size={11} strokeWidth={2.6} /> {t.onboardingReady || "ready"}
               </span>
             </div>
             <div style={{ height: 4, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>

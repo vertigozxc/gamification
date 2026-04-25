@@ -1,20 +1,29 @@
 import { useTheme } from "../ThemeContext";
+import {
+  IconMuscle,
+  IconBrain,
+  IconSwords,
+  IconMoon,
+  IconUsers,
+  IconBolt,
+  IconSparkle
+} from "./icons/Icons";
 
 const DEFAULT_CATEGORIES = ["BODY", "MIND", "DISCIPLINE", "RECOVERY", "SOCIAL", "ADAPTIVE"];
 const CATEGORY_ICONS = {
-  BODY: "💪",
-  MIND: "🧠",
-  DISCIPLINE: "⚔️",
-  RECOVERY: "🌙",
-  SOCIAL: "👥",
-  ADAPTIVE: "⚡"
+  BODY: IconMuscle,
+  MIND: IconBrain,
+  DISCIPLINE: IconSwords,
+  RECOVERY: IconMoon,
+  SOCIAL: IconUsers,
+  ADAPTIVE: IconBolt
 };
 
 export default function CategoryFilterRow({ value = "ALL", onChange, categories = DEFAULT_CATEGORIES, counts = null, translateCategory }) {
   const { t } = useTheme();
   const available = Array.isArray(categories) && categories.length > 0 ? categories : DEFAULT_CATEGORIES;
 
-  const Pill = ({ key: _k, label, icon, active, onClick, count }) => (
+  const Pill = ({ key: _k, label, IconComp, active, onClick, count }) => (
     <button
       type="button"
       onClick={onClick}
@@ -38,7 +47,9 @@ export default function CategoryFilterRow({ value = "ALL", onChange, categories 
         cursor: "pointer"
       }}
     >
-      <span>{icon}</span>
+      <span style={{ display: "inline-flex", alignItems: "center" }}>
+        {IconComp ? <IconComp size={14} /> : null}
+      </span>
       <span>{label}</span>
       {count != null ? (
         <span
@@ -72,7 +83,7 @@ export default function CategoryFilterRow({ value = "ALL", onChange, categories 
     >
       <Pill
         label={t.categoryFilterAll || "All"}
-        icon="✨"
+        IconComp={IconSparkle}
         active={value === "ALL"}
         onClick={() => onChange?.("ALL")}
         count={counts?.ALL}
@@ -81,7 +92,7 @@ export default function CategoryFilterRow({ value = "ALL", onChange, categories 
         <Pill
           key={cat}
           label={translateCategory ? translateCategory(cat) : cat}
-          icon={CATEGORY_ICONS[cat] || "•"}
+          IconComp={CATEGORY_ICONS[cat]}
           active={value === cat}
           onClick={() => onChange?.(cat)}
           count={counts?.[cat]}

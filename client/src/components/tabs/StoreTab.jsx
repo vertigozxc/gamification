@@ -1,4 +1,5 @@
 import TokenVault from "../TokenVault";
+import { IconShoppingBag, IconHouse, IconCheck } from "../icons/Icons";
 
 export default function StoreTab({
   tokens, streakFreezeCharges = 0, freezeCost = 7, rerollCost = 3,
@@ -20,7 +21,7 @@ export default function StoreTab({
               {t.storeScreenKicker}
             </p>
             <h3 className="cinzel text-[1.15rem] font-bold tracking-wide leading-tight m-0 flex items-center gap-2" style={{ color: "var(--color-primary)" }}>
-              <span>🛍</span>
+              <span style={{ display: "inline-flex" }}><IconShoppingBag size={20} /></span>
               <span className="truncate">{t.storeScreenTitle}</span>
             </h3>
             <p className="text-xs leading-relaxed mt-2 mb-0" style={{ color: "var(--color-text)", opacity: 0.88 }}>
@@ -51,16 +52,16 @@ export default function StoreTab({
         return (
           <div className="mobile-card flex flex-col gap-2" style={{ background: "color-mix(in srgb, #b57cd0 10%, var(--panel-bg))", border: "1px solid color-mix(in srgb, #b57cd0 40%, transparent)" }}>
             <div className="flex items-center gap-2">
-              <span className="text-lg">🏘️</span>
+              <span style={{ display: "inline-flex", color: "#b57cd0" }}><IconHouse size={18} /></span>
               <p className="cinzel text-xs font-bold tracking-widest uppercase m-0" style={{ color: "#b57cd0" }}>
                 {t.storeResidentialPerksTitle || "Residential perks active"} · {t.districtLevelShort || "LVL"} {residentialLevel}
               </p>
             </div>
             <ul className="flex flex-col gap-1 m-0 p-0" style={{ listStyle: "none" }}>
               {perks.filter(Boolean).map((perk, i) => (
-                <li key={i} className="text-[12px] leading-snug" style={{ color: "var(--color-text)" }}>
-                  <span style={{ color: "#4fa85e", marginRight: 6 }}>✓</span>
-                  {perk}
+                <li key={i} className="text-[12px] leading-snug flex items-start gap-1.5" style={{ color: "var(--color-text)" }}>
+                  <span style={{ color: "#4fa85e", display: "inline-flex", marginTop: 2 }}><IconCheck size={12} strokeWidth={2.4} /></span>
+                  <span>{perk}</span>
                 </li>
               ))}
             </ul>

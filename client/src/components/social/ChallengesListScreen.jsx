@@ -2,6 +2,7 @@ import { useState } from "react";
 import Avatar from "./Avatar";
 import Alert from "./Alert";
 import Screen from "./Screen";
+import { IconFlame, IconTarget, IconCheck } from "../icons/Icons";
 
 // Must stay in sync with server's MAX_ACTIVE_CHALLENGES_PER_USER. If
 // the client drifted higher the user would be allowed into the create
@@ -44,8 +45,8 @@ export default function ChallengesListScreen({ challenges = [], t, onClose, onOp
     >
       {active.length > 0 && (
         <>
-          <h3 className="sb-section-title" style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-muted)", margin: "4px 4px 8px" }}>
-            🔥 {t.arenaPactActive || "Active"}
+          <h3 className="sb-section-title" style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-muted)", margin: "4px 4px 8px", display: "flex", alignItems: "center", gap: 6 }}>
+            <IconFlame size={14} /> {t.arenaPactActive || "Active"}
           </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
             {active.map((c) => (
@@ -127,7 +128,9 @@ function Card({ challenge: c, t, ended, onOpen }) {
           {ended ? (t.arenaPactEndedWord || "ended") : (t.arenaDaysLeft || "{n}d").replace("{n}", String(daysLeft))}
         </span>
       </div>
-      <p className="sb-caption">🎯 {c.questTitle}</p>
+      <p className="sb-caption" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+        <IconTarget size={12} /> {c.questTitle}
+      </p>
       <div className="sb-progress">
         <div className={`sb-progress-fill${ended ? " done" : ""}`} style={{ width: `${pct}%` }} />
       </div>
@@ -153,10 +156,18 @@ function Card({ challenge: c, t, ended, onOpen }) {
         <span className="sb-caption">{active.length} {t.arenaPlayers || "players"}</span>
         {!ended && (
           <span
-            style={{ marginLeft: "auto" }}
+            style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4 }}
             className={`sb-pill ${completedToday ? "sb-pill-success" : ""}`}
           >
-            {completedToday ? `✓ ${t.arenaDone || "today"}` : `🔥 ${c.myConsecutiveDays || 0}`}
+            {completedToday ? (
+              <>
+                <IconCheck size={11} strokeWidth={2.4} /> {t.arenaDone || "today"}
+              </>
+            ) : (
+              <>
+                <IconFlame size={11} /> {c.myConsecutiveDays || 0}
+              </>
+            )}
           </span>
         )}
       </div>

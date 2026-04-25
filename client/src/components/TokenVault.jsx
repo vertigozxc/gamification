@@ -1,5 +1,14 @@
 import PropTypes from "prop-types";
 import { useTheme } from "../ThemeContext";
+import {
+  IconDice,
+  IconPuzzle,
+  IconBolt,
+  IconRefresh,
+  IconSwords,
+  IconShoppingBag,
+  IconHouse
+} from "./icons/Icons";
 
 function TokenVault({
   tokens,
@@ -97,7 +106,7 @@ function TokenVault({
 
           <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
             <div className="flex items-center gap-3">
-              <span className="text-3xl">🎲</span>
+              <span style={{ display: "inline-flex", color: "var(--color-primary)" }}><IconDice size={28} /></span>
               <div className="flex-1">
                 <p className="cinzel font-bold text-base tracking-wide" style={{ color: "var(--color-text)" }}>{t.rerollShopTitle}</p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.rerollShopDesc}</p>
@@ -123,7 +132,7 @@ function TokenVault({
 
           <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
             <div className="flex items-start gap-3">
-              <span className="text-3xl">🧩</span>
+              <span style={{ display: "inline-flex", color: "var(--color-primary)" }}><IconPuzzle size={28} /></span>
               <div className="flex-1">
                 <p className="cinzel font-bold text-base tracking-wide" style={{ color: "var(--color-text)" }}>{t.pinnedQuestRerollTitle}</p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.pinnedQuestRerollDesc}</p>
@@ -150,7 +159,7 @@ function TokenVault({
               className={`${buyButtonClass} ${canRerollPinned ? "" : buyButtonDisabledClass}`}
               style={canRerollPinned ? buyButtonActiveStyle : undefined}
             >
-              <span>⟳</span>
+              <span style={{ display: "inline-flex" }}><IconRefresh size={16} /></span>
               {isFreePinnedReroll
                 ? (t.pinnedRerollFreeUse || t.freeLabel || "Free Reroll")
                 : (tokens < 7
@@ -169,7 +178,7 @@ function TokenVault({
 
           <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
             <div className="flex items-center gap-3">
-              <span className="text-3xl">⚡</span>
+              <span style={{ display: "inline-flex", color: "var(--color-primary)" }}><IconBolt size={28} /></span>
               <div className="flex-1">
                 <p className="cinzel font-bold text-base tracking-wide" style={{ color: "var(--color-text)" }}>{t.xpBoostTitle}</p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.xpBoostDesc}</p>
@@ -206,7 +215,7 @@ function TokenVault({
               a 50-token cap. */}
           <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
             <div className="flex items-start gap-3">
-              <span className="text-3xl">🏙</span>
+              <span style={{ display: "inline-flex", color: "var(--color-primary)" }}><IconHouse size={28} /></span>
               <div className="flex-1">
                 <p className="cinzel font-bold text-base tracking-wide" style={{ color: "var(--color-text)" }}>{t.cityResetTitle || "Reset city"}</p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.cityResetDesc || "Wipe all districts and refund every token spent on them."}</p>
@@ -269,7 +278,7 @@ function TokenVault({
                     </div>
 
                     <div className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-4 flex gap-4 items-start shadow-inner">
-                      <span className="text-3xl grayscale brightness-150">⚔️</span>
+                      <span style={{ display: "inline-flex", color: "var(--color-primary)" }}><IconSwords size={28} /></span>
                       <div>
                         <p className="font-bold text-slate-200 text-sm uppercase tracking-wide cinzel">{t.tokenAboutHowEarn}</p>
                         <p className="text-slate-400 text-sm mt-1 leading-relaxed">{t.tokenAboutHowEarnDesc}</p>
@@ -277,7 +286,7 @@ function TokenVault({
                     </div>
                     
                     <div className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-4 flex gap-4 items-start shadow-inner">
-                      <span className="text-3xl grayscale brightness-150">🛍️</span>
+                      <span style={{ display: "inline-flex", color: "var(--color-primary)" }}><IconShoppingBag size={28} /></span>
                       <div>
                         <p className="font-bold text-slate-200 text-sm uppercase tracking-wide cinzel">{t.tokenAboutUseFor}</p>
                         <p className="text-slate-400 text-sm mt-1 leading-relaxed">{t.tokenAboutUseForDesc}</p>

@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from "react";
 import { useTheme } from "../../ThemeContext";
+import { IconDice } from "../icons/Icons";
 
 function RerollConfirmModal({ open, onCancel, onConfirm, quests = [], completedIds = [] }) {
   const { t } = useTheme();
@@ -34,7 +35,7 @@ function RerollConfirmModal({ open, onCancel, onConfirm, quests = [], completedI
   return (
     <div className="logout-confirm-overlay" onClick={onCancel}>
       <div className="logout-confirm-card" onClick={(event) => event.stopPropagation()} style={{ maxWidth: '400px' }}>
-        <div className="text-5xl mb-2">🎲</div>
+        <div className="mb-2 flex justify-center" style={{ color: "var(--color-accent)" }}><IconDice size={48} /></div>
         <h2 className="cinzel logout-confirm-title" style={{ color: "var(--color-accent)" }}>{t.rerollTitle}</h2>
         <p className="logout-confirm-msg" style={{ marginBottom: '1rem' }}>
           {t.rerollMessage}

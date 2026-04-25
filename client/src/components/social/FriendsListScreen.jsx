@@ -4,6 +4,7 @@ import Avatar from "./Avatar";
 import StreakFrame from "./StreakFrame";
 import Screen from "./Screen";
 import Alert from "./Alert";
+import { IconFlame, IconBolt, IconCheck, IconClose } from "../icons/Icons";
 
 export default function FriendsListScreen({ authUser, t, onClose, onOpenProfile, onChanged }) {
   const meUid = String(authUser?.uid || "").slice(0, 128);
@@ -160,8 +161,10 @@ function RequestRow({ request: r, busy, t, onRespond, onOpenProfile, isLast }) {
         <p className="sb-body" style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", letterSpacing: "-0.01em" }}>
           {r.from.displayName || r.from.username}
         </p>
-        <p className="sb-caption">
-          {t.arenaLvlShort || "Lv"} {r.from.level} · 🔥 {r.from.streak}
+        <p className="sb-caption" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <span>{t.arenaLvlShort || "Lv"} {r.from.level}</span>
+          <span>·</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><IconFlame size={11} /> {r.from.streak}</span>
         </p>
       </button>
       <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
@@ -173,7 +176,7 @@ function RequestRow({ request: r, busy, t, onRespond, onOpenProfile, isLast }) {
           style={circleBtn("accept")}
           aria-label={t.arenaAccept || "Accept"}
         >
-          ✓
+          <IconCheck size={16} strokeWidth={2.4} />
         </button>
         <button
           type="button"
@@ -183,7 +186,7 @@ function RequestRow({ request: r, busy, t, onRespond, onOpenProfile, isLast }) {
           style={circleBtn("decline")}
           aria-label={t.arenaDecline || "Decline"}
         >
-          ✕
+          <IconClose size={14} strokeWidth={2.4} />
         </button>
       </div>
     </div>
@@ -225,8 +228,10 @@ function FriendRow({ friend: f, busy, t, onOpenProfile, onRemove, isLast }) {
         </p>
         <p className="sb-caption" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <span>{t.arenaLvlShort || "Lv"} {f.level}</span>
-          <span>🔥 {f.streak}</span>
-          {typeof f.weeklyXp === "number" && <span>⚡ {f.weeklyXp}</span>}
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><IconFlame size={11} /> {f.streak}</span>
+          {typeof f.weeklyXp === "number" && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><IconBolt size={11} /> {f.weeklyXp}</span>
+          )}
         </p>
       </button>
       <button
@@ -237,7 +242,7 @@ function FriendRow({ friend: f, busy, t, onOpenProfile, onRemove, isLast }) {
         aria-label={t.arenaRemoveAction || "Remove"}
         style={{ flexShrink: 0 }}
       >
-        ✕
+        <IconClose size={14} strokeWidth={2.4} />
       </button>
     </div>
   );

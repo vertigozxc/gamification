@@ -1,4 +1,5 @@
 import { useRef, useCallback, useEffect, useState } from "react";
+import { IconCheck } from "./icons/Icons";
 
 export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, onCompleteQuest, children, isLongTapOnly, isRerolling, timerActive = false, mechanicActive = false }) {
   const completionLocked = timerActive || mechanicActive;
@@ -132,7 +133,7 @@ export function QuestItem({ quest, index, isDone, questRenderCount, compact, t, 
     >
       <div className="flex items-start gap-3 pointer-events-none">
         <div className={`qb-check ${isDone ? "qb-check-done" : ""}`}>
-          {isDone ? "✓" : ""}
+          {isDone ? <IconCheck size={16} strokeWidth={2.4} /> : null}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap pr-12">

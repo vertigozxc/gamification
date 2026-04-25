@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import QuestBoard from "../QuestBoard";
 import { useTheme } from "../../ThemeContext";
 import { completeChallenge, fetchUserChallenges, joinChallenge, leaveChallenge } from "../../api";
+import { IconFlame } from "../icons/Icons";
 
 function todayKey() {
   const d = new Date();
@@ -99,7 +100,7 @@ export default function DashboardTab({
           <div className="text-right shrink-0 flex flex-col gap-0.5">
             <div className="flex items-center justify-end gap-1">
               <p className="text-xs cinzel opacity-80" style={{ color: "var(--color-text)" }}>{t.currentStreak}</p>
-              <span className="text-base">🔥</span>
+              <span style={{ display: "inline-flex", color: "var(--streak-text)" }}><IconFlame size={14} /></span>
               <p className="text-xs cinzel font-bold" style={{ color: "var(--streak-text)" }}>{state.streak}</p>
             </div>
             <p className="text-[10px] opacity-70 cinzel tracking-wider" style={{ color: "var(--color-muted)" }}>+{streakBonusPercent}% XP {t.dashSportBonusFrom || "from"} {t.streakLabel || "Streak"}</p>

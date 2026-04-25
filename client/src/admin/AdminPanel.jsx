@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { IconCheck, IconList } from "../components/icons/Icons";
 
 function copyEventToClipboard(e, d, identity) {
   const lines = [
@@ -870,7 +871,9 @@ function CopyButton({ onClick }) {
         setTimeout(() => setCopied(false), 2000);
       }}
     >
-      {copied ? "✓ Copied!" : "📋 Copy for AI"}
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+        {copied ? <><IconCheck size={14} strokeWidth={2.4} /> Copied!</> : <><IconList size={14} /> Copy for AI</>}
+      </span>
     </button>
   );
 }

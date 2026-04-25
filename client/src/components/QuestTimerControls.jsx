@@ -1,5 +1,6 @@
 import PropTypes from "prop-types";
 import { useEffect, useRef, useState } from "react";
+import { IconTimer } from "./icons/Icons";
 
 function formatMs(ms) {
   const totalSecs = Math.max(0, Math.floor(ms / 1000));
@@ -49,7 +50,9 @@ export default function QuestTimerControls({ quest, session, elapsedMs, onStart,
     return (
       <div className="qt-panel" style={panelStyle}>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
-          <span style={metaStyle}>⏱ {targetMin} min target</span>
+          <span style={{ ...metaStyle, display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <IconTimer size={12} /> {targetMin} min target
+          </span>
           <span style={hintStyle}>Finish at 100% for streak credit</span>
         </div>
         <button

@@ -3,6 +3,19 @@ import { useRef, useState, useLayoutEffect, useCallback, useMemo, useEffect } fr
 import { useTheme } from "../ThemeContext";
 import { QuestItem } from "./QuestItem";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
+import {
+  IconSparkle,
+  IconSpark,
+  IconClock,
+  IconTimer,
+  IconHourglass,
+  IconEnvelope,
+  IconTarget,
+  IconHabitsPin,
+  IconDice,
+  IconSwords,
+  IconCheck
+} from "./icons/Icons";
 
 function EmptySlotCard({ label, cta, onClick }) {
   return (
@@ -28,7 +41,9 @@ function EmptySlotCard({ label, cta, onClick }) {
       }}
       aria-label={cta || "Pick"}
     >
-      <span style={{ fontSize: 24, lineHeight: 1 }}>✨</span>
+      <span style={{ display: "inline-flex", color: "var(--color-primary)" }}>
+        <IconSparkle size={24} />
+      </span>
       <span style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-primary)", fontWeight: 700 }}>
         {label}
       </span>
@@ -137,8 +152,8 @@ function ChallengeTimerInline({ challengeId, targetMinutes, busy, t, onComplete 
   if (timerState.status === "idle") {
     return (
       <button type="button" disabled={busy} onClick={start} className="sb-tinted-btn mobile-pressable"
-        style={{ alignSelf: "flex-start", padding: "8px 16px", fontSize: 13 }}>
-        ⏱ {t.arenaTimerStart || "Start timer"}
+        style={{ alignSelf: "flex-start", padding: "8px 16px", fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
+        <IconTimer size={14} /> {t.arenaTimerStart || "Start timer"}
       </button>
     );
   }
@@ -262,15 +277,19 @@ function ChallengeItem({ challenge, meUid, t, busy, optimisticDone, onComplete, 
     >
       <div className="flex items-start gap-3 pointer-events-none">
         <div className={`qb-check${completedToday ? " qb-check-done" : ""}`}>
-          {completedToday ? "✓" : ""}
+          {completedToday ? <IconCheck size={16} strokeWidth={2.4} /> : null}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap pr-12">
             <span className="qb-cat">{t.challengeCategory || "CHALLENGE"}</span>
             {pending ? (
-              <span className="qb-xp">✉ {t.arenaPendingBadge || "Pending"}</span>
+              <span className="qb-xp" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <IconEnvelope size={11} /> {t.arenaPendingBadge || "Pending"}
+              </span>
             ) : waiting ? (
-              <span className="qb-xp">⏳ {t.arenaWaitingBadge || "Waiting"}</span>
+              <span className="qb-xp" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <IconHourglass size={11} /> {t.arenaWaitingBadge || "Waiting"}
+              </span>
             ) : (
               <span className="qb-xp">{daysLeftLabel}</span>
             )}
@@ -278,9 +297,15 @@ function ChallengeItem({ challenge, meUid, t, busy, optimisticDone, onComplete, 
           <h4 className="cinzel font-bold leading-snug text-[14px]" style={{ color: "var(--color-text)" }}>
             {challenge.title}
           </h4>
-          <p className="text-[13px] mt-0.5 leading-relaxed line-clamp-2" style={{ color: "var(--color-muted)" }}>
-            🎯 {challenge.questTitle}
-            {challenge.needsTimer && challenge.timeEstimateMin ? ` · ⏱ ${challenge.timeEstimateMin} ${t.arenaMinAbbrev || "min"}` : ""}
+          <p className="text-[13px] mt-0.5 leading-relaxed line-clamp-2" style={{ color: "var(--color-muted)", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <IconTarget size={12} /> {challenge.questTitle}
+            </span>
+            {challenge.needsTimer && challenge.timeEstimateMin ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                · <IconTimer size={12} /> {challenge.timeEstimateMin} {t.arenaMinAbbrev || "min"}
+              </span>
+            ) : null}
           </p>
         </div>
       </div>
@@ -485,7 +510,7 @@ function QuestBoard({
       {/* Timer row */}
       <div className="flex items-center justify-between gap-2 mb-3 px-1">
         <div className="flex items-center gap-2" style={{ fontSize: "0.72rem", color: "var(--color-muted)" }}>
-          <span>⏰</span>
+          <span style={{ display: "inline-flex" }}><IconClock size={13} /></span>
           <span className="cinzel">{t.dailyResetLabel}</span>
           <span className="font-mono font-bold" style={{ color: "var(--color-primary)" }}>{resetTimer}</span>
         </div>
@@ -515,7 +540,7 @@ function QuestBoard({
             <button type="button" data-qtab="habits" data-tour="qb-tab-habits"
               className={`qb-tab-btn ${activeQTab === "habits" ? "qb-tab-active" : ""}`}
               onClick={() => setActiveQTab("habits")}>
-              <span className="qb-tab-icon" aria-hidden="true">📌</span>
+              <span className="qb-tab-icon" aria-hidden="true"><IconHabitsPin size={16} /></span>
               <span className="qb-tab-label">{t.pinnedSection}</span>
               <span className="qb-tab-count">{pinnedDone}/{pinnedSlotTotal}</span>
             </button>
@@ -525,12 +550,12 @@ function QuestBoard({
             <button type="button" data-qtab="daily" data-tour="qb-tab-daily"
               className={`qb-tab-btn ${activeQTab === "daily" ? "qb-tab-active" : ""}`}
               onClick={() => { setActiveQTab("daily"); if (showFreshDailyBadge) markDailyTabSeen(); }}>
-              <span className="qb-tab-icon" aria-hidden="true">🎲</span>
+              <span className="qb-tab-icon" aria-hidden="true"><IconDice size={16} /></span>
               <span className="qb-tab-label">{t.otherSection}</span>
               <span className="qb-tab-count">{otherDone}/{otherSlotTotal}</span>
               {showFreshDailyBadge ? (
                 <span className="qb-tab-fresh" aria-label={t.dailyQuestFreshBadge || "NEW"}>
-                  <span className="qb-tab-fresh__spark">✦</span>
+                  <span className="qb-tab-fresh__spark"><IconSpark size={9} /></span>
                   <span className="qb-tab-fresh__label">{t.dailyQuestFreshBadge || "NEW"}</span>
                 </span>
               ) : null}
@@ -541,7 +566,7 @@ function QuestBoard({
             <button type="button" data-qtab="challenges"
               className={`qb-tab-btn ${activeQTab === "challenges" ? "qb-tab-active" : ""}`}
               onClick={() => setActiveQTab("challenges")}>
-              <span className="qb-tab-icon" aria-hidden="true">⚔️</span>
+              <span className="qb-tab-icon" aria-hidden="true"><IconSwords size={16} /></span>
               <span className="qb-tab-label">{t.challengesTab || "Challenges"}</span>
               {challengePendingCount > 0 ? (
                 <span className="qb-tab-count qb-tab-count-alert">{challengePendingCount}</span>
@@ -628,7 +653,7 @@ function QuestBoard({
             <div className="mt-4 flex justify-center">
               <button type="button" onClick={onRerollRandom} disabled={!canRerollRandom}
                 className="mobile-pressable qb-reroll-btn" title={rerollButtonTitle}>
-                <span>🎲</span> {rerollButtonLabel}
+                <span style={{ display: "inline-flex", alignItems: "center" }}><IconDice size={14} /></span> {rerollButtonLabel}
               </button>
             </div>
           </div>
@@ -675,7 +700,7 @@ function QuestBoard({
             <div className="mt-4 flex justify-center">
               <button type="button" onClick={onRerollRandom} disabled={!canRerollRandom}
                 className="mobile-pressable qb-reroll-btn" title={rerollButtonTitle}>
-                <span>🎲</span> {rerollButtonLabel}
+                <span style={{ display: "inline-flex", alignItems: "center" }}><IconDice size={14} /></span> {rerollButtonLabel}
               </button>
             </div>
           </div>

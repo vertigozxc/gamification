@@ -13,6 +13,7 @@ import {
   fetchAchievements,
 } from "../../api";
 import Avatar from "./Avatar";
+import { IconStar, IconFlame, IconTarget, IconBolt, IconHandshake, IconCalendar } from "../icons/Icons";
 import StreakFrame, { getStreakTier } from "./StreakFrame";
 import Screen from "./Screen";
 import Alert from "./Alert";
@@ -179,7 +180,9 @@ function Hero({ profile, t }) {
         </div>
       ) : null}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
-        <span className="sb-pill sb-pill-accent">⭐ {t.arenaLvlFull || "Level"} {profile.level}</span>
+        <span className="sb-pill sb-pill-accent" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <IconStar size={12} /> {t.arenaLvlFull || "Level"} {profile.level}
+        </span>
         {tier.label && (
           <span className="sb-pill">
             {tier.icon} {(t.arenaTierLabels && t.arenaTierLabels[tier.name]) || tier.label}
@@ -194,11 +197,11 @@ function StatGrid({ profile, t, languageId }) {
   const totalXp = Number(profile.totalXp) || 0;
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-      <Stat icon="🔥" label={t.arenaStatStreak || "Current"} value={profile.streak || 0} accent="#ff9500" />
-      <Stat icon="🎯" label={t.arenaStatTotalXp || "Total XP"} value={formatNumber(totalXp)} accent="#fbbf24" />
-      <Stat icon="⚡" label={t.arenaStatWeek || "Week XP"} value={profile.weeklyXp || 0} accent="var(--color-primary)" />
-      <Stat icon="🤝" label={t.arenaStatFriends || "Friends"} value={profile.friendCount || 0} />
-      <Stat icon="📅" label={t.arenaStatJoined || "Joined"} value={formatDate(profile.createdAt, languageId)} span={2} small />
+      <Stat IconComp={IconFlame} label={t.arenaStatStreak || "Current"} value={profile.streak || 0} accent="#ff9500" />
+      <Stat IconComp={IconTarget} label={t.arenaStatTotalXp || "Total XP"} value={formatNumber(totalXp)} accent="#fbbf24" />
+      <Stat IconComp={IconBolt} label={t.arenaStatWeek || "Week XP"} value={profile.weeklyXp || 0} accent="var(--color-primary)" />
+      <Stat IconComp={IconHandshake} label={t.arenaStatFriends || "Friends"} value={profile.friendCount || 0} />
+      <Stat IconComp={IconCalendar} label={t.arenaStatJoined || "Joined"} value={formatDate(profile.createdAt, languageId)} span={2} small />
     </div>
   );
 }
@@ -210,10 +213,12 @@ function formatNumber(n) {
   return n.toLocaleString();
 }
 
-function Stat({ icon, label, value, accent, span, small }) {
+function Stat({ IconComp, label, value, accent, span, small }) {
   return (
     <div className="sb-stat" style={{ gridColumn: span ? `span ${span}` : "auto" }}>
-      <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>{icon}</span>
+      <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0, color: accent || "var(--color-primary)" }}>
+        {IconComp ? <IconComp size={20} /> : null}
+      </span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <p className="sb-caption">{label}</p>
         <p

@@ -8,6 +8,14 @@ import {
   removeFriend,
   respondToFriendRequest,
 } from "../../api";
+import {
+  IconFlame,
+  IconBolt,
+  IconSwords,
+  IconCheck,
+  IconClose,
+  IconHandshake
+} from "../icons/Icons";
 import Avatar from "../social/Avatar";
 import StreakFrame from "../social/StreakFrame";
 import ProfileScreen from "../social/ProfileScreen";
@@ -147,9 +155,9 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
   const blockReason = hitActiveCap ? "active" : hitDailyCreate ? "daily" : null;
 
   const tabs = [
-    { id: "activity", label: t.communityTabActivity || "Activity", icon: "⚡" },
-    { id: "challenges", label: t.communityTabChallenges || "Challenges", icon: "⚔️", badge: pendingChallenges.length },
-    { id: "friends", label: t.communityTabFriends || "Friends", icon: "🤝", badge: requests.length },
+    { id: "activity", label: t.communityTabActivity || "Activity", Icon: IconBolt },
+    { id: "challenges", label: t.communityTabChallenges || "Challenges", Icon: IconSwords, badge: pendingChallenges.length },
+    { id: "friends", label: t.communityTabFriends || "Friends", Icon: IconHandshake, badge: requests.length },
   ];
   const selectedIdx = tabs.findIndex((tb) => tb.id === tab);
 
@@ -304,7 +312,7 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
                 onClick={() => setTab(tb.id)}
                 className={`qb-tab-btn ${tab === tb.id ? "qb-tab-active" : ""}`}
               >
-                <span>{tb.icon}</span> {tb.label}
+                <span style={{ display: "inline-flex", alignItems: "center" }}>{tb.Icon ? <tb.Icon size={15} /> : null}</span> {tb.label}
                 {tb.badge ? <span className="qb-tab-count">{tb.badge}</span> : null}
               </button>
             ))}
@@ -428,7 +436,8 @@ function CommunityHero({ t, leaderboard, meUid }) {
             className="cinzel community-kpi-value"
             style={{ color: "var(--color-primary)" }}
           >
-            ⚡ {formatThousands(totalWeeklyXp)}
+            <span style={{ display: "inline-flex", verticalAlign: "middle", marginRight: 4 }}><IconBolt size={20} /></span>
+            {formatThousands(totalWeeklyXp)}
             <span style={{ fontSize: "0.65em", fontWeight: 700, marginLeft: 4, opacity: 0.75 }}>XP</span>
           </p>
           <p className="community-kpi-sub">
@@ -452,7 +461,7 @@ function ActivityTab({ leaderboard, meUid, t, onOpenProfile }) {
   if (users.length === 0) {
     return (
       <div className="cm-empty">
-        <div className="cm-empty-icon">⚡</div>
+        <div className="cm-empty-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-primary)" }}><IconBolt size={32} /></div>
         <p className="cm-empty-title">{t.communityActivityEmptyTitle || "No active players this week"}</p>
         <p className="cm-empty-body">{t.communityActivityEmptyBody || "Complete any daily task and you'll appear on the leaderboard."}</p>
       </div>
@@ -504,7 +513,7 @@ function PlayerRow({ entry, isMe, meHighlight, t, onOpenProfile }) {
         </p>
         <p className="cm-row-meta">
           <span>{t.communityLvl || "Lv"} {entry.level}</span>
-          <span>🔥 {entry.streak}</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><IconFlame size={11} /> {entry.streak}</span>
         </p>
       </div>
       <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -532,7 +541,7 @@ function ChallengesInlineTab({ pendingChallenges = [], activeChallenges, endedCh
 
       {activeChallenges.length === 0 && endedChallenges.length === 0 && pendingChallenges.length === 0 && (
         <div className="cm-empty">
-          <div className="cm-empty-icon">⚔️</div>
+          <div className="cm-empty-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-primary)" }}><IconSwords size={32} /></div>
           <p className="cm-empty-title">{t.communityChallengesEmptyTitle || "No group challenges yet"}</p>
         </div>
       )}
@@ -839,12 +848,16 @@ function RequestRow({ request: r, busy, t, onOpenProfile, onRespond }) {
         <p className="cm-row-name">{r.from.displayName || r.from.username}</p>
         <p className="cm-row-meta">
           <span>{t.communityLvl || "Lv"} {r.from.level}</span>
-          <span>🔥 {r.from.streak}</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><IconFlame size={11} /> {r.from.streak}</span>
         </p>
       </button>
       <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-        <button type="button" disabled={busy} onClick={() => onRespond(r.requestId, "accept")} className="press" style={circleBtn("accept")} aria-label={t.communityAccept || "Accept"}>✓</button>
-        <button type="button" disabled={busy} onClick={() => onRespond(r.requestId, "decline")} className="press" style={circleBtn("decline")} aria-label={t.communityDecline || "Decline"}>✕</button>
+        <button type="button" disabled={busy} onClick={() => onRespond(r.requestId, "accept")} className="press" style={circleBtn("accept")} aria-label={t.communityAccept || "Accept"}>
+          <IconCheck size={16} strokeWidth={2.4} />
+        </button>
+        <button type="button" disabled={busy} onClick={() => onRespond(r.requestId, "decline")} className="press" style={circleBtn("decline")} aria-label={t.communityDecline || "Decline"}>
+          <IconClose size={14} strokeWidth={2.4} />
+        </button>
       </div>
     </div>
   );
@@ -867,8 +880,10 @@ function FriendRow({ friend: f, busy, t, onOpenProfile, onRemove }) {
         <p className="cm-row-name">{f.displayName || f.username}</p>
         <p className="cm-row-meta">
           <span>{t.communityLvl || "Lv"} {f.level}</span>
-          <span>🔥 {f.streak}</span>
-          {typeof f.weeklyXp === "number" && <span>⚡ {f.weeklyXp}</span>}
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><IconFlame size={11} /> {f.streak}</span>
+          {typeof f.weeklyXp === "number" && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><IconBolt size={11} /> {f.weeklyXp}</span>
+          )}
         </p>
       </button>
       <button
@@ -878,7 +893,7 @@ function FriendRow({ friend: f, busy, t, onOpenProfile, onRemove }) {
         className="cm-remove-friend"
         aria-label={t.communityRemove || "Remove"}
       >
-        ✕
+        <IconClose size={14} strokeWidth={2.4} />
       </button>
     </div>
   );

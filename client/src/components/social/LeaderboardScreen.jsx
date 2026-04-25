@@ -1,6 +1,7 @@
 import Avatar from "./Avatar";
 import StreakFrame from "./StreakFrame";
 import Screen from "./Screen";
+import { IconFlame, IconCheck } from "../icons/Icons";
 
 export default function LeaderboardScreen({ meUid, data, t, onClose, onOpenProfile }) {
   const users = data?.users || [];
@@ -15,7 +16,7 @@ export default function LeaderboardScreen({ meUid, data, t, onClose, onOpenProfi
     >
       {users.length === 0 ? (
         <div style={{ textAlign: "center", padding: "48px 20px" }}>
-          <div style={{ fontSize: 36, marginBottom: 8 }}>🔥</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 8, color: "var(--color-primary)" }}><IconFlame size={36} /></div>
           <p className="sb-headline" style={{ marginBottom: 4 }}>
             {t.arenaBoardEmptyTitle || "Quiet week so far"}
           </p>
@@ -90,8 +91,10 @@ function Row({ entry, isMe, meHighlight, t, onOpenProfile, isLast }) {
         </p>
         <p className="sb-caption" style={{ display: "flex", gap: 8, marginTop: 1 }}>
           <span>{t.arenaLvlShort || "Lv"} {entry.level}</span>
-          <span>🔥 {entry.streak}</span>
-          {typeof entry.weeklyTasks === "number" && <span>✓ {entry.weeklyTasks}</span>}
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><IconFlame size={11} /> {entry.streak}</span>
+          {typeof entry.weeklyTasks === "number" && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><IconCheck size={11} strokeWidth={2.4} /> {entry.weeklyTasks}</span>
+          )}
         </p>
       </div>
       <div style={{ textAlign: "right", flexShrink: 0 }}>

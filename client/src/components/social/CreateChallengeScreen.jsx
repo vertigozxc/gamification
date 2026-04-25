@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from "react";
 import { createChallenge, fetchFriends } from "../../api";
 import Avatar from "./Avatar";
 import Screen from "./Screen";
+import { IconCheck, IconClose, IconWarning, IconTarget, IconSpark, IconTimer } from "../icons/Icons";
 
 const MAX_INVITEES = 5;
 // Must stay in sync with the server cap on POST /api/challenges.
@@ -195,7 +196,7 @@ export default function CreateChallengeScreen({ authUser, t, onClose, onCreated 
 
         {error && (
           <div className="cc-error" role="alert">
-            <span aria-hidden="true">⚠️</span>
+            <span aria-hidden="true" style={{ display: "inline-flex" }}><IconWarning size={14} /></span>
             <span>{error}</span>
           </div>
         )}
@@ -234,7 +235,9 @@ function Stepper({ steps, current, onJump }) {
               disabled={i > current}
               className={`cc-step cc-step-${status}`}
             >
-              <span className="cc-step-dot">{isDone ? "✓" : i + 1}</span>
+              <span className="cc-step-dot" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                {isDone ? <IconCheck size={12} strokeWidth={2.4} /> : i + 1}
+              </span>
               <span className="cc-step-label">{s.label}</span>
             </button>
           </Fragment>
@@ -297,7 +300,7 @@ function InputWithClear({ value, onChange, placeholder, maxLength, clearLabel, a
           aria-label={clearLabel || "Clear"}
           className="cc-input-clear press"
         >
-          ✕
+          <IconClose size={12} strokeWidth={2.4} />
         </button>
       )}
     </div>
@@ -407,7 +410,9 @@ function InviteStep({ t, friends, selected, onToggle, maxInvitees, preview }) {
                 className={`cc-friend-chip press ${picked ? "picked" : ""}`}
               >
                 {picked && (
-                  <span className="cc-friend-chip-badge" aria-hidden="true">✓</span>
+                  <span className="cc-friend-chip-badge" aria-hidden="true" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                    <IconCheck size={11} strokeWidth={2.6} />
+                  </span>
                 )}
                 <div className="cc-friend-chip-avatar">
                   <Avatar photoUrl={f.photoUrl} displayName={f.displayName} size={40} />
@@ -431,19 +436,21 @@ function PactPreview({ t, preview }) {
   const durationLabel = `${preview.duration}${(t.arenaPreviewDaySuffix || "d")}`;
   return (
     <div className="cc-preview">
-      <div className="cc-preview-eyebrow">
-        <span>✦</span>
+      <div className="cc-preview-eyebrow" style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
+        <IconSpark size={12} />
         <span>{t.arenaPreviewLabel || "Preview"}</span>
-        <span>✦</span>
+        <IconSpark size={12} />
       </div>
       <div className="cc-preview-head">
         <p className="cc-preview-title">{title}</p>
         <span className="cc-preview-pill">{durationLabel}</span>
       </div>
-      <p className="cc-preview-quest">🎯 {questTitle}</p>
+      <p className="cc-preview-quest" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+        <IconTarget size={12} /> {questTitle}
+      </p>
       {preview.needsTimer && (
-        <p className="cc-preview-quest">
-          ⏱ {(t.arenaPreviewTimerLabel || "{n} min")
+        <p className="cc-preview-quest" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <IconTimer size={12} /> {(t.arenaPreviewTimerLabel || "{n} min")
             .replace("{n}", String(preview.timeEstimateMin))}
         </p>
       )}

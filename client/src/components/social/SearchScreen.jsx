@@ -3,6 +3,7 @@ import { searchUsers, fetchFriendRelation } from "../../api";
 import Avatar from "./Avatar";
 import StreakFrame from "./StreakFrame";
 import Screen from "./Screen";
+import { IconClose, IconFlame } from "../icons/Icons";
 
 // Badge meta per friend-relation state. Labels fall back to English so a
 // brand-new install still reads sensibly before i18n strings land.
@@ -97,9 +98,9 @@ export default function SearchScreen({ meUid, t, onClose, onOpenProfile }) {
               onClick={() => setQ("")}
               aria-label={t.arenaCancel || "Clear"}
               className="press"
-              style={{ width: 22, height: 22, borderRadius: 11, border: "none", background: "rgba(120,120,128,0.5)", color: "#fff", fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontFamily: "inherit" }}
+              style={{ width: 22, height: 22, borderRadius: 11, border: "none", background: "rgba(120,120,128,0.5)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontFamily: "inherit" }}
             >
-              ✕
+              <IconClose size={12} strokeWidth={2.4} />
             </button>
           )}
         </div>
@@ -142,7 +143,11 @@ export default function SearchScreen({ meUid, t, onClose, onOpenProfile }) {
                   <p className="sb-body" style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {u.displayName || u.username}{u.username === meUid ? ` (${t.arenaYou || "you"})` : ""}
                   </p>
-                  <p className="sb-caption">{t.arenaLvlShort || "Lv"} {u.level} · 🔥 {u.streak}</p>
+                  <p className="sb-caption" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                    <span>{t.arenaLvlShort || "Lv"} {u.level}</span>
+                    <span>·</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><IconFlame size={11} /> {u.streak}</span>
+                  </p>
                 </div>
                 {badgeLabel ? (
                   <span

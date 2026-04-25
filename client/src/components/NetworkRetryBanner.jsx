@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "../ThemeContext";
+import { IconCheck } from "./icons/Icons";
 
 // Global toast that fades in when the api.js request() helper enters its
 // retry loop for any GET, and fades out on the "api-retry-end" event or
@@ -86,7 +87,7 @@ export default function NetworkRetryBanner() {
       }}
     >
       {state === "ok" ? (
-        <span aria-hidden style={{ fontSize: 13, color: "var(--color-primary)" }}>✓</span>
+        <span aria-hidden style={{ display: "inline-flex", color: "var(--color-primary)" }}><IconCheck size={13} strokeWidth={2.4} /></span>
       ) : (
         <span
           aria-hidden

@@ -51,6 +51,7 @@ import PortalPreloader from "./components/PortalPreloader";
 import NetworkRetryBanner from "./components/NetworkRetryBanner";
 import PullToRefresh from "./components/PullToRefresh";
 import { evictCommunityCache, resetCity, dismissStreakBurnNotice } from "./api";
+import { IconTimer } from "./components/icons/Icons";
 
 const FreezeSuccessModal = lazy(() => import("./components/modals/FreezeSuccessModal"));
 const ResidentialAutoGrantModal = lazy(() => import("./components/modals/ResidentialAutoGrantModal"));
@@ -1985,7 +1986,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             onClick={(e) => e.stopPropagation()}
             style={{ maxWidth: 380 }}
           >
-            <div className="logout-confirm-icon">⏱</div>
+            <div className="logout-confirm-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-primary)" }}><IconTimer size={36} /></div>
             <h3 className="cinzel logout-confirm-title">{t.timerLimitTitle || "Too many timers running"}</h3>
             <p className="logout-confirm-msg">
               {t.timerLimitMessage || "You can only run 2 timer quests at the same time. Finish one or stop it before starting a new one."}

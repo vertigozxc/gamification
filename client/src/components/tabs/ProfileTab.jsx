@@ -2,6 +2,18 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import themes from "../../themeConfig";
 import AchievementsSection from "../achievements/AchievementsSection";
+import {
+  IconCamera,
+  IconWarning,
+  IconClose,
+  IconTrophy,
+  IconMuscle,
+  IconHandshake,
+  IconCalendar,
+  IconGlobe,
+  IconBook,
+  IconTrash
+} from "../icons/Icons";
 
 function ChevronToggle({ open }) {
   return (
@@ -96,8 +108,8 @@ export default function ProfileTab({
                 </svg>
               )}
             </button>
-            <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs shadow-lg" style={{ background: "var(--panel-bg)", borderColor: "var(--card-border-idle)", color: "var(--color-muted)" }}>
-              📷
+            <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full border-2 flex items-center justify-center shadow-lg" style={{ background: "var(--panel-bg)", borderColor: "var(--card-border-idle)", color: "var(--color-muted)" }}>
+              <IconCamera size={14} />
             </div>
           </div>
           <div className="min-w-0 flex-1">
@@ -141,8 +153,11 @@ export default function ProfileTab({
         </div>
         {avatarError && (
           <div className="relative z-10 mt-3 flex items-center gap-2 bg-red-900/40 border border-red-500/40 rounded-xl px-3 py-2 text-red-300 text-xs">
-            <span>⚠️</span> {avatarError}
-            <button className="ml-auto text-red-400 hover:text-red-200" onClick={onAvatarErrorClear}>✕</button>
+            <span style={{ display: "inline-flex" }}><IconWarning size={14} /></span>
+            <span className="flex-1 min-w-0">{avatarError}</span>
+            <button className="ml-auto text-red-400 hover:text-red-200" onClick={onAvatarErrorClear} aria-label="dismiss">
+              <IconClose size={14} strokeWidth={2.4} />
+            </button>
           </div>
         )}
       </div>
@@ -183,7 +198,7 @@ export default function ProfileTab({
           <p className="text-[10px] uppercase tracking-wider mt-1" style={{ color: "var(--color-muted)" }}>{t.tokensLabel}</p>
         </div>
         <div className="mobile-card flex flex-col items-center py-4" style={{ background: "var(--panel-bg)" }}>
-          <span className="text-2xl mb-1">🏆</span>
+          <span style={{ display: "inline-flex", color: "var(--color-primary)", marginBottom: 4 }}><IconTrophy size={26} /></span>
           <p className="cinzel text-2xl font-bold" style={{ color: "var(--color-primary)" }}>{state.lvl}</p>
           <p className="text-[10px] uppercase tracking-wider mt-1" style={{ color: "var(--color-muted)" }}>{t.levelLabel}</p>
         </div>
@@ -202,15 +217,15 @@ export default function ProfileTab({
             <span className="cinzel font-bold text-sm" style={{ color: "var(--color-primary)" }}>{profileStats?.maxStreak ?? "—"}</span>
           </div>
           <div className="flex items-center justify-between py-2 border-b border-[var(--panel-border)]">
-            <span className="flex items-center gap-2 text-sm"><span className="text-lg">💪</span> {t.profileHabitsBuiltLabel} <span className="text-[9px]" style={{ color: "var(--color-muted)" }}>({t.profileHabitsBuiltHint})</span></span>
+            <span className="flex items-center gap-2 text-sm"><span style={{ display: "inline-flex", color: "var(--color-primary)" }}><IconMuscle size={18} /></span> {t.profileHabitsBuiltLabel} <span className="text-[9px]" style={{ color: "var(--color-muted)" }}>({t.profileHabitsBuiltHint})</span></span>
             <span className="cinzel font-bold text-sm" style={{ color: "var(--color-primary)" }}>{profileStats?.builtHabits ?? "—"}</span>
           </div>
           <div className="flex items-center justify-between py-2 border-b border-[var(--panel-border)]">
-            <span className="flex items-center gap-2 text-sm"><span className="text-lg">🤝</span> {t.profileGroupChallengesLabel || "Group challenges completed"}</span>
+            <span className="flex items-center gap-2 text-sm"><span style={{ display: "inline-flex", color: "var(--color-primary)" }}><IconHandshake size={18} /></span> {t.profileGroupChallengesLabel || "Group challenges completed"}</span>
             <span className="cinzel font-bold text-sm" style={{ color: "var(--color-primary)" }}>{profileStats?.completedGroupChallenges ?? "—"}</span>
           </div>
           <div className="flex items-center justify-between py-2 border-b border-[var(--panel-border)]">
-            <span className="flex items-center gap-2 text-sm"><span className="text-lg">📅</span> {t.profileJoinedLabel}</span>
+            <span className="flex items-center gap-2 text-sm"><span style={{ display: "inline-flex", color: "var(--color-primary)" }}><IconCalendar size={18} /></span> {t.profileJoinedLabel}</span>
             <span className="cinzel font-bold text-sm" style={{ color: "var(--color-primary)" }}>{profileStats?.joinedAt ? new Date(profileStats.joinedAt).toLocaleDateString(languageId === "ru" ? "ru-RU" : "en-US", { year: "numeric", month: "short", day: "numeric" }) : "—"}</span>
           </div>
         </div>
@@ -236,7 +251,7 @@ export default function ProfileTab({
             <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
           </button>
           <button className="profile-settings-row" onClick={onOpenLanguagePicker}>
-            <span className="text-xl w-8 text-center">🌐</span>
+            <span style={{ display: "inline-flex", justifyContent: "center", width: 32, color: "var(--color-primary)" }}><IconGlobe size={20} /></span>
             <div className="flex-1 text-left">
               <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.languageLabel}</p>
               <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{getLanguageMeta(languageId).nativeLabel}</p>
@@ -245,7 +260,7 @@ export default function ProfileTab({
           </button>
           {onOpenNotesHistory ? (
             <button className="profile-settings-row" onClick={onOpenNotesHistory}>
-              <span className="text-xl w-8 text-center">📚</span>
+              <span style={{ display: "inline-flex", justifyContent: "center", width: 32, color: "var(--color-primary)" }}><IconBook size={20} /></span>
               <div className="flex-1 text-left">
                 <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.notesHistoryLabel || "My notes"}</p>
                 <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{t.notesHistoryHint || "Reflections, gratitude, vocabulary"}</p>
@@ -300,7 +315,7 @@ export default function ProfileTab({
             onClick={(event) => event.stopPropagation()}
           >
             <div className="logout-session-halo" aria-hidden="true">
-              <div className="logout-confirm-icon logout-session-icon">🗑️</div>
+              <div className="logout-confirm-icon logout-session-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#dc2626" }}><IconTrash size={32} /></div>
             </div>
             <h3 className="cinzel logout-confirm-title logout-session-title">
               {t.deleteProfileTitle || "Delete Profile Permanently?"}

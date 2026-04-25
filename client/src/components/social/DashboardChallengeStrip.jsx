@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { completeChallenge, fetchUserChallenges, joinChallenge, leaveChallenge } from "../../api";
+import { IconSwords, IconEnvelope, IconHourglass, IconTarget, IconTimer, IconCheck } from "../icons/Icons";
 import "./ios.css";
 
 function todayKey() {
@@ -92,7 +93,7 @@ export default function DashboardChallengeStrip({ authUser, t, onOpenSocial }) {
         className="dash-chal-header"
         aria-expanded={expanded}
       >
-        <span className="dash-chal-header-ico">⚔️</span>
+        <span className="dash-chal-header-ico" style={{ display: "inline-flex", alignItems: "center" }}><IconSwords size={18} /></span>
         <span className="dash-chal-header-title">{t.arenaDashStripTitle || "Your pacts"}</span>
         {pendingCount > 0 && (
           <span className="dash-chal-pending-badge" aria-label={t.arenaPendingBadge || "Pending invite"}>
@@ -162,12 +163,12 @@ function ChallengeCard({ challenge, meUid, t, busy, optimisticDone, onComplete, 
                 {challenge.title}
               </span>
               {pending ? (
-                <span className="sb-pill" style={{ flexShrink: 0, background: "rgba(var(--color-primary-rgb,251,191,36),0.18)", color: "var(--color-primary)" }}>
-                  ✉ {t.arenaPendingBadge || "Pending"}
+                <span className="sb-pill" style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(var(--color-primary-rgb,251,191,36),0.18)", color: "var(--color-primary)" }}>
+                  <IconEnvelope size={11} /> {t.arenaPendingBadge || "Pending"}
                 </span>
               ) : waiting ? (
-                <span className="sb-pill" style={{ flexShrink: 0 }}>
-                  ⏳ {t.arenaWaitingBadge || "Waiting"}
+                <span className="sb-pill" style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <IconHourglass size={11} /> {t.arenaWaitingBadge || "Waiting"}
                 </span>
               ) : (
                 <span className="sb-pill sb-pill-accent" style={{ flexShrink: 0 }}>
@@ -175,9 +176,15 @@ function ChallengeCard({ challenge, meUid, t, busy, optimisticDone, onComplete, 
                 </span>
               )}
             </div>
-            <span className="sb-caption" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              🎯 {challenge.questTitle}
-              {challenge.needsTimer && challenge.timeEstimateMin ? ` · ⏱ ${challenge.timeEstimateMin} ${t.arenaMinAbbrev || "min"}` : ""}
+            <span className="sb-caption" style={{ display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <IconTarget size={11} />
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{challenge.questTitle}</span>
+              {challenge.needsTimer && challenge.timeEstimateMin ? (
+                <>
+                  <span>·</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><IconTimer size={11} /> {challenge.timeEstimateMin} {t.arenaMinAbbrev || "min"}</span>
+                </>
+              ) : null}
             </span>
           </div>
           <span aria-hidden="true" style={{ color: "var(--color-muted)", fontSize: 18, flexShrink: 0, lineHeight: 1 }}>›</span>
@@ -200,12 +207,12 @@ function ChallengeCard({ challenge, meUid, t, busy, optimisticDone, onComplete, 
           </button>
         </div>
       ) : waiting ? (
-        <p className="sb-caption" style={{ fontSize: 12 }}>
-          ⏳ {t.arenaWaitingForPlayers || "Waiting for at least one more player to accept"}
+        <p className="sb-caption" style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 5 }}>
+          <IconHourglass size={12} /> {t.arenaWaitingForPlayers || "Waiting for at least one more player to accept"}
         </p>
       ) : completedToday ? (
-        <div className="sb-pill sb-pill-success" style={{ alignSelf: "flex-start", padding: "4px 12px" }}>
-          ✓ {t.arenaDoneTodayFull || "Done for today"}
+        <div className="sb-pill sb-pill-success" style={{ alignSelf: "flex-start", padding: "4px 12px", display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <IconCheck size={11} strokeWidth={2.4} /> {t.arenaDoneTodayFull || "Done for today"}
         </div>
       ) : challenge.needsTimer && challenge.timeEstimateMin ? (
         <ChallengeTimerInline

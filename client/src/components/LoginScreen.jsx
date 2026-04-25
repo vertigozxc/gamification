@@ -1,6 +1,7 @@
 import { useState } from "react";
 import LanguageSelector from "./LanguageSelector";
 import { Flame, Target, TrendingUp, Building2 } from "lucide-react";
+import { IconWarning } from "./icons/Icons";
 
 export default function LoginScreen({ t, handleGoogleLogin, authError, languageId, languageIds, getLanguageMeta, setLanguageId }) {
   const [showAppleModal, setShowAppleModal] = useState(false);
@@ -88,8 +89,9 @@ export default function LoginScreen({ t, handleGoogleLogin, authError, languageI
               <span>{t.loginButtonApple || "Login With Apple"}</span>
             </button>
             {authError && (
-              <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm text-center animate-fade-in">
-                <span className="mr-1">⚠️</span> {authError}
+              <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-center justify-center gap-2 animate-fade-in">
+                <span style={{ display: "inline-flex" }}><IconWarning size={14} /></span>
+                <span>{authError}</span>
               </div>
             )}
           </div>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "../../ThemeContext";
+import { IconCheck, IconClose } from "../icons/Icons";
 
 function buildEmptyItems(count, mechanic) {
   return Array.from({ length: count }, () =>
@@ -135,7 +136,7 @@ export default function QuestNoteModal({ open, quest, onClose, onSubmit, submitt
               aria-label={t.closeLabel || "Close"}
               className="ui-close-x"
             >
-              ✕
+              <IconClose size={16} strokeWidth={2.4} />
             </button>
           </div>
           {/* Progress */}
@@ -223,7 +224,7 @@ export default function QuestNoteModal({ open, quest, onClose, onSubmit, submitt
                     <span className="cinzel text-[11px]" style={{ color: "var(--color-muted)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
                       {(t.wordsPairLabel || "Pair {n}").replace("{n}", String(index + 1))}
                     </span>
-                    {filled ? <span style={{ fontSize: 14, color: "var(--color-accent)" }}>✓</span> : null}
+                    {filled ? <span style={{ display: "inline-flex", color: "var(--color-accent)" }}><IconCheck size={14} strokeWidth={2.4} /></span> : null}
                   </div>
                   <input
                     ref={index === 0 ? firstInputRef : null}
@@ -295,7 +296,7 @@ export default function QuestNoteModal({ open, quest, onClose, onSubmit, submitt
                     {(t.noteItemLabel || "Entry {n}").replace("{n}", String(index + 1))}
                   </span>
                   <span className="text-[11px] font-mono" style={{ color: done ? "var(--color-accent)" : "var(--color-muted)" }}>
-                    {done ? "✓" : `−${charsLeft}`}
+                    {done ? <IconCheck size={11} strokeWidth={2.4} /> : `−${charsLeft}`}
                   </span>
                 </div>
                 <textarea

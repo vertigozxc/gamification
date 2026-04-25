@@ -6,6 +6,7 @@ import CategoryFilterRow from "../CategoryFilterRow";
 import InputWithClear from "../InputWithClear";
 import { groupQuests, availableCategories, matchesCategory } from "../../utils/questGrouping";
 import { suggestHandle as apiSuggestHandle, checkHandle as apiCheckHandle } from "../../api";
+import { IconCheck, IconClose, IconList, IconSparkle, IconWarning } from "../icons/Icons";
 
 const HANDLE_MIN_LENGTH = 3;
 const HANDLE_MAX_LENGTH = 20;
@@ -376,7 +377,7 @@ function OnboardingModal({
               aria-label={t.cancelAndLogout}
               className="ui-close-x"
             >
-              ✕
+              <IconClose size={16} strokeWidth={2.4} />
             </button>
           </div>
 
@@ -523,13 +524,11 @@ function OnboardingModal({
               <span
                 style={{
                   marginLeft: 8,
-                  fontSize: 13,
-                  fontWeight: 800,
                   color: "#10b981",
-                  minWidth: 20,
-                  textAlign: "right"
+                  display: "inline-flex",
+                  alignItems: "center"
                 }}
-              >✓</span>
+              ><IconCheck size={14} strokeWidth={2.6} /></span>
             ) : null}
           </div>
           <p style={{ margin: "6px 2px 0", fontSize: 11, color: "var(--color-muted)", lineHeight: 1.4 }}>
@@ -591,7 +590,7 @@ function OnboardingModal({
               onClick={() => setHabitsTab("presets")}
               className="onb-habits-tab cinzel mobile-pressable"
             >
-              <span className="onb-habits-tab-ico" aria-hidden>📋</span>
+              <span className="onb-habits-tab-ico" aria-hidden style={{ display: "inline-flex" }}><IconList size={14} /></span>
               <span className="onb-habits-tab-label">{t.onboardingTabPresets || "Presets"}</span>
               <span className="onb-habits-tab-count">{questGroups.length}</span>
             </button>
@@ -602,7 +601,7 @@ function OnboardingModal({
               onClick={() => setHabitsTab("custom")}
               className="onb-habits-tab cinzel mobile-pressable"
             >
-              <span className="onb-habits-tab-ico" aria-hidden>✨</span>
+              <span className="onb-habits-tab-ico" aria-hidden style={{ display: "inline-flex" }}><IconSparkle size={14} /></span>
               <span className="onb-habits-tab-label">{t.onboardingTabCustom || "Custom"}</span>
               <span className="onb-habits-tab-count">{Array.isArray(customQuests) ? customQuests.length : 0}</span>
             </button>
@@ -651,10 +650,13 @@ function OnboardingModal({
                   background: "color-mix(in srgb, var(--color-accent) 22%, transparent)",
                   color: "var(--color-accent)",
                   border: "1px solid color-mix(in srgb, var(--color-accent) 55%, transparent)",
-                  visibility: selectionComplete ? "visible" : "hidden"
+                  visibility: selectionComplete ? "visible" : "hidden",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4
                 }}
               >
-                ✓ {t.onboardingReady || "ready"}
+                <IconCheck size={11} strokeWidth={2.6} /> {t.onboardingReady || "ready"}
               </span>
             </div>
             <div style={{ height: 4, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
@@ -873,7 +875,7 @@ function OnboardingModal({
       {showWarning && (
         <div className="logout-confirm-overlay" style={{ zIndex: 220, background: "rgba(0,0,0,0.6)" }}>
           <div className="logout-confirm-card" style={{ maxWidth: 400 }}>
-            <div className="text-4xl mt-1 mb-4 text-center">⚠️</div>
+            <div className="mt-1 mb-4 flex justify-center" style={{ color: "#fbbf24" }}><IconWarning size={42} /></div>
             <h2 className="cinzel text-center text-2xl mb-4" style={{ color: "var(--color-primary)" }}>{t.confirmTitle}</h2>
             <div className="mb-5 px-3 py-2 text-center">
               <p className="text-lg text-slate-100 font-medium leading-relaxed mb-3">
