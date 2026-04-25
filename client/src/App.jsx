@@ -483,7 +483,14 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       autoAdvance: true,
       hideNext: true,
       onEnter: () => { setWizardStep(1); setForcedHabitsTab("presets"); },
-      bubblePlacement: "top",
+      // Pin the bubble to the BOTTOM of the viewport (inside the
+      // fillBottom spotlight) instead of trying to fit it above the
+      // slide bar. The Presets/Custom slide bar starts only ~80 px
+      // below the iPhone notch, so a top-anchored bubble would
+      // always overlap it. With "bottom" placement + fillBottom the
+      // bubble sits just above safe-area-bottom and the slide bar +
+      // search + first habits are all clear and tappable.
+      bubblePlacement: "bottom",
       fillBottom: true,
       scroll: false
     });
