@@ -340,7 +340,6 @@ export const languagePacks = {
       onboardingIntro: "Enter your name and pick {pinned} daily habits.",
       onboardingSkipLater: "SETUP LATER",
       onboardingNameHint: "Enter your name — it will be publicly visible to other players.",
-      onboardingHandleHint: "Your unique identifier — shown on your public profile so friends can find you.",
       // Tier-unlock popup (mandatory after a quest completion that
       // crossed a level / streak progression boundary).
       tierUnlockKicker: "New stage unlocked",
@@ -374,7 +373,7 @@ export const languagePacks = {
       activityDaysAgo: "{n}d ago",
       onboardingHandleLabel: "Username",
       onboardingHandlePlaceholder: "username",
-      onboardingHandleHint: "3–20 letters / digits / underscore. Others find you by this.",
+      onboardingHandleHint: "Your unique identifier — shown on your public profile so friends can find you.",
       onboardingHandleChecking: "…",
       onboardingHandleTaken: "taken",
       onboardingHandleInvalid: "invalid",
@@ -1581,7 +1580,6 @@ export const languagePacks = {
       onboardingIntro: "Введите имя и выберите {pinned} ежедневные привычки.",
       onboardingSkipLater: "НАСТРОЮ ПОЗЖЕ",
       onboardingNameHint: "Введите имя — оно будет видно публично другим игрокам.",
-      onboardingHandleHint: "Ваш уникальный идентификатор — показывается в публичном профиле, чтобы друзья могли вас найти.",
       // Tier-unlock popup (mandatory after a quest completion that
       // crossed a level / streak progression boundary).
       tierUnlockKicker: "Новый этап открыт",
@@ -1615,7 +1613,7 @@ export const languagePacks = {
       activityDaysAgo: "{n} дн назад",
       onboardingHandleLabel: "Юзернейм",
       onboardingHandlePlaceholder: "username",
-      onboardingHandleHint: "3–20 латинских букв / цифр / _. По нему вас смогут найти.",
+      onboardingHandleHint: "Ваш уникальный идентификатор — показывается в публичном профиле, чтобы друзья могли вас найти.",
       onboardingHandleChecking: "…",
       onboardingHandleTaken: "занято",
       onboardingHandleInvalid: "ошибка",
