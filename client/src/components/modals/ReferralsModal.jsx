@@ -12,7 +12,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "../../ThemeContext";
-import { IconCheck, IconClose } from "../icons/Icons";
+import { IconCheck, IconClose, IconList, IconSparkle } from "../icons/Icons";
+import Avatar from "../social/Avatar";
 import {
   fetchMyReferrals as apiFetchMyReferrals,
   createReferralCode as apiCreateReferralCode,
@@ -50,6 +51,12 @@ function ReferralsModal({ open, onClose, username, onTokensClaimed }) {
   // in place rather than nesting another modal layer (keeps the iOS
   // experience: one full-screen sheet, no double-blur).
   const [mode, setMode] = useState("list");
+  // Top-level slide-bar tab. "codes" — owner-side codes + redeem-a-
+  // friend's-code surface. "referrals" — table of users who used my
+  // codes with claim buttons + KPI strip. Same slide-bar pattern as
+  // the OnboardingModal / SingleHabitPickerModal so the screens
+  // feel like a family.
+  const [tab, setTab] = useState("codes");
   // Create-code form state
   const [createInput, setCreateInput] = useState("");
   const [createStatus, setCreateStatus] = useState("idle"); // idle|checking|free|taken|invalid|too_short|too_long|blocked
@@ -94,6 +101,7 @@ function ReferralsModal({ open, onClose, username, onTokensClaimed }) {
   useEffect(() => {
     if (open) return;
     setMode("list");
+    setTab("codes");
     setCreateInput("");
     setCreateStatus("idle");
     setRedeemInput("");
@@ -362,6 +370,47 @@ function ReferralsModal({ open, onClose, username, onTokensClaimed }) {
               <IconClose size={16} strokeWidth={2.4} />
             </button>
           </div>
+
+          {/* Slide-bar tabs — same segmented pattern as the
+              OnboardingModal / SingleHabitPickerModal so the screens
+              read as a family. Hidden in create-mode (the create
+              form takes over the whole body and tabs would be
+              meaningless there). */}
+          {mode === "list" && !loading ? (
+            <div
+              role="tablist"
+              className="onb-habits-tabs"
+              style={{ "--onb-tabs-count": 2, "--onb-tabs-active": tab === "referrals" ? 1 : 0, marginTop: 12 }}
+            >
+              <div className="onb-habits-tabs-slider" aria-hidden />
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tab === "codes"}
+                onClick={() => setTab("codes")}
+                className="onb-habits-tab cinzel mobile-pressable"
+              >
+                <span className="onb-habits-tab-ico" aria-hidden style={{ display: "inline-flex" }}><IconList size={14} /></span>
+                <span className="onb-habits-tab-label">{t.referralsTabCodes || "My Codes"}</span>
+                {Array.isArray(data?.codes) && data.codes.length > 0 ? (
+                  <span className="onb-habits-tab-count">{data.codes.length}</span>
+                ) : null}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tab === "referrals"}
+                onClick={() => setTab("referrals")}
+                className="onb-habits-tab cinzel mobile-pressable"
+              >
+                <span className="onb-habits-tab-ico" aria-hidden style={{ display: "inline-flex" }}><IconSparkle size={14} /></span>
+                <span className="onb-habits-tab-label">{t.referralsTabReferrals || "My Referrals"}</span>
+                {Array.isArray(data?.referrals) && data.referrals.length > 0 ? (
+                  <span className="onb-habits-tab-count">{data.referrals.length}</span>
+                ) : null}
+              </button>
+            </div>
+          ) : null}
         </div>
 
         {/* Body */}
@@ -399,7 +448,7 @@ function ReferralsModal({ open, onClose, username, onTokensClaimed }) {
                 setCreateStatus("idle");
               }}
             />
-          ) : (
+          ) : tab === "codes" ? (
             <>
               <MyCodesBlock
                 t={t}
@@ -428,15 +477,16 @@ function ReferralsModal({ open, onClose, username, onTokensClaimed }) {
               ) : (
                 <RedeemedBanner t={t} tf={tf} code={myRedemption.code} />
               )}
-
-              <InviteesBlock
-                t={t}
-                tf={tf}
-                referrals={referrals}
-                claimingId={claimingId}
-                onClaim={handleClaim}
-              />
             </>
+          ) : (
+            <ReferralsTab
+              t={t}
+              tf={tf}
+              referrals={referrals}
+              claimingId={claimingId}
+              onClaim={handleClaim}
+              onSwitchToCodes={() => setTab("codes")}
+            />
           )}
         </div>
       </div>
@@ -693,92 +743,147 @@ function RedeemedBanner({ t, tf, code }) {
   );
 }
 
-function InviteesBlock({ t, tf, referrals, claimingId, onClaim }) {
+// ─── ReferralsTab — table-style listing with a KPI strip on top.
+//
+// Layout:
+//   ┌────────────────┬──────────────────┐
+//   │ Total invited  │ Ready to claim   │
+//   │      N         │   K  ·  +50 🪙   │
+//   └────────────────┴──────────────────┘
+//   ┌──────────────────────────────────┐
+//   │ ◯ Display name        Lvl 12 [+50 Claim] │
+//   │   @handle                                 │
+//   ├──────────────────────────────────┤
+//   │ ◯ Display name        Lvl 3   🔒 3 / 5  │
+//   │   @handle                                 │
+//   ├──────────────────────────────────┤
+//   │ ◯ Display name        Lvl 7   ✓ Claimed │
+//   │   @handle                                 │
+//   └──────────────────────────────────┘
+//
+// Empty state surfaces a CTA back to the My Codes tab so the user has
+// somewhere to go instead of staring at "No invitees yet".
+function ReferralsTab({ t, tf, referrals, claimingId, onClaim, onSwitchToCodes }) {
+  const total = referrals.length;
+  const claimableCount = referrals.filter((r) => Boolean(r.claimable)).length;
+
+  if (total === 0) {
+    return (
+      <div className="ref-empty">
+        <div className="ref-empty-icon" aria-hidden>👥</div>
+        <p className="ref-empty-title cinzel">{t.referralsEmptyTitle || "No invitees yet"}</p>
+        <p className="ref-empty-body">{t.referralsEmptyBody || "Share your code with friends to start bringing them in."}</p>
+        <button
+          type="button"
+          onClick={onSwitchToCodes}
+          className="cinzel mobile-pressable ref-empty-cta"
+        >
+          {t.referralsEmptyCta || "Go to My Codes"}
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <SectionHeader title={t.referralsInviteesHeading || "Invitees"} />
-      {referrals.length === 0 ? (
-        <p style={{ color: "var(--color-muted)", fontSize: 12 }}>
-          {t.referralsInviteesEmpty || "No one has used your codes yet"}
-        </p>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {referrals.map((row) => (
-            <InviteeRow
-              key={row.id}
-              row={row}
-              isClaiming={claimingId === row.id}
-              onClaim={() => onClaim(row.id)}
-              t={t}
-              tf={tf}
-            />
-          ))}
+    <div className="ref-tab">
+      {/* KPI strip — total invited vs ready-to-claim. The right tile
+          glows in primary when there are rewards waiting; muted when
+          everything is either pending-level-up or already claimed. */}
+      <div className="ref-kpi-row">
+        <div className="ref-kpi-tile">
+          <p className="ref-kpi-label">{t.referralsKpiTotal || "Total invited"}</p>
+          <p className="cinzel ref-kpi-value">{total}</p>
         </div>
-      )}
+        <div className={`ref-kpi-tile ${claimableCount > 0 ? "ref-kpi-tile--hot" : ""}`}>
+          <p className="ref-kpi-label">{t.referralsKpiClaimable || "Ready to claim"}</p>
+          <p className="cinzel ref-kpi-value">
+            {claimableCount}
+            {claimableCount > 0 ? (
+              <span className="ref-kpi-bonus"> · +{claimableCount * REWARD_TOKENS}🪙</span>
+            ) : null}
+          </p>
+        </div>
+      </div>
+
+      {/* Compact table-style list of every referee. */}
+      <div className="ref-table">
+        {referrals.map((row) => (
+          <ReferralRow
+            key={row.id}
+            row={row}
+            isClaiming={claimingId === row.id}
+            onClaim={() => onClaim(row.id)}
+            t={t}
+            tf={tf}
+          />
+        ))}
+      </div>
+
+      <p className="ref-footnote">
+        {tf("referralsFootnoteHint", { level: TARGET_LEVEL, tokens: REWARD_TOKENS })}
+      </p>
     </div>
   );
 }
 
-function InviteeRow({ row, isClaiming, onClaim, t, tf }) {
+function ReferralRow({ row, isClaiming, onClaim, t, tf }) {
   const referee = row?.referee || {};
-  const displayName = referee.handle ? `@${referee.handle}` : (referee.displayName || "—");
+  const displayName = referee.displayName || referee.handle || "—";
+  const handle = referee.handle ? `@${referee.handle}` : "";
   const level = Number(referee.level) || 0;
   const claimable = Boolean(row.claimable);
   const claimed = Boolean(row.referrerClaimedAt);
+
+  // Right-side affordance has three mutually exclusive states.
+  let rightSlot = null;
+  if (claimed) {
+    rightSlot = (
+      <span className="ref-row-status ref-row-status--claimed cinzel">
+        <IconCheck size={12} strokeWidth={2.6} />
+        {t.referralsClaimedBadge || "Claimed"}
+      </span>
+    );
+  } else if (claimable) {
+    rightSlot = (
+      <button
+        type="button"
+        onClick={onClaim}
+        disabled={isClaiming}
+        className="cinzel mobile-pressable ref-row-claim"
+      >
+        {isClaiming
+          ? (t.referralsInviteeClaiming || "…")
+          : `+${REWARD_TOKENS}`}
+      </button>
+    );
+  } else {
+    // Locked: lvl < 5. Show a lock + N/5 progress so the user
+    // understands why it isn't claimable yet.
+    rightSlot = (
+      <span className="ref-row-status ref-row-status--locked cinzel" aria-label={t.referralsLockedAria || "Locked"}>
+        <span aria-hidden style={{ fontSize: 12 }}>🔒</span>
+        {Math.min(level, TARGET_LEVEL)} / {TARGET_LEVEL}
+      </span>
+    );
+  }
+
   return (
-    <div
-      className="mobile-card"
-      style={{
-        padding: "12px 14px",
-        background: "var(--card-bg, rgba(15,23,42,0.65))",
-        border: "1px solid var(--card-border-idle)",
-        borderRadius: 12,
-        display: "flex",
-        flexDirection: "column",
-        gap: 8
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text)" }}>{displayName}</span>
-        <span style={{ fontSize: 11, color: "var(--color-muted)", letterSpacing: "0.06em" }}>
-          Lv. {level}
-        </span>
+    <div className="ref-row">
+      <div className="ref-row-avatar">
+        <Avatar photoUrl={referee.photoUrl} displayName={displayName} size={32} />
       </div>
-      {claimed ? (
-        <p style={{ margin: 0, fontSize: 11, color: "var(--color-accent)", display: "flex", alignItems: "center", gap: 6 }}>
-          <IconCheck size={12} strokeWidth={2.6} />
-          {t.referralsInviteeClaimed || "Reward claimed"}
-        </p>
-      ) : claimable ? (
-        <button
-          type="button"
-          onClick={onClaim}
-          disabled={isClaiming}
-          className="cinzel mobile-pressable"
-          style={{
-            minHeight: 36,
-            borderRadius: 10,
-            background: isClaiming
-              ? "rgba(255,255,255,0.08)"
-              : "linear-gradient(90deg, var(--color-primary), var(--color-accent))",
-            border: "none",
-            color: isClaiming ? "var(--color-muted)" : "#0b1120",
-            fontSize: 11,
-            fontWeight: 800,
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            cursor: isClaiming ? "not-allowed" : "pointer"
-          }}
-        >
-          {isClaiming
-            ? (t.referralsInviteeClaiming || "Claiming…")
-            : tf("referralsInviteeClaimCta", { tokens: REWARD_TOKENS })}
-        </button>
-      ) : (
-        <p style={{ margin: 0, fontSize: 11, color: "var(--color-muted)" }}>
-          {tf("referralsInviteeProgress", { level: TARGET_LEVEL, tokens: REWARD_TOKENS })}
-        </p>
-      )}
+      <div className="ref-row-body">
+        <div className="ref-row-line1">
+          <span className="ref-row-name">{displayName}</span>
+          <span className="ref-row-level cinzel">⭐{level}</span>
+        </div>
+        {handle ? (
+          <p className="ref-row-handle">{handle}</p>
+        ) : null}
+      </div>
+      <div className="ref-row-right">
+        {rightSlot}
+      </div>
     </div>
   );
 }
