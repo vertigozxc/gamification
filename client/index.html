@@ -6,7 +6,13 @@
     <title>GoHabit</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;600;700&family=Quicksand:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Forum is the Cyrillic fallback for Cinzel: Cinzel ships with no
+         Cyrillic glyphs at all, so Russian headings (мобильные карточки,
+         кнопки, заголовки страниц) silently fell back to the browser's
+         default serif. Forum is a Roman-style display serif with full
+         Cyrillic coverage; the browser does per-glyph fallback to it
+         when Cinzel can't render a character. -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Forum&family=Inter:wght@400;600;700&family=Quicksand:wght@400;700&display=swap" rel="stylesheet">
   </head>
   <body>
     <div id="root"></div>

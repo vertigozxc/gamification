@@ -53,7 +53,10 @@ body[data-theme="adventure"] {
     --auth-btn-border: #fbbf24;
     --heading-gradient: linear-gradient(to right, #fde047, #fb923c, #f87171);
     --quest-heading-gradient: linear-gradient(to right, #c084fc, #f472b6);
-    --font-heading: 'Cinzel', serif;
+    /* Cinzel has no Cyrillic glyphs — Forum (Roman display serif with
+       full Cyrillic) is stacked next so per-glyph fallback handles
+       Russian headings without a JS theme swap. */
+    --font-heading: 'Cinzel', 'Forum', serif;
     --font-body: 'Quicksand', sans-serif;
     --levelup-glow: 0 0 20px rgba(251, 191, 36, 0.8);
     --modal-border: rgba(251, 191, 36, 0.25);

@@ -4,7 +4,7 @@ const themes = {
     label: "Adventure",
     description: "Heroic RPG-inspired experience",
     icon: "✨",
-    fonts: { heading: "'Cinzel', serif", body: "'Quicksand', sans-serif" },
+    fonts: { heading: "'Cinzel', 'Forum', serif", body: "'Quicksand', sans-serif" },
     vocab: {
       appTitle: "🎯 GOHABIT 🎯",
       appSubtitle: "Your Journey to Glory Awaits",
