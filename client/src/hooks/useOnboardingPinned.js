@@ -6,7 +6,8 @@ import {
   updateCustomQuest as apiUpdateCustomQuest,
   deleteCustomQuest as apiDeleteCustomQuest,
   fetchGameState as apiFetchGameState,
-  skipOnboarding as apiSkipOnboarding
+  skipOnboarding as apiSkipOnboarding,
+  redeemReferralCode as apiRedeemReferralCode
 } from "../api";
 import { fuzzyMatch } from "../utils/fuzzySearch";
 
@@ -59,6 +60,10 @@ function useOnboardingPinned({
   // whose field we're highlighting).
   const [wizardStep, setWizardStep] = useState(0);
   const [onboardingName, setOnboardingName] = useState("");
+  // Referral code captured on the new middle wizard step. Empty when
+  // the user skips. Owned here so the redeem call after /onboarding/complete
+  // doesn't depend on modal-internal state surviving an unmount.
+  const [onboardingReferralCode, setOnboardingReferralCode] = useState("");
   const [onboardingQuestIds, setOnboardingQuestIds] = useState([]);
   const [onboardingQuestSearch, setOnboardingQuestSearch] = useState("");
   const [onboardingError, setOnboardingError] = useState("");
@@ -488,7 +493,7 @@ function useOnboardingPinned({
     }
   }
 
-  async function handleCompleteOnboarding(handle) {
+  async function handleCompleteOnboarding(handle, referralCode) {
     const trimmedName = onboardingName.trim();
     if (!trimmedName) {
       setOnboardingError(t.nicknameRequired);
@@ -499,6 +504,13 @@ function useOnboardingPinned({
       return;
     }
     const trimmedHandle = typeof handle === "string" ? handle.trim() : "";
+    // Referral code is optional. Canonicalised before send (uppercase
+    // A-Z + 0-9 only) — the modal already does this, but defensive
+    // here too in case the prop arrives uncleaned.
+    const cleanedReferral = String(referralCode || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "");
 
     setOnboardingSaving(true);
     setOnboardingError("");
@@ -543,6 +555,20 @@ function useOnboardingPinned({
           }
         ]
       }));
+      // Redeem the referral code — best-effort, never blocks onboarding.
+      // The user is already in the app at this point; a failed redeem
+      // surfaces as a console warning and the user can re-enter the
+      // code from Profile → My Referrals.
+      if (cleanedReferral.length >= 4) {
+        try {
+          await apiRedeemReferralCode(resolvedUsername, cleanedReferral);
+        } catch (err) {
+          try { console.warn("[referrals] redeem during onboarding failed", err?.message); } catch {}
+        }
+      }
+      // Reset the captured code so subsequent re-runs of the modal
+      // don't carry stale state.
+      setOnboardingReferralCode("");
       const { users } = await fetchLeaderboard();
       setLeaderboard(users || []);
       setShowOnboarding(false);
@@ -568,6 +594,8 @@ function useOnboardingPinned({
     setWizardStep,
     onboardingName,
     setOnboardingName,
+    onboardingReferralCode,
+    setOnboardingReferralCode,
     onboardingQuestIds,
     onboardingQuestSearch,
     setOnboardingQuestSearch,

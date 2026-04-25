@@ -395,6 +395,45 @@ export function Scholar() {
   );
 }
 
+/* 15. referral_ally — two interlocking rings (your circle + your friend's
+   circle) with a small spark at their meeting point. Reads as "you're
+   bound together" and matches the SF Symbols-style single-weight outline
+   spec from CLAUDE.md while still fitting the gold-on-dark plate the
+   other icons use. */
+export function ReferralAlly() {
+  return (
+    <Icon code="ra">
+      <defs>
+        <linearGradient id="ra-ring" x1="0%" y1="0%" x2="0%" y2="100%">{GOLD_STOPS}</linearGradient>
+        <linearGradient id="ra-ring2" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#a78bfa" />
+          <stop offset="100%" stopColor="#6d28d9" />
+        </linearGradient>
+        <radialGradient id="ra-spark" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#fef3c7" />
+          <stop offset="60%" stopColor="#fbbf24" stopOpacity="0.6" />
+          <stop offset="100%" stopColor="#fbbf24" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      {/* Two interlocking rings — left ring is gold (you), right ring is
+          violet (your friend). Slight overlap at centre creates the
+          "linked" silhouette. */}
+      <g fill="none" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="38" cy="48" r="18" stroke="url(#ra-ring)" />
+        <circle cx="58" cy="48" r="18" stroke="url(#ra-ring2)" />
+      </g>
+      {/* Soft glow halo behind the meeting point */}
+      <circle cx="48" cy="48" r="9" fill="url(#ra-spark)" />
+      {/* Four-point spark inside the overlap to read as "spark of
+          connection" — small, single-colour, no gradient on the
+          glyph itself per the SF-Symbols-ish brief. */}
+      <g fill="#fde68a">
+        <path d="M48 41 l1 5 l5 1 l-5 1 l-1 5 l-1 -5 l-5 -1 l5 -1 z" />
+      </g>
+    </Icon>
+  );
+}
+
 export const ACHIEVEMENT_ICONS = {
   week_warrior: WeekWarrior,
   month_monk: MonthMonk,
@@ -409,5 +448,6 @@ export const ACHIEVEMENT_ICONS = {
   high_roller: HighRoller,
   polyglot: Polyglot,
   phoenix: Phoenix,
-  scholar: Scholar
+  scholar: Scholar,
+  referral_ally: ReferralAlly
 };

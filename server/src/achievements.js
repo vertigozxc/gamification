@@ -23,7 +23,12 @@ export const ACHIEVEMENT_CODES = [
   // reward fires through the unified /api/achievements/claim flow,
   // not at quiz time. evaluateAchievements does not infer it from
   // user state, so it sits here purely for ordering / rendering.
-  "scholar"
+  "scholar",
+  // Referral system: unlocked when a user who redeemed someone's
+  // referral code reaches level 5. evaluateAchievements() handles the
+  // gating and also stamps Referral.refereeLeveledUpAt at the same
+  // moment so the referrer's "Claim 50" button lights up in sync.
+  "referral_ally"
 ];
 
 // Token rewards per achievement, claimed via POST /api/achievements/claim.
@@ -45,7 +50,10 @@ export const ACHIEVEMENT_REWARDS = {
   high_roller: 30,
   lvl_30: 60,
   hundred_club: 100,
-  lvl_100: 200
+  lvl_100: 200,
+  // Referral payout — matches the 50 the referrer gets per referee
+  // (claimed in the My Referrals section, separate flow).
+  referral_ally: 50
 };
 
 const HIGH_ROLLER_THRESHOLD = 200;
@@ -126,6 +134,30 @@ export async function evaluateAchievements(prisma, userId) {
       });
       const activeInvitedCount = active.length;
       if (activeInvitedCount >= MENTOR_INVITE_COUNT) toUnlock.push("mentor");
+    }
+  }
+
+  // Referral system milestone. If this user redeemed someone's referral
+  // code AND has reached level 5+, both sides become eligible for their
+  // 50-token reward. The referee gets it via the standard achievement
+  // claim flow ("referral_ally"); the referrer claims per-row in the
+  // My Referrals section (referrerClaimedAt). Stamp refereeLeveledUpAt
+  // so the referrer's "Claim 50" button can light up immediately.
+  if (lvl >= 5) {
+    const myReferral = await prisma.referral.findUnique({
+      where: { refereeUserId: userId },
+      select: { id: true, refereeLeveledUpAt: true }
+    });
+    if (myReferral) {
+      if (!myReferral.refereeLeveledUpAt) {
+        await prisma.referral.update({
+          where: { id: myReferral.id },
+          data: { refereeLeveledUpAt: new Date() }
+        });
+      }
+      if (!already.has("referral_ally")) {
+        toUnlock.push("referral_ally");
+      }
     }
   }
 

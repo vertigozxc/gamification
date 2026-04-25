@@ -71,3 +71,42 @@ export function buyExtraReroll(username) {
   });
 }
 
+// Referral system. Mirror of the web client/api.js helpers — same
+// endpoints, same shape of responses.
+export function lookupReferralCode(value, username) {
+  const params = new URLSearchParams({ value: String(value || "") });
+  if (username) params.set("username", String(username));
+  return request(`/api/referrals/code/lookup?${params.toString()}`);
+}
+
+export function checkReferralCodeAvailable(value) {
+  const params = new URLSearchParams({ value: String(value || "") });
+  return request(`/api/referrals/code/availability?${params.toString()}`);
+}
+
+export function createReferralCode(username, code) {
+  return request("/api/referrals/codes", {
+    method: "POST",
+    body: JSON.stringify({ username, code })
+  });
+}
+
+export function redeemReferralCode(username, code) {
+  return request("/api/referrals/redeem", {
+    method: "POST",
+    body: JSON.stringify({ username, code })
+  });
+}
+
+export function fetchMyReferrals(username) {
+  const qs = new URLSearchParams({ username: String(username || "") }).toString();
+  return request(`/api/referrals/me?${qs}`);
+}
+
+export function claimReferralReward(username, referralId) {
+  return request(`/api/referrals/claim/${encodeURIComponent(referralId)}`, {
+    method: "POST",
+    body: JSON.stringify({ username })
+  });
+}
+

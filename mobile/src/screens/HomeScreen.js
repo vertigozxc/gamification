@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import PortalPreloader from "../components/PortalPreloader";
 import QuestItem from "../components/QuestItem";
-import { completeQuest, fetchAllQuests, fetchGameState, upsertProfile } from "../api/client";
+import { completeQuest, fetchAllQuests, fetchGameState, upsertProfile, redeemReferralCode } from "../api/client";
 import { tm } from "../i18n";
 
 const USERNAME_KEY = "mobile_username";
@@ -33,6 +33,11 @@ function normalizeQuest(raw) {
 export default function HomeScreen() {
   const [username, setUsername] = useState("");
   const [usernameDraft, setUsernameDraft] = useState("");
+  // Optional referral code captured at the same step as username. Empty
+  // = skip; non-empty triggers a best-effort redeem after profile upsert
+  // succeeds. Local-only state — no AsyncStorage, since once redeemed
+  // it's a server-side fact.
+  const [referralDraft, setReferralDraft] = useState("");
   const [authError, setAuthError] = useState("");
   const [initializing, setInitializing] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -94,9 +99,26 @@ export default function HomeScreen() {
       setAuthError("");
       setSubmitting(true);
       await upsertProfile(normalized, normalized, "");
+      // Best-effort referral redeem. Failure is non-fatal — the user
+      // is already in the app, and they can re-enter the code from
+      // Profile → My Referrals on the web side.
+      const cleanedReferral = String(referralDraft || "")
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "");
+      if (cleanedReferral.length >= 4) {
+        try {
+          await redeemReferralCode(normalized, cleanedReferral);
+        } catch (refErr) {
+          // Surfacing here would block the user from entering the
+          // app on a typo. Log only.
+          console.warn("[referrals] mobile redeem failed", refErr?.message);
+        }
+      }
       await hydrate(normalized);
       await AsyncStorage.setItem(USERNAME_KEY, normalized);
       setUsername(normalized);
+      setReferralDraft("");
     } catch (error) {
       setAuthError(error.message || tm("profileSyncFailed"));
       Alert.alert(tm("profileSyncFailed"), error.message);
@@ -193,9 +215,28 @@ export default function HomeScreen() {
               editable={!submitting}
               style={styles.input}
               placeholderTextColor="#64748b"
+              returnKeyType="next"
+            />
+            {/* Referral code (optional). Same visual treatment as the
+                username input so the field reads as part of the same
+                step, not a separate screen. */}
+            <Text style={styles.referralLabel}>{tm("referralStepInputLabel")}</Text>
+            <TextInput
+              value={referralDraft}
+              onChangeText={(next) => setReferralDraft(
+                String(next || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10)
+              )}
+              placeholder={tm("referralStepInputPlaceholder")}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              editable={!submitting}
+              style={styles.input}
+              placeholderTextColor="#64748b"
               returnKeyType="done"
+              maxLength={10}
               onSubmitEditing={handleSaveUsername}
             />
+            <Text style={styles.referralHint}>{tm("referralStepBody")}</Text>
             <Pressable
               disabled={submitting}
               style={[styles.saveButton, submitting && styles.saveButtonDisabled]}
@@ -384,6 +425,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     marginTop: 8
+  },
+  referralLabel: {
+    color: "#94a3b8",
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    marginTop: 4
+  },
+  referralHint: {
+    color: "#64748b",
+    fontSize: 12,
+    lineHeight: 16
   },
   loadingWrap: {
     flex: 1,

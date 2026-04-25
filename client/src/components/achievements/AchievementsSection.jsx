@@ -58,7 +58,8 @@ function getMeta(code, t) {
     high_roller: t.achHighRollerName,
     polyglot: t.achPolyglotName,
     phoenix: t.achPhoenixName,
-    scholar: t.achScholarName
+    scholar: t.achScholarName,
+    referral_ally: t.achReferralAllyName
   };
   const descs = {
     week_warrior: t.achWeekWarriorDesc,
@@ -74,7 +75,8 @@ function getMeta(code, t) {
     high_roller: t.achHighRollerDesc,
     polyglot: t.achPolyglotDesc,
     phoenix: t.achPhoenixDesc,
-    scholar: t.achScholarDesc
+    scholar: t.achScholarDesc,
+    referral_ally: t.achReferralAllyDesc
   };
   return { name: names[code] || code, description: descs[code] || "" };
 }

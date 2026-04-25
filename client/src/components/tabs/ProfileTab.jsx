@@ -47,6 +47,7 @@ export default function ProfileTab({
   onOpenNotesHistory,
   onOpenQuiz,
   onOpenActivityLogs,
+  onOpenReferrals,
   onDeleteConfirmStateChange,
   onAchievementModalChange,
   onAchievementTokensClaimed,
@@ -277,6 +278,16 @@ export default function ProfileTab({
               <div className="flex-1 text-left">
                 <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.profileQuizLabel || "Knowledge Quiz"}</p>
                 <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{t.profileQuizHint || "10 questions on game mechanics — pass to earn a reward"}</p>
+              </div>
+              <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
+            </button>
+          ) : null}
+          {onOpenReferrals ? (
+            <button className="profile-settings-row" onClick={onOpenReferrals}>
+              <span className="text-xl w-8 text-center">👥</span>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.referralsTabLabel || "My Referrals"}</p>
+                <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{t.referralsSectionHint || "Your codes, your invitees and your rewards"}</p>
               </div>
               <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
             </button>

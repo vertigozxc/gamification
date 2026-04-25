@@ -10,6 +10,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchGameState } from "../api/client";
 import PortalPreloader from "../components/PortalPreloader";
+import ReferralsModal from "../components/ReferralsModal";
 import { tm } from "../i18n";
 
 const USERNAME_KEY = "mobile_username";
@@ -18,6 +19,7 @@ export default function ProfileScreen() {
   const [username, setUsername] = useState("");
   const [state, setState] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showReferrals, setShowReferrals] = useState(false);
 
   useEffect(() => {
     async function loadProfile() {
@@ -102,7 +104,14 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <Pressable 
+      <Pressable
+        style={styles.referralsButton}
+        onPress={() => setShowReferrals(true)}
+      >
+        <Text style={styles.buttonText}>{tm("referralsSectionTitle")}</Text>
+      </Pressable>
+
+      <Pressable
         style={styles.logoutButton}
         onPress={async () => {
           await AsyncStorage.removeItem(USERNAME_KEY);
@@ -112,6 +121,17 @@ export default function ProfileScreen() {
       >
         <Text style={styles.buttonText}>{tm("logoutLabel")}</Text>
       </Pressable>
+
+      <ReferralsModal
+        visible={showReferrals}
+        username={username}
+        onClose={() => setShowReferrals(false)}
+        onTokensChanged={(nextTotal) => {
+          if (Number.isFinite(Number(nextTotal))) {
+            setState((prev) => prev ? { ...prev, tokens: Number(nextTotal) } : prev);
+          }
+        }}
+      />
     </ScrollView>
   );
 }
@@ -201,6 +221,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     marginTop: 20
+  },
+  referralsButton: {
+    backgroundColor: "#0284c7",
+    borderRadius: 10,
+    paddingVertical: 12,
+    marginTop: 12,
+    alignItems: "center"
   },
   logoutButton: {
     backgroundColor: "#dc2626",

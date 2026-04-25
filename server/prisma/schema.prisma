@@ -69,6 +69,12 @@ model User {
   questCounters             QuestCounter[]
   questNotes                QuestNote[]
   achievements              UserAchievement[]
+  // Referral system: a user can own up to 3 codes (enforced in app code,
+  // not the schema, so existing tests can override) and can be the
+  // referee of at most one Referral row (enforced via unique on
+  // Referral.refereeUserId).
+  referralCodes             ReferralCode[]         @relation("UserReferralCodes")
+  referralAsReferee         Referral?              @relation("UserReferralAsReferee")
 }
 
 model UserAchievement {
@@ -290,6 +296,42 @@ model QuestFeedback {
   createdAt    DateTime @default(now())
 
   @@index([userId, questId])
+}
+
+// Referral system.
+// One user owns 0..3 ReferralCode rows (limit enforced at API layer).
+// `code` is canonicalised to uppercase A-Z + 0-9, length 4..10. Unique
+// across the whole table — collisions surface to the user as "code taken".
+// Codes cannot be edited or deleted: once shared, the code is final
+// (otherwise we'd orphan the Referral rows pointing at it).
+model ReferralCode {
+  id          String     @id @default(cuid())
+  ownerUserId String
+  code        String     @unique
+  createdAt   DateTime   @default(now())
+  owner       User       @relation("UserReferralCodes", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  referrals   Referral[]
+
+  @@index([ownerUserId])
+}
+
+// One Referral row = one user redeemed someone's code. `refereeUserId`
+// is unique (a user can be referred at most once, ever). `refereeLeveledUpAt`
+// is set the first time the referee crosses level 5 — that's the moment
+// both sides become eligible for their +50 token reward. Referee claims
+// via the standard achievement flow ("referral_ally"). Referrer claims
+// per-row through `referrerClaimedAt`.
+model Referral {
+  id                 String       @id @default(cuid())
+  codeId             String
+  refereeUserId      String       @unique
+  createdAt          DateTime     @default(now())
+  refereeLeveledUpAt DateTime?
+  referrerClaimedAt  DateTime?
+  code               ReferralCode @relation(fields: [codeId], references: [id], onDelete: Cascade)
+  referee            User         @relation("UserReferralAsReferee", fields: [refereeUserId], references: [id], onDelete: Cascade)
+
+  @@index([codeId])
 }
 
 model Event {

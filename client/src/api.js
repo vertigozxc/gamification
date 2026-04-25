@@ -220,6 +220,46 @@ export function checkHandle(value, username) {
   return request(`/api/handle/check?${params.toString()}`);
 }
 
+// Referral system. Two distinct check endpoints:
+// - availability: for the "Create code" modal — is this code valid + free?
+// - lookup: for the redeem flow — does this code exist + is it not mine?
+export function checkReferralCodeAvailable(value) {
+  const params = new URLSearchParams({ value: String(value || "") });
+  return request(`/api/referrals/code/availability?${params.toString()}`);
+}
+
+export function lookupReferralCode(value, username) {
+  const params = new URLSearchParams({ value: String(value || "") });
+  if (username) params.set("username", String(username));
+  return request(`/api/referrals/code/lookup?${params.toString()}`);
+}
+
+export function createReferralCode(username, code) {
+  return request("/api/referrals/codes", {
+    method: "POST",
+    body: JSON.stringify({ username, code })
+  });
+}
+
+export function redeemReferralCode(username, code) {
+  return request("/api/referrals/redeem", {
+    method: "POST",
+    body: JSON.stringify({ username, code })
+  });
+}
+
+export function fetchMyReferrals(username) {
+  const qs = new URLSearchParams({ username: String(username || "") }).toString();
+  return request(`/api/referrals/me?${qs}`);
+}
+
+export function claimReferralReward(username, referralId) {
+  return request(`/api/referrals/claim/${encodeURIComponent(referralId)}`, {
+    method: "POST",
+    body: JSON.stringify({ username })
+  });
+}
+
 export function startQuestTimer(username, questId) {
   return request("/api/quests/timer/start", {
     method: "POST",

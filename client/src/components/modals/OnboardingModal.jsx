@@ -5,11 +5,14 @@ import QuestGroupCard from "../QuestGroupCard";
 import CategoryFilterRow from "../CategoryFilterRow";
 import InputWithClear from "../InputWithClear";
 import { groupQuests, availableCategories, matchesCategory } from "../../utils/questGrouping";
-import { suggestHandle as apiSuggestHandle, checkHandle as apiCheckHandle } from "../../api";
+import { suggestHandle as apiSuggestHandle, checkHandle as apiCheckHandle, lookupReferralCode as apiLookupReferralCode } from "../../api";
 import { IconCheck, IconClose, IconList, IconSparkle, IconWarning } from "../icons/Icons";
 
 const HANDLE_MIN_LENGTH = 3;
 const HANDLE_MAX_LENGTH = 20;
+
+const REFERRAL_MIN_LENGTH = 4;
+const REFERRAL_MAX_LENGTH = 10;
 
 function normalizeHandleLocal(raw) {
   return String(raw || "")
@@ -18,6 +21,14 @@ function normalizeHandleLocal(raw) {
     .toLowerCase()
     .replace(/[^a-z0-9_]/g, "")
     .slice(0, HANDLE_MAX_LENGTH);
+}
+
+function normalizeReferralLocal(raw) {
+  return String(raw || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, REFERRAL_MAX_LENGTH);
 }
 
 function OnboardingModal({
@@ -47,6 +58,11 @@ function OnboardingModal({
   authUsername = "",
   wizardStep = 0,
   onWizardStepChange,
+  // Referral code (optional). The middle wizard step lets the user
+  // claim a friend's code; the parent owns the value so it can be
+  // redeemed after onComplete fires.
+  referralCode = "",
+  onReferralCodeChange,
   // When the animated tour hasn't reached the "Ready?" step yet, lock
   // the Begin button so the user can't submit and accidentally cut
   // the tour short.
@@ -55,7 +71,7 @@ function OnboardingModal({
   // on-screen when the tour stops on them. Null = user controls.
   forcedHabitsTab = null
 }) {
-  const TOTAL_STEPS = 2;
+  const TOTAL_STEPS = 3;
   const setStep = (n) => {
     const clamped = Math.max(0, Math.min(TOTAL_STEPS - 1, n));
     if (typeof onWizardStepChange === "function") onWizardStepChange(clamped);
@@ -79,6 +95,12 @@ function OnboardingModal({
   const [handleStatus, setHandleStatus] = useState("idle"); // idle | checking | available | taken | invalid | short
   const [handleTouched, setHandleTouched] = useState(false);
   const checkReqRef = useRef(0);
+  // Referral code: status — idle | checking | found | not_found | invalid |
+  // too_short | too_long | self | blocked | already_redeemed | network_error.
+  // Empty input ⇒ "idle" — user can advance without entering a code.
+  const [referralStatus, setReferralStatus] = useState("idle");
+  const [referralOwnerHandle, setReferralOwnerHandle] = useState(null);
+  const referralReqRef = useRef(0);
   // When the CustomHabitManager's inline create/edit form is open AND
   // the iOS keyboard is up, collapse the modal's own header + footer
   // so the form gets the full screen to breathe.
@@ -166,6 +188,55 @@ function OnboardingModal({
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Debounced lookup whenever the referral code changes. Empty input
+  // resets status to "idle" so the user can skip without friction.
+  useEffect(() => {
+    if (!open) return undefined;
+    const value = normalizeReferralLocal(referralCode);
+    if (value.length === 0) {
+      setReferralStatus("idle");
+      setReferralOwnerHandle(null);
+      return undefined;
+    }
+    if (value.length < REFERRAL_MIN_LENGTH) {
+      setReferralStatus("too_short");
+      setReferralOwnerHandle(null);
+      return undefined;
+    }
+    setReferralStatus("checking");
+    const req = ++referralReqRef.current;
+    const timer = setTimeout(() => {
+      apiLookupReferralCode(value, authUsername || undefined)
+        .then((resp) => {
+          if (req !== referralReqRef.current) return;
+          if (!resp) return;
+          if (resp.exists) {
+            if (resp.ownedByMe) {
+              setReferralStatus("self");
+              setReferralOwnerHandle(null);
+            } else {
+              setReferralStatus("found");
+              setReferralOwnerHandle(resp.ownerHandle || null);
+            }
+          } else {
+            // Map server reasons (invalid / too_short / blocked / not_found)
+            // straight onto our local status enum.
+            const reason = String(resp.reason || "not_found");
+            setReferralStatus(["invalid", "too_short", "too_long", "blocked", "not_found"].includes(reason) ? reason : "not_found");
+            setReferralOwnerHandle(null);
+          }
+        })
+        .catch(() => {
+          if (req !== referralReqRef.current) return;
+          // Network blip — let them through (server will revalidate on
+          // redeem). Surface as a soft "not found" rather than blocking.
+          setReferralStatus("network_error");
+          setReferralOwnerHandle(null);
+        });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [referralCode, open, authUsername]);
 
   // Debounced availability check whenever the user edits the handle.
   useEffect(() => {
@@ -265,13 +336,20 @@ function OnboardingModal({
   // "checking" is allowed through so typing the handle doesn't block
   // forward progress on a slow network.
   const canAdvanceFromStep0 = Boolean(onboardingName.trim()) && !handleBlocksSubmit && !onboardingSaving;
+  // Wizard page 1 → 2 gate: empty input = ok (user is skipping the
+  // code), otherwise the lookup must have succeeded ("found"). Hard
+  // failures block forward motion. "checking" / "network_error" pass
+  // through — server revalidates on redeem.
+  const referralBlocksAdvance = ["not_found", "invalid", "too_short", "too_long", "blocked", "self", "already_redeemed"].includes(referralStatus);
+  const canAdvanceFromStep1 = !referralBlocksAdvance && !onboardingSaving;
   const progressPct = Math.min(100, Math.round((selectedCount / SELECTION_LIMIT) * 100));
   const normalizedHandle = normalizeHandleLocal(handleInput);
+  const normalizedReferralCode = normalizeReferralLocal(referralCode);
 
   const handleStartRequest = () => {
     // No confirm step — tapping Begin submits directly. The parent
     // still validates name + selection count and surfaces any error.
-    onComplete(normalizedHandle);
+    onComplete(normalizedHandle, normalizedReferralCode);
   };
 
   const handleCloseClick = () => {
@@ -381,16 +459,19 @@ function OnboardingModal({
           <div
             style={{
               display: "flex",
-              width: "200%",
+              width: "300%",
               height: "100%",
-              transform: `translateX(-${wizardStep * 50}%)`,
+              // 100% / 3 steps = 33.3333…% per step. Tiny rounding
+              // difference vs (-wizardStep * 100/3) is below visible
+              // threshold.
+              transform: `translateX(-${(wizardStep * 100) / 3}%)`,
               transition: "transform 320ms cubic-bezier(0.4, 0, 0.2, 1)"
             }}
           >
           <section
             aria-hidden={wizardStep !== 0}
             style={{
-              width: "50%",
+              width: "33.3333%",
               height: "100%",
               overflowY: "auto",
               WebkitOverflowScrolling: "touch",
@@ -490,10 +571,117 @@ function OnboardingModal({
           </div>
           </section>
 
+          {/* WIZARD STEP 1 — referral code (optional). The user can
+              redeem a friend's code here; both sides get +50 tokens
+              when the new user reaches level 5. Leaving it blank is
+              fine — the field is opt-in. */}
           <section
             aria-hidden={wizardStep !== 1}
             style={{
-              width: "50%",
+              width: "33.3333%",
+              height: "100%",
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch",
+              padding: "12px 16px 16px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 14
+            }}
+          >
+            <div data-tour="setup-referral">
+              <h3
+                className="cinzel"
+                style={{
+                  margin: 0,
+                  fontSize: 16,
+                  fontWeight: 800,
+                  letterSpacing: "0.06em",
+                  color: "var(--color-primary)",
+                  textTransform: "uppercase",
+                  lineHeight: 1.25
+                }}
+              >
+                {t.referralStepTitle || "Referral code"}
+              </h3>
+              <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--color-muted)", lineHeight: 1.45 }}>
+                {t.referralStepBody}
+              </p>
+            </div>
+
+            <div>
+              <label
+                className="cinzel"
+                style={{
+                  display: "block",
+                  marginBottom: 6,
+                  fontSize: 11,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: "var(--color-primary)"
+                }}
+              >
+                {t.referralStepInputLabel}
+              </label>
+              <InputWithClear
+                value={referralCode}
+                onChange={(next) => {
+                  if (typeof onReferralCodeChange === "function") {
+                    onReferralCodeChange(normalizeReferralLocal(next));
+                  }
+                }}
+                maxLength={REFERRAL_MAX_LENGTH}
+                placeholder={t.referralStepInputPlaceholder || "IVAN2026"}
+                clearAriaLabel={t.clearLabel || "Clear"}
+                inputStyle={{
+                  padding: "9px 12px",
+                  borderRadius: 10,
+                  background: "rgba(0,0,0,0.35)",
+                  border: "1px solid var(--card-border-idle)",
+                  color: "#e2e8f0",
+                  fontSize: 14,
+                  minHeight: 38,
+                  outline: "none",
+                  fontFamily: "var(--font-heading)",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase"
+                }}
+              />
+              {(() => {
+                // Map current status → message + colour. Empty input
+                // shows nothing (skip is the implicit default).
+                const map = {
+                  idle: { text: "", color: "var(--color-muted)" },
+                  checking: { text: t.referralsCreateChecking || "Checking…", color: "var(--color-muted)" },
+                  found: {
+                    text: referralOwnerHandle
+                      ? tf("referralStepHintFound", { handle: referralOwnerHandle })
+                      : (t.referralStepHintFoundNoHandle || "Code is valid"),
+                    color: "var(--color-accent)"
+                  },
+                  not_found: { text: t.referralStepHintNotFound, color: "#fca5a5" },
+                  invalid: { text: t.referralStepHintInvalid, color: "#fca5a5" },
+                  too_short: { text: t.referralStepHintTooShort, color: "#fca5a5" },
+                  too_long: { text: t.referralStepHintTooLong, color: "#fca5a5" },
+                  blocked: { text: t.referralStepHintBlocked, color: "#fca5a5" },
+                  self: { text: t.referralStepHintSelf, color: "#fca5a5" },
+                  already_redeemed: { text: t.referralStepHintAlreadyRedeemed, color: "#fca5a5" },
+                  network_error: { text: "", color: "var(--color-muted)" }
+                };
+                const hint = map[referralStatus] || map.idle;
+                if (!hint.text) return null;
+                return (
+                  <p style={{ margin: "6px 2px 0", fontSize: 11, color: hint.color, lineHeight: 1.4 }}>
+                    {hint.text}
+                  </p>
+                );
+              })()}
+            </div>
+          </section>
+
+          <section
+            aria-hidden={wizardStep !== 2}
+            style={{
+              width: "33.3333%",
               height: "100%",
               overflowY: "auto",
               WebkitOverflowScrolling: "touch",
@@ -784,11 +972,90 @@ function OnboardingModal({
                 {t.onboardingContinue || "Continue →"}
               </button>
             </div>
+          ) : wizardStep === 1 ? (
+            // STEP 1 footer — Back + Continue (gated by referral lookup
+            // status) + a separate Skip text-link below for users who
+            // don't have a code.
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setStep(0)}
+                  disabled={onboardingSaving}
+                  className="cinzel mobile-pressable"
+                  style={{
+                    flex: 1,
+                    minHeight: 48,
+                    borderRadius: 12,
+                    background: "transparent",
+                    border: "1px solid var(--card-border-idle)",
+                    color: "#cbd5e1",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
+                    cursor: onboardingSaving ? "not-allowed" : "pointer"
+                  }}
+                >
+                  {t.onboardingBack || "Back"}
+                </button>
+                <button
+                  type="button"
+                  data-tour="setup-referral-continue"
+                  onClick={() => {
+                    if (!canAdvanceFromStep1) return;
+                    setStep(2);
+                  }}
+                  disabled={!canAdvanceFromStep1}
+                  className="cinzel mobile-pressable"
+                  style={{
+                    flex: 2,
+                    minHeight: 48,
+                    borderRadius: 12,
+                    background: !canAdvanceFromStep1
+                      ? "rgba(255,255,255,0.08)"
+                      : "linear-gradient(90deg, var(--color-primary), var(--color-accent))",
+                    border: "none",
+                    color: !canAdvanceFromStep1 ? "#64748b" : "#0b1120",
+                    fontSize: 13,
+                    fontWeight: 800,
+                    cursor: !canAdvanceFromStep1 ? "not-allowed" : "pointer",
+                    letterSpacing: "0.05em",
+                    boxShadow: !canAdvanceFromStep1 ? "none" : "0 8px 20px rgba(56,189,248,0.2)"
+                  }}
+                >
+                  {t.onboardingContinue || "Continue →"}
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof onReferralCodeChange === "function") onReferralCodeChange("");
+                  setStep(2);
+                }}
+                disabled={onboardingSaving}
+                className="cinzel mobile-pressable"
+                style={{
+                  alignSelf: "center",
+                  background: "transparent",
+                  border: "none",
+                  color: "var(--color-muted)",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  padding: "6px 10px",
+                  cursor: onboardingSaving ? "not-allowed" : "pointer"
+                }}
+              >
+                {t.referralStepSkip || "Skip"} →
+              </button>
+            </div>
           ) : (
             <div style={{ display: "flex", gap: 10 }}>
               <button
                 type="button"
-                onClick={() => setStep(0)}
+                onClick={() => setStep(1)}
                 disabled={onboardingSaving}
                 className="cinzel mobile-pressable"
                 style={{
@@ -879,7 +1146,7 @@ function OnboardingModal({
                 }}
                 onClick={() => {
                   setShowWarning(false);
-                  onComplete(normalizedHandle);
+                  onComplete(normalizedHandle, normalizedReferralCode);
                 }}
               >
                 {t.continueLabel}

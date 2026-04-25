@@ -74,6 +74,7 @@ const AppHeader = lazy(() => import("./components/AppHeader"));
 const DesktopLayout = lazy(() => import("./components/DesktopLayout"));
 const DevTestPanel = lazy(() => import("./components/DevTestPanel"));
 const AboutAppModal = lazy(() => import("./components/modals/AboutAppModal"));
+const ReferralsModal = lazy(() => import("./components/modals/ReferralsModal"));
 const QuestTimerControls = lazy(() => import("./components/QuestTimerControls"));
 const QuestCounterInline = lazy(() => import("./components/QuestCounterInline"));
 const QuestNoteModal = lazy(() => import("./components/modals/QuestNoteModal"));
@@ -201,6 +202,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const [showAbout, setShowAbout] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
   const [showActivityLogs, setShowActivityLogs] = useState(false);
+  const [showReferrals, setShowReferrals] = useState(false);
   // Bumping this key forces AchievementsSection to refetch even if it's
   // already mounted and expanded. Driven by events that may unlock new
   // achievements server-side without going through a full game-state
@@ -313,6 +315,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     setWizardStep,
     onboardingName,
     setOnboardingName,
+    onboardingReferralCode,
+    setOnboardingReferralCode,
     onboardingQuestIds,
     onboardingQuestSearch,
     setOnboardingQuestSearch,
@@ -1957,6 +1961,19 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
 
       <Suspense fallback={null}>
         <AboutAppModal open={showAbout} onClose={() => setShowAbout(false)} />
+        <ReferralsModal
+          open={showReferrals}
+          username={authUser?.uid || username}
+          onClose={() => setShowReferrals(false)}
+          onTokensClaimed={(nextTotal) => {
+            // Server returned the user's new token total — mirror it
+            // locally so the dashboard balance updates instantly.
+            if (Number.isFinite(Number(nextTotal))) {
+              setState((prev) => ({ ...prev, tokens: Number(nextTotal) }));
+              bumpAchievements();
+            }
+          }}
+        />
         <ActivityLogsModal
           open={showActivityLogs}
           username={authUser?.uid}
@@ -2093,6 +2110,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         authUsername={authUser?.uid || ""}
         wizardStep={wizardStep}
         onWizardStepChange={setWizardStep}
+        referralCode={onboardingReferralCode}
+        onReferralCodeChange={setOnboardingReferralCode}
         lockBegin={showTour && tourStepId !== "setup-begin"}
         forcedHabitsTab={forcedHabitsTab}
       />
@@ -2390,6 +2409,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 onOpenQuiz={() => setShowQuiz(true)}
                 onOpenActivityLogs={() => setShowActivityLogs(true)}
                 onOpenNotesHistory={() => setShowNotesHistory(true)}
+                onOpenReferrals={() => setShowReferrals(true)}
                 achievementsRefreshKey={achievementsRefreshKey}
                 onAchievementTokensClaimed={(amount) => {
                   // Mirror the server-side token grant locally so the

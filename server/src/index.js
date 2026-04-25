@@ -42,6 +42,16 @@ import {
   fetchUserAchievements
 } from "./achievements.js";
 import {
+  MAX_CODES_PER_USER,
+  REFERRAL_REWARD_TOKENS,
+  validateCode,
+  codeIsTaken,
+  countUserCodes,
+  findCodeWithOwner,
+  getRefereeRedemption,
+  buildMyReferralsPayload
+} from "./referrals.js";
+import {
   evaluateStreakDecay,
   previousUtcDayKey,
   streakDecayAlreadyDoneForUtcDay
@@ -6852,6 +6862,325 @@ app.get("/api/handle/check", async (req, res) => {
     res.json({ available: !clash, normalized: candidate });
   } catch (error) {
     res.status(400).json({ error: "Handle check failed", detail: error.message });
+  }
+});
+
+// =====================================================================
+// Referral system
+// =====================================================================
+// 1. /api/referrals/code/availability  — is this code valid + free? (creation flow)
+// 2. /api/referrals/code/lookup        — is this code valid + claimable? (redeem flow)
+// 3. POST /api/referrals/codes         — create a new code (max 3 per user)
+// 4. POST /api/referrals/redeem        — redeem someone else's code (once per lifetime)
+// 5. GET  /api/referrals/me            — my codes + my referees + my redemption
+// 6. POST /api/referrals/claim/:id     — referrer claims +50 for a referee at level 5+
+//
+// Auth pattern matches the rest of this file: client passes its own
+// `username` (Firebase UID) in the body or query, we look it up server-side
+// and trust that match. There is no token middleware in this codebase.
+
+const REFERRAL_REASON_MAP = {
+  empty: "empty",
+  too_short: "too_short",
+  too_long: "too_long",
+  invalid: "invalid",
+  blocked: "blocked"
+};
+
+app.get("/api/referrals/code/availability", async (req, res) => {
+  // Used by the "Create code" modal — debounced as the user types. Returns
+  // { available: true, normalized } or { available: false, reason, normalized }.
+  try {
+    const v = validateCode(req.query.value);
+    if (!v.ok) {
+      return res.json({
+        available: false,
+        reason: REFERRAL_REASON_MAP[v.reason] || "invalid",
+        normalized: v.code
+      });
+    }
+    const taken = await codeIsTaken(prisma, v.code);
+    res.json({
+      available: !taken,
+      reason: taken ? "taken" : null,
+      normalized: v.code
+    });
+  } catch (error) {
+    res.status(400).json({ error: "Availability check failed", detail: error.message });
+  }
+});
+
+app.get("/api/referrals/code/lookup", async (req, res) => {
+  // Used by the onboarding step + profile "I have a code" input. Returns
+  // { exists: true, ownedByMe, ownerHandle } or { exists: false, reason }.
+  try {
+    const v = validateCode(req.query.value);
+    if (!v.ok) {
+      return res.json({
+        exists: false,
+        reason: REFERRAL_REASON_MAP[v.reason] || "invalid",
+        normalized: v.code
+      });
+    }
+    const row = await findCodeWithOwner(prisma, v.code);
+    if (!row) {
+      return res.json({ exists: false, reason: "not_found", normalized: v.code });
+    }
+    let ownedByMe = false;
+    let ownerHandle = null;
+    let ownerDisplayName = null;
+    const callerUsername = slugifyUsername(req.query.username || "");
+    if (callerUsername) {
+      const caller = await prisma.user.findUnique({
+        where: { username: callerUsername },
+        select: { id: true }
+      });
+      ownedByMe = caller && caller.id === row.ownerUserId;
+    }
+    const owner = await prisma.user.findUnique({
+      where: { id: row.ownerUserId },
+      select: { handle: true, displayName: true }
+    });
+    ownerHandle = owner?.handle || null;
+    ownerDisplayName = owner?.displayName || null;
+    res.json({
+      exists: true,
+      reason: null,
+      normalized: v.code,
+      ownedByMe,
+      ownerHandle,
+      ownerDisplayName
+    });
+  } catch (error) {
+    res.status(400).json({ error: "Lookup failed", detail: error.message });
+  }
+});
+
+app.post("/api/referrals/codes", async (req, res) => {
+  // Create a new referral code. Hard limit of MAX_CODES_PER_USER per
+  // owner. Codes are immutable once created — no rename / delete.
+  const schema = z.object({
+    username: z.string().min(2).max(64),
+    code: z.string().min(1).max(32)
+  });
+  try {
+    const parsed = schema.parse(req.body);
+    const v = validateCode(parsed.code);
+    if (!v.ok) {
+      return res.status(400).json({
+        error: "Invalid code",
+        code: REFERRAL_REASON_MAP[v.reason] || "invalid"
+      });
+    }
+    const user = await prisma.user.findUnique({
+      where: { username: slugifyUsername(parsed.username) },
+      select: { id: true }
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const ownedCount = await countUserCodes(prisma, user.id);
+    if (ownedCount >= MAX_CODES_PER_USER) {
+      return res.status(409).json({
+        error: "Code limit reached",
+        code: "limit_reached",
+        limit: MAX_CODES_PER_USER
+      });
+    }
+
+    if (await codeIsTaken(prisma, v.code)) {
+      return res.status(409).json({ error: "Code taken", code: "taken" });
+    }
+
+    try {
+      const created = await prisma.referralCode.create({
+        data: { ownerUserId: user.id, code: v.code },
+        select: { id: true, code: true, createdAt: true }
+      });
+      const payload = await buildMyReferralsPayload(prisma, user.id);
+      res.json({ ok: true, created, ...payload });
+    } catch (txErr) {
+      // Likely a race: another request claimed the same code between
+      // the availability check and the insert. Surface as "taken".
+      if (String(txErr?.code) === "P2002") {
+        return res.status(409).json({ error: "Code taken", code: "taken" });
+      }
+      throw txErr;
+    }
+  } catch (error) {
+    console.error(`[Referrals Create] ${error?.message || error}`);
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+app.post("/api/referrals/redeem", async (req, res) => {
+  // Redeem someone else's referral code. Once per lifetime per user.
+  // Triggers an immediate evaluateAchievements run so a user who's
+  // already at level 5+ unlocks the "referral_ally" achievement (and
+  // gets the referrer's claim button lit) without waiting for the
+  // next quest completion.
+  const schema = z.object({
+    username: z.string().min(2).max(64),
+    code: z.string().min(1).max(32)
+  });
+  try {
+    const parsed = schema.parse(req.body);
+    const v = validateCode(parsed.code);
+    if (!v.ok) {
+      return res.status(400).json({
+        error: "Invalid code",
+        code: REFERRAL_REASON_MAP[v.reason] || "invalid"
+      });
+    }
+    const user = await prisma.user.findUnique({
+      where: { username: slugifyUsername(parsed.username) },
+      select: { id: true }
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const existing = await getRefereeRedemption(prisma, user.id);
+    if (existing) {
+      return res.status(409).json({
+        error: "Already redeemed a code",
+        code: "already_redeemed",
+        currentCode: existing.code?.code || null
+      });
+    }
+
+    const codeRow = await findCodeWithOwner(prisma, v.code);
+    if (!codeRow) {
+      return res.status(404).json({ error: "Code not found", code: "not_found" });
+    }
+    if (codeRow.ownerUserId === user.id) {
+      return res.status(400).json({ error: "Self-referral not allowed", code: "self_referral" });
+    }
+
+    try {
+      await prisma.referral.create({
+        data: { codeId: codeRow.id, refereeUserId: user.id }
+      });
+    } catch (txErr) {
+      if (String(txErr?.code) === "P2002") {
+        return res.status(409).json({ error: "Already redeemed a code", code: "already_redeemed" });
+      }
+      throw txErr;
+    }
+
+    // Evaluate now: if the user is already past level 5, they get the
+    // achievement immediately + we stamp refereeLeveledUpAt so the
+    // referrer's "Claim 50" button becomes available right away.
+    await trackAchievements(user.id);
+
+    const payload = await buildMyReferralsPayload(prisma, user.id);
+    res.json({ ok: true, ...payload });
+  } catch (error) {
+    console.error(`[Referrals Redeem] ${error?.message || error}`);
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+app.get("/api/referrals/me", async (req, res) => {
+  try {
+    const username = slugifyUsername(req.query.username || "");
+    if (!username) return res.status(400).json({ error: "Missing username" });
+    const user = await prisma.user.findUnique({
+      where: { username },
+      select: { id: true }
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+    const payload = await buildMyReferralsPayload(prisma, user.id);
+    res.json({ ok: true, ...payload });
+  } catch (error) {
+    console.error(`[Referrals Me] ${error?.message || error}`);
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+app.post("/api/referrals/claim/:referralId", async (req, res) => {
+  // Referrer claims +REFERRAL_REWARD_TOKENS for a single referee that
+  // has reached level 5. Idempotent — repeat calls after success
+  // return tokensGranted: 0.
+  const schema = z.object({ username: z.string().min(2).max(64) });
+  try {
+    const { username } = schema.parse(req.body);
+    const referralId = String(req.params.referralId || "");
+    if (!referralId) return res.status(400).json({ error: "Missing referralId" });
+
+    const user = await prisma.user.findUnique({
+      where: { username: slugifyUsername(username) },
+      select: { id: true, tokens: true }
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const row = await prisma.referral.findUnique({
+      where: { id: referralId },
+      select: {
+        id: true,
+        refereeLeveledUpAt: true,
+        referrerClaimedAt: true,
+        code: { select: { ownerUserId: true } }
+      }
+    });
+    if (!row) return res.status(404).json({ error: "Referral not found" });
+    if (row.code?.ownerUserId !== user.id) {
+      return res.status(403).json({ error: "Not your referral" });
+    }
+    if (!row.refereeLeveledUpAt) {
+      return res.status(400).json({ error: "Referee hasn't reached level 5 yet", code: "not_eligible" });
+    }
+    if (row.referrerClaimedAt) {
+      return res.json({
+        ok: true,
+        alreadyClaimed: true,
+        tokensGranted: 0,
+        tokens: Number(user.tokens) || 0,
+        claimedAt: row.referrerClaimedAt
+      });
+    }
+
+    const now = new Date();
+    const updated = await prisma.$transaction(async (tx) => {
+      const fresh = await tx.referral.findUnique({
+        where: { id: referralId },
+        select: { referrerClaimedAt: true, refereeLeveledUpAt: true }
+      });
+      if (!fresh || !fresh.refereeLeveledUpAt) {
+        return { tokens: Number(user.tokens) || 0, claimedAt: null, raced: true };
+      }
+      if (fresh.referrerClaimedAt) {
+        const u = await tx.user.findUnique({ where: { id: user.id }, select: { tokens: true } });
+        return { tokens: u?.tokens || 0, claimedAt: fresh.referrerClaimedAt, raced: true };
+      }
+      await tx.referral.update({
+        where: { id: referralId },
+        data: { referrerClaimedAt: now }
+      });
+      const u = await tx.user.update({
+        where: { id: user.id },
+        data: { tokens: { increment: REFERRAL_REWARD_TOKENS } },
+        select: { tokens: true }
+      });
+      return { tokens: u.tokens, claimedAt: now, raced: false };
+    });
+
+    if (updated.raced) {
+      return res.json({
+        ok: true,
+        alreadyClaimed: true,
+        tokensGranted: 0,
+        tokens: updated.tokens,
+        claimedAt: updated.claimedAt
+      });
+    }
+    res.json({
+      ok: true,
+      alreadyClaimed: false,
+      tokensGranted: REFERRAL_REWARD_TOKENS,
+      tokens: updated.tokens,
+      claimedAt: updated.claimedAt
+    });
+  } catch (error) {
+    console.error(`[Referrals Claim] ${error?.message || error}`);
+    res.status(400).json({ error: "Invalid request", detail: error.message });
   }
 });
 
