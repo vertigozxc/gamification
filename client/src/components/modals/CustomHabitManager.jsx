@@ -143,9 +143,6 @@ function CustomHabitManager({
     }
   };
 
-  const previewMins = Math.max(0, parseInt(timeMinutes, 10) || 0);
-  const previewXp = !needsTimer ? 30 : previewMins >= 50 ? 50 : previewMins >= 40 ? 40 : 30;
-
   const handleDelete = async (id) => {
     const ok = await onDeleteCustomQuest(id);
     if (ok) setConfirmDeleteId(null);
@@ -206,13 +203,9 @@ function CustomHabitManager({
                       ) : null}
                       {cq.needsTimer && Number(cq.timeEstimateMin) > 0 ? (
                         <p className="text-[11px] mt-1" style={{ color: "var(--color-muted)" }}>
-                          ⏱ {cq.timeEstimateMin} {t.customHabitMinutesShort || "min"} · +{cq.xp || 30} XP
+                          ⏱ {cq.timeEstimateMin} {t.customHabitMinutesShort || "min"}
                         </p>
-                      ) : (
-                        <p className="text-[11px] mt-1" style={{ color: "var(--color-muted)" }}>
-                          +30 XP
-                        </p>
-                      )}
+                      ) : null}
                     </button>
                     <div style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 6 }}>
                       <button
@@ -456,14 +449,9 @@ function CustomHabitManager({
                           placeholder="30"
                         />
                         <span className="text-xs" style={{ color: "var(--color-muted)" }}>
-                          → <strong style={{ color: "#4ade80" }}>+{previewXp} XP</strong>{" "}
-                          {t.customHabitXpHint || "per completion"}
+                          {t.customHabitMinutesLabel || "Duration (minutes)"}
                         </span>
                       </div>
-                      <p className="text-[11px] mt-2" style={{ color: "var(--color-muted)", lineHeight: 1.45 }}>
-                        {t.customHabitXpExplain
-                          || "Up to 39 min → 30 XP · 40–49 min → 40 XP · 50+ min → 50 XP"}
-                      </p>
                     </div>
                   ) : null}
                 </div>

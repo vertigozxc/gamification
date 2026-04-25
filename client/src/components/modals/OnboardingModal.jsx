@@ -469,8 +469,7 @@ function OnboardingModal({
             </p>
           </div>
 
-          {/* @handle — public, searchable, shown under the display name in
-              profiles and leaderboards. Auto-seeded on open; user can edit. */}
+          {/* @handle — public username, auto-assigned on open. Read-only. */}
           <div data-tour="setup-handle">
           <label
             className="cinzel"
@@ -488,21 +487,13 @@ function OnboardingModal({
           </label>
           <div
             style={{
-              position: "relative",
               display: "flex",
               alignItems: "center",
               padding: "0 12px",
               borderRadius: 10,
-              background: "rgba(0,0,0,0.35)",
-              border: `1px solid ${
-                handleStatus === "taken" || handleStatus === "invalid" || handleStatus === "short"
-                  ? "rgba(239, 68, 68, 0.55)"
-                  : handleStatus === "available"
-                  ? "rgba(16, 185, 129, 0.55)"
-                  : "var(--card-border-idle)"
-              }`,
-              minHeight: 38,
-              transition: "border-color 180ms ease"
+              background: "rgba(0,0,0,0.20)",
+              border: "1px solid var(--card-border-idle)",
+              minHeight: 38
             }}
           >
             <span
@@ -512,60 +503,34 @@ function OnboardingModal({
                 fontSize: 14,
                 fontWeight: 700,
                 marginRight: 4,
-                userSelect: "none",
-                pointerEvents: "none"
+                userSelect: "none"
               }}
             >@</span>
-            <input
-              type="text"
-              value={handleInput}
-              onChange={(e) => {
-                setHandleTouched(true);
-                setHandleInput(normalizeHandleLocal(e.target.value));
-              }}
-              maxLength={HANDLE_MAX_LENGTH}
-              autoComplete="off"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              placeholder={t.onboardingHandlePlaceholder || "username"}
-              aria-label={t.onboardingHandleLabel || "Username"}
+            <span
               style={{
                 flex: 1,
                 minWidth: 0,
                 padding: "9px 0",
-                background: "transparent",
-                border: "none",
                 color: "#e2e8f0",
                 fontSize: 14,
-                outline: "none",
-                // Plain sans — no heading font — so lowercase letters
-                // actually render lowercase (Cinzel is all-caps only).
                 fontFamily: "inherit",
-                textTransform: "lowercase"
-              }}
-            />
-            <span
-              style={{
-                marginLeft: 8,
-                fontSize: 11,
-                fontWeight: 800,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                minWidth: 56,
-                textAlign: "right",
-                color:
-                  handleStatus === "available" ? "#10b981"
-                  : handleStatus === "taken" || handleStatus === "invalid" || handleStatus === "short" ? "#ef4444"
-                  : "var(--color-muted)"
+                userSelect: "none"
               }}
             >
-              {handleStatus === "checking" && (t.onboardingHandleChecking || "…")}
-              {handleStatus === "available" && "✓"}
-              {handleStatus === "taken" && (t.onboardingHandleTaken || "taken")}
-              {handleStatus === "invalid" && (t.onboardingHandleInvalid || "invalid")}
-              {handleStatus === "short" && (t.onboardingHandleShort || `${HANDLE_MIN_LENGTH}+`)}
+              {normalizedHandle || handleInput}
             </span>
+            {(handleStatus === "available" || handleStatus === "idle") && (normalizedHandle || handleInput) ? (
+              <span
+                style={{
+                  marginLeft: 8,
+                  fontSize: 13,
+                  fontWeight: 800,
+                  color: "#10b981",
+                  minWidth: 20,
+                  textAlign: "right"
+                }}
+              >✓</span>
+            ) : null}
           </div>
           <p style={{ margin: "6px 2px 0", fontSize: 11, color: "var(--color-muted)", lineHeight: 1.4 }}>
             {t.onboardingHandleHint || "3–20 letters / digits / underscore. Others find you by this."}
@@ -586,35 +551,20 @@ function OnboardingModal({
           <div data-tour="setup-habits">
           {/* Section-start header for the habit picker. */}
           <div style={{ marginTop: 18, marginBottom: 10 }}>
-            <div style={{ display: "inline-block", position: "relative", paddingTop: 10 }}>
-              <span
-                aria-hidden
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: 2,
-                  background: "var(--color-primary)",
-                  borderRadius: 2
-                }}
-              />
-              <h3
-                className="cinzel"
-                style={{
-                  margin: 0,
-                  fontSize: 16,
-                  fontWeight: 800,
-                  letterSpacing: "0.06em",
-                  color: "var(--color-primary)",
-                  textTransform: "uppercase",
-                  lineHeight: 1.25,
-                  whiteSpace: "nowrap"
-                }}
-              >
-                {tf("onboardingPick", { pinned: SELECTION_LIMIT })}
-              </h3>
-            </div>
+            <h3
+              className="cinzel"
+              style={{
+                margin: 0,
+                fontSize: 16,
+                fontWeight: 800,
+                letterSpacing: "0.06em",
+                color: "var(--color-primary)",
+                textTransform: "uppercase",
+                lineHeight: 1.25
+              }}
+            >
+              {tf("onboardingPick", { pinned: SELECTION_LIMIT })}
+            </h3>
             <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--color-muted)", lineHeight: 1.4 }}>
               {t.onboardingPickSubtitle || "Pick from the existing list or create your own"}
             </p>
@@ -670,9 +620,7 @@ function OnboardingModal({
               marginBottom: 12,
               padding: "10px 12px",
               borderRadius: 12,
-              background: "color-mix(in srgb, var(--color-primary) 8%, var(--card-bg, #0f172a))",
-              border: "1px solid color-mix(in srgb, var(--color-primary) 35%, var(--card-border-idle))",
-              backdropFilter: "saturate(1.1)"
+              background: "transparent"
             }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, gap: 10 }}>
@@ -691,24 +639,23 @@ function OnboardingModal({
                   {t.onboardingHabitsSelected || "habits selected"}
                 </span>
               </span>
-              {selectionComplete ? (
-                <span
-                  className="cinzel"
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 800,
-                    letterSpacing: "0.1em",
-                    textTransform: "uppercase",
-                    padding: "3px 8px",
-                    borderRadius: 999,
-                    background: "color-mix(in srgb, var(--color-accent) 22%, transparent)",
-                    color: "var(--color-accent)",
-                    border: "1px solid color-mix(in srgb, var(--color-accent) 55%, transparent)"
-                  }}
-                >
-                  ✓ {t.onboardingReady || "ready"}
-                </span>
-              ) : null}
+              <span
+                className="cinzel"
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  padding: "3px 8px",
+                  borderRadius: 999,
+                  background: "color-mix(in srgb, var(--color-accent) 22%, transparent)",
+                  color: "var(--color-accent)",
+                  border: "1px solid color-mix(in srgb, var(--color-accent) 55%, transparent)",
+                  visibility: selectionComplete ? "visible" : "hidden"
+                }}
+              >
+                ✓ {t.onboardingReady || "ready"}
+              </span>
             </div>
             <div style={{ height: 4, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
               <div
@@ -741,13 +688,13 @@ function OnboardingModal({
                   placeholder={t.onboardingSearch}
                   clearAriaLabel={t.clearLabel || "Clear"}
                   inputStyle={{
-                    padding: "9px 12px",
-                    borderRadius: 10,
-                    background: "rgba(0,0,0,0.35)",
+                    padding: "12px 14px",
+                    borderRadius: 12,
+                    background: "rgba(255,255,255,0.07)",
                     border: "1px solid var(--card-border-idle)",
                     color: "#e2e8f0",
                     fontSize: 14,
-                    minHeight: 38,
+                    minHeight: 44,
                     outline: "none"
                   }}
                 />

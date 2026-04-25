@@ -170,7 +170,7 @@ function PinnedReplacementModal({
               <h2
                 className="cinzel"
                 style={{
-                  color: "var(--color-accent)",
+                  color: "var(--color-primary)",
                   fontSize: 18,
                   fontWeight: 700,
                   margin: 0,
@@ -196,26 +196,7 @@ function PinnedReplacementModal({
             </button>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#cbd5e1" }}>
-                  {t.onboardingSelected
-                    ? `${selectedCount} / ${SELECTION_LIMIT} ${t.onboardingSelected}`
-                    : `${selectedCount} / ${SELECTION_LIMIT}`}
-                </span>
-              </div>
-              <div style={{ height: 6, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
-                <div
-                  style={{
-                    width: `${progressPct}%`,
-                    height: "100%",
-                    background: selectionComplete ? "var(--color-accent)" : "var(--color-primary, #8b5cf6)",
-                    transition: "width 200ms ease"
-                  }}
-                />
-              </div>
-            </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginTop: 10 }}>
             <div
               style={{
                 padding: "6px 10px",
@@ -224,8 +205,7 @@ function PinnedReplacementModal({
                 background: "rgba(0,0,0,0.25)",
                 display: "flex",
                 alignItems: "center",
-                gap: 6,
-                flexShrink: 0
+                gap: 6
               }}
             >
               <span style={{ fontSize: 14 }}>🪙</span>
@@ -296,6 +276,65 @@ function PinnedReplacementModal({
               <span className="onb-habits-tab-label">{t.onboardingTabCustom || "Custom"}</span>
               <span className="onb-habits-tab-count">{Array.isArray(customQuests) ? customQuests.length : 0}</span>
             </button>
+          </div>
+
+          {/* Habits selected counter — same design as OnboardingModal */}
+          <div
+            style={{
+              position: "sticky",
+              top: 0,
+              zIndex: 4,
+              marginTop: 8,
+              marginBottom: 12,
+              padding: "10px 12px",
+              borderRadius: 12,
+              background: "transparent"
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, gap: 10 }}>
+              <span
+                className="cinzel"
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "var(--color-primary)"
+                }}
+              >
+                {selectedCount} / {SELECTION_LIMIT}{" "}
+                <span style={{ color: "var(--color-muted)", fontWeight: 700 }}>
+                  {t.onboardingHabitsSelected || "habits selected"}
+                </span>
+              </span>
+              <span
+                className="cinzel"
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  padding: "3px 8px",
+                  borderRadius: 999,
+                  background: "color-mix(in srgb, var(--color-accent) 22%, transparent)",
+                  color: "var(--color-accent)",
+                  border: "1px solid color-mix(in srgb, var(--color-accent) 55%, transparent)",
+                  visibility: selectionComplete ? "visible" : "hidden"
+                }}
+              >
+                ✓ {t.onboardingReady || "ready"}
+              </span>
+            </div>
+            <div style={{ height: 4, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+              <div
+                style={{
+                  width: `${progressPct}%`,
+                  height: "100%",
+                  background: selectionComplete ? "var(--color-accent)" : "var(--color-primary)",
+                  transition: "width 200ms ease"
+                }}
+              />
+            </div>
           </div>
 
           {habitsTab === "presets" ? (
