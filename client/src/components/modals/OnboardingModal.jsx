@@ -6,6 +6,7 @@ import CategoryFilterRow from "../CategoryFilterRow";
 import InputWithClear from "../InputWithClear";
 import { groupQuests, availableCategories, matchesCategory } from "../../utils/questGrouping";
 import { suggestHandle as apiSuggestHandle, checkHandle as apiCheckHandle, lookupReferralCode as apiLookupReferralCode } from "../../api";
+import { lockBodyScroll, unlockBodyScroll } from "../../utils/scrollLock";
 import { IconCheck, IconClose, IconList, IconSparkle, IconWarning } from "../icons/Icons";
 
 const HANDLE_MIN_LENGTH = 3;
@@ -125,25 +126,30 @@ function OnboardingModal({
   // Freeze the document while the modal is mounted. Without this, iOS
   // scrolls the page up when an input is focused and the sheet drifts
   // above the viewport.
+  //
+  // The OUTER overflow lock goes through the shared ref-counted helper
+  // (utils/scrollLock) so it can stack cleanly with the
+  // AnimatedOnboardingTour, which is also mounted at login. Previously
+  // both surfaces independently saved + restored body.overflow and
+  // ended up leaving the page scroll dead after one of them
+  // unmounted out of order. The position/top/width fixed-positioning
+  // trick stays local — that's a Modal-only iOS keyboard fix and
+  // nothing else touches it.
   useEffect(() => {
     if (!open || typeof document === "undefined") return undefined;
-    const { body, documentElement } = document;
-    const prevBodyOverflow = body.style.overflow;
+    const { body } = document;
     const prevBodyPosition = body.style.position;
     const prevBodyWidth = body.style.width;
-    const prevHtmlOverflow = documentElement.style.overflow;
     const prevScroll = window.scrollY || 0;
-    body.style.overflow = "hidden";
+    lockBodyScroll();
     body.style.position = "fixed";
     body.style.top = `-${prevScroll}px`;
     body.style.width = "100%";
-    documentElement.style.overflow = "hidden";
     return () => {
-      body.style.overflow = prevBodyOverflow;
+      unlockBodyScroll();
       body.style.position = prevBodyPosition;
       body.style.top = "";
       body.style.width = prevBodyWidth;
-      documentElement.style.overflow = prevHtmlOverflow;
       window.scrollTo(0, prevScroll);
     };
   }, [open]);

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "../../ThemeContext";
+import { lockBodyScroll, unlockBodyScroll } from "../../utils/scrollLock";
 
 // ── constants ─────────────────────────────────────────────────────────
 const TYPE_MS_PER_CHAR = 22;      // typewriter speed
@@ -293,24 +294,20 @@ export default function AnimatedOnboardingTour({
   // Lock body / html scrolling while the tour is open. The user kept
   // accidentally scrolling the page out from under the spotlight on
   // long-content steps (the bubble would stay fixed, but the target
-  // would slide off-screen). Setting overflow:hidden on <html> + <body>
-  // blocks user-initiated scroll (touch / wheel) without affecting
-  // programmatic scrollIntoView, so the tour's own per-step scroll
-  // logic keeps working — and any spotlight target that has its own
-  // overflow:auto / overflow:scroll (e.g. the habits picker's slide
-  // bar or any inner list) keeps scrolling normally because we only
-  // lock the OUTER document scroll. Restored on unmount / close.
+  // would slide off-screen). Now uses the SHARED ref-counted helper
+  // (utils/scrollLock) so the tour and the OnboardingModal — which
+  // are both mounted at login — can stack their locks without
+  // stepping on each other. Without ref-counting, skipping the tour
+  // and then finishing the modal restored "hidden" as the modal's
+  // saved-prev value, leaving page scroll dead until reload.
+  // Programmatic scrollIntoView still works while locked, so the
+  // tour's per-step scroll logic is unaffected; inner overflow
+  // scroll (habits picker, etc.) also still works because we only
+  // lock the OUTER document.
   useEffect(() => {
     if (!open) return undefined;
-    if (typeof document === "undefined") return undefined;
-    const prevBody = document.body.style.overflow;
-    const prevHtml = document.documentElement.style.overflow;
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prevBody;
-      document.documentElement.style.overflow = prevHtml;
-    };
+    lockBodyScroll();
+    return () => unlockBodyScroll();
   }, [open]);
 
   // Read safe-area paddings once on mount + on resize. Track the
