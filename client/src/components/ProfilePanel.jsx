@@ -149,13 +149,26 @@ function ProfilePanel({
                       {step.target} {t.itemLabel}
                     </p>
                     <div className={`daily-board-reward text-[11.5px] font-bold tracking-tight text-center flex flex-wrap items-center justify-center ${unlocked ? "text-amber-200" : "text-slate-500"}`}>
-                      {step.reward.split(/(🔥|🪙)/).map((part, i) => (
-                        part === '🔥' || part === '🪙' ? (
-                          <span key={i} className="text-[18px] leading-none mx-0.5 drop-shadow-sm">{part}</span>
-                        ) : (
-                          <span key={i}>{part}</span>
-                        )
-                      ))}
+                      {step.reward.split(/(🔥|🪙)/).map((part, i) => {
+                        if (part === '🔥') {
+                          return (
+                            <span
+                              key={i}
+                              className="leading-none drop-shadow-sm"
+                              style={{ display: "inline-flex", alignItems: "center", color: "var(--streak-text)" }}
+                            >
+                              <IconFlame size={16} />
+                            </span>
+                          );
+                        }
+                        if (part === '🪙') {
+                          return <span key={i} className="text-[18px] leading-none drop-shadow-sm">{part}</span>;
+                        }
+                        // Strip the leading space that follows an icon so the
+                        // "+N" hugs the icon instead of having a visible gap.
+                        const trimmed = part.replace(/^\s+/, '');
+                        return <span key={i}>{trimmed}</span>;
+                      })}
                     </div>
                   </div>
                 );

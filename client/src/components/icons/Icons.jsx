@@ -166,9 +166,16 @@ export function IconBolt(props) {
 }
 
 export function IconFlame(props) {
+  // Solid flame — fills with currentColor so it reads as a real flame
+  // (not a hollow outline). The inner highlight stroke gives it shape
+  // without making the silhouette feel cluttered.
   return (
     <Icon {...props}>
-      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1-2-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+      <path
+        d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1-2-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"
+        fill="currentColor"
+        stroke="currentColor"
+      />
     </Icon>
   );
 }
@@ -363,13 +370,14 @@ export function IconUsers(props) {
 }
 
 export function IconHandshake(props) {
-  // Two overlapping arcs meeting at centre — reads as cooperation / group.
+  // Two hands gripping — adapted from Lucide's handshake glyph.
   return (
     <Icon {...props}>
-      <path d="M3 12h3l2.5-3 3 3 3-3 2.5 3h3" />
-      <path d="M3 12v3a2 2 0 0 0 2 2h2" />
-      <path d="M21 12v3a2 2 0 0 1-2 2h-2" />
-      <path d="M9 17h6" />
+      <path d="M11 17l2 2a1 1 0 1 0 3-3" />
+      <path d="M14 14l2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4" />
+      <path d="M21 3l1 11h-2" />
+      <path d="M3 3l-1 11 6.5 6.5a1 1 0 1 0 3-3" />
+      <path d="M3 4h8" />
     </Icon>
   );
 }

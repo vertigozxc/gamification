@@ -14,7 +14,7 @@ import {
   IconSwords,
   IconCheck,
   IconClose,
-  IconHandshake
+  IconUsers
 } from "../icons/Icons";
 import Avatar from "../social/Avatar";
 import StreakFrame from "../social/StreakFrame";
@@ -157,7 +157,7 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
   const tabs = [
     { id: "activity", label: t.communityTabActivity || "Activity", Icon: IconBolt },
     { id: "challenges", label: t.communityTabChallenges || "Challenges", Icon: IconSwords, badge: pendingChallenges.length },
-    { id: "friends", label: t.communityTabFriends || "Friends", Icon: IconHandshake, badge: requests.length },
+    { id: "friends", label: t.communityTabFriends || "Friends", Icon: IconUsers, badge: requests.length },
   ];
   const selectedIdx = tabs.findIndex((tb) => tb.id === tab);
 

@@ -13,7 +13,7 @@ import {
   fetchAchievements,
 } from "../../api";
 import Avatar from "./Avatar";
-import { IconStar, IconFlame, IconTarget, IconBolt, IconHandshake, IconCalendar } from "../icons/Icons";
+import { IconStar, IconFlame, IconTarget, IconBolt, IconUsers, IconCalendar } from "../icons/Icons";
 import StreakFrame, { getStreakTier } from "./StreakFrame";
 import Screen from "./Screen";
 import Alert from "./Alert";
@@ -200,7 +200,7 @@ function StatGrid({ profile, t, languageId }) {
       <Stat IconComp={IconFlame} label={t.arenaStatStreak || "Current"} value={profile.streak || 0} accent="#ff9500" />
       <Stat IconComp={IconTarget} label={t.arenaStatTotalXp || "Total XP"} value={formatNumber(totalXp)} accent="#fbbf24" />
       <Stat IconComp={IconBolt} label={t.arenaStatWeek || "Week XP"} value={profile.weeklyXp || 0} accent="var(--color-primary)" />
-      <Stat IconComp={IconHandshake} label={t.arenaStatFriends || "Friends"} value={profile.friendCount || 0} />
+      <Stat IconComp={IconUsers} label={t.arenaStatFriends || "Friends"} value={profile.friendCount || 0} />
       <Stat IconComp={IconCalendar} label={t.arenaStatJoined || "Joined"} value={formatDate(profile.createdAt, languageId)} span={2} small />
     </div>
   );
