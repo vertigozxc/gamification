@@ -3320,13 +3320,21 @@ body[data-theme="light"] .tour-finale-cta { color: #f8fafc; }
     text-transform: uppercase;
     color: var(--color-primary);
     font-weight: 800;
-    flex-shrink: 0;
+    /* Fixed-width column so the white title to its right always
+       starts at the same x — the rows read as a true aligned table
+       instead of a ragged list. Truncate with ellipsis if a future
+       label is longer than the column allows. */
+    flex: 0 0 110px;
+    width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .activity-log-sep {
-    color: var(--color-muted);
-    font-size: 11px;
-    flex-shrink: 0;
-    opacity: 0.7;
+    /* Removed visual separator — the fixed-width label column does
+       the visual work. Keep the node in the markup so the layout
+       contract stays stable, just hide it. */
+    display: none;
 }
 .activity-log-title {
     font-size: 12.5px;
