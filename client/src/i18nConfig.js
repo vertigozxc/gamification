@@ -70,6 +70,9 @@ export const languagePacks = {
       referralStepBody: "If you have a friend's code, enter it here. When you reach level 5, you and your friend each get 50 tokens.",
       referralStepInputLabel: "Friend's code",
       referralStepInputPlaceholder: "",
+      // Small pill next to the friend's-code label that flags the
+      // field as optional (the user can leave it blank and continue).
+      optionalBadge: "Optional",
       referralStepHintFound: "Used by @{handle}",
       referralStepHintFoundNoHandle: "Code is valid",
       referralStepHintEmpty: "",
@@ -1326,6 +1329,8 @@ export const languagePacks = {
       referralStepBody: "Если у тебя есть код друга, введи его сюда. При достижении 5 уровня ты и твой друг получите по 50 монет.",
       referralStepInputLabel: "Код друга",
       referralStepInputPlaceholder: "",
+      // Маленький pill рядом с лейблом — поле необязательное.
+      optionalBadge: "Необязательно",
       referralStepHintFound: "Используется код @{handle}",
       referralStepHintFoundNoHandle: "Код подходит",
       referralStepHintEmpty: "",

@@ -575,19 +575,48 @@ function OnboardingModal({
               redeem step. Both sides get +50 tokens when the new
               user reaches level 5. */}
           <div data-tour="setup-referral" style={{ marginTop: 14 }}>
-            <label
-              className="cinzel"
+            {/* Label row: field name on the left, small "OPTIONAL"
+                pill on the right. The pill is muted (gray-on-gray)
+                so it reads as metadata about the field, not as a
+                second loud heading next to the primary label. */}
+            <div
               style={{
-                display: "block",
-                marginBottom: 6,
-                fontSize: 11,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: "var(--color-primary)"
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
+                marginBottom: 6
               }}
             >
-              {t.referralStepInputLabel}
-            </label>
+              <label
+                className="cinzel"
+                style={{
+                  fontSize: 11,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: "var(--color-primary)"
+                }}
+              >
+                {t.referralStepInputLabel}
+              </label>
+              <span
+                className="cinzel"
+                style={{
+                  fontSize: 9,
+                  fontWeight: 700,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: "var(--color-muted)",
+                  background: "color-mix(in srgb, var(--color-muted) 15%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--color-muted) 32%, transparent)",
+                  padding: "2px 7px",
+                  borderRadius: 999,
+                  flexShrink: 0
+                }}
+              >
+                {t.optionalBadge || "Optional"}
+              </span>
+            </div>
             <InputWithClear
               value={referralCode}
               onChange={(next) => {
