@@ -16,6 +16,8 @@ const ACHIEVEMENT_ORDER = [
   "first_handshake",
   "champion",
   "mentor",
+  "referral_ally",
+  "referral_recruiter",
   "first_coin",
   "high_roller",
   "polyglot",
@@ -59,7 +61,8 @@ function getMeta(code, t) {
     polyglot: t.achPolyglotName,
     phoenix: t.achPhoenixName,
     scholar: t.achScholarName,
-    referral_ally: t.achReferralAllyName
+    referral_ally: t.achReferralAllyName,
+    referral_recruiter: t.achReferralRecruiterName
   };
   const descs = {
     week_warrior: t.achWeekWarriorDesc,
@@ -76,7 +79,8 @@ function getMeta(code, t) {
     polyglot: t.achPolyglotDesc,
     phoenix: t.achPhoenixDesc,
     scholar: t.achScholarDesc,
-    referral_ally: t.achReferralAllyDesc
+    referral_ally: t.achReferralAllyDesc,
+    referral_recruiter: t.achReferralRecruiterDesc
   };
   return { name: names[code] || code, description: descs[code] || "" };
 }

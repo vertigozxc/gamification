@@ -101,7 +101,9 @@ const MESSAGES = {
     referralsCreateSaving: "Creating…",
     referralsShareMessage: "Sign up for life-rpg with my code {code} — when you reach level 5, we both get 50 tokens.",
     achReferralAllyName: "Ally",
-    achReferralAllyDesc: "Sign up with a friend's referral code and reach level 5. Reward: 50 tokens."
+    achReferralAllyDesc: "Sign up with a friend's referral code and reach level 5. Reward: 50 tokens.",
+    achReferralRecruiterName: "Recruiter",
+    achReferralRecruiterDesc: "Three of your referrals reached level 5. Reward: 30 tokens."
   },
   ru: {
     initializing: "Инициализируем мир...",
@@ -205,7 +207,9 @@ const MESSAGES = {
     referralsCreateSaving: "Создаём…",
     referralsShareMessage: "Зарегистрируйся в life-rpg по моему коду {code} — при достижении 5 уровня мы оба получим по 50 монет.",
     achReferralAllyName: "Союзник",
-    achReferralAllyDesc: "Зарегистрируйся по коду друга и достигни 5 уровня. Награда: 50 монет."
+    achReferralAllyDesc: "Зарегистрируйся по коду друга и достигни 5 уровня. Награда: 50 монет.",
+    achReferralRecruiterName: "Рекрутёр",
+    achReferralRecruiterDesc: "Трое твоих рефералов достигли 5 уровня. Награда: 30 монет."
   }
 };
 

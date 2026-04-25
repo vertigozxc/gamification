@@ -434,6 +434,59 @@ export function ReferralAlly() {
   );
 }
 
+/* 16. referral_recruiter — three interlocking rings (you + two
+   referees) arranged as a triangle. Reads as "small crew assembled".
+   Same single-weight outline language as ReferralAlly so the two
+   referral icons feel like a pair when the user sees them side by
+   side in the list. */
+export function ReferralRecruiter() {
+  return (
+    <Icon code="rr">
+      <defs>
+        <linearGradient id="rr-ringTop" x1="0%" y1="0%" x2="0%" y2="100%">{GOLD_STOPS}</linearGradient>
+        <linearGradient id="rr-ringL" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#a78bfa" />
+          <stop offset="100%" stopColor="#6d28d9" />
+        </linearGradient>
+        <linearGradient id="rr-ringR" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#f472b6" />
+          <stop offset="100%" stopColor="#be185d" />
+        </linearGradient>
+        <radialGradient id="rr-spark" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#fef3c7" />
+          <stop offset="60%" stopColor="#fbbf24" stopOpacity="0.55" />
+          <stop offset="100%" stopColor="#fbbf24" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      {/* Three rings in a triangular cluster — top centre + bottom-left
+          + bottom-right, with mutual overlap zones meeting near the
+          centre. Stroke widths match ReferralAlly so the pair reads
+          as a series. */}
+      <g fill="none" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="48" cy="36" r="15" stroke="url(#rr-ringTop)" />
+        <circle cx="36" cy="58" r="15" stroke="url(#rr-ringL)" />
+        <circle cx="60" cy="58" r="15" stroke="url(#rr-ringR)" />
+      </g>
+      {/* Glow halo at the centre where the three rings meet */}
+      <circle cx="48" cy="50" r="9" fill="url(#rr-spark)" />
+      {/* Tiny "3" badge sits just above the cluster centre. Small,
+          single-colour, no gradient — keeps the icon legible at the
+          24-px size that the list renders. */}
+      <text
+        x="48"
+        y="53"
+        textAnchor="middle"
+        fontSize="9"
+        fontWeight="900"
+        fontFamily="serif"
+        fill="#fde68a"
+      >
+        3
+      </text>
+    </Icon>
+  );
+}
+
 export const ACHIEVEMENT_ICONS = {
   week_warrior: WeekWarrior,
   month_monk: MonthMonk,
@@ -449,5 +502,6 @@ export const ACHIEVEMENT_ICONS = {
   polyglot: Polyglot,
   phoenix: Phoenix,
   scholar: Scholar,
-  referral_ally: ReferralAlly
+  referral_ally: ReferralAlly,
+  referral_recruiter: ReferralRecruiter
 };

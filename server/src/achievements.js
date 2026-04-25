@@ -28,7 +28,11 @@ export const ACHIEVEMENT_CODES = [
   // referral code reaches level 5. evaluateAchievements() handles the
   // gating and also stamps Referral.refereeLeveledUpAt at the same
   // moment so the referrer's "Claim 50" button lights up in sync.
-  "referral_ally"
+  "referral_ally",
+  // Referrer-side milestone: 3+ referees (across any of my up-to-3
+  // codes) who reached level 5. Stacks on top of the per-referee 50
+  // tokens — this is the trophy for actually building a small crew.
+  "referral_recruiter"
 ];
 
 // Token rewards per achievement, claimed via POST /api/achievements/claim.
@@ -53,7 +57,11 @@ export const ACHIEVEMENT_REWARDS = {
   lvl_100: 200,
   // Referral payout — matches the 50 the referrer gets per referee
   // (claimed in the My Referrals section, separate flow).
-  referral_ally: 50
+  referral_ally: 50,
+  // Three-referees-at-level-5 milestone. Mid-tier reward — the
+  // referrer already collected 3×50 = 150 tokens through the
+  // per-row claims in My Referrals; this is the bonus trophy.
+  referral_recruiter: 30
 };
 
 const HIGH_ROLLER_THRESHOLD = 200;
@@ -146,10 +154,15 @@ export async function evaluateAchievements(prisma, userId) {
   if (lvl >= 5) {
     const myReferral = await prisma.referral.findUnique({
       where: { refereeUserId: userId },
-      select: { id: true, refereeLeveledUpAt: true }
+      select: {
+        id: true,
+        refereeLeveledUpAt: true,
+        code: { select: { ownerUserId: true } }
+      }
     });
     if (myReferral) {
-      if (!myReferral.refereeLeveledUpAt) {
+      const justCrossed = !myReferral.refereeLeveledUpAt;
+      if (justCrossed) {
         await prisma.referral.update({
           where: { id: myReferral.id },
           data: { refereeLeveledUpAt: new Date() }
@@ -158,7 +171,32 @@ export async function evaluateAchievements(prisma, userId) {
       if (!already.has("referral_ally")) {
         toUnlock.push("referral_ally");
       }
+      // Cascade: when *this* user just hit level 5 by entering
+      // someone's code, the *referrer* may now have enough
+      // qualifying referees to unlock "referral_recruiter".
+      // Re-evaluate on the referrer's side. Fire-and-forget so a
+      // failure here can never break the referee's evaluation.
+      // Recursion-safe: this branch only enters when justCrossed
+      // OR when the achievement was missing — re-running for the
+      // referrer doesn't loop back into the referee's row.
+      if (justCrossed && myReferral.code?.ownerUserId && myReferral.code.ownerUserId !== userId) {
+        evaluateAchievements(prisma, myReferral.code.ownerUserId).catch(() => {});
+      }
     }
+  }
+
+  // Recruiter milestone: count my referees (across ANY of my codes)
+  // who have reached level 5. We rely on refereeLeveledUpAt being
+  // stamped by the block above, so this only fires once a referee
+  // genuinely crosses the threshold (not just on signup).
+  if (!already.has("referral_recruiter")) {
+    const reachedFive = await prisma.referral.count({
+      where: {
+        code: { ownerUserId: userId },
+        refereeLeveledUpAt: { not: null }
+      }
+    });
+    if (reachedFive >= 3) toUnlock.push("referral_recruiter");
   }
 
   if (toUnlock.length === 0) return [];

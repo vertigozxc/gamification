@@ -63,6 +63,8 @@ export const languagePacks = {
       achLvl100Desc: "Reach level 100 — only the most disciplined get this far.",
       achReferralAllyName: "Ally",
       achReferralAllyDesc: "Sign up with a friend's referral code and reach level 5. Reward: 50 tokens.",
+      achReferralRecruiterName: "Recruiter",
+      achReferralRecruiterDesc: "Three of your referrals reached level 5. Reward: 30 tokens.",
       // Referral system — onboarding step (shown between "name" and "pick habits")
       referralStepTitle: "Referral code",
       referralStepBody: "If you have a friend's code, enter it here. When you reach level 5, you and your friend each get 50 tokens.",
@@ -1299,6 +1301,8 @@ export const languagePacks = {
       achLvl100Desc: "Достигни 100 уровня — это удел самых дисциплинированных.",
       achReferralAllyName: "Союзник",
       achReferralAllyDesc: "Зарегистрируйся по коду друга и достигни 5 уровня. Награда: 50 монет.",
+      achReferralRecruiterName: "Рекрутёр",
+      achReferralRecruiterDesc: "Трое твоих рефералов достигли 5 уровня. Награда: 30 монет.",
       // Реферальная система — шаг онбординга
       referralStepTitle: "Реферальный код",
       referralStepBody: "Если у тебя есть код друга, введи его сюда. При достижении 5 уровня ты и твой друг получите по 50 монет.",
