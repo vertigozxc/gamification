@@ -75,6 +75,29 @@ const DesktopLayout = lazy(() => import("./components/DesktopLayout"));
 const DevTestPanel = lazy(() => import("./components/DevTestPanel"));
 const AboutAppModal = lazy(() => import("./components/modals/AboutAppModal"));
 const ReferralsModal = lazy(() => import("./components/modals/ReferralsModal"));
+
+// Full-screen spinner shown by Suspense while a lazy modal chunk is
+// still downloading. Sits at z-index 86 (above the in-modal sheet at
+// 85) so the user sees a continuous loading state from tap to fully
+// loaded — no flash of the underlying tab content.
+function ModalLazyFallback() {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 86,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--card-bg, #0f172a)"
+      }}
+    >
+      <div className="ref-spinner" />
+    </div>
+  );
+}
 const QuestTimerControls = lazy(() => import("./components/QuestTimerControls"));
 const QuestCounterInline = lazy(() => import("./components/QuestCounterInline"));
 const QuestNoteModal = lazy(() => import("./components/modals/QuestNoteModal"));
@@ -2016,6 +2039,13 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
 
       <Suspense fallback={null}>
         <AboutAppModal open={showAbout} onClose={() => setShowAbout(false)} />
+      </Suspense>
+      {/* Referrals lives in its OWN Suspense with a full-screen
+          spinner fallback so the user can't see the native tab bar
+          finish its hide-animation while the lazy chunk is still
+          downloading. The fallback only renders when showReferrals
+          is true, so it's free for closed-modal mounts. */}
+      <Suspense fallback={showReferrals ? <ModalLazyFallback /> : null}>
         <ReferralsModal
           open={showReferrals}
           username={authUser?.uid || username}
@@ -2029,6 +2059,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             }
           }}
         />
+      </Suspense>
+      <Suspense fallback={null}>
         <ActivityLogsModal
           open={showActivityLogs}
           username={authUser?.uid}
