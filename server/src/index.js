@@ -4289,9 +4289,13 @@ app.get("/api/city/spin-status/:username", async (req, res) => {
     });
     if (!user) return res.status(404).json({ error: "User not found" });
     const now = new Date();
+    const parkLvl = districtLevelOf(user.districtLevels, "park");
+    // Park 0 → wheel is hard-locked. Surface that state so the client
+    // can render a "Upgrade Park to spin" CTA distinct from cooldown.
+    const locked = parkLvl < 1;
     const next = computeNextSpinAt(user, now);
-    const alreadySpun = next.getTime() > now.getTime();
-    return res.json({ alreadySpun, nextSpinAt: next.toISOString() });
+    const alreadySpun = !locked && next.getTime() > now.getTime();
+    return res.json({ locked, alreadySpun, nextSpinAt: next.toISOString() });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
   }
@@ -4308,6 +4312,18 @@ app.post("/api/city/spin", async (req, res) => {
     const { username } = schema.parse(req.body);
     const user = await prisma.user.findUnique({ where: { username: slugifyUsername(username) } });
     if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Park gate — Wheel of Fortune is fully locked until Park is
+    // upgraded to level 1. The 48h "cooldown" entry in the table is
+    // never reached for spins; it stays only as a defensive default.
+    const parkLvl = districtLevelOf(user.districtLevels, "park");
+    if (parkLvl < 1) {
+      return res.status(400).json({
+        ok: false,
+        error: "Wheel of Fortune is locked — upgrade Park to level 1 to spin.",
+        code: "park_locked"
+      });
+    }
 
     const now = new Date();
     const todayKey = getDateKey(now);
@@ -4370,6 +4386,17 @@ app.post("/api/city/spin/claim", async (req, res) => {
     const normalizedUsername = slugifyUsername(username);
     const user = await prisma.user.findUnique({ where: { username: normalizedUsername } });
     if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Park gate — same lockout as /api/city/spin so claim tokens
+    // minted before a downgrade can't be replayed.
+    const parkLvl = districtLevelOf(user.districtLevels, "park");
+    if (parkLvl < 1) {
+      return res.status(400).json({
+        ok: false,
+        error: "Wheel of Fortune is locked — upgrade Park to level 1 to spin.",
+        code: "park_locked"
+      });
+    }
 
     const payload = verifySpinClaimToken(claimToken);
     if (!payload) {

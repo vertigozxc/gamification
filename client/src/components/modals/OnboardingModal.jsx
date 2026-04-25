@@ -484,6 +484,9 @@ function OnboardingModal({
               {normalizedHandle || handleInput}
             </span>
           </div>
+          <p style={{ margin: "6px 2px 0", fontSize: 11, color: "var(--color-muted)", lineHeight: 1.4 }}>
+            {t.onboardingHandleHint || "Your username is publicly shown on your profile — friends can find you by it. It's your unique identifier."}
+          </p>
           </div>
           </section>
 

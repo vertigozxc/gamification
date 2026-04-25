@@ -499,7 +499,7 @@ const COPY_EN = {
           <Rows rows={[
             { label: "🏃 Sport", value: "+5% XP per level (max +25%)" },
             { label: "💼 Business", value: "Claim a token bundle once a day" },
-            { label: "🌳 Park", value: "Shortens Wheel of Fortune cooldown" },
+            { label: "🌳 Park", value: "Unlocks Wheel of Fortune (lvl 1+); shortens its cooldown at higher levels" },
             { label: "🏛 Square", value: "Extra tokens for filling the full daily board" },
             { label: "🏘 Residential", value: "Shop discount (lvl 1+), monthly Freeze (lvl 2+), Vacation (lvl 3+)" }
           ]} />
@@ -516,12 +516,12 @@ const COPY_EN = {
       body: (
         <>
           <Bullets items={[
-            "You can spin the Wheel from the City screen. Rewards include XP, tokens, or a free level up.",
-            "After you spin, a cooldown kicks in before the next spin.",
-            "The Park district shortens the cooldown at every level."
+            "The Wheel lives inside the Park district on the City screen. Rewards include XP, tokens, or a free level up.",
+            "It's locked until you upgrade Park to level 1 — there's no spin available at Park 0.",
+            "From Park 1 onwards a cooldown kicks in after each spin; higher Park levels shorten that cooldown."
           ]} />
           <Rows rows={[
-            { label: "Park 0 (no district)", value: "48 hours" },
+            { label: "Park 0 (not built)", value: "🔒 Locked" },
             { label: "Park 1", value: "24 hours" },
             { label: "Park 2", value: "20 hours" },
             { label: "Park 3", value: "16 hours" },
@@ -802,7 +802,7 @@ const COPY_RU = {
           <Rows rows={[
             { label: "🏃 Спорт", value: "+5% XP за уровень (до +25%)" },
             { label: "💼 Бизнес", value: "Забираете пачку токенов раз в день" },
-            { label: "🌳 Парк", value: "Сокращает кулдаун колеса удачи" },
+            { label: "🌳 Парк", value: "Открывает Колесо удачи (с lvl 1); на старших уровнях сокращает кулдаун" },
             { label: "🏛 Площадь", value: "Больше токенов за полный дейли борд" },
             { label: "🏘 Жилой", value: "Скидка в магазине (с lvl 1), Freeze в месяц (с lvl 2), Отпуск (с lvl 3)" }
           ]} />
@@ -815,16 +815,16 @@ const COPY_RU = {
     {
       icon: "🎰",
       title: "Колесо удачи",
-      summary: "Ежедневный бесплатный спин на XP, токены или уровень.",
+      summary: "Бесплатный спин на XP, токены или уровень.",
       body: (
         <>
           <Bullets items={[
-            "Крутить колесо можно в экране «Город». Награды — опыт, токены или бесплатный уровень.",
-            "После спина запускается кулдаун до следующего.",
-            "Парк сокращает кулдаун на каждом уровне."
+            "Колесо живёт внутри района Парк на экране «Город». Награды — опыт, токены или бесплатный уровень.",
+            "Заблокировано пока Парк не прокачен до 1 уровня — на Парке 0 спин недоступен.",
+            "С 1 уровня Парка начинает работать кулдаун между спинами; чем выше Парк, тем короче кулдаун."
           ]} />
           <Rows rows={[
-            { label: "Парк 0 (район не построен)", value: "48 часов" },
+            { label: "Парк 0 (не построен)", value: "🔒 Заблокировано" },
             { label: "Парк 1", value: "24 часа" },
             { label: "Парк 2", value: "20 часов" },
             { label: "Парк 3", value: "16 часов" },
