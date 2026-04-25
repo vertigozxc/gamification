@@ -501,10 +501,10 @@ const COPY_EN = {
             { label: "💼 Business", value: "Claim a token bundle once a day" },
             { label: "🌳 Park", value: "Shortens Wheel of Fortune cooldown" },
             { label: "🏛 Square", value: "Extra tokens for filling the full daily board" },
-            { label: "🏘 Residential", value: "Shop discount, monthly free Freeze, Vacation mode" }
+            { label: "🏘 Residential", value: "Shop discount (lvl 1+), monthly Freeze (lvl 2+), Vacation (lvl 3+)" }
           ]} />
           <p style={{ fontSize: 12, color: "var(--color-muted)", marginTop: 10, fontStyle: "italic", lineHeight: 1.5 }}>
-            Residential unlocks Vacation — a one-time bundle of 20 Streak Freeze charges (cooldown: once a year) that absorbs missed days automatically.
+            Residential level 3 unlocks Vacation — a one-time bundle of 20 Streak Freeze charges (cooldown: once a year) that absorbs missed days automatically.
           </p>
         </>
       )
@@ -544,7 +544,7 @@ const COPY_EN = {
             "Business district — claim a daily token bundle (1–5 tokens based on district level).",
             "Square district — at level 1+, filling the full daily board gives extra tokens equal to district level.",
             "Wheel of Fortune — tokens are one of the possible spin rewards.",
-            "Residential district — awards free Streak Freeze charges (1–2 per month) instead of tokens directly."
+            "Residential district — awards free Streak Freeze charges instead of tokens: 1 per month from level 2, 2 per month from level 4."
           ]} />
         </>
       )
@@ -649,7 +649,7 @@ const COPY_EN = {
             "Stack multipliers for big XP days: high streak × Sport district × XP Boost shop item.",
             "Stockpile Streak Freeze charges — they auto-protect missed days, and Vacation plus Residential's monthly cycle add more for free on top of shop purchases.",
             "Use timer quests for deep-work sessions — they give the largest XP rewards.",
-            "Going on vacation? Upgrade Residential early — its Vacation perk drops 20 Streak Freeze charges in one go so missed days are absorbed automatically."
+            "Going on vacation? Push Residential to level 3 — its Vacation perk drops 20 Streak Freeze charges in one go so missed days are absorbed automatically."
           ]} />
         </>
       )
@@ -804,10 +804,10 @@ const COPY_RU = {
             { label: "💼 Бизнес", value: "Забираете пачку токенов раз в день" },
             { label: "🌳 Парк", value: "Сокращает кулдаун колеса удачи" },
             { label: "🏛 Площадь", value: "Больше токенов за полный дейли борд" },
-            { label: "🏘 Жилой", value: "Скидка в магазине, бесплатный Freeze и режим отпуска" }
+            { label: "🏘 Жилой", value: "Скидка в магазине (с lvl 1), Freeze в месяц (с lvl 2), Отпуск (с lvl 3)" }
           ]} />
           <p style={{ fontSize: 12, color: "var(--color-muted)", marginTop: 10, fontStyle: "italic", lineHeight: 1.5 }}>
-            Жилой район открывает «Отпуск» — разовый набор из 20 зарядов Streak Freeze (кулдаун раз в год), которые автоматически закрывают пропущенные дни.
+            Жилой район с 3 уровня открывает «Отпуск» — разовый набор из 20 зарядов Streak Freeze (кулдаун раз в год), которые автоматически закрывают пропущенные дни.
           </p>
         </>
       )
@@ -847,7 +847,7 @@ const COPY_RU = {
             "Район Бизнес — раз в день забираете пачку токенов (1–5 в зависимости от уровня района).",
             "Район Площадь — с 1 уровня за полный дейли борд начисляются дополнительные токены, равные уровню района.",
             "Колесо удачи — токены это одна из возможных наград за спин.",
-            "Жилой район — вместо токенов выдаёт бесплатные заряды заморозки стрика (1–2 в месяц)."
+            "Жилой район — вместо токенов выдаёт бесплатные заряды заморозки стрика: 1 в месяц с 2 уровня, 2 в месяц с 4 уровня."
           ]} />
         </>
       )
@@ -949,7 +949,7 @@ const COPY_RU = {
           "Складывайте множители для больших XP-дней: высокий стрик × район Спорт × Буст опыта из магазина.",
           "Копите заряды заморозки стрика — они автоматически закрывают пропуски, а «Отпуск» Жилого района и его ежемесячный цикл начисляют их бесплатно поверх покупок в магазине.",
           "Квесты с таймером — лучший способ наростить XP на глубокой работе.",
-          "Собираетесь в отпуск? Прокачайте Жилой район заранее — его «Отпуск» сразу выдаёт 20 зарядов заморозки стрика, и пропущенные дни закрываются автоматически."
+          "Собираетесь в отпуск? Доведите Жилой район до 3 уровня — его «Отпуск» сразу выдаёт 20 зарядов заморозки стрика, и пропущенные дни закрываются автоматически."
         ]} />
       )
     }
