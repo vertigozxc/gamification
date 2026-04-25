@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useTheme } from "../../ThemeContext";
 import { claimQuizScholar } from "../../api";
 import useEdgeSwipeBack from "../../hooks/useEdgeSwipeBack";
+import { IconClose } from "../icons/Icons";
 import { buildQuiz } from "./quizPool";
 
 // Knowledge Quiz — 10 random questions from a 24-pool, no per-question
@@ -151,26 +152,28 @@ function QuizModal({ open, username, onClose, onPassed }) {
         aria-modal="true"
         aria-label={t.quizTitle || "Knowledge Quiz"}
       >
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px 8px" }}>
+        {/* Header — progress counter on the LEFT, ✕ on the RIGHT,
+            matching the NotesHistory full-screen modal so users build
+            one mental model for "where the close button lives". */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px 8px", gap: 12 }}>
+          {!result ? (
+            <span className="cinzel" style={{ color: "var(--color-muted)", fontSize: 12, fontWeight: 700, minWidth: 32 }}>
+              {currentIdx + 1}/{total}
+            </span>
+          ) : (
+            <span style={{ minWidth: 32 }} />
+          )}
+          <span className="cinzel" style={{ color: "var(--color-primary)", fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", textAlign: "center", flex: 1 }}>
+            🎓 {t.quizTitle || "Knowledge Quiz"}
+          </span>
           <button
             type="button"
             onClick={onClose}
             aria-label={t.closeLabel || "Close"}
             className="ui-close-x"
           >
-            ✕
+            <IconClose size={16} strokeWidth={2.4} />
           </button>
-          <span className="cinzel" style={{ color: "var(--color-primary)", fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-            🎓 {t.quizTitle || "Knowledge Quiz"}
-          </span>
-          {!result ? (
-            <span className="cinzel" style={{ color: "var(--color-muted)", fontSize: 12, fontWeight: 700 }}>
-              {currentIdx + 1}/{total}
-            </span>
-          ) : (
-            <span style={{ width: 32 }} />
-          )}
         </div>
 
         {/* Progress bar (hidden on result screen) */}
