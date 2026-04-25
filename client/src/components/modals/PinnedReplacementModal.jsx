@@ -245,7 +245,10 @@ function PinnedReplacementModal({
             flex: 1,
             overflowY: "auto",
             WebkitOverflowScrolling: "touch",
-            padding: "12px 16px 16px"
+            // Top padding zero so the sticky "habits selected" chip
+            // can snap flush with the header. The slide-bar below
+            // restores breathing room via its marginTop.
+            padding: "0 16px 16px"
           }}
         >
           {/* Segmented slide bar: Presets ↔ Custom. Same pattern as the
@@ -253,7 +256,7 @@ function PinnedReplacementModal({
           <div
             role="tablist"
             className="onb-habits-tabs"
-            style={{ "--onb-tabs-count": 2, "--onb-tabs-active": habitsTab === "custom" ? 1 : 0 }}
+            style={{ "--onb-tabs-count": 2, "--onb-tabs-active": habitsTab === "custom" ? 1 : 0, marginTop: 12 }}
           >
             <div className="onb-habits-tabs-slider" aria-hidden />
             <button
@@ -280,16 +283,22 @@ function PinnedReplacementModal({
             </button>
           </div>
 
-          {/* Habits selected counter — same design as OnboardingModal */}
+          {/* Habits selected counter — same design as OnboardingModal.
+              Edge-to-edge sticky: cancels the parent's 16px side gutter
+              with negative margins so the chip sits flush with the
+              header bottom and spans the full sheet width on scroll. */}
           <div
             style={{
               position: "sticky",
               top: 0,
               zIndex: 4,
               marginTop: 8,
+              marginLeft: -16,
+              marginRight: -16,
               marginBottom: 12,
-              padding: "10px 12px",
-              borderRadius: 12,
+              padding: "10px 16px",
+              borderRadius: 0,
+              borderBottom: "1px solid var(--card-border-idle)",
               background: "var(--card-bg, #0f172a)"
             }}
           >

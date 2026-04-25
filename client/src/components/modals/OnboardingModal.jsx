@@ -91,43 +91,14 @@ function OnboardingModal({
       setHabitsTab(forcedHabitsTab);
     }
   }, [forcedHabitsTab]);
-  // iOS keyboard handling: 100dvh doesn't always shrink with the
-  // software keyboard inside a WebView, so we mirror the visualViewport
-  // height ourselves and apply it to the sheet. Without this, focusing
-  // the nickname / custom-habit inputs pushed the whole modal
-  // off-screen.
-  const [sheetHeight, setSheetHeight] = useState(() => (
-    typeof window !== "undefined"
-      ? (window.visualViewport?.height || window.innerHeight || 0)
-      : 0
-  ));
-  const [sheetTop, setSheetTop] = useState(0);
-  useEffect(() => {
-    if (!open || typeof window === "undefined") return undefined;
-    const readViewport = () => {
-      const vv = window.visualViewport;
-      const h = vv?.height || window.innerHeight || 0;
-      const top = vv?.offsetTop || 0;
-      if (h) setSheetHeight(h);
-      setSheetTop(top);
-    };
-    readViewport();
-    window.addEventListener("resize", readViewport);
-    window.addEventListener("orientationchange", readViewport);
-    const vv = window.visualViewport;
-    if (vv) {
-      vv.addEventListener("resize", readViewport);
-      vv.addEventListener("scroll", readViewport);
-    }
-    return () => {
-      window.removeEventListener("resize", readViewport);
-      window.removeEventListener("orientationchange", readViewport);
-      if (vv) {
-        vv.removeEventListener("resize", readViewport);
-        vv.removeEventListener("scroll", readViewport);
-      }
-    };
-  }, [open]);
+  // iOS keyboard handling: rely on the modern dynamic-viewport unit
+  // (100dvh) and the document-freeze effect below — the same recipe
+  // PinnedReplacementModal uses successfully. The previous version
+  // mirrored visualViewport.height into a JS-driven sheetHeight, which
+  // caused the footer to slide up over the keyboard on first-setup
+  // because the sheet was actively resizing on every viewport scroll
+  // event. Plain 100dvh shrinks with the keyboard naturally without
+  // that flicker.
 
   // Freeze the document while the modal is mounted. Without this, iOS
   // scrolls the page up when an input is focused and the sheet drifts
@@ -324,18 +295,11 @@ function OnboardingModal({
         onClick={(e) => e.stopPropagation()}
         style={{
           position: "fixed",
-          // Follow visualViewport.offsetTop so the sheet stays anchored
-          // to the visible area when iOS scrolls the layout to make
-          // room for the keyboard.
-          top: sheetTop ? `${sheetTop}px` : 0,
-          left: 0,
-          right: 0,
+          inset: 0,
           width: "100vw",
-          // Shrink with the visualViewport so the iOS keyboard pushes
-          // the bottom of the sheet, not scrolls the top off-screen.
-          height: sheetHeight ? `${sheetHeight}px` : "100dvh",
+          height: "100dvh",
           maxWidth: "100vw",
-          maxHeight: sheetHeight ? `${sheetHeight}px` : "100dvh",
+          maxHeight: "100dvh",
           background: "var(--card-bg, #0f172a)",
           border: "none",
           borderRadius: 0,
@@ -530,12 +494,16 @@ function OnboardingModal({
               height: "100%",
               overflowY: "auto",
               WebkitOverflowScrolling: "touch",
-              padding: "12px 16px 16px"
+              // Top padding zero so the sticky "habits selected" chip
+              // can snap flush with the header. The visual breathing
+              // room above the section title is restored via the
+              // section-start header's marginTop below.
+              padding: "0 16px 16px"
             }}
           >
           <div data-tour="setup-habits">
           {/* Section-start header for the habit picker. */}
-          <div style={{ marginTop: 18, marginBottom: 10 }}>
+          <div style={{ marginTop: 30, marginBottom: 10 }}>
             <h3
               className="cinzel"
               style={{
@@ -595,16 +563,23 @@ function OnboardingModal({
 
           {/* HABITS SELECTED progress chip — sits directly under the
               slide bar, sticks to the top of the scrollable body so
-              the count stays visible while the user browses habits. */}
+              the count stays visible while the user browses habits.
+              When stuck, the chip bleeds edge-to-edge under the header
+              (negative side margins cancel the section's 16px gutter)
+              and sits flush with the header's bottom border (parent
+              section's padding-top is zero). */}
           <div
             style={{
               position: "sticky",
               top: 0,
               zIndex: 4,
               marginTop: 8,
+              marginLeft: -16,
+              marginRight: -16,
               marginBottom: 12,
-              padding: "10px 12px",
-              borderRadius: 12,
+              padding: "10px 16px",
+              borderRadius: 0,
+              borderBottom: "1px solid var(--card-border-idle)",
               background: "var(--card-bg, #0f172a)"
             }}
           >
