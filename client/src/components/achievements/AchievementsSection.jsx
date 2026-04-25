@@ -85,6 +85,15 @@ function getMeta(code, t) {
   return { name: names[code] || code, description: descs[code] || "" };
 }
 
+// Module-level cache keyed by username. Survives tab-switch
+// remounts of AchievementsSection so the next render after a fresh
+// mount can hydrate from the last response instead of flashing the
+// "0/N" placeholder while the network round-trip completes. The
+// component still refetches in the background on every mount + on
+// refreshKey bumps, so the cache only governs the FIRST paint —
+// stale-while-revalidate by design.
+const achievementsCache = new Map();
+
 function formatDate(value, languageId) {
   if (!value) return "";
   try {
@@ -99,8 +108,16 @@ function formatDate(value, languageId) {
 }
 
 export default function AchievementsSection({ username, t, languageId, onModalOpenChange, prefetched, onTokensClaimed, refreshKey = 0 }) {
-  const [data, setData] = useState(prefetched || null);
-  const [loading, setLoading] = useState(!prefetched);
+  // Hydrate the initial render from prefetched > module cache > null.
+  // The lazy module-cache hit eliminates the "0/N" flash on tab-switch
+  // remounts that happen all the time on mobile when the user bounces
+  // between Dashboard and Profile.
+  const cachedInitial = username ? achievementsCache.get(username) || null : null;
+  const [data, setData] = useState(prefetched || cachedInitial || null);
+  // Loading is only true when we have NOTHING to show. With cache
+  // hit we render real numbers immediately and refetch silently
+  // underneath.
+  const [loading, setLoading] = useState(!prefetched && !cachedInitial);
   const [focused, setFocused] = useState(null);
   const [expanded, setExpanded] = useState(false);
   // Per-code unlock-rate stats from /api/achievements/stats. Loaded
@@ -121,9 +138,12 @@ export default function AchievementsSection({ username, t, languageId, onModalOp
     if (!username) return;
     try {
       const res = await fetchAchievements(username);
+      // Stash in the module cache so the next mount with this
+      // username paints real numbers without waiting for the network.
+      achievementsCache.set(username, res);
       setData(res);
     } catch {
-      setData({ achievements: [], unlockedCount: 0, total: ACHIEVEMENT_ORDER.length });
+      setData((prev) => prev || { achievements: [], unlockedCount: 0, total: ACHIEVEMENT_ORDER.length });
     } finally {
       setLoading(false);
     }
@@ -173,12 +193,16 @@ export default function AchievementsSection({ username, t, languageId, onModalOp
       // without waiting for a refetch round-trip.
       setData((prev) => {
         if (!prev?.achievements) return prev;
-        return {
+        const next = {
           ...prev,
           achievements: prev.achievements.map((a) =>
             a.code === code ? { ...a, claimedAt: resp?.claimedAt || new Date().toISOString() } : a
           )
         };
+        // Keep the cache aligned with the optimistic update so a
+        // tab-switch remount immediately reflects the claimed state.
+        achievementsCache.set(username, next);
+        return next;
       });
       if (granted > 0 && typeof onTokensClaimed === "function") {
         onTokensClaimed(granted);
