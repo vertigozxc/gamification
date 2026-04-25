@@ -3072,14 +3072,20 @@ app.post("/api/onboarding/skip", async (req, res) => {
   }
 });
 
-// Finish the animated onboarding tour. Awards +1 level (xp reset to 0,
-// xpNext grows by 10% just like a normal level-up) and stamps the tour
-// completion timestamp so the gate stops firing on future logins.
+// Finish the animated onboarding tour. Credits a flat 250 XP bonus
+// (which, for a brand-new level-1 user with the default xpNext=250,
+// rolls cleanly into a +1 level-up via the standard xp/xpNext loop;
+// for higher-level users it's a chunky XP boost that may or may not
+// cross a level threshold). The user-facing copy across the app still
+// reads "+1 level" — that's the promise we make to new players — but
+// the underlying mechanic is now XP, not a hard level bump. Then
+// stamps the tour completion timestamp so the gate stops firing on
+// future logins.
 app.post("/api/onboarding/tour/complete", async (req, res) => {
   const schema = z.object({
     username: z.string().min(2).max(64),
     // If the user tapped "Skip" instead of walking through, we still mark
-    // the tour as seen, but do NOT award the +1 level bonus.
+    // the tour as seen, but do NOT credit the XP bonus.
     awardLevel: z.boolean().optional()
   });
   try {
@@ -3100,9 +3106,22 @@ app.post("/api/onboarding/tour/complete", async (req, res) => {
     const shouldAward = parsed.awardLevel !== false;
     const nextData = { onboardingTourCompletedAt: new Date() };
     if (shouldAward) {
-      nextData.level = (user.level || 1) + 1;
-      nextData.xp = 0;
-      nextData.xpNext = Math.floor((user.xpNext || 250) * 1.1);
+      // Add 250 XP, then drain it into level-ups using the same
+      // xpNext * 1.1 progression curve the rest of the game uses.
+      // Bounded loop (5 iters) so a pathological xpNext=0 row can't
+      // spin forever — way more than the 1 level-up 250 XP can cause
+      // for any realistic xpNext value.
+      let nextXp = (user.xp || 0) + 250;
+      let nextLevel = user.level || 1;
+      let nextXpNext = user.xpNext || 250;
+      for (let i = 0; i < 5 && nextXp >= nextXpNext && nextXpNext > 0; i += 1) {
+        nextXp -= nextXpNext;
+        nextLevel += 1;
+        nextXpNext = Math.floor(nextXpNext * 1.1);
+      }
+      nextData.xp = nextXp;
+      nextData.level = nextLevel;
+      nextData.xpNext = nextXpNext;
     }
 
     const updatedUser = await prisma.user.update({

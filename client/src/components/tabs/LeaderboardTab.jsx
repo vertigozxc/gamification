@@ -293,7 +293,12 @@ export default function LeaderboardTab({ authUser, t: tProp }) {
         touchAction: "pan-y",
       }}
     >
-      <div style={{ paddingBottom: 24, display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* `data-tour="community-section"` wraps both the hero (section
+          header) and the tab bar so the onboarding tour spotlight
+          covers the whole introductory chunk of the screen, not just
+          the slim slide bar. The original `community-tabs` data-tour
+          on the tabs row stays for any other consumers. */}
+      <div data-tour="community-section" style={{ paddingBottom: 24, display: "flex", flexDirection: "column", gap: 14 }}>
         <CommunityHero t={t} leaderboard={leaderboard} meUid={meUid} />
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>

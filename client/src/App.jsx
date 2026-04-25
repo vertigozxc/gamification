@@ -463,34 +463,26 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       scroll: true
     });
     // New habits tour flow matching the slide-bar design:
-    // 1) Custom tab introduction → 2) Presets tab with "pick 2" gate
-    //    → (next) 3) Start Adventure
-    // Show Presets (ready-made) first, then the Custom tab. Both
-    // highlight the same wrapper — tour uses fillBottom so the
-    // spotlight extends from the slide bar to the bottom of the
-    // viewport and never resizes as the user picks habits.
+    // Single habits step: user picks `pinnedLimit` (default 2) habits
+    // from the Presets tab and the tour auto-advances the moment the
+    // selection count crosses the threshold. The previous flow walked
+    // the user through a separate "Custom" tab tour step, but it was
+    // mostly noise — the Custom tab is still reachable via the slide
+    // bar and the Custom tab is visible inside the spotlight, so the
+    // walkthrough step was redundant. fillBottom keeps the spotlight
+    // anchored to the slide bar's top edge so it doesn't resize as
+    // the user picks habits.
     list.push({
       id: "habits-browse",
       hidden: hideSetup,
       target: '[data-tour="habits-picker"]',
-      title: t.tourHabitsBrowseTitle || "Ready-made habits",
-      text: t.tourHabitsBrowseText || "Filter by category or search. Pick 2 habits you want to build, then tap Next.",
-      gate: "next",
-      onEnter: () => { setWizardStep(1); setForcedHabitsTab("presets"); },
-      bubblePlacement: "top",
-      fillBottom: true,
-      scroll: false
-    });
-    list.push({
-      id: "habits-custom",
-      hidden: hideSetup,
-      target: '[data-tour="habits-picker"]',
-      title: t.tourHabitsCustomTitle || "Your custom habits",
-      text: t.tourHabitsCustomText || "This tab is where you build your own habits. Tap Next once you've finished picking.",
+      title: t.tourHabitsBrowseTitle || "Pick your habits",
+      text: t.tourHabitsBrowseText || "Choose 2 habits you want to build daily. Filter by category, search, or open the Custom tab to add your own.",
       gate: "condition",
       isSatisfied: () => Array.isArray(onboardingQuestIds) && onboardingQuestIds.length >= pinnedLimit,
-      autoAdvance: false,
-      onEnter: () => { setWizardStep(1); setForcedHabitsTab("custom"); },
+      autoAdvance: true,
+      hideNext: true,
+      onEnter: () => { setWizardStep(1); setForcedHabitsTab("presets"); },
       bubblePlacement: "top",
       fillBottom: true,
       scroll: false
@@ -509,9 +501,12 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       onEnter: () => setWizardStep(1),
       scroll: true
     });
-    // Main tour, post-setup. No auto-switching between mobile tabs —
-    // the user drives every transition by actually tapping the tab bar.
-    // DASHBOARD: quest-board overview → daily tab tap → board rewards
+    // Main tour, post-setup. The tour drives every tab transition
+    // itself via onEnter; the user never has to tap a tab manually.
+    // DASHBOARD: quest-board overview → daily-board overview.
+    // The "tap the Daily tab" step was removed — the daily-board
+    // step targets the standalone Daily Board card on the Dashboard,
+    // not the QuestBoard's daily content, so the tap was unnecessary.
     list.push({
       id: "quest-board",
       target: '[data-tour="quest-board"]',
@@ -521,15 +516,6 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       hideBack: true,
       // First post-setup step — make sure we're on the dashboard.
       onEnter: () => { startTransition(() => setMobileTab("dashboard")); },
-      scroll: true
-    });
-    list.push({
-      id: "qb-tab-daily",
-      target: '[data-tour="qb-tab-daily"]',
-      title: t.tourDailyQuestsTitle || "Daily quests",
-      text: t.tourDailyQuestsText || "Tap the Daily tab — every day you get a random set of quests.",
-      gate: "tap",
-      bubblePlacement: "bottom",
       scroll: true
     });
     list.push({
@@ -609,9 +595,12 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       scroll: true
     });
     // COMMUNITY — auto-switch tab + pre-select the Activity sub-tab.
+    // Spotlight target is the SECTION wrapper (hero + tabs together)
+    // rather than the slide bar alone, so the user sees the whole
+    // community surface lit up, not just a 40-px-tall pill row.
     list.push({
       id: "community",
-      target: '[data-tour="community-tabs"]',
+      target: '[data-tour="community-section"]',
       title: t.tourCommunityTitle || "Community",
       text: t.tourCommunityText || "See the week's active players, add friends, take on group challenges.",
       gate: "next",
@@ -619,33 +608,28 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         startTransition(() => setMobileTab("leaderboard"));
         try { window.__pendingSocialSubTab = "activity"; } catch { /* noop */ }
       },
-      scroll: true
+      bubblePlacement: "bottom",
+      scroll: true,
+      scrollBlock: "start"
     });
-    // PROFILE: hero → achievements → settings → finale (auto-switch).
+    // PROFILE — single step that spotlights the WHOLE visible
+    // profile screen (hero + achievements + settings) instead of
+    // walking the user through three separate sub-cards. fillBottom
+    // anchors the cutout to the hero card's top edge and stretches
+    // it down to the viewport bottom, so everything currently on
+    // screen is part of the active zone. Auto-switches to the
+    // profile tab on enter.
     list.push({
-      id: "profile-hero",
+      id: "profile-overview",
       target: '[data-tour="profile-hero"]',
-      title: t.tourProfileHeroTitle || "Your profile",
-      text: t.tourProfileHeroText || "Name, level, XP, streak, tokens — all your stats live here.",
+      title: t.tourProfileTitle || "Your profile",
+      text: t.tourProfileText || "Name, level, XP, streak, tokens, achievements and settings — everything that's yours lives on this screen.",
       gate: "next",
       onEnter: () => { startTransition(() => setMobileTab("profile")); },
-      scroll: true
-    });
-    list.push({
-      id: "profile-achievements",
-      target: '[data-tour="profile-achievements"]',
-      title: t.tourProfileAchievementsTitle || "Achievements",
-      text: t.tourProfileAchievementsText || "Every milestone you hit unlocks an achievement here.",
-      gate: "next",
-      scroll: true
-    });
-    list.push({
-      id: "profile-settings",
-      target: '[data-tour="profile-settings"]',
-      title: t.tourProfileSettingsTitle || "Settings",
-      text: t.tourProfileSettingsText || "Theme, language, and a replay of this tour — all here.",
-      gate: "next",
-      scroll: true
+      bubblePlacement: "top",
+      fillBottom: true,
+      scroll: true,
+      scrollBlock: "start"
     });
     return list;
   // Note: mobileTab intentionally omitted — the tour drives tab swaps
@@ -732,6 +716,14 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
 
     const anyOverlayOpen = Boolean(
       showOnboarding
+      // Hide the native tab bar entirely while the animated tour is
+      // running. The tour drives all tab transitions itself via
+      // onEnter callbacks, and letting the user tap a tab manually
+      // would jump them off the script. The native shell can't be
+      // told "disabled but visible" without native code, so the
+      // pragmatic solution is to hide it for the ~2-minute duration
+      // of the tour.
+      || showTour
       || cityFullscreen
       || showPinnedReplaceModal
       || pinnedReplacementOpening
@@ -767,7 +759,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     } catch { /* bridge missing — WebView tearing down */ }
   }, [
     isEmbeddedApp, authUser, authLoading, dataLoading, initialDataResolved,
-    showOnboarding, mobileTab, cityFullscreen, showPinnedReplaceModal, pinnedReplacementOpening,
+    showOnboarding, showTour, mobileTab, cityFullscreen, showPinnedReplaceModal, pinnedReplacementOpening,
     showAbout, showQuiz, showActivityLogs, tierUnlock, showLogoutConfirm, showLevelUp, showHabitMilestone,
     showFreezeSuccess, showRerollConfirm, showNotesModal, showThemePicker,
     showLanguagePicker, achievementModalOpen, showNotesHistory, deleteProfileOpen, questCompletePopup, timerLimitPopup,
