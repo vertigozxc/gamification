@@ -45,6 +45,7 @@ export default function ProfileTab({
   username, onFreezeUsed,
   onOpenAbout,
   onOpenNotesHistory,
+  onOpenQuiz,
   onDeleteConfirmStateChange,
   onAchievementModalChange,
   onRestartTour
@@ -243,6 +244,16 @@ export default function ProfileTab({
       <div data-tour="profile-settings" className="mobile-card flex flex-col" style={{ background: "var(--panel-bg)", padding: "12px 0" }}>
         <p className="cinzel text-xs font-bold tracking-widest uppercase mb-1" style={{ color: "var(--color-primary)", padding: "0 16px 8px" }}>{t.profileSettingsTitle}</p>
         <div className="profile-settings-list">
+          {onOpenQuiz ? (
+            <button className="profile-settings-row" onClick={onOpenQuiz}>
+              <span className="text-xl w-8 text-center">🎓</span>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{t.profileQuizLabel || "Knowledge Quiz"}</p>
+                <p className="text-[11px] opacity-70" style={{ color: "var(--color-muted)" }}>{t.profileQuizHint || "10 questions on game mechanics — pass to earn a reward"}</p>
+              </div>
+              <span className="opacity-70 text-sm" style={{ color: "var(--color-muted)" }}>›</span>
+            </button>
+          ) : null}
           <button className="profile-settings-row" onClick={onOpenThemePicker}>
             <span className="text-xl w-8 text-center">{themes[themeId].icon}</span>
             <div className="flex-1 text-left">

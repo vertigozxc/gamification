@@ -295,6 +295,42 @@ export function Phoenix() {
   );
 }
 
+/* 11. scholar — graduation cap on an open scroll, signalling "studied
+   the rules and aced the test". Same gold palette as the other
+   knowledge-flavoured icons. */
+export function Scholar() {
+  return (
+    <Icon code="sc">
+      <defs>
+        <linearGradient id="sc-cap" x1="0%" y1="0%" x2="0%" y2="100%">{GOLD_STOPS}</linearGradient>
+        <linearGradient id="sc-scroll" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#fef3c7" />
+          <stop offset="100%" stopColor="#d97706" />
+        </linearGradient>
+      </defs>
+      {/* Open scroll behind */}
+      <g transform="translate(0,4)">
+        <path d="M22 56 Q24 50 28 50 L68 50 Q72 50 74 56 L74 70 Q72 76 68 76 L28 76 Q24 76 22 70 Z" fill="url(#sc-scroll)" stroke="#92400e" strokeWidth="1" />
+        <line x1="32" y1="60" x2="64" y2="60" stroke="#92400e" strokeWidth="1.2" opacity="0.55" />
+        <line x1="32" y1="65" x2="60" y2="65" stroke="#92400e" strokeWidth="1.2" opacity="0.45" />
+      </g>
+      {/* Mortarboard */}
+      <g transform="translate(0,-2)">
+        <path d="M48 24 L24 34 L48 44 L72 34 Z" fill="url(#sc-cap)" stroke="#7c2d12" strokeWidth="1" />
+        <path d="M36 38 L36 50 Q42 54 48 54 Q54 54 60 50 L60 38" fill="none" stroke="url(#sc-cap)" strokeWidth="3" strokeLinecap="round" />
+        {/* Tassel */}
+        <line x1="60" y1="34" x2="64" y2="48" stroke="#fbbf24" strokeWidth="1.4" strokeLinecap="round" />
+        <circle cx="64" cy="50" r="2" fill="#fbbf24" stroke="#7c2d12" strokeWidth="0.6" />
+      </g>
+      {/* Tiny stars to read as "passed" */}
+      <g fill="#fde68a" opacity="0.85">
+        <path d="M20 22 l1.2 2.4 l2.6 0.4 l-1.9 1.8 l0.5 2.6 l-2.4 -1.2 l-2.4 1.2 l0.5 -2.6 l-1.9 -1.8 l2.6 -0.4 z" />
+        <path d="M76 26 l0.9 1.8 l2 0.3 l-1.5 1.4 l0.4 2 l-1.8 -0.9 l-1.8 0.9 l0.4 -2 l-1.5 -1.4 l2 -0.3 z" />
+      </g>
+    </Icon>
+  );
+}
+
 export const ACHIEVEMENT_ICONS = {
   week_warrior: WeekWarrior,
   month_monk: MonthMonk,
@@ -305,5 +341,6 @@ export const ACHIEVEMENT_ICONS = {
   first_coin: FirstCoin,
   high_roller: HighRoller,
   polyglot: Polyglot,
-  phoenix: Phoenix
+  phoenix: Phoenix,
+  scholar: Scholar
 };

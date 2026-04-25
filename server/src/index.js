@@ -6153,6 +6153,78 @@ app.get("/api/users/:username/achievements", async (req, res) => {
   }
 });
 
+// Knowledge Quiz — idempotent reward grant. The quiz logic itself is
+// client-only (questions live in client/src/components/modals/quizPool.js)
+// so this endpoint trusts the caller for the score: in exchange we
+// guarantee the reward only fires once per user via the userAchievement
+// uniqueness constraint on (userId, code = "scholar"). Subsequent calls
+// after the first pass return justUnlocked: false with no token grant.
+const SCHOLAR_TOKEN_REWARD = 10;
+app.post("/api/quiz/scholar/claim", async (req, res) => {
+  const schema = z.object({ username: z.string().min(2).max(64) });
+  try {
+    const { username } = schema.parse(req.body);
+    const user = await prisma.user.findUnique({
+      where: { username: slugifyUsername(username) },
+      select: { id: true, tokens: true }
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const existing = await prisma.userAchievement.findUnique({
+      where: { userId_code: { userId: user.id, code: "scholar" } }
+    }).catch(() => null);
+
+    if (existing) {
+      return res.json({
+        ok: true,
+        justUnlocked: false,
+        tokensGranted: 0,
+        tokens: Number(user.tokens) || 0
+      });
+    }
+
+    const now = new Date();
+    let tokensAfter = Number(user.tokens) || 0;
+    try {
+      const updated = await prisma.$transaction(async (tx) => {
+        await tx.userAchievement.create({
+          data: { userId: user.id, code: "scholar", unlockedAt: now }
+        });
+        const u = await tx.user.update({
+          where: { id: user.id },
+          data: { tokens: { increment: SCHOLAR_TOKEN_REWARD } },
+          select: { tokens: true }
+        });
+        return u;
+      });
+      tokensAfter = updated.tokens;
+    } catch (txErr) {
+      // Race condition — another claim slipped in just before us. Treat
+      // the achievement as already unlocked and don't double-grant.
+      const fresh = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { tokens: true }
+      });
+      return res.json({
+        ok: true,
+        justUnlocked: false,
+        tokensGranted: 0,
+        tokens: Number(fresh?.tokens) || tokensAfter
+      });
+    }
+
+    return res.json({
+      ok: true,
+      justUnlocked: true,
+      tokensGranted: SCHOLAR_TOKEN_REWARD,
+      tokens: tokensAfter
+    });
+  } catch (error) {
+    console.error(`[Quiz Claim Error] ${error?.message || error}`);
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
 app.post("/api/profiles/theme", async (req, res) => {
   const schema = z.object({
     username: z.string().min(2).max(64),

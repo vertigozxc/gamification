@@ -641,6 +641,13 @@ export function fetchAchievements(username) {
   return request(`/api/users/${encodeURIComponent(username)}/achievements`);
 }
 
+export function claimQuizScholar(username) {
+  return request("/api/quiz/scholar/claim", {
+    method: "POST",
+    body: JSON.stringify({ username })
+  });
+}
+
 export function deleteProfile(userId) {
   return request(`/api/profiles/${encodeURIComponent(userId)}`, { method: "DELETE" });
 }

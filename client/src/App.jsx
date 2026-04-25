@@ -55,6 +55,7 @@ import { IconTimer } from "./components/icons/Icons";
 
 const FreezeSuccessModal = lazy(() => import("./components/modals/FreezeSuccessModal"));
 const ResidentialAutoGrantModal = lazy(() => import("./components/modals/ResidentialAutoGrantModal"));
+const QuizModal = lazy(() => import("./components/modals/QuizModal"));
 const StreakBurnedDialog = lazy(() => import("./components/modals/StreakBurnedDialog"));
 const RerollConfirmModal = lazy(() => import("./components/modals/RerollConfirmModal"));
 const LogoutConfirmModal = lazy(() => import("./components/modals/LogoutConfirmModal"));
@@ -192,6 +193,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
   const [achievementModalOpen, setAchievementModalOpen] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
   const [questCompletePopup, setQuestCompletePopup] = useState(null);
   const [deleteProfileOpen, setDeleteProfileOpen] = useState(false);
   // These are also referenced in the mobile-shell-state useEffect dependency
@@ -698,6 +700,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       setShowThemePicker(false);
       setShowLanguagePicker(false);
       setShowAbout(false);
+      setShowQuiz(false);
       setSingleHabitPickerOpen(false);
       setMobileTab(normalizeMobileTab(event?.detail));
     };
@@ -744,6 +747,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       || showPinnedReplaceModal
       || pinnedReplacementOpening
       || showAbout
+      || showQuiz
       || showLogoutConfirm
       || showLevelUp
       || showHabitMilestone
@@ -773,7 +777,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   }, [
     isEmbeddedApp, authUser, authLoading, dataLoading, initialDataResolved,
     showOnboarding, mobileTab, cityFullscreen, showPinnedReplaceModal, pinnedReplacementOpening,
-    showAbout, showLogoutConfirm, showLevelUp, showHabitMilestone,
+    showAbout, showQuiz, showLogoutConfirm, showLevelUp, showHabitMilestone,
     showFreezeSuccess, showRerollConfirm, showNotesModal, showThemePicker,
     showLanguagePicker, achievementModalOpen, showNotesHistory, deleteProfileOpen, questCompletePopup, timerLimitPopup,
     singleHabitPickerOpen, languageId
@@ -1948,6 +1952,23 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
 
       <Suspense fallback={null}>
         <AboutAppModal open={showAbout} onClose={() => setShowAbout(false)} />
+        <QuizModal
+          open={showQuiz}
+          username={authUser?.uid}
+          onClose={() => setShowQuiz(false)}
+          onPassed={({ tokensGranted, justUnlocked }) => {
+            // Mirror the server-side grant locally so the Profile token
+            // count refreshes without waiting for the next game-state
+            // refetch. Achievements card re-fetches its list on next
+            // open via its existing `username` dep.
+            if (justUnlocked && Number(tokensGranted) > 0) {
+              setState((prev) => ({
+                ...prev,
+                tokens: (Number(prev.tokens) || 0) + Number(tokensGranted)
+              }));
+            }
+          }}
+        />
       </Suspense>
 
       <Suspense fallback={null}>
@@ -2347,6 +2368,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 onOpenLanguagePicker={() => setShowLanguagePicker(true)}
                 onAchievementModalChange={setAchievementModalOpen}
                 onOpenAbout={() => setShowAbout(true)}
+                onOpenQuiz={() => setShowQuiz(true)}
                 onOpenNotesHistory={() => setShowNotesHistory(true)}
                 onRestartTour={handleRestartTour}
                 onLogout={() => setShowLogoutConfirm(true)}

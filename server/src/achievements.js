@@ -14,7 +14,12 @@ export const ACHIEVEMENT_CODES = [
   "first_coin",
   "high_roller",
   "polyglot",
-  "phoenix"
+  "phoenix",
+  // Knowledge Quiz pass — granted exclusively by /api/quiz/scholar/claim
+  // when the user scores 10/10 for the first time. evaluateAchievements
+  // does not infer it from user state (no field to derive it from), so
+  // it lives in this list purely for ordering / rendering.
+  "scholar"
 ];
 
 const HIGH_ROLLER_THRESHOLD = 200;
