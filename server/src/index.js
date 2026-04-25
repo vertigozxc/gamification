@@ -6314,7 +6314,7 @@ app.post("/api/achievements/claim", async (req, res) => {
 // open. The cache is single-instance (each Render worker has its own),
 // which is fine for this read-only stat — staleness up to the TTL is
 // acceptable, and exact precision matters less than freshness.
-const ACHIEVEMENT_STATS_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const ACHIEVEMENT_STATS_TTL_MS = 60 * 60 * 1000; // 60 minutes
 let achievementStatsCache = { at: 0, payload: null };
 
 async function buildAchievementStats() {
