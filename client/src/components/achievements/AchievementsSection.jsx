@@ -24,19 +24,22 @@ const ACHIEVEMENT_ORDER = [
 ];
 
 // Format a percent for the popup. Below 0.1% we collapse the noise to
-// a single "rare achievement" callout per the design.
+// a single "rare achievement" callout per the design. Above 100% (which
+// can happen briefly when the cached active-user count lags behind a
+// surge of unlocks) we clamp to 100% — the display can never claim
+// "Unlocked by 110% of players".
 function formatPercent(p, t) {
-  const num = Number(p);
+  let num = Number(p);
   if (!Number.isFinite(num) || num <= 0) {
     return t.achievementStatRare || "Less than 0.1% of players";
   }
   if (num < 0.1) return t.achievementStatRare || "Less than 0.1% of players";
+  if (num > 100) num = 100;
+  const tpl = t.achievementStatPercent || "Unlocked by {percent}% of players";
   if (num < 10) {
     const fixed = num.toFixed(1).replace(/\.0$/, "");
-    const tpl = t.achievementStatPercent || "Unlocked by {percent}% of players";
     return tpl.replace("{percent}", fixed);
   }
-  const tpl = t.achievementStatPercent || "Unlocked by {percent}% of players";
   return tpl.replace("{percent}", String(Math.round(num)));
 }
 

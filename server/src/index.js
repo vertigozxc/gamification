@@ -6338,10 +6338,16 @@ async function buildAchievementStats() {
   const stats = {};
   for (const code of ACHIEVEMENT_CODES) {
     const c = Number(counts.get(code)) || 0;
+    // Cap at 100% — the unlocked count can briefly exceed the active
+    // user denominator (e.g. dormant accounts that earned a milestone
+    // before unlocking quest-completion tracking, or a stat cache that
+    // beat a fresh wave of unlocks). The popup must never read
+    // "120% of players unlocked this".
+    const raw = (c / safeTotal) * 100;
     stats[code] = {
       unlockedCount: c,
       eligibleTotal: safeTotal,
-      percent: (c / safeTotal) * 100
+      percent: Math.min(100, raw)
     };
   }
   return { totalActiveUsers: safeTotal, stats };
