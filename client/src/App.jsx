@@ -548,24 +548,18 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       scroll: true,
       scrollBlock: "center"
     });
-    // CITY: user taps the City tab themselves → tour highlights districts etc
-    list.push({
-      id: "tab-switch-city",
-      kind: "tab-switch",
-      tabAnchor: "city",
-      title: t.tourTabCityTitle || "Next stop: your city",
-      text: t.tourTabCityText || "Tap the City tab in the bottom bar to keep going.",
-      gate: "condition",
-      isSatisfied: () => mobileTab === "city",
-      autoAdvance: true,
-      hideNext: true
-    });
+    // CITY: tour switches to the city tab automatically (no more
+    // "tap the City tab" prompts — those interrupt the flow and the
+    // native iOS tab bar can't be properly highlighted from the
+    // WebView). The new tab is selected on enter and the spotlight
+    // fades back in once City has rendered.
     list.push({
       id: "city-hero",
       target: '[data-tour="city-hero"]',
       title: t.tourCityTitle || "Your city",
       text: t.tourCityText || "Every habit you complete grows this city. Let's take a walk through it.",
       gate: "next",
+      onEnter: () => { startTransition(() => setMobileTab("city")); },
       scroll: true
     });
     list.push({
@@ -604,65 +598,37 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       bubblePlacement: "top",
       scroll: true
     });
-    // STORE
-    list.push({
-      id: "tab-switch-store",
-      kind: "tab-switch",
-      tabAnchor: "store",
-      title: t.tourTabStoreTitle || "On to the store",
-      text: t.tourTabStoreText || "Tap the Store tab in the bottom bar.",
-      gate: "condition",
-      isSatisfied: () => mobileTab === "store",
-      autoAdvance: true,
-      hideNext: true
-    });
+    // STORE — auto-switch tab on enter.
     list.push({
       id: "store-hero",
       target: '[data-tour="store-hero"]',
       title: t.tourStoreTitle || "The store",
       text: t.tourStoreText || "Spend tokens on streak freezes, extra rerolls or an XP boost.",
       gate: "next",
+      onEnter: () => { startTransition(() => setMobileTab("store")); },
       scroll: true
     });
-    // COMMUNITY
-    list.push({
-      id: "tab-switch-community",
-      kind: "tab-switch",
-      tabAnchor: "leaderboard",
-      title: t.tourTabCommunityTitle || "Community time",
-      text: t.tourTabCommunityText || "Tap the Community tab in the bottom bar.",
-      gate: "condition",
-      isSatisfied: () => mobileTab === "leaderboard",
-      autoAdvance: true,
-      hideNext: true,
-      onEnter: () => { try { window.__pendingSocialSubTab = "activity"; } catch { /* noop */ } }
-    });
+    // COMMUNITY — auto-switch tab + pre-select the Activity sub-tab.
     list.push({
       id: "community",
       target: '[data-tour="community-tabs"]',
       title: t.tourCommunityTitle || "Community",
       text: t.tourCommunityText || "See the week's active players, add friends, take on group challenges.",
       gate: "next",
+      onEnter: () => {
+        startTransition(() => setMobileTab("leaderboard"));
+        try { window.__pendingSocialSubTab = "activity"; } catch { /* noop */ }
+      },
       scroll: true
     });
-    // PROFILE: hero → achievements → settings → finale
-    list.push({
-      id: "tab-switch-profile",
-      kind: "tab-switch",
-      tabAnchor: "profile",
-      title: t.tourTabProfileTitle || "One last stop",
-      text: t.tourTabProfileText || "Tap the Profile tab in the bottom bar — we'll wrap up there.",
-      gate: "condition",
-      isSatisfied: () => mobileTab === "profile",
-      autoAdvance: true,
-      hideNext: true
-    });
+    // PROFILE: hero → achievements → settings → finale (auto-switch).
     list.push({
       id: "profile-hero",
       target: '[data-tour="profile-hero"]',
       title: t.tourProfileHeroTitle || "Your profile",
       text: t.tourProfileHeroText || "Name, level, XP, streak, tokens — all your stats live here.",
       gate: "next",
+      onEnter: () => { startTransition(() => setMobileTab("profile")); },
       scroll: true
     });
     list.push({
@@ -682,8 +648,11 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       scroll: true
     });
     return list;
+  // Note: mobileTab intentionally omitted — the tour drives tab swaps
+  // via onEnter callbacks now, and including it would cause the whole
+  // step list to rebuild on every tab change.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t, tf, showOnboarding, onboardingName, onboardingQuestIds, state?.questSlots?.pinned, state?.districtLevels, wizardStep, mobileTab]);
+  }, [t, tf, showOnboarding, onboardingName, onboardingQuestIds, state?.questSlots?.pinned, state?.districtLevels, wizardStep]);
 
   useEffect(() => {
     uidRef.current = authUser ? authUser.uid : null;

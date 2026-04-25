@@ -177,6 +177,12 @@ export default function AnimatedOnboardingTour({
   const [typewriterKey, setTypewriterKey] = useState(0);
   const [askSkipConfirm, setAskSkipConfirm] = useState(false);
   const [finaleOpen, setFinaleOpen] = useState(false);
+  // The highlight ring is INVISIBLE while the spotlight is mid-transition
+  // and only fades in once the target rect has been still for a beat.
+  // Prevents the user from ever seeing the ring "fly" between steps —
+  // it just disappears, the cutout snaps to the new target, and the
+  // ring quietly reappears at the final position.
+  const [targetSettled, setTargetSettled] = useState(false);
   // When the mobile keyboard opens, window.innerHeight stays roughly
   // the same but visualViewport.height shrinks — read from visualViewport
   // when available so curtain heights and bubble positions stay sane
@@ -404,6 +410,23 @@ export default function AnimatedOnboardingTour({
     };
   }, [open, step]);
 
+  // The highlight ring is hidden by default and only fades in once the
+  // target rect has gone STILL for ~220 ms. Every rectTick bump (RAF
+  // burst, ResizeObserver, MutationObserver, scroll) restarts the timer,
+  // so as long as the spotlight is in motion the ring stays invisible.
+  // The moment everything settles, the ring appears at its final
+  // position — the user never sees it travel.
+  useEffect(() => {
+    setTargetSettled(false);
+  }, [step?.id]);
+
+  useEffect(() => {
+    if (!open || !step) return undefined;
+    if (step.kind === "center" || step.kind === "tab-switch") return undefined;
+    const id = setTimeout(() => setTargetSettled(true), 220);
+    return () => clearTimeout(id);
+  }, [open, step, rectTick]);
+
   // Gate = "tap": intercept pointerdown anywhere on document. If the
   // pointer is inside the target rect → advance the tour. Otherwise
   // shake the bubble to signal "wrong spot".
@@ -487,12 +510,9 @@ export default function AnimatedOnboardingTour({
     setStepIndex(nextIndex);
   }, [open, step, stepIndex, stepCount]);
 
-  // Go back one step. Welcome (index 0) has no previous step.
-  const goBack = useCallback(() => {
-    if (!open || stepIndex <= 0) return;
-    enteredIdRef.current = null;
-    setStepIndex(stepIndex - 1);
-  }, [open, stepIndex]);
+  // (The Back button was removed from the bubble — the user can only
+  // advance forward or Skip the entire tour. `goBack` and `canGoBack`
+  // were dropped along with the rendering call site.)
 
   // For gate:"condition" steps that explicitly opt into auto-advance,
   // advance the moment the condition flips true. By default steps wait
@@ -636,7 +656,6 @@ export default function AnimatedOnboardingTour({
     : (t.tourNextLabel || "Next"));
 
   const isWelcome = step.kind === "welcome";
-  const canGoBack = stepIndex > 0;
 
   return (
     <div className={`tour-root ${finaleOpen ? "tour-root--finale" : ""}`} aria-live="polite">
@@ -662,11 +681,13 @@ export default function AnimatedOnboardingTour({
         </svg>
       ) : null}
 
-      {/* Glowing highlight ring on top of the SVG cutout — purely
-          decorative, no pointer events. Re-uses the existing
-          .tour-highlight pulse animation. */}
-      {!isWelcome && highlight ? (
+      {/* Glowing highlight ring on top of the SVG cutout — gated by
+          targetSettled so the user never sees it mid-flight between
+          steps. Keyed by step.id so React unmounts/remounts on every
+          step change, restarting the fade-in animation cleanly. */}
+      {!isWelcome && highlight && targetSettled ? (
         <div
+          key={`tour-highlight-${step.id}`}
           className="tour-highlight"
           style={{
             position: "fixed",
@@ -677,33 +698,6 @@ export default function AnimatedOnboardingTour({
           }}
         />
       ) : null}
-
-      {/* Pulsing glow ring at the bottom edge of the WebView for
-          tab-switch steps. The native iOS tab bar lives BELOW the
-          WebView (outside the DOM), so we can't truly highlight a
-          tab button — instead we draw a prominent ring at the
-          calculated tab x-position right above the safe area, with
-          the existing bubble's down-arrow pointing at it. */}
-      {layout?.kind === "tab-switch" ? (() => {
-        const TAB_ORDER = ["city", "leaderboard", "dashboard", "store", "profile"];
-        const idx = TAB_ORDER.indexOf(step.tabAnchor);
-        if (idx < 0) return null;
-        const tabCenterX = ((idx + 0.5) * viewport.w) / TAB_ORDER.length;
-        const RING = 88;
-        return (
-          <div
-            className="tour-tab-glow"
-            aria-hidden="true"
-            style={{
-              position: "fixed",
-              left: Math.round(tabCenterX - RING / 2),
-              bottom: Math.max(0, safeBottom - 6),
-              width: RING,
-              height: RING
-            }}
-          />
-        );
-      })() : null}
 
       {/* Top progress strip removed per design — progress now lives
           inside the bubble (see below) and inside the welcome card. */}
@@ -760,28 +754,6 @@ export default function AnimatedOnboardingTour({
           <div className="tour-bubble-title">{typedTitle}{!titleDone ? <span className="tour-caret" /> : null}</div>
           <div className="tour-bubble-text">{typedText}{titleDone && !textDone ? <span className="tour-caret" /> : null}</div>
 
-          {step.kind === "tab-switch" ? (() => {
-            // Native bottom tab order on the mobile shell. Keep this
-            // aligned with the shell's layout: [city, leaderboard,
-            // dashboard, store, profile].
-            const TAB_ORDER = ["city", "leaderboard", "dashboard", "store", "profile"];
-            const tabCount = TAB_ORDER.length;
-            const idx = TAB_ORDER.indexOf(step.tabAnchor);
-            const tabCenterX = idx >= 0
-              ? ((idx + 0.5) * viewport.w) / tabCount
-              : viewport.w / 2;
-            const bubbleLeft = bubble?.left ?? 0;
-            const arrowX = Math.max(18, Math.min((bubble?.width || viewport.w) - 18, tabCenterX - bubbleLeft));
-            return (
-              <div className="tour-tab-arrow" aria-hidden style={{ position: "relative", height: 40 }}>
-                <span
-                  className="tour-tab-arrow-glyph"
-                  style={{ position: "absolute", left: arrowX, transform: "translateX(-50%)" }}
-                >▼</span>
-              </div>
-            );
-          })() : null}
-
           <div className="tour-progress-inline" aria-hidden>
             <div className="tour-progress-inline-track">
               <div className="tour-progress-inline-fill" style={{ width: `${Math.min(100, pct)}%` }} />
@@ -790,18 +762,19 @@ export default function AnimatedOnboardingTour({
           </div>
 
           <div className="tour-bubble-actions">
-            {canGoBack && !step.hideBack ? (
-              <button
-                type="button"
-                className="tour-back mobile-pressable cinzel"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  goBack();
-                }}
-              >
-                {t.tourBackLabel || "Back"}
-              </button>
-            ) : null}
+            {/* Skip → opens the same confirm dialog the welcome screen
+                uses. There is no Back button anywhere in the tour: the
+                user either advances forward or bails out entirely. */}
+            <button
+              type="button"
+              className="tour-skip-inline mobile-pressable cinzel"
+              onClick={(e) => {
+                e.stopPropagation();
+                setAskSkipConfirm(true);
+              }}
+            >
+              {t.tourSkipLabel || "Skip"}
+            </button>
             {step.hideNext ? null : (
               <button
                 type="button"
