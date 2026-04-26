@@ -322,8 +322,8 @@ function Rows({ rows }) {
             gap: 10,
             padding: "8px 10px",
             borderRadius: 10,
-            background: "rgba(0,0,0,0.22)",
-            border: "1px solid var(--panel-border)"
+            background: "color-mix(in srgb, var(--panel-bg) 65%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--card-border-idle) 65%, transparent)"
           }}
         >
           <span style={{ fontSize: 13, color: "var(--color-text)", fontWeight: 600 }}>{row.label}</span>

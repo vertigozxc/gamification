@@ -107,7 +107,7 @@ function formatDate(value, languageId) {
   }
 }
 
-export default function AchievementsSection({ username, t, languageId, onModalOpenChange, prefetched, onTokensClaimed, refreshKey = 0 }) {
+export default function AchievementsSection({ username, t, languageId, onModalOpenChange, prefetched, onTokensClaimed, refreshKey = 0, readOnly = false }) {
   // Hydrate the initial render from prefetched > module cache > null.
   // The lazy module-cache hit eliminates the "0/N" flash on tab-switch
   // remounts that happen all the time on mobile when the user bounces
@@ -360,6 +360,7 @@ export default function AchievementsSection({ username, t, languageId, onModalOp
           languageId={languageId}
           onClaim={handleClaim}
           onClose={() => setFocused(null)}
+          readOnly={readOnly}
         />,
         document.body
       )}
@@ -367,7 +368,7 @@ export default function AchievementsSection({ username, t, languageId, onModalOp
   );
 }
 
-function AchievementModal({ code, entry, stats, t, languageId, onClaim, onClose }) {
+function AchievementModal({ code, entry, stats, t, languageId, onClaim, onClose, readOnly = false }) {
   const Icon = ACHIEVEMENT_ICONS[code];
   const meta = getMeta(code, t);
   const locked = !entry?.unlocked;
@@ -407,7 +408,11 @@ function AchievementModal({ code, entry, stats, t, languageId, onClaim, onClose 
     setClaiming(false);
   };
 
-  const showClaimCta = !locked && !effectiveClaimedAt && reward > 0;
+  // readOnly is set when viewing someone else's profile — claim is
+  // owner-only; the achievement modal still opens for browsing, but
+  // the CTA collapses to the same "reward locked" preview locked
+  // achievements get.
+  const showClaimCta = !locked && !effectiveClaimedAt && reward > 0 && !readOnly;
   const showClaimedRow = !locked && !!effectiveClaimedAt && reward > 0;
 
   return (
@@ -579,6 +584,7 @@ function AchievementModal({ code, entry, stats, t, languageId, onClaim, onClose 
               </button>
             ) : (
               <div
+                className="ach-claimed-pill"
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -586,9 +592,9 @@ function AchievementModal({ code, entry, stats, t, languageId, onClaim, onClose 
                   gap: 8,
                   padding: "10px 14px",
                   borderRadius: 12,
-                  background: "color-mix(in srgb, #4ade80 12%, transparent)",
+                  background: "color-mix(in srgb, #4ade80 14%, transparent)",
                   border: "1px solid color-mix(in srgb, #4ade80 50%, transparent)",
-                  color: "#bbf7d0",
+                  color: "#15803d",
                   fontSize: 13,
                   fontWeight: 700
                 }}

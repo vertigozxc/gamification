@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTheme } from "../../ThemeContext";
+import InputWithClear from "../InputWithClear";
 import { IconCheck, IconClose, IconList, IconSparkle, IconTrash } from "../icons/Icons";
 import Avatar from "../social/Avatar";
 import {
@@ -789,17 +790,16 @@ function RedeemBlock({ t, tf, input, setInput, status, ownerHandle, saving, disa
     <div style={{ marginBottom: 22 }}>
       <SectionHeader title={t.referralsHaveCodeHeading || "I have a friend's code"} />
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <input
-          type="text"
+        <InputWithClear
           value={input}
-          onChange={(event) => setInput(event.target.value)}
+          onChange={setInput}
           maxLength={MAX_LEN}
           placeholder={t.referralStepInputPlaceholder || ""}
-          autoComplete="off"
-          autoCorrect="off"
           autoCapitalize="characters"
+          autoCorrect="off"
           spellCheck={false}
-          style={{
+          clearAriaLabel={t.clearLabel || "Clear"}
+          inputStyle={{
             padding: "10px 12px",
             borderRadius: 10,
             background: "rgba(0,0,0,0.35)",
@@ -811,8 +811,6 @@ function RedeemBlock({ t, tf, input, setInput, status, ownerHandle, saving, disa
             fontFamily: "var(--font-heading)",
             letterSpacing: "0.1em",
             textTransform: "uppercase",
-            width: "100%",
-            boxSizing: "border-box"
           }}
         />
         {hint.text ? (

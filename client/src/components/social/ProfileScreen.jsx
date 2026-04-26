@@ -133,7 +133,7 @@ export default function ProfileScreen({ targetUsername, meUsername, t, languageI
             <Hero profile={profile} t={t} />
             <StatGrid profile={profile} t={t} languageId={languageId} />
             {inlineAction}
-            <AchievementsSection username={targetUsername} t={t} languageId={languageId} prefetched={achievements} />
+            <AchievementsSection username={targetUsername} t={t} languageId={languageId} prefetched={achievements} readOnly={!isSelf} />
             <CityCard profile={profile} t={t} />
             {error && <p style={{ fontSize: 14, color: "#ff6a63", textAlign: "center" }}>{error}</p>}
           </div>

@@ -1290,7 +1290,7 @@ export const languagePacks = {
       achievementsTitle: "Достижения",
       achievementLockedTitle: "Закрыто",
       achievementLockedHint: "Закрыто — продолжай играть, чтобы открыть",
-      achievementUnlockedOn: "Получено",
+      achievementUnlockedOn: "Открыто",
       closeLabel: "Закрыть",
       achWeekWarriorName: "Воин недели",
       achWeekWarriorDesc: "Держи стрик 7 дней. Постоянство — основа любой привычки.",

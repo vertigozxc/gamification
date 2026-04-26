@@ -1014,7 +1014,8 @@ body[data-theme="light"] .social-block .cm-tabs-slider {
   font-size: inherit;
   cursor: pointer;
 }
-.social-block .cm-row + .cm-row::before {
+.social-block .cm-row + .cm-row::before,
+.social-block [data-tour="community-top3"] + .cm-row::before {
   content: "";
   position: absolute;
   top: 0;
