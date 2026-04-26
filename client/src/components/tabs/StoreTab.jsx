@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import SilverVault from "../SilverVault";
 import CouponIcon from "../CouponIcon";
 import COSMETIC_ITEMS, { parseOwnedCosmetics } from "../../data/cosmetics";
@@ -184,10 +185,18 @@ function InventorySheet({ slot, onClose, t }) {
     countHint = slot.count;
   }
 
-  return (
+  // Render through a portal to document.body so the overlay escapes
+  // any ancestor with `transform` / `filter` / `isolation` (the tab
+  // content stack does have these — they break `backdrop-filter` and
+  // can leave intermediate panels poking through above a low-z-index
+  // overlay). Same pattern AchievementsSection and other modals use.
+  // The .logout-confirm-overlay class already carries z-index: 10001
+  // and backdrop-filter: blur(6px) — we just need to NOT override
+  // them inline.
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div
       className="logout-confirm-overlay"
-      style={{ zIndex: 95 }}
       onClick={onClose}
     >
       <div
@@ -269,7 +278,8 @@ function InventorySheet({ slot, onClose, t }) {
           ) : null}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
