@@ -2391,6 +2391,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             {mobileTab === "dashboard" ? (
               <Suspense fallback={<PortalPreloader title={t.loadingText} overlay />}>
               <DashboardTab
+                questsLoaded={initialDataResolved}
                 state={state}
                 characterName={characterName}
                 t={t}

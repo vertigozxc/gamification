@@ -30,6 +30,7 @@ export default function DashboardTab({
   emptyOtherSlotCount,
   onOpenHabitPicker,
   authUser,
+  questsLoaded = true,
 }) {
   const { themeId } = useTheme();
   const isLight = themeId === "light";
@@ -206,8 +207,35 @@ export default function DashboardTab({
         </div>
       </div>
 
-      {/* Quest board with Habits / Quests / Challenges tabs */}
-      <div data-tour="quest-board" className="mobile-card" style={{ background: "var(--panel-bg)" }}>
+      {/* Quest board with Habits / Quests / Challenges tabs.
+          Section-level loader covers the daily-reset row, tab bar
+          and quest list until BOTH the user's gameplay state and
+          the group-challenges fetch have resolved — without it the
+          tab bar briefly renders without challenges or with an empty
+          quest list, which reads as a glitch on slower connections. */}
+      <div
+        data-tour="quest-board"
+        className="mobile-card"
+        style={{ background: "var(--panel-bg)", position: "relative", minHeight: questsLoaded && challengesLoaded ? undefined : 280 }}
+      >
+        {questsLoaded && challengesLoaded ? null : (
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "color-mix(in srgb, var(--panel-bg) 96%, transparent)",
+              borderRadius: "inherit",
+              zIndex: 5,
+              backdropFilter: "blur(2px)"
+            }}
+          >
+            <div className="ref-spinner" />
+          </div>
+        )}
         <QuestBoard
           pinnedQuests={pinnedQuests} otherQuests={otherQuests}
           pinnedQuestProgressById={pinnedQuestProgressById}
