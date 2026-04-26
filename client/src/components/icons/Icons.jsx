@@ -439,59 +439,106 @@ export function IconGlobe(props) {
 }
 
 // ─── Currencies ───────────────────────────────────────────────────
-// Lost-Ark-inspired coin pair. Both share the same minted-coin chassis
-// — outer rim, inner ring, ornamental notches around the perimeter —
-// and differ only by the central emblem. Silver: clean 4-point compass
-// star (cardinal feel). Gold: ornate 8-point sunburst (more rays =
-// more ceremony).
+// Solid-minted coin pair — Lost Ark inspired. These two are SEMANTIC
+// currency icons: silver looks like silver, gold looks like gold, in
+// every theme. We don't go through the base <Icon> wrapper because we
+// need fine-grained control over fill / stroke per shape (a single
+// `currentColor` won't sell the "metal disc" look). No gradients per
+// the project icon rules — depth comes from layered solid fills in
+// three tones: dark (rim/recessed), base (coin body), light (raised
+// engraving + highlights).
 //
-// EXCEPTION to the project's icon style guide: these two are semantic
-// currency icons — silver is always silver-coloured, gold is always
-// gold-coloured, in every theme. We hardcode metallic stroke + a soft
-// inner fill so the coin reads as a "minted" object instead of a flat
-// outline. Callers can still override `stroke` / `fill` by passing
-// them explicitly (the spread below puts caller props after the
-// metallic defaults).
+// Decoration on the front face: central star emblem, inner rim line,
+// cardinal/diagonal notches on the outer edge, accent dots between —
+// the kind of minted detail a real game-currency coin carries.
 
-const SILVER_STROKE = "#cdd5e0"; // bright steel rim
-const SILVER_FILL   = "#7c8b9e1f"; // ~12% steel wash inside the coin
-const GOLD_STROKE   = "#f0c14a"; // warm amber rim
-const GOLD_FILL     = "#d4a4341f"; // ~12% gold wash inside the coin
+// Silver palette — cool steel
+const SILVER_DARK  = "#6E7B91";
+const SILVER_BASE  = "#A0AEBF";
+const SILVER_LIGHT = "#DCE3EE";
 
-export function IconSilver({ stroke = SILVER_STROKE, fill = SILVER_FILL, ...props }) {
+// Gold palette — warm amber
+const GOLD_DARK  = "#8A6818";
+const GOLD_BASE  = "#D4A437";
+const GOLD_LIGHT = "#F4CF6B";
+
+export function IconSilver({ size = 18, className, style, ...props }) {
   return (
-    <Icon stroke={stroke} {...props}>
-      {/* coin chassis: outer rim + inner engraved ring (filled with a
-          subtle steel wash so the disc reads as a minted object, not
-          just two empty rings stacked together) */}
-      <circle cx="12" cy="12" r="10" fill={fill} />
-      <circle cx="12" cy="12" r="7.2" />
-      {/* 4-point compass star (cardinal axes), filled with the same
-          steel wash so it sits in the recess of the coin face */}
-      <polygon points="12 6.5 13.6 10.4 17.5 12 13.6 13.6 12 17.5 10.4 13.6 6.5 12 10.4 10.4" fill={fill} />
-      {/* 4 cardinal rim notches — tiny ticks suggesting a milled coin edge */}
-      <line x1="12" y1="2" x2="12" y2="3.2" />
-      <line x1="12" y1="20.8" x2="12" y2="22" />
-      <line x1="2" y1="12" x2="3.2" y2="12" />
-      <line x1="20.8" y1="12" x2="22" y2="12" />
-    </Icon>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      className={className}
+      style={style}
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      {/* Solid silver disc — fully filled coin body with darker rim stroke */}
+      <circle cx="12" cy="12" r="10.5" fill={SILVER_BASE} stroke={SILVER_DARK} strokeWidth="1" />
+      {/* Inner engraved rim line */}
+      <circle cx="12" cy="12" r="7.6" fill="none" stroke={SILVER_DARK} strokeWidth="0.7" />
+      {/* Central 4-point compass star — raised "embossed" engraving */}
+      <polygon
+        points="12 6.6 13.6 10.4 17.4 12 13.6 13.6 12 17.4 10.4 13.6 6.6 12 10.4 10.4"
+        fill={SILVER_LIGHT}
+        stroke={SILVER_DARK}
+        strokeWidth="0.5"
+        strokeLinejoin="round"
+      />
+      {/* Center inset dot */}
+      <circle cx="12" cy="12" r="0.85" fill={SILVER_DARK} />
+      {/* 4 cardinal rim notches (milled-edge feel) */}
+      <line x1="12" y1="1.6" x2="12" y2="2.9" stroke={SILVER_LIGHT} strokeWidth="1.3" strokeLinecap="round" />
+      <line x1="12" y1="21.1" x2="12" y2="22.4" stroke={SILVER_LIGHT} strokeWidth="1.3" strokeLinecap="round" />
+      <line x1="1.6" y1="12" x2="2.9" y2="12" stroke={SILVER_LIGHT} strokeWidth="1.3" strokeLinecap="round" />
+      <line x1="21.1" y1="12" x2="22.4" y2="12" stroke={SILVER_LIGHT} strokeWidth="1.3" strokeLinecap="round" />
+      {/* Diagonal accent dots between cardinal notches — face decoration */}
+      <circle cx="7.6" cy="7.6" r="0.55" fill={SILVER_LIGHT} />
+      <circle cx="16.4" cy="7.6" r="0.55" fill={SILVER_LIGHT} />
+      <circle cx="7.6" cy="16.4" r="0.55" fill={SILVER_LIGHT} />
+      <circle cx="16.4" cy="16.4" r="0.55" fill={SILVER_LIGHT} />
+    </svg>
   );
 }
 
-export function IconGold({ stroke = GOLD_STROKE, fill = GOLD_FILL, ...props }) {
+export function IconGold({ size = 18, className, style, ...props }) {
   return (
-    <Icon stroke={stroke} {...props}>
-      {/* same coin chassis as silver, with the gold wash */}
-      <circle cx="12" cy="12" r="10" fill={fill} />
-      <circle cx="12" cy="12" r="7.2" />
-      {/* 8-point sunburst star — outer R≈5, inner R≈2 from center 12,12 */}
-      <polygon points="12 7 12.77 10.15 15.54 8.46 13.85 11.23 17 12 13.85 12.77 15.54 15.54 12.77 13.85 12 17 11.23 13.85 8.46 15.54 10.15 12.77 7 12 10.15 11.23 8.46 8.46 11.23 10.15" fill={fill} />
-      {/* 4 diagonal rim notches — offset 45° from silver to keep the pair distinct */}
-      <line x1="4.5" y1="4.5" x2="5.4" y2="5.4" />
-      <line x1="18.6" y1="5.4" x2="19.5" y2="4.5" />
-      <line x1="19.5" y1="19.5" x2="18.6" y2="18.6" />
-      <line x1="5.4" y1="18.6" x2="4.5" y2="19.5" />
-    </Icon>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      className={className}
+      style={style}
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      {/* Solid gold disc */}
+      <circle cx="12" cy="12" r="10.5" fill={GOLD_BASE} stroke={GOLD_DARK} strokeWidth="1" />
+      {/* Inner engraved rim */}
+      <circle cx="12" cy="12" r="7.6" fill="none" stroke={GOLD_DARK} strokeWidth="0.7" />
+      {/* Central 8-point sunburst star — outer R≈5, inner R≈2.1 from (12,12) */}
+      <polygon
+        points="12 6.8 12.8 10.2 15.7 8.3 13.85 11.2 17.2 12 13.85 12.8 15.7 15.7 12.8 13.85 12 17.2 11.2 13.85 8.3 15.7 10.15 12.8 6.8 12 10.15 11.2 8.3 8.3 11.2 10.2"
+        fill={GOLD_LIGHT}
+        stroke={GOLD_DARK}
+        strokeWidth="0.5"
+        strokeLinejoin="round"
+      />
+      {/* Center jewel inset */}
+      <circle cx="12" cy="12" r="1" fill={GOLD_DARK} />
+      {/* 4 diagonal notches — offset 45° from silver to make the pair distinct */}
+      <line x1="4.6" y1="4.6" x2="5.6" y2="5.6" stroke={GOLD_LIGHT} strokeWidth="1.3" strokeLinecap="round" />
+      <line x1="18.4" y1="5.6" x2="19.4" y2="4.6" stroke={GOLD_LIGHT} strokeWidth="1.3" strokeLinecap="round" />
+      <line x1="19.4" y1="19.4" x2="18.4" y2="18.4" stroke={GOLD_LIGHT} strokeWidth="1.3" strokeLinecap="round" />
+      <line x1="5.6" y1="18.4" x2="4.6" y2="19.4" stroke={GOLD_LIGHT} strokeWidth="1.3" strokeLinecap="round" />
+      {/* Cardinal accent dots — face decoration between rays */}
+      <circle cx="12" cy="2.7" r="0.6" fill={GOLD_LIGHT} />
+      <circle cx="12" cy="21.3" r="0.6" fill={GOLD_LIGHT} />
+      <circle cx="2.7" cy="12" r="0.6" fill={GOLD_LIGHT} />
+      <circle cx="21.3" cy="12" r="0.6" fill={GOLD_LIGHT} />
+    </svg>
   );
 }
 

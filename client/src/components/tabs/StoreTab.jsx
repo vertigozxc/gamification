@@ -306,6 +306,14 @@ export default function StoreTab({
     ownedCosmetics: ownedList
   });
 
+  // CSS-grid columns: active tab gets 2fr (room for label), inactive
+  // tabs get 1fr each (collapsing to icon-only). The CSS transition
+  // on grid-template-columns handles the smooth expand/collapse the
+  // user sees on the dashboard.
+  const gridTemplateColumns = TABS
+    .map((tab) => (tab.id === activeTab ? "2fr" : "1fr"))
+    .join(" ");
+
   return (
     <div className="flex flex-col gap-4">
       {/* Compact dual-currency wallet header — silver + gold balance pills */}
@@ -342,6 +350,7 @@ export default function StoreTab({
       <div
         ref={tabsRowRef}
         className="qb-tab-bar qb-tab-bar-expand"
+        style={{ gridTemplateColumns }}
         role="tablist"
       >
         <div ref={indicatorRef} className="qb-tab-indicator" />
