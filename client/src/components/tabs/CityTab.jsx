@@ -1154,7 +1154,7 @@ export default function CityTab({
                     </span>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                       <ReqChip icon="⭐" label={`${t.districtReqLevelPrefix || "Lvl"} ${userLevel} / ${nextReq.level}`} met={userLevel >= nextReq.level} current={userLevel} />
-                      <ReqChip icon={<IconSilver size={18} />} label={`${silver} / ${nextReq.silver}`} met={silver >= nextReq.silver} current={silver} />
+                      <ReqChip icon={<IconSilver size={23} />} label={`${silver} / ${nextReq.silver}`} met={silver >= nextReq.silver} current={silver} />
                       {nextReq.streak > 0 && (
                         <ReqChip icon="🔥" label={`${userStreak} / ${nextReq.streak}`} met={userStreak >= nextReq.streak} current={userStreak} />
                       )}
