@@ -158,6 +158,9 @@ async function request(path, options = {}) {
 export function upsertProfile(username, displayName, photoUrl) {
   return request("/api/profiles/upsert", {
     method: "POST",
+    // Idempotent — server upserts by username, so retrying after a
+    // transient network blip doesn't double-create.
+    idempotent: true,
     body: JSON.stringify({ username, displayName, photoUrl })
   });
 }
@@ -177,6 +180,12 @@ export function fetchAllQuests({ level, streak } = {}) {
 export function completeOnboarding(username, displayName, preferredQuestIds, photoUrl, handle) {
   return request("/api/onboarding/complete", {
     method: "POST",
+    // Idempotent — sets a fixed set of preferred quests on the user
+    // row. Replays with the same payload converge to the same state.
+    // Without this, a transient mobile-network blip during the
+    // critical "Start Adventure" tap shows "Load failed" to the user
+    // (we logged exactly that case in admin events 2026-04-26 22:36).
+    idempotent: true,
     body: JSON.stringify({ username, displayName, preferredQuestIds, photoUrl, handle })
   });
 }
@@ -184,6 +193,8 @@ export function completeOnboarding(username, displayName, preferredQuestIds, pho
 export function skipOnboarding(username, displayName, photoUrl, handle) {
   return request("/api/onboarding/skip", {
     method: "POST",
+    // Idempotent — stamps onboardingSkippedAt; replay is a no-op.
+    idempotent: true,
     body: JSON.stringify({ username, displayName, photoUrl, handle })
   });
 }
@@ -194,6 +205,11 @@ export function skipOnboarding(username, displayName, photoUrl, handle) {
 export function completeOnboardingTour(username, { awardLevel = true } = {}) {
   return request("/api/onboarding/tour/complete", {
     method: "POST",
+    // Idempotent — server short-circuits with `alreadyCompleted: true`
+    // on replay (see /api/onboarding/tour/complete handler), so the
+    // +1 level reward only fires once even if the network blip
+    // forces a retry.
+    idempotent: true,
     body: JSON.stringify({ username, awardLevel })
   });
 }
@@ -201,6 +217,8 @@ export function completeOnboardingTour(username, { awardLevel = true } = {}) {
 export function resetOnboardingTour(username) {
   return request("/api/onboarding/tour/reset", {
     method: "POST",
+    // Idempotent — clears onboardingTourCompletedAt; replay is a no-op.
+    idempotent: true,
     body: JSON.stringify({ username })
   });
 }
