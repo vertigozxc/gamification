@@ -266,6 +266,21 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       return "dashboard";
     }
 
+    // One-shot crash-recovery override. ErrorBoundary writes
+    // `rpg_recover_to` before reloading so the freshly-booted app
+    // doesn't immediately re-mount the tab that just crashed. The
+    // flag is consumed (removed) on the way out so a normal reload
+    // later doesn't keep forcing the user to Dashboard.
+    try {
+      const recover = localStorage.getItem("rpg_recover_to");
+      if (recover) {
+        localStorage.removeItem("rpg_recover_to");
+        return recover;
+      }
+    } catch {
+      // ignore — fall through to default
+    }
+
     try {
       const params = new URLSearchParams(window.location.search);
       if (params.get("embed") !== "1") {

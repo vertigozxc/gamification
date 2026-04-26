@@ -433,6 +433,10 @@ export const languagePacks = {
       errorBoundaryBody: "We've already been notified and we're looking into it. Try the action again, or reload the app to recover.",
       errorBoundaryRetryCta: "Try again",
       errorBoundaryReloadCta: "Reload",
+      // Stuck-mode (3+ crashes in 5 minutes)
+      errorBoundaryStuckTitle: "Looks like something's stuck",
+      errorBoundaryStuckBody: "Same error keeps happening. A clean reset of local data usually fixes it. Your account, levels and city stay safe — only local preferences (language, last tab) get cleared.",
+      errorBoundaryResetCta: "Reset app",
       logSection: "📋 Activity Log",
       dailyBoardTooltip: "Daily board, random quests, and streak progress refresh at midnight local time. Be sure to complete your quests to earn rewards and increase your streak!",
       dailyQuestFreshBadge: "NEW",
@@ -1739,6 +1743,10 @@ export const languagePacks = {
       errorBoundaryBody: "Мы уже знаем об ошибке и разбираемся. Попробуй ещё раз или перезагрузи приложение.",
       errorBoundaryRetryCta: "Попробовать снова",
       errorBoundaryReloadCta: "Перезагрузить",
+      // Stuck-mode (3+ крашей за 5 минут)
+      errorBoundaryStuckTitle: "Проблема не уходит",
+      errorBoundaryStuckBody: "Видим повторяющуюся ошибку. Чистый сброс локальных данных обычно помогает. Аккаунт, уровни и город не пострадают — сбросятся только локальные настройки (язык, последний таб).",
+      errorBoundaryResetCta: "Сбросить приложение",
       dailyQuestFreshBadge: "НОВЫЕ",
       silverUnit: "серебра",
       silverIcon: "🪙",
