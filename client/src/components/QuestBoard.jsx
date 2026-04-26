@@ -465,31 +465,33 @@ function QuestBoard({
   const challengeDoneToday = accepted.filter((c) => c.myLastCompletionDayKey === tKey || optimisticSet.has(c.id)).length;
   const challengePendingCount = challenges.length - accepted.length;
 
-  // Slide the active-tab indicator pill under the current button —
-  // mirrors the Community tab bar (LeaderboardTab) for a consistent
-  // visual + animation language across the app.
-  //
-  // Two cases need to SNAP without transition (otherwise the
-  // indicator visibly resizes/slides for no user-initiated reason):
-  //   1. First mount — without snapping it would briefly flash at
-  //      x=0 before sliding to the active tab.
-  //   2. The tabs list changes (e.g. the conditional Challenges tab
-  //      appears mid-session because a new pending challenge arrived
-  //      from the server, or tab counts in the labels change width).
-  //      The active tab is the same in this case but its width
-  //      shrinks/grows because the row redistributes its grid cells —
-  //      animating that shrink reads as "the highlight is glitching"
-  //      from the user's perspective.
-  // Anything else (the user actively tapping a different tab, label
-  // text change inside the same tab) keeps the smooth sliding
-  // transition that makes the affordance feel polished.
+  // Tab-bar grid template — expanding-active layout:
+  //  - 2 tabs (no Challenges): 1fr / 1fr (equal split, both labels shown).
+  //  - 3 tabs: active = 2fr, inactive = 1fr (inactive tabs collapse to
+  //    just their icon so Challenges + Habits + Quests fit on mobile).
+  // Animated via CSS transition on grid-template-columns.
+  const isEqualLayout = tabs.length <= 2;
+  const gridTemplateColumns = isEqualLayout
+    ? tabs.map(() => "1fr").join(" ")
+    : tabs.map((tab) => (tab === activeQTab ? "2fr" : "1fr")).join(" ");
+
+  // Slide indicator: the absolute pill physically tracks the active
+  // button via transform/width updated on each animation frame for
+  // ~420ms after a tab switch. Because grid-template-columns is also
+  // transitioning, the active button's offsetLeft/offsetWidth change
+  // over the animation window — the rAF loop keeps the indicator
+  // glued to the moving target instead of snapping to the final size.
+  // First-mount and tab-count changes snap without transition so the
+  // indicator doesn't flash from x=0 or "glitch" when the tab list
+  // gains/loses Challenges mid-session.
   useLayoutEffect(() => {
-    if (!tabsRowRef.current || !indicatorRef.current) return;
-    const activeBtn = tabsRowRef.current.querySelector(`[data-qtab="${activeQTab}"]`);
-    if (!activeBtn) return;
+    if (!tabsRowRef.current || !indicatorRef.current) return undefined;
     const ind = indicatorRef.current;
     const apply = () => {
-      if (!indicatorRef.current) return;
+      const row = tabsRowRef.current;
+      if (!row || !indicatorRef.current) return;
+      const activeBtn = row.querySelector(`[data-qtab="${activeQTab}"]`);
+      if (!activeBtn) return;
       indicatorRef.current.style.width = `${activeBtn.offsetWidth}px`;
       indicatorRef.current.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
     };
@@ -501,17 +503,26 @@ function QuestBoard({
       ind.style.transition = "none";
       apply();
       // eslint-disable-next-line no-unused-expressions
-      ind.offsetHeight; // force reflow so "transition: none" sticks
+      ind.offsetHeight;
       ind.style.transition = prev;
       ind.dataset.qbMeasured = "1";
       ind.dataset.qbTabsKey = tabsKey;
-    } else {
-      apply();
+      return undefined;
     }
-    const raf = requestAnimationFrame(apply);
-    return () => cancelAnimationFrame(raf);
+    let rafId = 0;
+    let startTs = 0;
+    const durationMs = 420;
+    const sync = (ts) => {
+      if (!startTs) startTs = ts;
+      apply();
+      if (ts - startTs < durationMs) {
+        rafId = requestAnimationFrame(sync);
+      }
+    };
+    rafId = requestAnimationFrame(sync);
+    return () => { if (rafId) cancelAnimationFrame(rafId); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeQTab, tabs.join(","), pinnedDone, otherDone, challengePendingCount, t.pinnedSection, t.otherSection, t.challengesTab]);
+  }, [activeQTab, tabs.join(","), gridTemplateColumns, pinnedDone, otherDone, challengePendingCount, t.pinnedSection, t.otherSection, t.challengesTab]);
 
   return (
     <div className={`relative ${compact ? "" : "lg:col-span-2"}`}>
@@ -529,13 +540,19 @@ function QuestBoard({
 
       {postTimerRow ? <div className="mb-3">{postTimerRow}</div> : null}
 
-      {/* Tab bar — same plain sliding-pill style as the Community tab
-          bar (LeaderboardTab). Labels are always visible; the
-          conditional 3rd "Challenges" tab simply renders or doesn't
-          based on `hasChallenges`, and the indicator re-measures via
-          the useLayoutEffect dep on tabs.join(","). */}
+      {/* Tab bar — expanding-active variant.
+          When 3 tabs are present (Habits / Quests / Challenges),
+          inactive tabs collapse to icon-only; the active tab gets 2fr
+          of grid space so its label and count stay visible. With only
+          2 tabs (no Challenges) it falls back to a 1fr/1fr equal split
+          with both labels always visible (.qb-tab-bar-equal flag). */}
       {tabs.length > 1 && (
-        <div ref={tabsRowRef} role="tablist" className="qb-tab-bar mb-4">
+        <div
+          ref={tabsRowRef}
+          role="tablist"
+          className={`qb-tab-bar qb-tab-bar-expand mb-4${isEqualLayout ? " qb-tab-bar-equal" : ""}`}
+          style={{ gridTemplateColumns }}
+        >
           <div
             ref={indicatorRef}
             className={`qb-tab-indicator${activeQTab === "challenges" ? " qb-tab-indicator-chal" : ""}`}
@@ -546,8 +563,9 @@ function QuestBoard({
               data-qtab="habits" data-tour="qb-tab-habits"
               className={`qb-tab-btn ${activeQTab === "habits" ? "qb-tab-active" : ""}`}
               onClick={() => setActiveQTab("habits")}>
-              <span style={{ display: "inline-flex", alignItems: "center" }}><IconHabitsPin size={15} /></span> {t.pinnedSection}
-              <span className="qb-tab-count">{pinnedDone}/{pinnedSlotTotal}</span>
+              <span className="qb-tab-icon"><IconHabitsPin size={15} /></span>
+              <span className="qb-tab-label">{t.pinnedSection}</span>
+              <span className="qb-tab-count qb-tab-label">{pinnedDone}/{pinnedSlotTotal}</span>
             </button>
           )}
 
@@ -556,8 +574,9 @@ function QuestBoard({
               data-qtab="daily" data-tour="qb-tab-daily"
               className={`qb-tab-btn ${activeQTab === "daily" ? "qb-tab-active" : ""}`}
               onClick={() => { setActiveQTab("daily"); if (showFreshDailyBadge) markDailyTabSeen(); }}>
-              <span style={{ display: "inline-flex", alignItems: "center" }}><IconDice size={15} /></span> {t.otherSection}
-              <span className="qb-tab-count">{otherDone}/{otherSlotTotal}</span>
+              <span className="qb-tab-icon"><IconDice size={15} /></span>
+              <span className="qb-tab-label">{t.otherSection}</span>
+              <span className="qb-tab-count qb-tab-label">{otherDone}/{otherSlotTotal}</span>
               {showFreshDailyBadge ? (
                 <span className="qb-tab-fresh" aria-label={t.dailyQuestFreshBadge || "NEW"}>
                   <span className="qb-tab-fresh__spark"><IconSpark size={9} /></span>
@@ -572,7 +591,8 @@ function QuestBoard({
               data-qtab="challenges"
               className={`qb-tab-btn ${activeQTab === "challenges" ? "qb-tab-active" : ""}`}
               onClick={() => setActiveQTab("challenges")}>
-              <span style={{ display: "inline-flex", alignItems: "center" }}><IconSwords size={15} /></span> {t.challengesTab || "Challenges"}
+              <span className="qb-tab-icon"><IconSwords size={15} /></span>
+              <span className="qb-tab-label">{t.challengesTab || "Challenges"}</span>
               {challengePendingCount > 0 ? (
                 <span className="qb-tab-count qb-tab-count-alert">{challengePendingCount}</span>
               ) : null}
