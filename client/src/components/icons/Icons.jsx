@@ -439,106 +439,53 @@ export function IconGlobe(props) {
 }
 
 // ─── Currencies ───────────────────────────────────────────────────
-// Solid-minted coin pair — Lost Ark inspired. These two are SEMANTIC
-// currency icons: silver looks like silver, gold looks like gold, in
-// every theme. We don't go through the base <Icon> wrapper because we
-// need fine-grained control over fill / stroke per shape (a single
-// `currentColor` won't sell the "metal disc" look). No gradients per
-// the project icon rules — depth comes from layered solid fills in
-// three tones: dark (rim/recessed), base (coin body), light (raised
-// engraving + highlights).
+// Raster currency icons (PNG, hosted in client/public/coins/). The
+// previous SVG mint had three-tone fills + center engraving — the
+// current art replaces it with painted ornate-medallion art. Same
+// component API (size / className / style props) so all ~20 callers
+// across StoreTab, SilverVault, ProfilePanel, CityTab,
+// AchievementsSection, App.jsx, etc. pick up the new look without
+// any change at the call sites.
 //
-// Decoration on the front face: central star emblem, inner rim line,
-// cardinal/diagonal notches on the outer edge, accent dots between —
-// the kind of minted detail a real game-currency coin carries.
+// Note: stroke / fill props that the SVG version accepted are
+// silently dropped — raster art has fixed colour. Theme integration
+// is at the surrounding chip level (border / glow), not on the coin
+// glyph itself.
 
-// Silver palette — cool steel
-const SILVER_DARK  = "#6E7B91";
-const SILVER_BASE  = "#A0AEBF";
-const SILVER_LIGHT = "#DCE3EE";
+const SILVER_PNG = "/coins/silver-medallion.png";
+const GOLD_PNG   = "/coins/coin-medallion.png";
 
-// Gold palette — warm amber
-const GOLD_DARK  = "#8A6818";
-const GOLD_BASE  = "#D4A437";
-const GOLD_LIGHT = "#F4CF6B";
-
-export function IconSilver({ size = 18, className, style, ...props }) {
+function CoinImage({ src, alt, size, className, style }) {
   return (
-    <svg
+    <img
+      src={src}
+      alt={alt}
       width={size}
       height={size}
-      viewBox="0 0 24 24"
+      draggable={false}
       className={className}
-      style={style}
-      aria-hidden="true"
-      focusable="false"
-      {...props}
-    >
-      {/* Solid silver disc — fully filled coin body with darker rim stroke */}
-      <circle cx="12" cy="12" r="10.5" fill={SILVER_BASE} stroke={SILVER_DARK} strokeWidth="1" />
-      {/* Inner engraved rim line */}
-      <circle cx="12" cy="12" r="7.6" fill="none" stroke={SILVER_DARK} strokeWidth="0.7" />
-      {/* Central 4-point compass star — raised "embossed" engraving */}
-      <polygon
-        points="12 6.6 13.6 10.4 17.4 12 13.6 13.6 12 17.4 10.4 13.6 6.6 12 10.4 10.4"
-        fill={SILVER_LIGHT}
-        stroke={SILVER_DARK}
-        strokeWidth="0.5"
-        strokeLinejoin="round"
-      />
-      {/* Center inset dot */}
-      <circle cx="12" cy="12" r="0.85" fill={SILVER_DARK} />
-      {/* 4 cardinal rim notches (milled-edge feel) */}
-      <line x1="12" y1="1.6" x2="12" y2="2.9" stroke={SILVER_LIGHT} strokeWidth="1.3" strokeLinecap="round" />
-      <line x1="12" y1="21.1" x2="12" y2="22.4" stroke={SILVER_LIGHT} strokeWidth="1.3" strokeLinecap="round" />
-      <line x1="1.6" y1="12" x2="2.9" y2="12" stroke={SILVER_LIGHT} strokeWidth="1.3" strokeLinecap="round" />
-      <line x1="21.1" y1="12" x2="22.4" y2="12" stroke={SILVER_LIGHT} strokeWidth="1.3" strokeLinecap="round" />
-      {/* Diagonal accent dots between cardinal notches — face decoration */}
-      <circle cx="7.6" cy="7.6" r="0.55" fill={SILVER_LIGHT} />
-      <circle cx="16.4" cy="7.6" r="0.55" fill={SILVER_LIGHT} />
-      <circle cx="7.6" cy="16.4" r="0.55" fill={SILVER_LIGHT} />
-      <circle cx="16.4" cy="16.4" r="0.55" fill={SILVER_LIGHT} />
-    </svg>
+      style={{
+        display: "inline-block",
+        width: size,
+        height: size,
+        objectFit: "contain",
+        userSelect: "none",
+        verticalAlign: "middle",
+        ...(style || {})
+      }}
+    />
   );
 }
 
-export function IconGold({ size = 18, className, style, ...props }) {
+export function IconSilver({ size = 18, className, style }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      className={className}
-      style={style}
-      aria-hidden="true"
-      focusable="false"
-      {...props}
-    >
-      {/* Solid gold disc */}
-      <circle cx="12" cy="12" r="10.5" fill={GOLD_BASE} stroke={GOLD_DARK} strokeWidth="1" />
-      {/* Inner engraved rim */}
-      <circle cx="12" cy="12" r="7.6" fill="none" stroke={GOLD_DARK} strokeWidth="0.7" />
-      {/* Central 8-point sunburst star — outer R≈5, inner R≈2.1 from (12,12) */}
-      <polygon
-        points="12 6.8 12.8 10.2 15.7 8.3 13.85 11.2 17.2 12 13.85 12.8 15.7 15.7 12.8 13.85 12 17.2 11.2 13.85 8.3 15.7 10.15 12.8 6.8 12 10.15 11.2 8.3 8.3 11.2 10.2"
-        fill={GOLD_LIGHT}
-        stroke={GOLD_DARK}
-        strokeWidth="0.5"
-        strokeLinejoin="round"
-      />
-      {/* Center jewel inset */}
-      <circle cx="12" cy="12" r="1" fill={GOLD_DARK} />
-      {/* 4 diagonal notches — offset 45° from silver to make the pair distinct */}
-      <line x1="4.6" y1="4.6" x2="5.6" y2="5.6" stroke={GOLD_LIGHT} strokeWidth="1.3" strokeLinecap="round" />
-      <line x1="18.4" y1="5.6" x2="19.4" y2="4.6" stroke={GOLD_LIGHT} strokeWidth="1.3" strokeLinecap="round" />
-      <line x1="19.4" y1="19.4" x2="18.4" y2="18.4" stroke={GOLD_LIGHT} strokeWidth="1.3" strokeLinecap="round" />
-      <line x1="5.6" y1="18.4" x2="4.6" y2="19.4" stroke={GOLD_LIGHT} strokeWidth="1.3" strokeLinecap="round" />
-      {/* Cardinal accent dots — face decoration between rays */}
-      <circle cx="12" cy="2.7" r="0.6" fill={GOLD_LIGHT} />
-      <circle cx="12" cy="21.3" r="0.6" fill={GOLD_LIGHT} />
-      <circle cx="2.7" cy="12" r="0.6" fill={GOLD_LIGHT} />
-      <circle cx="21.3" cy="12" r="0.6" fill={GOLD_LIGHT} />
-    </svg>
+    <CoinImage src={SILVER_PNG} alt="silver" size={size} className={className} style={style} />
+  );
+}
+
+export function IconGold({ size = 18, className, style }) {
+  return (
+    <CoinImage src={GOLD_PNG} alt="gold" size={size} className={className} style={style} />
   );
 }
 
