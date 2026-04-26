@@ -435,8 +435,8 @@ export const languagePacks = {
       swapSuccessLog: "Exchanged 100 silver for 1 gold.",
       swapFailed: "Exchange failed.",
       notEnoughSilverSwap: "Need 100 silver to swap.",
-      // Compact 1-line economy hint shown under the Store header
-      storeEconomyHint: "Silver — earned from most activities · Gold — high-level progress only (see About) · Exchange 100 silver = 1 gold",
+      // Compact economy hint shown under the Store header
+      storeEconomyHint: "Silver is earned from most daily activities. Gold drops only from specific high-level content — it's a very valuable currency, spend it wisely.",
       // Error boundary popup
       errorBoundaryTitle: "Something went wrong",
       errorBoundaryBody: "We've already been notified and we're looking into it. Try the action again, or reload the app to recover.",
@@ -1755,7 +1755,7 @@ export const languagePacks = {
       swapFailed: "Обмен не удался.",
       notEnoughSilverSwap: "Нужно 100 серебра для обмена.",
       // Компактная подпись под шапкой Store про экономику
-      storeEconomyHint: "Серебро — за большинство активностей · Золото — только за хай-левел прогресс (см. «О приложении») · Курс обмена 100 серебра = 1 золото",
+      storeEconomyHint: "Серебро зарабатывается за большинство дейли-активностей. Золото падает только за определённый хай-левел контент — это очень ценная валюта, трать с умом.",
       // Error boundary popup
       errorBoundaryTitle: "Что-то пошло не так",
       errorBoundaryBody: "Мы уже знаем об ошибке и разбираемся. Попробуй ещё раз или перезагрузи приложение.",
