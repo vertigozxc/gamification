@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { fetchFriends, fetchIncomingFriendRequests, removeFriend, respondToFriendRequest } from "../../api";
 import Avatar from "./Avatar";
 import StreakFrame from "./StreakFrame";
+import FramedAvatar from "./FramedAvatar";
 import Screen from "./Screen";
 import Alert from "./Alert";
 import { IconFlame, IconBolt, IconCheck, IconClose } from "../icons/Icons";
@@ -137,9 +138,14 @@ function RequestRow({ request: r, busy, t, onRespond, onOpenProfile, isLast }) {
         className="press"
         style={{ background: "transparent", border: "none", padding: 0, borderRadius: 10, cursor: "pointer" }}
       >
-        <StreakFrame streak={r.from.streak} size={40} ringWidth={2}>
-          <Avatar photoUrl={r.from.photoUrl} displayName={r.from.displayName} size={40} />
-        </StreakFrame>
+        <FramedAvatar
+          photoUrl={r.from.photoUrl}
+          displayName={r.from.displayName}
+          size={40}
+          ringWidth={2}
+          streak={r.from.streak}
+          activeCosmetics={r.from.activeCosmetics}
+        />
       </button>
       <button
         type="button"
@@ -202,9 +208,14 @@ function FriendRow({ friend: f, busy, t, onOpenProfile, onRemove, isLast }) {
         className="press"
         style={{ background: "transparent", border: "none", padding: 0, borderRadius: 10, cursor: "pointer" }}
       >
-        <StreakFrame streak={f.streak} size={40} ringWidth={2}>
-          <Avatar photoUrl={f.photoUrl} displayName={f.displayName} size={40} />
-        </StreakFrame>
+        <FramedAvatar
+          photoUrl={f.photoUrl}
+          displayName={f.displayName}
+          size={40}
+          ringWidth={2}
+          streak={f.streak}
+          activeCosmetics={f.activeCosmetics}
+        />
       </button>
       <button
         type="button"

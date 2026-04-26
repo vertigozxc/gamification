@@ -7110,7 +7110,10 @@ app.get("/api/leaderboard/weekly", async (req, res) => {
         photoUrl: true,
         level: true,
         streak: true,
-        maxStreak: true
+        maxStreak: true,
+        // Premium frame cosmetics — read so we can show the animated
+        // ring around each player's avatar (Phoenix etc.) in the list.
+        activeCosmetics: true
       }
     });
     const userMap = new Map(users.map((u) => [u.id, u]));
@@ -7127,6 +7130,7 @@ app.get("/api/leaderboard/weekly", async (req, res) => {
         level: u.level,
         streak: u.streak,
         maxStreak: u.maxStreak,
+        activeCosmetics: u.activeCosmetics || "{}",
         weeklyXp: g._sum.xpToday || 0,
         weeklyTasks: g._sum.tasksCompleted || 0
       };
@@ -7146,9 +7150,9 @@ app.get("/api/leaderboard/weekly", async (req, res) => {
         // Ranked but zero XP this week — still show the user card with rank=null
         const meUser = await prisma.user.findUnique({
           where: { id: meUserId },
-          select: { username: true, displayName: true, photoUrl: true, level: true, streak: true, maxStreak: true }
+          select: { username: true, displayName: true, photoUrl: true, level: true, streak: true, maxStreak: true, activeCosmetics: true }
         });
-        if (meUser) me = { rank: null, ...meUser, weeklyXp: 0, weeklyTasks: 0 };
+        if (meUser) me = { rank: null, ...meUser, activeCosmetics: meUser.activeCosmetics || "{}", weeklyXp: 0, weeklyTasks: 0 };
       }
     }
 
@@ -7201,12 +7205,16 @@ app.get("/api/users/search", async (req, res) => {
         photoUrl: true,
         level: true,
         streak: true,
-        maxStreak: true
+        maxStreak: true,
+        // Premium frame cosmetics for the avatar ring in search rows.
+        activeCosmetics: true
       },
       orderBy: [{ level: "desc" }, { xp: "desc" }],
       take: limit
     });
-    res.json({ users });
+    // Normalize null -> "{}" so the client parser never sees null.
+    const safe = users.map((u) => ({ ...u, activeCosmetics: u.activeCosmetics || "{}" }));
+    res.json({ users: safe });
   } catch (error) {
     res.status(400).json({ error: "Search failed", detail: error.message });
   }
@@ -7637,7 +7645,10 @@ app.get("/api/users/:username/public", async (req, res) => {
         streak: true,
         maxStreak: true,
         districtLevels: true,
-        createdAt: true
+        createdAt: true,
+        // Premium frame cosmetics — needed so other players see the
+        // animated ring (Phoenix etc.) on this user's profile screen.
+        activeCosmetics: true
       }
     });
     if (!user) return res.status(404).json({ error: "User not found" });
@@ -7661,6 +7672,7 @@ app.get("/api/users/:username/public", async (req, res) => {
     res.json({
       user: {
         ...publicUser,
+        activeCosmetics: publicUser.activeCosmetics || "{}",
         friendCount,
         weeklyXp: weeklyAgg._sum.xpToday || 0,
         weeklyTasks: weeklyAgg._sum.tasksCompleted || 0,
@@ -7872,14 +7884,14 @@ app.get("/api/friends/requests/:username", async (req, res) => {
       orderBy: { createdAt: "desc" },
       include: {
         fromUser: {
-          select: { username: true, displayName: true, photoUrl: true, level: true, streak: true, maxStreak: true }
+          select: { username: true, displayName: true, photoUrl: true, level: true, streak: true, maxStreak: true, activeCosmetics: true }
         }
       }
     });
     const requests = rows.map((r) => ({
       requestId: r.id,
       createdAt: r.createdAt,
-      from: r.fromUser
+      from: { ...r.fromUser, activeCosmetics: r.fromUser.activeCosmetics || "{}" }
     }));
     res.json({ requests });
   } catch (error) {
@@ -7910,6 +7922,9 @@ app.get("/api/friends/list/:username", async (req, res) => {
         xpNext: friend.xpNext,
         streak: friend.streak,
         maxStreak: friend.maxStreak,
+        // Premium frame cosmetics — show the animated ring around this
+        // friend's avatar in the list. Normalised null -> "{}".
+        activeCosmetics: friend.activeCosmetics || "{}",
         friendshipCreatedAt: link.createdAt
       };
     });

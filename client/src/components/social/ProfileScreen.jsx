@@ -15,6 +15,7 @@ import {
 import Avatar from "./Avatar";
 import { IconStar, IconFlame, IconTarget, IconBolt, IconUsers, IconCalendar } from "../icons/Icons";
 import StreakFrame, { getStreakTier } from "./StreakFrame";
+import FramedAvatar from "./FramedAvatar";
 import Screen from "./Screen";
 import Alert from "./Alert";
 import AchievementsSection from "../achievements/AchievementsSection";
@@ -163,9 +164,14 @@ function Hero({ profile, t }) {
   const tier = getStreakTier(profile.streak);
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10, paddingTop: 6 }}>
-      <StreakFrame streak={profile.streak} size={96} ringWidth={5}>
-        <Avatar photoUrl={profile.photoUrl} displayName={profile.displayName} size={96} />
-      </StreakFrame>
+      <FramedAvatar
+        photoUrl={profile.photoUrl}
+        displayName={profile.displayName}
+        size={96}
+        ringWidth={5}
+        streak={profile.streak}
+        activeCosmetics={profile.activeCosmetics}
+      />
       {profile.handle ? (
         <div
           style={{

@@ -3371,3 +3371,39 @@ body[data-theme="light"] .tour-finale-cta { color: #f8fafc; }
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
 }
+
+/* ──────────────────────────────────────────────────────────────────
+   Premium animated avatar frames (PlayerFrame.jsx).
+   Used by the `frame_phoenix` cosmetic — keep these keyframes here
+   (rather than inline) so they are reachable from every chunk and
+   browsers can hardware-accelerate the transforms.
+   ──────────────────────────────────────────────────────────────── */
+@keyframes pf-breathe {
+    0%, 100% { opacity: 0.55; transform: scale(1); }
+    50%      { opacity: 1;    transform: scale(1.06); }
+}
+@keyframes pf-rotate-cw {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+@keyframes pf-rotate-ccw {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(-360deg); }
+}
+@keyframes pf-twinkle {
+    0%, 100% { opacity: 0.55; transform: scale(0.85); }
+    50%      { opacity: 1;    transform: scale(1.25); }
+}
+@keyframes pf-nebula {
+    0%, 100% { opacity: 0.7; transform: scale(1)    rotate(0deg); }
+    50%      { opacity: 1;   transform: scale(1.08) rotate(8deg); }
+}
+/* Respect users who have reduced-motion enabled — kill all pf-*
+   animations system-wide so the frame settles into a static state. */
+@media (prefers-reduced-motion: reduce) {
+    [style*="pf-rotate-cw"],
+    [style*="pf-rotate-ccw"],
+    [style*="pf-twinkle"],
+    [style*="pf-nebula"],
+    [style*="pf-breathe"] { animation: none !important; }
+}

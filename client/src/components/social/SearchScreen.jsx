@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { searchUsers, fetchFriendRelation } from "../../api";
 import Avatar from "./Avatar";
 import StreakFrame from "./StreakFrame";
+import FramedAvatar from "./FramedAvatar";
 import Screen from "./Screen";
 import { IconClose, IconFlame } from "../icons/Icons";
 
@@ -136,9 +137,14 @@ export default function SearchScreen({ meUid, t, onClose, onOpenProfile }) {
                 className="sb-list-row press"
                 style={blocked ? { opacity: 0.7, cursor: "not-allowed" } : undefined}
               >
-                <StreakFrame streak={u.streak} size={40} ringWidth={2}>
-                  <Avatar photoUrl={u.photoUrl} displayName={u.displayName} size={40} />
-                </StreakFrame>
+                <FramedAvatar
+                  photoUrl={u.photoUrl}
+                  displayName={u.displayName}
+                  size={40}
+                  ringWidth={2}
+                  streak={u.streak}
+                  activeCosmetics={u.activeCosmetics}
+                />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p className="sb-body" style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {u.displayName || u.username}{u.username === meUid ? ` (${t.arenaYou || "you"})` : ""}

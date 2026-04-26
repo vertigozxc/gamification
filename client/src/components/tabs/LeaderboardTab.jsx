@@ -18,6 +18,7 @@ import {
 } from "../icons/Icons";
 import Avatar from "../social/Avatar";
 import StreakFrame from "../social/StreakFrame";
+import FramedAvatar from "../social/FramedAvatar";
 import ProfileScreen from "../social/ProfileScreen";
 import ChallengeDetailScreen from "../social/ChallengeDetailScreen";
 import CreateChallengeScreen from "../social/CreateChallengeScreen";
@@ -519,9 +520,14 @@ function PlayerRow({ entry, isMe, meHighlight, t, onOpenProfile }) {
       <span className="cm-row-rank" style={{ color: entry.rank && entry.rank <= 3 ? "var(--color-primary)" : "var(--color-muted)" }}>
         {entry.rank ? entry.rank : "—"}
       </span>
-      <StreakFrame streak={entry.streak} size={40} ringWidth={2}>
-        <Avatar photoUrl={entry.photoUrl} displayName={entry.displayName} size={40} />
-      </StreakFrame>
+      <FramedAvatar
+        photoUrl={entry.photoUrl}
+        displayName={entry.displayName}
+        size={40}
+        ringWidth={2}
+        streak={entry.streak}
+        activeCosmetics={entry.activeCosmetics}
+      />
       <div style={{ flex: 1, minWidth: 0 }}>
         <p className="cm-row-name">
           {entry.displayName || entry.username}

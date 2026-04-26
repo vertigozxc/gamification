@@ -15,6 +15,7 @@ import {
   IconTrash,
   IconFlame
 } from "../icons/Icons";
+import FramedAvatar from "../social/FramedAvatar";
 
 function ChevronToggle({ open }) {
   return (
@@ -97,24 +98,28 @@ export default function ProfileTab({
       <div data-tour="profile-hero" className="city-hero-surface mobile-card top-screen-block p-4 shadow-[0_0_20px_rgba(234,179,8,0.08)]">
         <div className="absolute inset-0 opacity-[0.04] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] pointer-events-none"></div>
         <div className="relative z-10 flex items-center gap-4">
-          <div className="relative group">
+          {/* Round avatar wrapped in FramedAvatar so the active cosmetic
+              frame (Phoenix etc.) renders here too. The whole circle is
+              tappable — opens the avatar picker. The small camera badge
+              sits in the bottom-right corner as the change-photo affordance. */}
+          <div className="relative group" style={{ width: 96, height: 96, flexShrink: 0 }}>
             <button
               type="button"
-              className="w-24 h-24 rounded-[1.8rem] overflow-hidden border-2 flex items-center justify-center shrink-0 mobile-pressable transition-all group-hover:border-yellow-500/70"
-              style={{ borderColor: "var(--color-primary-dim)", background: "var(--panel-bg)", color: "var(--color-muted)" }}
+              className="block w-24 h-24 rounded-full mobile-pressable transition-all"
+              style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer" }}
               onClick={onAvatarClick}
               title={t.changeAvatar}
             >
-              {portraitData ? (
-                <img src={portraitData} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 opacity-50 text-current">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-              )}
+              <FramedAvatar
+                photoUrl={portraitData}
+                displayName={characterName}
+                size={92}
+                ringWidth={2}
+                streak={state?.streak || 0}
+                activeCosmetics={state?.activeCosmetics}
+              />
             </button>
-            <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full border-2 flex items-center justify-center shadow-lg" style={{ background: "var(--panel-bg)", borderColor: "var(--card-border-idle)", color: "var(--color-muted)" }}>
+            <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full border-2 flex items-center justify-center shadow-lg pointer-events-none" style={{ background: "var(--panel-bg)", borderColor: "var(--card-border-idle)", color: "var(--color-muted)" }}>
               <IconCamera size={14} />
             </div>
           </div>
