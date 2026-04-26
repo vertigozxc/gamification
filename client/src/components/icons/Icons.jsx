@@ -555,3 +555,99 @@ export function IconBag(props) {
     </Icon>
   );
 }
+
+// ─── Coupon glyphs ────────────────────────────────────────────────
+// One clean glyph per shop item. The "coupon-ness" is communicated by
+// the surrounding inventory slot (golden-ish border + glow), so these
+// glyphs themselves are just clear functional symbols. All single-
+// stroke, currentColor, 24×24 — same family as the rest of the icon
+// library so they nest cleanly in the WoW-bag inventory grid.
+
+// Streak Freeze coupon — 6-pointed snowflake with Y-tips at each arm.
+// Six axes spread 60° apart, each tipped with a tiny chevron so the
+// silhouette reads as crystalline frost, not just a star.
+export function IconCouponFreeze(props) {
+  return (
+    <Icon {...props}>
+      {/* 3 main axes */}
+      <line x1="12" y1="3" x2="12" y2="21" />
+      <line x1="4.2" y1="7.5" x2="19.8" y2="16.5" />
+      <line x1="4.2" y1="16.5" x2="19.8" y2="7.5" />
+      {/* Y-fork tips */}
+      <polyline points="10 5 12 3 14 5" />
+      <polyline points="10 19 12 21 14 19" />
+      <polyline points="6.5 9.7 4.2 7.5 7.4 7" />
+      <polyline points="16.6 14.3 19.8 16.5 17.5 14.5" />
+      <polyline points="6.5 14.3 4.2 16.5 7.4 17" />
+      <polyline points="16.6 9.7 19.8 7.5 17.5 9.5" />
+    </Icon>
+  );
+}
+
+// Extra Reroll coupon — two semicircular arrows chasing each other,
+// classic "refresh / re-cast" shape. Wider arc gap than IconRefresh
+// so the two arrowheads read as a pair (suggests "re-roll" rather
+// than just "refresh").
+export function IconCouponReroll(props) {
+  return (
+    <Icon {...props}>
+      {/* Top arc going CW, ends with arrow pointing down-right */}
+      <path d="M5 11 A 7 7 0 0 1 18 8" />
+      <polyline points="14 5 18 8 18 12" />
+      {/* Bottom arc going CW, ends with arrow pointing up-left */}
+      <path d="M19 13 A 7 7 0 0 1 6 16" />
+      <polyline points="10 19 6 16 6 12" />
+    </Icon>
+  );
+}
+
+// Change Habits coupon — two stacked arrows pointing opposite
+// directions (universal swap glyph). Distinct from IconCouponReroll
+// (which is rotational). This one is "swap one set for another".
+export function IconCouponHabitSwap(props) {
+  return (
+    <Icon {...props}>
+      {/* Top: arrow pointing right */}
+      <line x1="4" y1="9" x2="18.5" y2="9" />
+      <polyline points="15.5 6 18.5 9 15.5 12" />
+      {/* Bottom: arrow pointing left */}
+      <line x1="20" y1="15" x2="5.5" y2="15" />
+      <polyline points="8.5 12 5.5 15 8.5 18" />
+    </Icon>
+  );
+}
+
+// XP Boost coupon — lightning bolt with a small "+" multiplier mark
+// in the upper-right corner. Reads as "boosted lightning" / "more
+// energy" without resorting to literal numbers.
+export function IconCouponXpBoost(props) {
+  return (
+    <Icon {...props}>
+      {/* Lightning bolt — slightly inset from top-right to leave room for the + */}
+      <polygon points="11 3 4 13.5 10.5 13.5 9.5 21 17 11 11 11 11.5 3" />
+      {/* Boost-multiplier mark: small plus in the corner */}
+      <line x1="19.5" y1="4" x2="19.5" y2="8" />
+      <line x1="17.5" y1="6" x2="21.5" y2="6" />
+    </Icon>
+  );
+}
+
+// City Reset coupon — three buildings of varying heights with a
+// curved refresh arrow arching over them. The arc + arrowhead say
+// "reset", the skyline says "city".
+export function IconCouponCityReset(props) {
+  return (
+    <Icon {...props}>
+      {/* Refresh arc above the skyline */}
+      <path d="M4 9 A 8 8 0 0 1 20 9" />
+      <polyline points="20 5 20 9 16 9" />
+      {/* Three buildings — short, tall, medium */}
+      <rect x="6.5" y="13" width="3" height="7" />
+      <rect x="10.5" y="11" width="3" height="9" />
+      <rect x="14.5" y="14.5" width="3" height="5.5" />
+      {/* Window slits on the tall middle one — adds character at small size */}
+      <line x1="12" y1="14" x2="12" y2="15" />
+      <line x1="12" y1="17" x2="12" y2="18" />
+    </Icon>
+  );
+}

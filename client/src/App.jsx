@@ -50,7 +50,17 @@ import {
 import PortalPreloader from "./components/PortalPreloader";
 import NetworkRetryBanner from "./components/NetworkRetryBanner";
 import PullToRefresh from "./components/PullToRefresh";
-import { evictCommunityCache, resetCity, dismissStreakBurnNotice, buyCosmetic, swapSilverToGold } from "./api";
+import {
+  evictCommunityCache,
+  resetCity,
+  dismissStreakBurnNotice,
+  buyCosmetic,
+  swapSilverToGold,
+  buyPinnedRerollCoupon,
+  activateCoupon,
+  activateCosmetic
+} from "./api";
+import { parseCouponInventory, pickOldestCoupon, parseActiveCosmetics } from "./data/coupons";
 import { IconTimer, IconSilver } from "./components/icons/Icons";
 
 const FreezeSuccessModal = lazy(() => import("./components/modals/FreezeSuccessModal"));
@@ -1014,6 +1024,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             gold: Number(userData.gold ?? prev.gold ?? 0),
             rouletteCoupons: Number(userData.rouletteCoupons ?? prev.rouletteCoupons ?? 0),
             ownedCosmetics: typeof userData.ownedCosmetics === "string" ? userData.ownedCosmetics : (prev.ownedCosmetics ?? "[]"),
+            activeCosmetics: typeof userData.activeCosmetics === "string" ? userData.activeCosmetics : (prev.activeCosmetics ?? "{}"),
+            couponInventory: typeof userData.couponInventory === "string" ? userData.couponInventory : (prev.couponInventory ?? "[]"),
             districtLevels: (() => {
               const raw = userData.districtLevels;
               if (Array.isArray(raw)) return raw.slice(0, 5).map((n) => Math.max(0, Math.min(5, Math.floor(Number(n) || 0))));
@@ -1304,6 +1316,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   // Tracks the cosmetic id being purchased so the matching card can render
   // its loading/disabled state without blocking the rest of the cosmetics tab.
   const [cosmeticPurchasePending, setCosmeticPurchasePending] = useState(null);
+  const [buyPinnedRerollCouponPending, setBuyPinnedRerollCouponPending] = useState(false);
   const [noteSubmitting, setNoteSubmitting] = useState(false);
   const [noteError, setNoteError] = useState("");
   const [counterPendingId, setCounterPendingId] = useState(null);
@@ -1842,6 +1855,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     }
   }
 
+  // Coupon-flow buy. The actual reset (district wipe + refund) happens
+  // when the user activates the city_reset coupon from inventory; this
+  // call only buys the coupon (charges silver, escalates cityResetsPaid).
   async function handleResetCity() {
     if (!username || cityResetBusy) return;
     setCityResetBusy(true);
@@ -1851,16 +1867,14 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       setState((prev) => ({
         ...prev,
         silver: typeof resp?.silver === "number" ? resp.silver : prev.silver,
-        districtLevels: Array.isArray(resp?.districtLevels) ? resp.districtLevels : [0, 0, 0, 0, 0],
+        couponInventory: typeof resp?.couponInventory === "string" ? resp.couponInventory : prev.couponInventory,
         user: {
           ...prev.user,
           cityResetsPaid: Number(resp?.cityResetsPaid) || ((Number(prev.user?.cityResetsPaid) || 0) + 1)
         }
       }));
       addLog(
-        (t.cityResetLogPaid || "🏙 City reset · -{cost} · +{refund} refunded")
-          .replace("{cost}", String(resp?.cost || cityResetCost))
-          .replace("{refund}", String(resp?.refund || cityResetRefund)),
+        t.couponPurchasedCityReset || "🎫 Reset City coupon added to inventory.",
         "text-cyan-300 font-bold cinzel"
       );
     } catch (err) {
@@ -2561,6 +2575,78 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                   }
                 }}
                 cosmeticPurchasePending={cosmeticPurchasePending}
+                onBuyPinnedRerollCoupon={async () => {
+                  if (!authUser?.uid || buyPinnedRerollCouponPending) return;
+                  setBuyPinnedRerollCouponPending(true);
+                  try {
+                    const resp = await buyPinnedRerollCoupon(authUser.uid);
+                    setState((prev) => ({
+                      ...prev,
+                      silver: typeof resp?.silver === "number" ? resp.silver : prev.silver,
+                      couponInventory: typeof resp?.couponInventory === "string" ? resp.couponInventory : prev.couponInventory
+                    }));
+                    addLog?.((t.couponPurchasedPinnedReroll || "🎫 Change Habits coupon added to inventory."), "text-cyan-300 font-bold");
+                  } catch (err) {
+                    const code = err?.data?.code || "unknown";
+                    const msg = code === "insufficient_silver"
+                      ? (t.notEnough || "Not enough silver")
+                      : (t.purchaseFailed || "Purchase failed");
+                    addLog?.(msg, "text-red-400 font-bold");
+                  } finally {
+                    setBuyPinnedRerollCouponPending(false);
+                  }
+                }}
+                buyPinnedRerollCouponPending={buyPinnedRerollCouponPending}
+                couponInventory={typeof state.couponInventory === "string" ? state.couponInventory : "[]"}
+                activeCosmetics={typeof state.activeCosmetics === "string" ? state.activeCosmetics : "{}"}
+                onActivateCoupon={async (coupon) => {
+                  if (!coupon || !authUser?.uid) return;
+                  // Pinned-reroll coupons need a habit picker; just open
+                  // the modal and let it auto-consume the oldest matching
+                  // coupon when the user confirms.
+                  if (coupon.type === "pinned_reroll") {
+                    setShowPinnedReplaceModal(true);
+                    return;
+                  }
+                  try {
+                    const resp = await activateCoupon(authUser.uid, coupon.id);
+                    setState((prev) => ({
+                      ...prev,
+                      silver: typeof resp?.silver === "number" ? resp.silver : prev.silver,
+                      gold: typeof resp?.gold === "number" ? resp.gold : prev.gold,
+                      couponInventory: typeof resp?.couponInventory === "string" ? resp.couponInventory : prev.couponInventory,
+                      extraRerollsToday: typeof resp?.extraRerollsToday === "number" ? resp.extraRerollsToday : prev.extraRerollsToday,
+                      districtLevels: Array.isArray(resp?.districtLevels) ? resp.districtLevels : prev.districtLevels,
+                      user: {
+                        ...prev.user,
+                        ...(typeof resp?.streakFreezeCharges === "number" ? { streakFreezeCharges: resp.streakFreezeCharges } : {}),
+                        ...(resp?.xpBoostExpiresAt ? { xpBoostExpiresAt: resp.xpBoostExpiresAt } : {})
+                      }
+                    }));
+                    const logKey = {
+                      freeze: "couponActivatedFreeze",
+                      reroll: "couponActivatedReroll",
+                      xp_boost: "couponActivatedXpBoost",
+                      city_reset: "couponActivatedCityReset"
+                    }[coupon.type] || "couponActivatedGeneric";
+                    addLog?.((t[logKey] || "Coupon activated."), "text-emerald-300");
+                  } catch (err) {
+                    addLog?.((t.couponActivationFailed || "Activation failed."), "text-red-400 font-bold");
+                  }
+                }}
+                onActivateCosmetic={async (cosmeticId) => {
+                  if (!cosmeticId || !authUser?.uid) return;
+                  try {
+                    const resp = await activateCosmetic(authUser.uid, cosmeticId);
+                    setState((prev) => ({
+                      ...prev,
+                      activeCosmetics: typeof resp?.activeCosmetics === "string" ? resp.activeCosmetics : prev.activeCosmetics
+                    }));
+                    addLog?.((t.cosmeticActivatedLog || "Cosmetic equipped."), "text-emerald-300");
+                  } catch (err) {
+                    addLog?.((t.cosmeticActivationFailed || "Cosmetic activation failed."), "text-red-400 font-bold");
+                  }
+                }}
                 t={t}
               />
               </Suspense>

@@ -30,6 +30,22 @@ model User {
   rouletteCoupons           Int                    @default(0)
   // JSON-encoded list of owned cosmetic ids (frames, bg variants, etc).
   ownedCosmetics            String                 @default("[]")
+  // JSON-encoded map of active cosmetic per category, e.g.
+  //   {"frame": "frame_phoenix", "background": "bg_cosmic"}
+  // Owning a cosmetic doesn't auto-equip it — the user activates one
+  // from inventory. Cosmetics never disappear from ownedCosmetics on
+  // activation/deactivation.
+  activeCosmetics           String                 @default("{}")
+  // JSON-encoded list of unactivated coupons:
+  //   [{ id: "cpn_<cuid>", type: "freeze"|"reroll"|"pinned_reroll"|"xp_boost"|"city_reset", boughtAt: <ms> }]
+  // Buying a utility item creates a coupon here. Activating one
+  // removes it from the list and applies the actual benefit.
+  couponInventory           String                 @default("[]")
+  // Last time we granted a *free* pinned-reroll coupon (creation +
+  // every 21 days thereafter). Distinct from lastFreeTaskRerollAt
+  // which used to track when the user last USED a free reroll under
+  // the old cooldown model — now superseded by the coupon system.
+  lastFreePinnedRerollGrantedAt DateTime?
   theme                     String                 @default("adventure")
   lastStreakIncreaseAt      DateTime?
   streakFreezeExpiresAt     DateTime?

@@ -10,6 +10,7 @@ import {
   redeemReferralCode as apiRedeemReferralCode
 } from "../api";
 import { fuzzyMatch } from "../utils/fuzzySearch";
+import { parseCouponInventory, pickOldestCoupon } from "../data/coupons";
 
 // Fallback used before /api/game-state returns the user's questSlots.
 // Replaced at runtime by state.questSlots.pinned inside the hook.
@@ -383,12 +384,21 @@ function useOnboardingPinned({
       return;
     }
 
+    // Coupon-flow: pick the oldest pinned_reroll coupon and use it.
+    // No more "free if 21 days elapsed" path — free coupons are now
+    // granted server-side every 21 days into couponInventory (and at
+    // account creation), and bought coupons live alongside.
+    const inv = parseCouponInventory(state.couponInventory);
+    const coupon = pickOldestCoupon(inv, "pinned_reroll");
+    if (!coupon) {
+      setReplacePinnedError(t.noPinnedRerollCoupon || "No Change Habits coupon — buy one in the store first.");
+      return;
+    }
+
     setReplacePinnedSaving(true);
     setReplacePinnedError("");
     try {
-      const isFreePinnedReroll = !state.user?.lastFreeTaskRerollAt || (Date.now() - new Date(state.user.lastFreeTaskRerollAt).getTime() >= FREE_PINNED_REROLL_INTERVAL_MS);
-        const result = await replacePinnedQuests(resolvedUsername, replacePinnedQuestIds, !isFreePinnedReroll);
-      const costText = isFreePinnedReroll ? t.freeLabel : t.sevenSilver;
+      const result = await replacePinnedQuests(resolvedUsername, replacePinnedQuestIds, coupon.id);
       const nextQuests = Array.isArray(result?.quests) ? result.quests.map(normalizeQuest) : [];
       applyCustomQuestsFromResponse(result);
       setQuests(nextQuests);
@@ -396,16 +406,13 @@ function useOnboardingPinned({
         ...prev,
         silver: result?.silver ?? prev.silver,
         preferredQuestIds: Array.isArray(result?.preferredQuestIds) ? result.preferredQuestIds : prev.preferredQuestIds,
+        couponInventory: typeof result?.couponInventory === "string" ? result.couponInventory : prev.couponInventory,
         pinnedQuestProgress21d: normalizePinnedQuestProgress(result?.pinnedQuestProgress21d),
         completed: Array.isArray(result?.completedQuestIds) ? result.completedQuestIds : prev.completed,
-        user: {
-          ...prev.user,
-          lastFreeTaskRerollAt: result?.lastFreeTaskRerollAt ?? null
-        },
         logs: [
           ...prev.logs,
           {
-            msg: tf("pinnedQuestsUpdated", { cost: costText }),
+            msg: t.pinnedRerollCouponConsumed || "🧩 Habit swap completed.",
             classes: "text-cyan-300 font-bold cinzel",
             timestamp: getTimestamp()
           }

@@ -2673,9 +2673,20 @@ app.post("/api/profiles/upsert", async (req, res) => {
     }
     const displayName = (parsed.displayName || parsed.username).trim().slice(0, 64);
     const photo = parsed.photoUrl ?? "";
+    // Brand-new accounts get one free pinned-reroll coupon. The 21-day
+    // cycle starts ticking from creation — /api/game-state grants the
+    // next free coupon when (now - lastFreePinnedRerollGrantedAt) ≥ 21d.
+    const creationTs = new Date();
+    const seedCoupon = JSON.stringify([{ id: makeCouponId(), type: "pinned_reroll", boughtAt: creationTs.getTime() }]);
     const user = await prisma.user.upsert({
       where: { username },
-      create: { username, displayName, photoUrl: photo },
+      create: {
+        username,
+        displayName,
+        photoUrl: photo,
+        couponInventory: seedCoupon,
+        lastFreePinnedRerollGrantedAt: creationTs
+      },
       update: { displayName, photoUrl: photo }
     });
     res.json({ user });
@@ -2690,6 +2701,36 @@ app.get("/api/game-state/:username", async (req, res) => {
   const user = await prisma.user.findUnique({ where: { username } });
   if (!user) {
     return res.status(404).json({ error: "User not found" });
+  }
+
+  // Periodic free pinned-reroll coupon grant (every 21 days).
+  // Existing users have lastFreePinnedRerollGrantedAt = null → the
+  // first game-state load after this deploy grants their first free
+  // coupon. After that, every 21d cycle. Users can stockpile if they
+  // don't activate.
+  try {
+    const nowTs = Date.now();
+    const lastGrantTs = user.lastFreePinnedRerollGrantedAt
+      ? new Date(user.lastFreePinnedRerollGrantedAt).getTime()
+      : 0;
+    if (nowTs - lastGrantTs >= FREE_PINNED_REROLL_INTERVAL_MS) {
+      const grantInv = parseCouponInventory(user.couponInventory);
+      grantInv.push({ id: makeCouponId(), type: "pinned_reroll", boughtAt: nowTs });
+      const grantNow = new Date(nowTs);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          couponInventory: JSON.stringify(grantInv),
+          lastFreePinnedRerollGrantedAt: grantNow
+        }
+      });
+      // Mutate the in-memory user so the response below reflects the
+      // grant immediately — saves the client a second round-trip.
+      user.couponInventory = JSON.stringify(grantInv);
+      user.lastFreePinnedRerollGrantedAt = grantNow;
+    }
+  } catch (grantErr) {
+    console.error(`[game-state] free pinned-reroll grant failed: ${grantErr?.message || grantErr}`);
   }
 
   const pendingForceLogout = await prisma.event.findFirst({
@@ -5303,6 +5344,48 @@ app.post("/api/reset-daily", async (req, res) => {
 
 // Streak Freeze shop — 7 silver base (minus Residential discount), limited to
 // one purchase per calendar week (resets Monday UTC 00:00 alongside daily reset).
+// ── Coupon inventory helpers ─────────────────────────────────────
+//
+// Shop economy v2: every utility purchase creates an *unactivated
+// coupon* in user.couponInventory. Activating the coupon (separate
+// endpoint) is what actually applies the effect (e.g. +1
+// streakFreezeCharges). Lets users stockpile and decide later;
+// removes per-purchase rate limits ("при такой логике любой товар
+// можно будет купить"). Silver→Gold swap and cosmetics (gold) bypass
+// this — they're already direct/permanent.
+//
+// Coupon shape: { id, type, boughtAt }. Persisted as JSON string in
+// User.couponInventory. Five types matching the five utility items:
+const COUPON_TYPES = new Set(["freeze", "reroll", "pinned_reroll", "xp_boost", "city_reset"]);
+
+function parseCouponInventory(raw) {
+  try {
+    const parsed = JSON.parse(raw || "[]");
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((c) =>
+      c && typeof c.id === "string" && typeof c.type === "string" && COUPON_TYPES.has(c.type)
+    );
+  } catch {
+    return [];
+  }
+}
+
+function makeCouponId() {
+  // 8-char base36 + cpn_ prefix. Coupons are scoped to a single user's
+  // inventory (no global uniqueness needed) so collision risk is
+  // negligible — 36^8 ≈ 2.8 trillion combos for at most ~50 entries.
+  return `cpn_${Math.random().toString(36).slice(2, 10)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function appendCoupon(rawInventory, type) {
+  if (!COUPON_TYPES.has(type)) {
+    throw new Error(`Unknown coupon type: ${type}`);
+  }
+  const inv = parseCouponInventory(rawInventory);
+  inv.push({ id: makeCouponId(), type, boughtAt: Date.now() });
+  return JSON.stringify(inv);
+}
+
 app.post("/api/shop/freeze-streak", async (req, res) => {
   try {
     const parsed = usernameBody.parse(req.body);
@@ -5315,7 +5398,8 @@ app.post("/api/shop/freeze-streak", async (req, res) => {
     const now = new Date();
     const weekKey = getWeekKey(now);
 
-    // Weekly limit: one Streak Freeze charge per user per week.
+    // Weekly limit on FREEZE only (other coupons are unlimited per the
+    // user spec). One freeze coupon purchase per ISO week per user.
     if (user.lastFreezePurchaseWeekKey === weekKey) {
       return res.status(400).json({
         error: "Weekly limit reached",
@@ -5331,13 +5415,16 @@ app.post("/api/shop/freeze-streak", async (req, res) => {
     const freezeCost = Math.max(0, 7 - discount);
 
     if (user.silver < freezeCost) {
-      return res.status(400).json({ error: "Not enough silver" });
+      return res.status(400).json({ error: "Not enough silver", code: "insufficient_silver" });
     }
 
-    // Streak Freeze adds a charge to the pool (redeem via profile).
+    // Coupon flow: deduct silver, append freeze coupon. The actual
+    // streakFreezeCharges += 1 happens when the user activates the
+    // coupon from their inventory.
+    const nextInv = appendCoupon(user.couponInventory, "freeze");
     const freezeData = {
       silver: { decrement: freezeCost },
-      streakFreezeCharges: { increment: 1 },
+      couponInventory: nextInv,
       lastFreezePurchaseWeekKey: weekKey
     };
     if (freezeCost > 0) freezeData.silverSpentTotal = { increment: freezeCost };
@@ -5348,7 +5435,7 @@ app.post("/api/shop/freeze-streak", async (req, res) => {
       silver: updated.silver,
       cost: freezeCost,
       discount,
-      streakFreezeCharges: updated.streakFreezeCharges,
+      couponInventory: updated.couponInventory,
       lastFreezePurchaseWeekKey: updated.lastFreezePurchaseWeekKey,
       nextAvailableAt: nextMondayUtc(now).toISOString()
     });
@@ -5377,13 +5464,12 @@ app.post("/api/shop/extra-reroll", async (req, res) => {
     const discount = residentialShopDiscount(resLvl);
     const rerollCost = Math.max(0, 3 - discount);
     if (user.silver < rerollCost) {
-      return res.status(400).json({ error: "Not enough silver" });
+      return res.status(400).json({ error: "Not enough silver", code: "insufficient_silver" });
     }
-    // Always grant +1 extra reroll, even for free purchases (rerollCost === 0
-    // when the residential discount is large enough). Without the increment,
-    // the daily-reroll guard in /api/reset-daily ("Daily reroll already used")
-    // rejects the next reroll because user.extraRerollsToday stayed at 0 —
-    // the symptom the user saw: silver debited, quests didn't change.
+    // Coupon flow: deduct silver, append `reroll` coupon. The actual
+    // extraRerollsToday += 1 happens at activation. No cooldown,
+    // unlimited stockpile.
+    const nextInv = appendCoupon(user.couponInventory, "reroll");
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -5391,7 +5477,7 @@ app.post("/api/shop/extra-reroll", async (req, res) => {
           silver: { decrement: rerollCost },
           silverSpentTotal: { increment: rerollCost }
         } : {}),
-        extraRerollsToday: { increment: 1 }
+        couponInventory: nextInv
       }
     });
     if (rerollCost > 0) trackAchievements(user.id);
@@ -5400,7 +5486,7 @@ app.post("/api/shop/extra-reroll", async (req, res) => {
       silver: updatedUser.silver,
       cost: rerollCost,
       discount,
-      extraRerollsToday: Number(updatedUser.extraRerollsToday || 0)
+      couponInventory: updatedUser.couponInventory
     });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
@@ -5424,20 +5510,19 @@ app.post("/api/shop/buy-xp-boost", async (req, res) => {
     const user = await prisma.user.findUnique({ where: { username } });
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    const now = new Date();
     const resLvl = districtLevelOf(user.districtLevels, "residential");
     const discount = residentialShopDiscount(resLvl);
     const cost = Math.max(0, XP_BOOST_COST - discount);
     if (user.silver < cost) {
       return res.status(400).json({ error: "Not enough silver", code: "insufficient_silver" });
     }
-    const base = user.xpBoostExpiresAt && new Date(user.xpBoostExpiresAt).getTime() > now.getTime()
-      ? new Date(user.xpBoostExpiresAt)
-      : now;
-    const newExpiry = new Date(base.getTime() + XP_BOOST_DURATION_MS);
+    // Coupon flow: deduct silver, append xp_boost coupon. Activation
+    // is what extends xpBoostExpiresAt — and stacks (multiple coupons
+    // = multiple consecutive 7-day extensions).
+    const nextInv = appendCoupon(user.couponInventory, "xp_boost");
     const xpBoostData = {
       silver: { decrement: cost },
-      xpBoostExpiresAt: newExpiry
+      couponInventory: nextInv
     };
     if (cost > 0) xpBoostData.silverSpentTotal = { increment: cost };
     const updated = await prisma.user.update({ where: { id: user.id }, data: xpBoostData });
@@ -5447,7 +5532,7 @@ app.post("/api/shop/buy-xp-boost", async (req, res) => {
       silver: updated.silver,
       cost,
       discount,
-      xpBoostExpiresAt: updated.xpBoostExpiresAt
+      couponInventory: updated.couponInventory
     });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
@@ -5613,6 +5698,10 @@ app.post("/api/shop/reset-city", async (req, res) => {
     const user = await prisma.user.findUnique({ where: { username } });
     if (!user) return res.status(404).json({ error: "User not found" });
 
+    // Cost escalates with each PURCHASE (10 → 20 → … cap 50). We
+    // bump cityResetsPaid here on buy, NOT on activation, so a user
+    // who stockpiles 3 reset coupons pays 10 + 20 + 30 = 60 silver
+    // total — not 3 × current cost.
     const cost = computeCityResetCost(user.cityResetsPaid);
     if ((Number(user.silver) || 0) < cost) {
       return res.status(400).json({
@@ -5623,15 +5712,15 @@ app.post("/api/shop/reset-city", async (req, res) => {
       });
     }
 
-    const refund = computeCityRefund(user.districtLevels);
-    // Net delta = refund − cost. Could be positive (refund wins) or
-    // negative (cost wins, e.g. you reset an empty city).
-    const netDelta = refund - cost;
-
+    // Coupon flow: charge silver + bump cityResetsPaid (escalation
+    // anchor) + append city_reset coupon. Districts and refund are
+    // applied later, when the user activates the coupon — see
+    // /api/inventory/activate-coupon.
+    const nextInv = appendCoupon(user.couponInventory, "city_reset");
     const resetData = {
-      silver: Math.max(0, (Number(user.silver) || 0) + netDelta),
-      districtLevels: "0,0,0,0,0",
-      cityResetsPaid: { increment: 1 }
+      silver: { decrement: cost },
+      cityResetsPaid: { increment: 1 },
+      couponInventory: nextInv
     };
     if (cost > 0) resetData.silverSpentTotal = { increment: cost };
     const updated = await prisma.user.update({
@@ -5639,8 +5728,8 @@ app.post("/api/shop/reset-city", async (req, res) => {
       data: resetData,
       select: {
         silver: true,
-        districtLevels: true,
-        cityResetsPaid: true
+        cityResetsPaid: true,
+        couponInventory: true
       }
     });
     trackAchievements(user.id);
@@ -5648,11 +5737,10 @@ app.post("/api/shop/reset-city", async (req, res) => {
     res.json({
       ok: true,
       cost,
-      refund,
       silver: updated.silver,
-      districtLevels: parseDistrictLevels(updated.districtLevels),
       cityResetsPaid: updated.cityResetsPaid,
-      nextResetCost: computeCityResetCost(updated.cityResetsPaid)
+      nextResetCost: computeCityResetCost(updated.cityResetsPaid),
+      couponInventory: updated.couponInventory
     });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
@@ -5815,15 +5903,60 @@ app.post("/api/habits/pin-one", async (req, res) => {
   }
 });
 
+// Buy a pinned-reroll coupon for silver. Just appends a coupon —
+// activation (the actual swap) happens via /api/shop/replace-pinned-
+// quests with `couponId`. No coupon source tracking; free + bought
+// coupons are interchangeable.
+app.post("/api/shop/buy-pinned-reroll-coupon", async (req, res) => {
+  try {
+    const parsed = usernameBody.parse(req.body);
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const resLvlPinned = districtLevelOf(user.districtLevels, "residential");
+    const pinnedRerollCost = Math.max(0, 7 - residentialShopDiscount(resLvlPinned));
+
+    if (user.silver < pinnedRerollCost) {
+      return res.status(400).json({ error: "Not enough silver", code: "insufficient_silver" });
+    }
+
+    const nextInv = appendCoupon(user.couponInventory, "pinned_reroll");
+    const data = {
+      couponInventory: nextInv,
+      ...(pinnedRerollCost > 0 ? {
+        silver: { decrement: pinnedRerollCost },
+        silverSpentTotal: { increment: pinnedRerollCost }
+      } : {})
+    };
+    const updated = await prisma.user.update({ where: { id: user.id }, data });
+    if (pinnedRerollCost > 0) trackAchievements(user.id);
+
+    res.json({
+      ok: true,
+      silver: updated.silver,
+      cost: pinnedRerollCost,
+      couponInventory: updated.couponInventory
+    });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
 app.post("/api/shop/replace-pinned-quests", async (req, res) => {
   try {
     const language = getRequestLanguage(req);
-    // Upper bound 4 = the max pinned slots possible at any level; actual per-user cap
-    // is checked below against the requesting user's current level tier.
+    // Coupon-driven flow now: client must pass `couponId` matching a
+    // pinned_reroll coupon in the user's inventory. No more "free
+    // cooldown" or "useSilver" paths — both routes converge on the
+    // coupon model (free coupons are auto-granted by /api/game-state
+    // every 21 days; paid ones come from /api/shop/buy-pinned-reroll-
+    // coupon). Upper bound 4 = the max pinned slots possible at any
+    // level; actual per-user cap is checked below.
     const schema = z.object({
       username: z.string().min(2).max(64),
       preferredQuestIds: z.array(z.number().int().min(1)).min(1).max(4),
-      useSilver: z.boolean().default(true)
+      couponId: z.string().min(1).max(64)
     });
     const parsed = schema.parse(req.body);
     const username = slugifyUsername(parsed.username);
@@ -5836,15 +5969,15 @@ app.post("/api/shop/replace-pinned-quests", async (req, res) => {
       return res.status(400).json({ error: `At level ${user.level} you can pin at most ${maxPinned} habits` });
     }
 
-    const now = new Date();
-    const isFreeAvailable = !user.lastFreeTaskRerollAt || (now.getTime() - new Date(user.lastFreeTaskRerollAt).getTime() >= FREE_PINNED_REROLL_INTERVAL_MS);
-    // If free reroll is available, always use it regardless of client flag.
-    const shouldUseTokens = !isFreeAvailable;
-    const resLvlPinned = districtLevelOf(user.districtLevels, "residential");
-    const pinnedRerollCost = Math.max(0, 7 - residentialShopDiscount(resLvlPinned));
-
-    if (shouldUseTokens && user.silver < pinnedRerollCost) {
-      return res.status(400).json({ error: "Not enough silver" });
+    // Look up the coupon and verify it's a pinned_reroll. Atomically
+    // remove + apply via single Prisma update.
+    const inv = parseCouponInventory(user.couponInventory);
+    const couponIdx = inv.findIndex((c) => c.id === parsed.couponId);
+    if (couponIdx === -1) {
+      return res.status(404).json({ error: "Coupon not found", code: "coupon_not_found" });
+    }
+    if (inv[couponIdx].type !== "pinned_reroll") {
+      return res.status(400).json({ error: "Wrong coupon type for this action", code: "coupon_type_mismatch" });
     }
 
     const uniquePreferredQuestIds = [...new Set(parsed.preferredQuestIds)];
@@ -5869,21 +6002,17 @@ app.post("/api/shop/replace-pinned-quests", async (req, res) => {
       return res.status(400).json({ error: `Quest ${overDifficultQuest} exceeds the difficulty available at your level` });
     }
 
+    inv.splice(couponIdx, 1);
     const updateData = {
-      preferredQuestIds: serializePreferredQuestIds(uniquePreferredQuestIds)
+      preferredQuestIds: serializePreferredQuestIds(uniquePreferredQuestIds),
+      couponInventory: JSON.stringify(inv)
     };
-    if (shouldUseTokens) {
-      updateData.silver = { decrement: pinnedRerollCost };
-      if (pinnedRerollCost > 0) updateData.silverSpentTotal = { increment: pinnedRerollCost };
-    } else {
-      updateData.lastFreeTaskRerollAt = now;
-    }
 
+    const now = new Date();
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: updateData
     });
-    if (shouldUseTokens && pinnedRerollCost > 0) trackAchievements(user.id);
 
     const dayKey = getDateKey(new Date());
     const completions = await prisma.questCompletion.findMany({
@@ -5894,12 +6023,144 @@ app.post("/api/shop/replace-pinned-quests", async (req, res) => {
     res.json({
       ok: true,
       silver: updatedUser.silver,
-      lastFreeTaskRerollAt: updatedUser.lastFreeTaskRerollAt,
       preferredQuestIds: uniquePreferredQuestIds,
+      couponInventory: updatedUser.couponInventory,
       pinnedQuestProgress21d: await getPinnedQuestProgress21d(updatedUser, uniquePreferredQuestIds, now),
       quests: composeDailyQuests(updatedUser, completions.map((item) => item.questId), now, [], language, customQuests),
       completedQuestIds: completions.map((item) => item.questId),
       customQuests: customQuests.map(buildCustomQuestEntry)
+    });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// Activate a non-interactive coupon (freeze, reroll, xp_boost,
+// city_reset). Pinned-reroll coupons are activated implicitly by
+// /api/shop/replace-pinned-quests since they need user input
+// (which habits to swap), and that endpoint owns the validation.
+app.post("/api/inventory/activate-coupon", async (req, res) => {
+  try {
+    const parsed = z.object({
+      username: z.string().min(2).max(64),
+      couponId: z.string().min(1).max(64)
+    }).parse(req.body);
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const inv = parseCouponInventory(user.couponInventory);
+    const idx = inv.findIndex((c) => c.id === parsed.couponId);
+    if (idx === -1) {
+      return res.status(404).json({ error: "Coupon not found", code: "coupon_not_found" });
+    }
+    const coupon = inv[idx];
+    if (coupon.type === "pinned_reroll") {
+      // Pinned reroll requires user input — client must call
+      // /api/shop/replace-pinned-quests directly with this couponId.
+      return res.status(400).json({
+        error: "Pinned-reroll coupons activate via the habit picker",
+        code: "use_picker"
+      });
+    }
+
+    inv.splice(idx, 1);
+    const data = { couponInventory: JSON.stringify(inv) };
+    const select = { silver: true, gold: true, couponInventory: true };
+
+    if (coupon.type === "freeze") {
+      data.streakFreezeCharges = { increment: 1 };
+      select.streakFreezeCharges = true;
+    } else if (coupon.type === "reroll") {
+      data.extraRerollsToday = { increment: 1 };
+      select.extraRerollsToday = true;
+    } else if (coupon.type === "xp_boost") {
+      const now = new Date();
+      const base = user.xpBoostExpiresAt && new Date(user.xpBoostExpiresAt).getTime() > now.getTime()
+        ? new Date(user.xpBoostExpiresAt)
+        : now;
+      data.xpBoostExpiresAt = new Date(base.getTime() + XP_BOOST_DURATION_MS);
+      select.xpBoostExpiresAt = true;
+    } else if (coupon.type === "city_reset") {
+      // The silver cost was already paid at buy time + cityResetsPaid
+      // was incremented for escalation. Activation just performs the
+      // reset (wipes districts + refunds silver from refundable upgrade
+      // costs).
+      const refund = computeCityRefund(user.districtLevels);
+      data.silver = { increment: refund };
+      data.districtLevels = "0,0,0,0,0";
+      select.districtLevels = true;
+    } else {
+      return res.status(400).json({ error: "Unknown coupon type", code: "unknown_type" });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data,
+      select
+    });
+
+    res.json({
+      ok: true,
+      activated: { id: coupon.id, type: coupon.type },
+      silver: updated.silver,
+      gold: updated.gold,
+      couponInventory: updated.couponInventory,
+      streakFreezeCharges: updated.streakFreezeCharges,
+      extraRerollsToday: updated.extraRerollsToday,
+      xpBoostExpiresAt: updated.xpBoostExpiresAt,
+      districtLevels: updated.districtLevels ? parseDistrictLevels(updated.districtLevels) : undefined
+    });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// Activate (equip) a previously-purchased cosmetic. Doesn't remove it
+// from `ownedCosmetics`; just sets `activeCosmetics[category] = id`.
+// Client can pass `cosmeticId: null` to deactivate the slot entirely.
+app.post("/api/inventory/activate-cosmetic", async (req, res) => {
+  try {
+    const parsed = z.object({
+      username: z.string().min(2).max(64),
+      cosmeticId: z.string().min(1).max(64).nullable()
+    }).parse(req.body);
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    let active;
+    try { active = JSON.parse(user.activeCosmetics || "{}"); } catch { active = {}; }
+    if (!active || typeof active !== "object" || Array.isArray(active)) active = {};
+
+    if (parsed.cosmeticId === null) {
+      // Deactivate. Need to know which category to clear → require the
+      // client to send a category instead. For now, fail — clients
+      // should pass a real id and we'll figure out the category.
+      return res.status(400).json({ error: "Pass a cosmeticId; deactivation not supported via null", code: "no_deactivate" });
+    }
+
+    const item = COSMETIC_ITEMS.find((c) => c.id === parsed.cosmeticId);
+    if (!item) {
+      return res.status(400).json({ error: "Unknown cosmetic", code: "unknown_cosmetic" });
+    }
+
+    const owned = parseOwnedCosmetics(user.ownedCosmetics);
+    if (!owned.includes(item.id)) {
+      return res.status(400).json({ error: "You don't own this cosmetic", code: "not_owned" });
+    }
+
+    active[item.category] = item.id;
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: { activeCosmetics: JSON.stringify(active) },
+      select: { activeCosmetics: true }
+    });
+
+    res.json({
+      ok: true,
+      activated: { id: item.id, category: item.category },
+      activeCosmetics: updated.activeCosmetics
     });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });

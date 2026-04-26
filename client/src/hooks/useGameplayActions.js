@@ -538,101 +538,71 @@ function useGameplayActions({
   }
 
 
+  // Coupon-based shop economy: buying a utility item creates a coupon
+  // in user.couponInventory. The actual benefit (extraRerollsToday +=1
+  // / streakFreezeCharges +=1 / xpBoostExpiresAt += 7d / city wipe)
+  // happens when the user activates the coupon from inventory. So the
+  // optimistic patch here only touches silver + couponInventory; the
+  // benefit fields stay untouched until activation.
   async function handleBuyExtraReroll() {
-    // Mirror server cost: base 3 minus Residential shop discount (idx 4).
     const resLvl = Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[4]) || 0)));
     const discount = resLvl >= 5 ? 2 : resLvl >= 1 ? 1 : 0;
     const cost = Math.max(0, 3 - discount);
-    // Optimistic: deduct silver and increment reroll count immediately
-    setState(prev => ({
-      ...prev,
-      silver: Math.max(0, prev.silver - cost),
-      extraRerollsToday: prev.extraRerollsToday + 1
-    }));
+    setState((prev) => ({ ...prev, silver: Math.max(0, prev.silver - cost) }));
     try {
       const result = await buyExtraReroll(resolvedUsername);
-      trackEvent("extra_reroll_purchased", { silver: result.silver, extraRerollsToday: result?.extraRerollsToday });
-      // Confirm with real server values
+      trackEvent("extra_reroll_purchased", { silver: result.silver });
       setState((prev) => ({
         ...prev,
         silver: result.silver,
-        extraRerollsToday: Number(result?.extraRerollsToday ?? prev.extraRerollsToday),
+        couponInventory: typeof result?.couponInventory === "string" ? result.couponInventory : prev.couponInventory,
         logs: [
           ...prev.logs,
           {
-            msg: (vocab?.extraRerollPurchased || "🎲 {title} purchased!").replace("{title}", vocab?.rerollShopTitle || "Extra Reroll"),
+            msg: vocab?.couponPurchasedReroll || "🎫 Extra Reroll coupon added to inventory.",
             classes: "text-violet-300 font-bold cinzel",
             timestamp: getTimestamp()
           }
         ]
       }));
     } catch (err) {
-      // Rollback
-      setState(prev => ({
-        ...prev,
-        silver: prev.silver + cost,
-        extraRerollsToday: Math.max(0, prev.extraRerollsToday - 1)
-      }));
+      setState((prev) => ({ ...prev, silver: prev.silver + cost }));
       addLog(err?.message || vocab?.purchaseFailed || "Purchase failed. Please try again.", "text-red-400 font-bold");
     }
   }
 
   async function handleFreezeStreak() {
-    if (freezeStreakPending) {
-      return;
-    }
+    if (freezeStreakPending) return;
 
     const prevSilver = state.silver;
-    const prevCharges = Number(state.user?.streakFreezeCharges) || 0;
-
-    // Mirror the server's residential shop-discount so the optimistic
-    // deduction matches what the DB will return (lvl >=5: -2, lvl >=1: -1).
-    // Residential district is index 4 in districtLevels. Base price is 7.
     const resLvl = Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[4]) || 0)));
     const discount = resLvl >= 5 ? 2 : resLvl >= 1 ? 1 : 0;
     const freezeCost = Math.max(0, 7 - discount);
 
     setFreezeStreakPending(true);
-    // Optimistic: deduct silver and bump charge count (shop adds a charge to Profile)
-    setState(prev => ({
-      ...prev,
-      silver: Math.max(0, prev.silver - freezeCost),
-      user: {
-        ...(prev.user || {}),
-        streakFreezeCharges: (Number(prev.user?.streakFreezeCharges) || 0) + 1
-      }
-    }));
+    setState((prev) => ({ ...prev, silver: Math.max(0, prev.silver - freezeCost) }));
     try {
       const result = await freezeStreak(resolvedUsername);
-      trackEvent("streak_freeze_charge_purchased", { silver: result.silver, charges: result.streakFreezeCharges });
-      // Confirm with real server values
+      trackEvent("streak_freeze_coupon_purchased", { silver: result.silver });
       setState((prev) => ({
         ...prev,
         silver: result.silver,
+        couponInventory: typeof result?.couponInventory === "string" ? result.couponInventory : prev.couponInventory,
         user: {
           ...(prev.user || {}),
-          streakFreezeCharges: Number(result.streakFreezeCharges) || 0,
           lastFreezePurchaseWeekKey: result.lastFreezePurchaseWeekKey || prev.user?.lastFreezePurchaseWeekKey || ""
         },
         logs: [
           ...prev.logs,
           {
-            msg: vocab?.freezeChargePurchasedLog || "❄️ Streak Freeze charge purchased — available in Profile",
+            msg: vocab?.couponPurchasedFreeze || "🎫 Streak Freeze coupon added to inventory.",
             classes: "text-cyan-300 font-bold cinzel",
             timestamp: getTimestamp()
           }
         ]
       }));
     } catch (err) {
-      // Rollback
-      setState(prev => ({
-        ...prev,
-        silver: prevSilver,
-        user: {
-          ...(prev.user || {}),
-          streakFreezeCharges: prevCharges
-        }
-      }));
+      setState((prev) => ({ ...prev, silver: prevSilver }));
       addLog(err?.message || vocab?.purchaseFailed || "Purchase failed. Please try again.", "text-red-400 font-bold");
     } finally {
       setFreezeStreakPending(false);
@@ -645,36 +615,25 @@ function useGameplayActions({
     const discount = resLvl >= 5 ? 2 : resLvl >= 1 ? 1 : 0;
     const cost = Math.max(0, 15 - discount);
     const prevSilver = state.silver;
-    const prevExpiry = state.user?.xpBoostExpiresAt ?? null;
-    setState((prev) => ({
-      ...prev,
-      silver: Math.max(0, prev.silver - cost)
-    }));
+    setState((prev) => ({ ...prev, silver: Math.max(0, prev.silver - cost) }));
     try {
       const result = await buyXpBoost(resolvedUsername);
-      trackEvent("xp_boost_purchased", { silver: result.silver, xpBoostExpiresAt: result.xpBoostExpiresAt });
+      trackEvent("xp_boost_coupon_purchased", { silver: result.silver });
       setState((prev) => ({
         ...prev,
         silver: result.silver,
-        user: {
-          ...(prev.user || {}),
-          xpBoostExpiresAt: result.xpBoostExpiresAt ?? prev.user?.xpBoostExpiresAt ?? null
-        },
+        couponInventory: typeof result?.couponInventory === "string" ? result.couponInventory : prev.couponInventory,
         logs: [
           ...prev.logs,
           {
-            msg: vocab?.xpBoostPurchasedLog || "⚡ XP Boost active for 7 days",
+            msg: vocab?.couponPurchasedXpBoost || "🎫 XP Boost coupon added to inventory.",
             classes: "text-amber-300 font-bold cinzel",
             timestamp: getTimestamp()
           }
         ]
       }));
     } catch (err) {
-      setState((prev) => ({
-        ...prev,
-        silver: prevSilver,
-        user: { ...(prev.user || {}), xpBoostExpiresAt: prevExpiry }
-      }));
+      setState((prev) => ({ ...prev, silver: prevSilver }));
       addLog(err?.message || vocab?.purchaseFailed || "Purchase failed. Please try again.", "text-red-400 font-bold");
     }
   }

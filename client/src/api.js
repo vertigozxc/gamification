@@ -590,10 +590,13 @@ export function buyXpBoost(username) {
   });
 }
 
-export function replacePinnedQuests(username, preferredQuestIds, useSilver = true) {
+// Coupon-driven flow: the third arg is now a couponId string from
+// the user's inventory (must be type=pinned_reroll). Server consumes
+// the coupon on success, returns updated couponInventory.
+export function replacePinnedQuests(username, preferredQuestIds, couponId) {
   return request("/api/shop/replace-pinned-quests", {
     method: "POST",
-    body: JSON.stringify({ username, preferredQuestIds, useSilver })
+    body: JSON.stringify({ username, preferredQuestIds, couponId })
   });
 }
 export async function rerollPinned(username, useSilver) {
@@ -814,6 +817,36 @@ export function swapSilverToGold(username) {
   return request("/api/shop/swap-silver-to-gold", {
     method: "POST",
     body: JSON.stringify({ username })
+  });
+}
+
+// Pinned-reroll coupon purchase. The first one is granted free at
+// account creation + every 21 days; this endpoint covers paid extra
+// coupons (7 silver minus residential discount).
+export function buyPinnedRerollCoupon(username) {
+  return request("/api/shop/buy-pinned-reroll-coupon", {
+    method: "POST",
+    body: JSON.stringify({ username })
+  });
+}
+
+// Activate a non-interactive coupon (freeze / reroll / xp_boost /
+// city_reset). Pinned-reroll coupons are activated implicitly by
+// /api/shop/replace-pinned-quests since they need user input —
+// this endpoint will 400 with code: "use_picker" if you pass one.
+export function activateCoupon(username, couponId) {
+  return request("/api/inventory/activate-coupon", {
+    method: "POST",
+    body: JSON.stringify({ username, couponId })
+  });
+}
+
+// Equip a previously-purchased cosmetic. Doesn't remove it from
+// `ownedCosmetics`; just sets `activeCosmetics[category] = id`.
+export function activateCosmetic(username, cosmeticId) {
+  return request("/api/inventory/activate-cosmetic", {
+    method: "POST",
+    body: JSON.stringify({ username, cosmeticId })
   });
 }
 

@@ -38,6 +38,8 @@ function SilverVault({
   onBuyXpBoost,
   onResetCity,
   onSwapSilverToGold,
+  onBuyPinnedRerollCoupon,
+  buyPinnedRerollCouponPending = false,
   compact = false
 }) {
   const { t, tf } = useTheme();
@@ -125,18 +127,23 @@ function SilverVault({
             </div>
             <button
               onClick={onBuyExtraReroll}
-              disabled={silver < rerollCost || !hasRerolledToday}
-              className={`${buyButtonClass} ${silver >= rerollCost && hasRerolledToday ? "" : buyButtonDisabledClass}`}
-              style={silver >= rerollCost && hasRerolledToday ? buyButtonActiveStyle : undefined}
+              disabled={silver < rerollCost}
+              className={`${buyButtonClass} ${silver >= rerollCost ? "" : buyButtonDisabledClass}`}
+              style={silver >= rerollCost ? buyButtonActiveStyle : undefined}
             >
               <span style={{ display: "inline-flex", color: "currentColor" }}><IconSilver size={18} /></span>
               {silver < rerollCost ? t.notEnough : `${t.buyPrefix} ${rerollCost} ${getPluralizedSilver(rerollCost)}`}
             </button>
             <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
-              {!hasRerolledToday ? t.extraRerollFreeAvailableHint : t.extraRerollFreeUsedHint}
+              {t.extraRerollCouponHint || "Coupon goes to inventory — activate it whenever you need a daily-quest reroll."}
             </p>
           </div>
 
+          {/* Change Habits — coupon-flow. Buying creates a pinned_reroll
+              coupon in inventory; the actual habit picker runs from
+              the coupon-tap path in the inventory tab. Free coupons
+              are auto-granted server-side every 21 days, so there's no
+              "free" state in the shop card any more. */}
           <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
             <div className="flex items-start gap-3">
               <span style={{ display: "inline-flex", color: "var(--color-primary)" }}><IconPuzzle size={28} /></span>
@@ -145,41 +152,21 @@ function SilverVault({
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.pinnedQuestRerollDesc}</p>
               </div>
               <div className="flex items-center gap-1 rounded-full px-3 py-1 self-start" style={costChipStyle}>
-                {isFreePinnedReroll ? (
-                  <>
-                    <span className="text-base">🎁</span>
-                    <span className="cinzel font-bold text-xs" style={{ color: costValueColor, letterSpacing: "0.06em" }}>
-                      {t.freeLabel || "FREE"}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span style={{ display: "inline-flex", color: "var(--color-accent)" }}><IconSilver size={16} /></span>
-                    <span className="cinzel font-bold text-sm" style={{ color: costValueColor }}>7</span>
-                  </>
-                )}
+                <span style={{ display: "inline-flex", color: "var(--color-accent)" }}><IconSilver size={16} /></span>
+                <span className="cinzel font-bold text-sm" style={{ color: costValueColor }}>7</span>
               </div>
             </div>
             <button
-              onClick={onOpenPinnedReplacement}
-              disabled={!canRerollPinned}
-              className={`${buyButtonClass} ${canRerollPinned ? "" : buyButtonDisabledClass}`}
-              style={canRerollPinned ? buyButtonActiveStyle : undefined}
+              onClick={onBuyPinnedRerollCoupon}
+              disabled={silver < 7 || buyPinnedRerollCouponPending}
+              className={`${buyButtonClass} ${silver >= 7 && !buyPinnedRerollCouponPending ? "" : buyButtonDisabledClass}`}
+              style={silver >= 7 && !buyPinnedRerollCouponPending ? buyButtonActiveStyle : undefined}
             >
               <span style={{ display: "inline-flex" }}><IconRefresh size={16} /></span>
-              {isFreePinnedReroll
-                ? (t.pinnedRerollFreeUse || t.freeLabel || "Free Reroll")
-                : (silver < 7
-                    ? t.notEnough
-                    : `${t.buyPrefix} 7 ${getPluralizedSilver(7)}`)}
+              {silver < 7 ? t.notEnough : `${t.buyPrefix} 7 ${getPluralizedSilver(7)}`}
             </button>
             <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
-              {isFreePinnedReroll
-                ? t.pinnedRerollFreeAvailableHint
-                : tf("pinnedRerollNextFreeHint", {
-                  days: daysUntilFreePinnedReroll,
-                  dayLabel: daysUntilFreePinnedReroll === 1 ? t.daySingular : t.dayPlural
-                })}
+              {t.pinnedRerollFreeGrantHint || "A free coupon arrives every 21 days. Activate any from your inventory."}
             </p>
           </div>
 

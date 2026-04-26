@@ -127,6 +127,8 @@ export function createDefaultState() {
     gold: 0,
     rouletteCoupons: 0,
     ownedCosmetics: "[]",
+    activeCosmetics: "{}",
+    couponInventory: "[]",
     districtLevels: [0, 0, 0, 0, 0],
     completed: [],
     logs: [],
@@ -165,6 +167,8 @@ export function normalizeState(rawState) {
   state.gold = typeof rawState.gold === "number" ? rawState.gold : 0;
   state.rouletteCoupons = typeof rawState.rouletteCoupons === "number" ? rawState.rouletteCoupons : 0;
   state.ownedCosmetics = typeof rawState.ownedCosmetics === "string" ? rawState.ownedCosmetics : "[]";
+  state.activeCosmetics = typeof rawState.activeCosmetics === "string" ? rawState.activeCosmetics : "{}";
+  state.couponInventory = typeof rawState.couponInventory === "string" ? rawState.couponInventory : "[]";
   state.completed = Array.isArray(rawState.completed) ? rawState.completed : [];
   state.logs = Array.isArray(rawState.logs) ? rawState.logs : [];
   state.streak = typeof rawState.streak === "number" ? rawState.streak : 0;
