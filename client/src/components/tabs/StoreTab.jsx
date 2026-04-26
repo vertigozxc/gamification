@@ -160,20 +160,28 @@ function BagSlot({ slot, onTap }) {
 // card with the coupon's big icon, title, small "{n} in inventory"
 // hint under the title, description body, then Cancel + Use buttons.
 function InventorySheet({ slot, onClose, t }) {
+  // The popup keeps a `pending` flag so we can show a loading spinner
+  // on the CTA between "Use" tap and the API actually settling. Without
+  // this the popup closed instantly while the coupon was still in the
+  // inventory grid for a few hundred ms, looking like the app froze.
+  // Hooks must be called unconditionally — keep the early `return null`
+  // *after* the hook call.
+  const [pending, setPending] = useState(false);
   if (!slot) return null;
 
-  const ctaDisabled = Boolean(slot.ctaDisabled);
+  const ctaDisabled = Boolean(slot.ctaDisabled) || pending;
   const hasAction = typeof slot.action === "function";
 
-  // Build the small "you have N in inventory" hint under the title.
-  // Coupons stack so we always show >=2 as "N in inventory"; for
-  // active timers (e.g. "5d") we keep the raw label as the count.
-  const countNum = typeof slot.count === "number" ? slot.count : (typeof slot.count === "string" && /^\d+$/.test(slot.count) ? Number(slot.count) : null);
+  // Sheet count hint sits right under the title. For coupon slots we
+  // always show "{n} in inventory" — even for a single coupon — so
+  // the user always knows their exact stock. For timer slots (e.g.
+  // "5d") fall through to the raw label.
   let countHint = null;
-  if (countNum && countNum > 0) {
-    countHint = (t.inventoryCountHint || "{n} in inventory").replace("{n}", String(countNum));
+  const sheetN = typeof slot.sheetCount === "number" ? slot.sheetCount : null;
+  if (sheetN && sheetN > 0) {
+    countHint = (t.inventoryCountHint || "{n} in inventory").replace("{n}", String(sheetN));
   } else if (typeof slot.count === "string" && !/^\d+$/.test(slot.count)) {
-    countHint = slot.count; // raw timer label like "5d"
+    countHint = slot.count;
   }
 
   return (
@@ -192,12 +200,16 @@ function InventorySheet({ slot, onClose, t }) {
         <div className="logout-confirm-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
           {slot.bigIcon || slot.icon}
         </div>
-        <h3 className="cinzel logout-confirm-title">{slot.title}</h3>
+        <h3 className="cinzel logout-confirm-title" style={countHint ? { marginBottom: 2 } : undefined}>
+          {slot.title}
+        </h3>
         {countHint ? (
+          // Pulled tight to the title (no top margin, just a small gap below)
+          // so it reads as a sub-line of the heading, not a separate block.
           <p style={{
             fontSize: 11,
             color: "var(--color-muted)",
-            margin: "-4px 0 8px",
+            margin: "0 0 14px",
             textAlign: "center",
             letterSpacing: "0.05em",
             opacity: 0.85
@@ -220,14 +232,39 @@ function InventorySheet({ slot, onClose, t }) {
             <button
               type="button"
               className="logout-confirm-proceed cinzel mobile-pressable"
-              onClick={() => {
+              onClick={async () => {
                 if (ctaDisabled) return;
-                try { slot.action(); } catch { /* handler logs its own errors */ }
+                setPending(true);
+                try {
+                  // slot.action returns a promise (it's the async
+                  // onActivateCoupon / onActivateCosmetic handler).
+                  // Await so the popup stays mounted with the spinner
+                  // showing until the API + state update finishes.
+                  await slot.action();
+                } catch { /* handler logs its own errors */ }
+                setPending(false);
                 onClose();
               }}
               disabled={ctaDisabled}
+              style={pending ? { opacity: 0.85, cursor: "wait" } : undefined}
             >
-              {slot.ctaLabel || (t.couponUseCta || "Use")}
+              {pending ? (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: "50%",
+                      border: "2px solid currentColor",
+                      borderTopColor: "transparent",
+                      animation: "spin 0.7s linear infinite",
+                      display: "inline-block"
+                    }}
+                  />
+                  {t.submittingLabel || "Submitting..."}
+                </span>
+              ) : (slot.ctaLabel || t.couponUseCta || "Use")}
             </button>
           ) : null}
         </div>
@@ -264,7 +301,11 @@ function buildBagSlots({
       type: bucket.type,
       icon: <CouponIcon type={bucket.type} fill alt={name} />,
       bigIcon: <CouponIcon type={bucket.type} size={96} alt={name} />,
+      // Slot badge: only shows for stacks (≥2). Sheet count hint
+      // (sheetCount) shows even for 1 so the user always knows
+      // exactly how many they have.
       count: bucket.count > 1 ? bucket.count : null,
+      sheetCount: bucket.count,
       label: name,
       title: name,
       description: t[`couponSheetDesc_${bucket.type}`] || "",
@@ -554,16 +595,21 @@ export default function StoreTab({
             </span>
           </div>
         </div>
-        {/* Compact economy hint — three facts about how the dual-currency
-            economy works, separated by middle dots so each fact reads as
-            its own chunk without bloating the header. Two-line max on
-            narrow screens; ≤14 words per fact keeps it scannable. */}
-        <p className="relative z-10 text-[10px] leading-snug m-0 mt-2 pt-2" style={{
-          color: "var(--color-muted)",
+        {/* Compact economy hint + inventory hint. Two paragraphs, both
+            10px muted text, separated by a tight gap. The top line
+            explains where the currencies come from; the second line
+            tells the user that purchases go to the inventory and are
+            activated from there (per the coupon-flow refactor). */}
+        <div className="relative z-10 mt-2 pt-2" style={{
           borderTop: "1px solid color-mix(in srgb, var(--card-border-idle) 50%, transparent)"
         }}>
-          {t.storeEconomyHint || "Silver — most activities · Gold — high-level only · Swap 100:1 (see About)"}
-        </p>
+          <p className="text-[10px] leading-snug m-0" style={{ color: "var(--color-muted)" }}>
+            {t.storeEconomyHint || "Silver — most activities · Gold — high-level only · Swap 100:1 (see About)"}
+          </p>
+          <p className="text-[10px] leading-snug m-0 mt-1.5" style={{ color: "var(--color-muted)", opacity: 0.85 }}>
+            {t.storeInventoryHint || "After purchase, all items go to your inventory and can be activated from there."}
+          </p>
+        </div>
       </div>
 
       {/* Slide-bar tabs (qb-tab-bar pattern from QuestBoard so the two surfaces

@@ -439,6 +439,8 @@ export const languagePacks = {
       notEnoughSilverSwap: "Need 100 silver to swap.",
       // Compact economy hint shown under the Store header
       storeEconomyHint: "Silver is earned from most daily activities. Gold drops only from specific high-level content — it's a very valuable currency, spend it wisely.",
+      // Second hint line under the header — explains coupon flow
+      storeInventoryHint: "After purchase, all items go to your inventory and can be activated from there.",
       // Coupon-flow strings
       couponPurchasedFreeze: "🎫 Streak Freeze coupon added to inventory.",
       couponPurchasedReroll: "🎫 Extra Reroll coupon added to inventory.",
@@ -466,7 +468,7 @@ export const languagePacks = {
       cosmeticActivationFailed: "Cosmetic activation failed.",
       // Bottom-sheet descriptions and CTAs
       couponSheetDesc_freeze: "Activates +1 streak-freeze charge. Auto-shields one missed day on your streak.",
-      couponSheetDesc_reroll: "Activates +1 daily-quest reroll for today.",
+      couponSheetDesc_reroll: "Activates +1 reroll charge. The 🎲 Reroll button on the Dashboard becomes available again until midnight.",
       couponSheetDesc_pinned_reroll: "Opens the habit picker — choose a new set of pinned habits.",
       couponSheetDesc_xp_boost: "Adds 7 days of +15% XP boost. Stacks with any active boost.",
       couponSheetDesc_city_reset: "Wipes all districts back to level 0 and refunds every silver you spent on them.",
@@ -1800,6 +1802,8 @@ export const languagePacks = {
       notEnoughSilverSwap: "Нужно 100 серебра для обмена.",
       // Компактная подпись под шапкой Store про экономику
       storeEconomyHint: "Серебро зарабатывается за большинство дейли-активностей. Золото падает только за определённый хай-левел контент — это очень ценная валюта, трать с умом.",
+      // Вторая строка подписи — про купонный flow
+      storeInventoryHint: "После покупки все товары попадают в инвентарь и могут быть использованы оттуда.",
       // Купонная экономика
       couponPurchasedFreeze: "🎫 Купон «Заморозка стрика» в инвентаре.",
       couponPurchasedReroll: "🎫 Купон «Перемешать ещё раз» в инвентаре.",
@@ -1827,7 +1831,7 @@ export const languagePacks = {
       cosmeticActivationFailed: "Не удалось надеть косметику.",
       // Описания и CTA для bottom-sheet
       couponSheetDesc_freeze: "Активирует +1 заряд заморозки стрика. Автоматически прикроет пропущенный день.",
-      couponSheetDesc_reroll: "Активирует +1 ререролл дейли-квестов на сегодня.",
+      couponSheetDesc_reroll: "Активирует +1 заряд реролла. Кнопка 🎲 «Перемешать» на дашборде снова станет доступной до полуночи.",
       couponSheetDesc_pinned_reroll: "Открывает picker привычек — выбери новый набор закреплённых.",
       couponSheetDesc_xp_boost: "Добавляет 7 дней +15% XP-буста. Стакается с активным.",
       couponSheetDesc_city_reset: "Обнуляет все районы и возвращает всё серебро, потраченное на них.",
