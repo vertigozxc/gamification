@@ -1,6 +1,7 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
-import { devGrantXp, devGrantSilver, devResetMe, devGrantStreak } from "../api";
+import { devGrantXp, devGrantSilver, devGrantGold, devResetMe, devGrantStreak } from "../api";
+import { IconSilver, IconGold } from "./icons/Icons";
 
 const LEGACY_DEV_TEST_USER_ID = "C0x6GY9LeyVhY12L1yF5QRHp3DP2";
 
@@ -80,10 +81,22 @@ export default function DevTestPanel({ username, onRefresh, onLogout, xp = 0, xp
           <button
             type="button"
             disabled={busy}
-            onClick={() => run(() => devGrantSilver(username, 5))}
+            onClick={() => run(() => devGrantSilver(username, 20))}
             style={buttonStyle}
           >
-            +5 🪙
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              +20 <IconSilver size={14} />
+            </span>
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => run(() => devGrantGold(username, 10))}
+            style={buttonStyle}
+          >
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              +10 <IconGold size={14} />
+            </span>
           </button>
           <button
             type="button"

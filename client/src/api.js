@@ -787,8 +787,15 @@ export function devGrantXp(username, amount = 500) {
   });
 }
 
-export function devGrantSilver(username, amount = 5) {
+export function devGrantSilver(username, amount = 20) {
   return request("/api/dev/grant-silver", {
+    method: "POST",
+    body: JSON.stringify({ username, amount })
+  });
+}
+
+export function devGrantGold(username, amount = 10) {
+  return request("/api/dev/grant-gold", {
     method: "POST",
     body: JSON.stringify({ username, amount })
   });

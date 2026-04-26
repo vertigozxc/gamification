@@ -696,7 +696,7 @@ app.post("/api/dev/grant-silver", async (req, res) => {
   try {
     const schema = z.object({
       username: z.string().min(2).max(64),
-      amount: z.number().int().min(1).max(1000).default(5)
+      amount: z.number().int().min(1).max(1000).default(20)
     });
     const parsed = schema.parse(req.body || {});
     if (!(await assertDevTester(parsed.username))) {
@@ -711,6 +711,33 @@ app.post("/api/dev/grant-silver", async (req, res) => {
       data: { silver: { increment: parsed.amount } }
     });
     res.json({ ok: true, grantedSilver: parsed.amount, silver: updatedUser.silver });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
+// POST /api/dev/grant-gold — DEV-only +N gold for the active dev tester.
+// Mirrors /api/dev/grant-silver. Used by the floating DEV panel on
+// mobile to top up gold while testing premium-cosmetic flows.
+app.post("/api/dev/grant-gold", async (req, res) => {
+  try {
+    const schema = z.object({
+      username: z.string().min(2).max(64),
+      amount: z.number().int().min(1).max(1000).default(10)
+    });
+    const parsed = schema.parse(req.body || {});
+    if (!(await assertDevTester(parsed.username))) {
+      return res.status(403).json({ error: "Dev test grants are restricted" });
+    }
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { gold: { increment: parsed.amount } }
+    });
+    res.json({ ok: true, grantedGold: parsed.amount, gold: updatedUser.gold });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
   }
