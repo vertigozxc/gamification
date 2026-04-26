@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import QuestBoard from "../QuestBoard";
 import { useTheme } from "../../ThemeContext";
 import { completeChallenge, fetchUserChallenges, joinChallenge, leaveChallenge } from "../../api";
-import { IconFlame } from "../icons/Icons";
+import { IconFlame, IconSilver, IconBolt } from "../icons/Icons";
 // (IconFlame is also used inside the milestone-reward renderer below.)
 
 function todayKey() {
@@ -188,7 +188,7 @@ export default function DashboardTab({
                           </span>
                         ) : (
                           <span className="dash-milestone-pill-icon" aria-hidden="true">
-                            {p.kind === "silver" ? t.silverIcon : "⚡"}
+                            {p.kind === "silver" ? <IconSilver size={11} /> : <IconBolt size={11} />}
                           </span>
                         )}
                         <span className="dash-milestone-pill-amount">+{p.amount}</span>

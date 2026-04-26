@@ -83,7 +83,7 @@ function SilverVault({
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.freezeDesc}</p>
               </div>
               <div className="flex items-center gap-1 rounded-full px-3 py-1" style={costChipStyle}>
-                <span style={{ display: "inline-flex", color: "var(--color-accent)" }}><IconSilver size={16} /></span>
+                <span style={{ display: "inline-flex", color: "var(--color-accent)" }}><IconSilver size={19} /></span>
                 <span className="cinzel font-bold text-sm" style={{ color: costValueColor }}>{freezeCost}</span>
               </div>
             </div>
@@ -117,7 +117,7 @@ function SilverVault({
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.rerollShopDesc}</p>
               </div>
               <div className="flex items-center gap-1 rounded-full px-3 py-1" style={costChipStyle}>
-                <span style={{ display: "inline-flex", color: "var(--color-accent)" }}><IconSilver size={16} /></span>
+                <span style={{ display: "inline-flex", color: "var(--color-accent)" }}><IconSilver size={19} /></span>
                 <span className="cinzel font-bold text-sm" style={{ color: costValueColor }}>{rerollCost}</span>
               </div>
             </div>
@@ -147,7 +147,7 @@ function SilverVault({
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.pinnedQuestRerollDesc}</p>
               </div>
               <div className="flex items-center gap-1 rounded-full px-3 py-1 self-start" style={costChipStyle}>
-                <span style={{ display: "inline-flex", color: "var(--color-accent)" }}><IconSilver size={16} /></span>
+                <span style={{ display: "inline-flex", color: "var(--color-accent)" }}><IconSilver size={19} /></span>
                 <span className="cinzel font-bold text-sm" style={{ color: costValueColor }}>7</span>
               </div>
             </div>
@@ -172,7 +172,7 @@ function SilverVault({
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.xpBoostDesc}</p>
               </div>
               <div className="flex items-center gap-1 rounded-full px-3 py-1 self-start" style={costChipStyle}>
-                <span style={{ display: "inline-flex", color: "var(--color-accent)" }}><IconSilver size={16} /></span>
+                <span style={{ display: "inline-flex", color: "var(--color-accent)" }}><IconSilver size={19} /></span>
                 <span className="cinzel font-bold text-sm" style={{ color: costValueColor }}>{xpBoostCost}</span>
               </div>
             </div>
@@ -204,16 +204,16 @@ function SilverVault({
           <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
             <div className="flex items-center gap-3">
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <IconSilver size={26} />
+                <IconSilver size={31} />
                 <span style={{ display: "inline-flex", color: "var(--color-muted)" }}><IconArrowRight size={14} /></span>
-                <IconGold size={26} />
+                <IconGold size={31} />
               </span>
               <div className="flex-1">
                 <p className="cinzel font-bold text-base tracking-wide" style={{ color: "var(--color-text)" }}>{t.swapTitle || "Swap silver for gold"}</p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.swapDesc || "Convert silver into premium gold."}</p>
               </div>
               <div className="flex items-center gap-1 rounded-full px-3 py-1" style={costChipStyle}>
-                <span style={{ display: "inline-flex", color: "var(--color-accent)" }}><IconSilver size={16} /></span>
+                <span style={{ display: "inline-flex", color: "var(--color-accent)" }}><IconSilver size={19} /></span>
                 <span className="cinzel font-bold text-sm" style={{ color: costValueColor }}>{SWAP_SILVER_COST}</span>
               </div>
             </div>
@@ -240,7 +240,7 @@ function SilverVault({
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.cityResetDesc || "Wipe all districts and refund every silver spent on them."}</p>
               </div>
               <div className="flex items-center gap-1 rounded-full px-3 py-1 self-start" style={costChipStyle}>
-                <span style={{ display: "inline-flex", color: "var(--color-accent)" }}><IconSilver size={16} /></span>
+                <span style={{ display: "inline-flex", color: "var(--color-accent)" }}><IconSilver size={19} /></span>
                 <span className="cinzel font-bold text-sm" style={{ color: costValueColor }}>{cityResetCost}</span>
               </div>
             </div>

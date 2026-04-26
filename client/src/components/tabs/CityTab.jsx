@@ -10,7 +10,7 @@ import SpinWheelModal from "../SpinWheelModal";
 import { useTheme } from "../../ThemeContext";
 import { pluralizeDays, pluralizeCharges } from "../../i18nConfig";
 import { citySpinStatus, upgradeDistrict, downgradeDistrict, devGrantStats, claimBusinessSilver, updateCityName } from "../../api";
-import { IconCheck, IconClose, IconArrowRight, IconSparkle, IconTimer, IconTag } from "../icons/Icons";
+import { IconCheck, IconClose, IconArrowRight, IconSparkle, IconTimer, IconTag, IconSilver } from "../icons/Icons";
 
 const DISTRICT_MAX_LEVEL = 5;
 
@@ -1154,7 +1154,7 @@ export default function CityTab({
                     </span>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                       <ReqChip icon="⭐" label={`${t.districtReqLevelPrefix || "Lvl"} ${userLevel} / ${nextReq.level}`} met={userLevel >= nextReq.level} current={userLevel} />
-                      <ReqChip icon="🪙" label={`${silver} / ${nextReq.silver}`} met={silver >= nextReq.silver} current={silver} />
+                      <ReqChip icon={<IconSilver size={14} />} label={`${silver} / ${nextReq.silver}`} met={silver >= nextReq.silver} current={silver} />
                       {nextReq.streak > 0 && (
                         <ReqChip icon="🔥" label={`${userStreak} / ${nextReq.streak}`} met={userStreak >= nextReq.streak} current={userStreak} />
                       )}
@@ -1319,12 +1319,14 @@ export default function CityTab({
         const cooldown = !locked && businessClaimedToday;
         const disabled = locked || cooldown;
         let label;
+        let showSilverIcon = false;
         if (locked) {
           label = t.businessCollectProfitsLocked || "🔒 Collect — unlock at Business lvl 1";
         } else if (cooldown) {
           label = `${t.businessClaimWait || "Next claim in"} ${msToHMS(msUntilMidnightUtc)}`;
         } else {
-          label = `${t.businessCollectProfits || "Collect District Profits"} +${bizLvl} 🪙`;
+          label = `${t.businessCollectProfits || "Collect District Profits"} +${bizLvl}`;
+          showSilverIcon = true;
         }
         const ACCENT = "#d9a441";
         const bg = locked
@@ -1372,7 +1374,10 @@ export default function CityTab({
               order: 5
             }}
           >
-            {label}
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              {label}
+              {showSilverIcon ? <IconSilver size={14} /> : null}
+            </span>
           </button>
         );
       })()}

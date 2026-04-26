@@ -452,8 +452,11 @@ export function IconGlobe(props) {
 // is at the surrounding chip level (border / glow), not on the coin
 // glyph itself.
 
-const SILVER_PNG = "/coins/silver-coin-2x.png";
-const GOLD_PNG   = "/coins/gold-coin-2x.png";
+// Cache-bust query string. Bump on new art so every device refetches
+// instead of showing a stale cached coin from `public/coins/*.png`.
+const COIN_ART_VERSION = "1";
+const SILVER_PNG = `/coins/silver-coin-2x.png?v=${COIN_ART_VERSION}`;
+const GOLD_PNG   = `/coins/gold-coin-2x.png?v=${COIN_ART_VERSION}`;
 
 function CoinImage({ src, alt, size, className, style }) {
   return (

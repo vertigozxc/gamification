@@ -4,12 +4,17 @@
 // and in the SilverVault buy cards. Same component drives both
 // surfaces so the visual identity stays consistent.
 
+// Cache-bust query param. Bump when the coupon PNG art is replaced —
+// the file paths are stable (Vite serves /public/* with long-lived
+// cache headers in prod), so a new ?v= forces every browser to
+// fetch the fresh art instead of showing the previous version.
+const COUPON_ART_VERSION = "2";
 const COUPON_SRC = {
-  freeze: "/coupons/streak-freeze-coupon-2x.png",
-  reroll: "/coupons/reroll-coupon-2x.png",
-  pinned_reroll: "/coupons/change-habits-coupon-2x.png",
-  xp_boost: "/coupons/xp-boost-coupon-2x.png",
-  city_reset: "/coupons/reset-city-coupon-2x.png"
+  freeze: `/coupons/streak-freeze-coupon-2x.png?v=${COUPON_ART_VERSION}`,
+  reroll: `/coupons/reroll-coupon-2x.png?v=${COUPON_ART_VERSION}`,
+  pinned_reroll: `/coupons/change-habits-coupon-2x.png?v=${COUPON_ART_VERSION}`,
+  xp_boost: `/coupons/xp-boost-coupon-2x.png?v=${COUPON_ART_VERSION}`,
+  city_reset: `/coupons/reset-city-coupon-2x.png?v=${COUPON_ART_VERSION}`
 };
 
 export default function CouponIcon({ type, size = 36, fill = false, alt = "", style, ...rest }) {
