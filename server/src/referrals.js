@@ -5,7 +5,7 @@
 // Limit — enforced at the API layer rather than the DB schema, so the
 // constant can be tuned in one place if product changes their mind.
 export const MAX_CODES_PER_USER = 3;
-export const REFERRAL_REWARD_TOKENS = 50;
+export const REFERRAL_REWARD_SILVER = 50;
 export const REFERRAL_LEVEL_THRESHOLD = 5;
 
 // Code format: uppercase A-Z + 0-9, length 4..10. We canonicalise on
@@ -150,7 +150,7 @@ export async function buildMyReferralsPayload(prisma, userId) {
     })),
     codesLimit: MAX_CODES_PER_USER,
     canCreateMore: codes.length < MAX_CODES_PER_USER,
-    rewardTokens: REFERRAL_REWARD_TOKENS,
+    rewardTokens: REFERRAL_REWARD_SILVER,
     rewardLevel: REFERRAL_LEVEL_THRESHOLD,
     referrals: referrals.map((r) => ({
       id: r.id,

@@ -320,7 +320,7 @@ function useOnboardingPinned({
   }
 
   function toggleReplacePinnedQuest(questId) {
-    // Any selection change invalidates a previous "Not enough tokens" / server error.
+    // Any selection change invalidates a previous "Not enough silver" / server error.
     setReplacePinnedError("");
     setReplacePinnedQuestIds((prev) => {
       if (prev.includes(questId)) {
@@ -358,12 +358,12 @@ function useOnboardingPinned({
           setReplacePinnedQuestIds(nextPreferred);
           setState((prev) => ({
             ...prev,
-            tokens: typeof resp.user?.tokens === "number" ? resp.user.tokens : prev.tokens,
+            silver: typeof resp.user?.silver === "number" ? resp.user.silver : prev.silver,
             preferredQuestIds: Array.isArray(resp.preferredQuestIds) ? resp.preferredQuestIds : prev.preferredQuestIds,
             user: {
               ...prev.user,
               lastFreeTaskRerollAt: resp.user?.lastFreeTaskRerollAt ?? prev.user?.lastFreeTaskRerollAt ?? null,
-              tokens: typeof resp.user?.tokens === "number" ? resp.user.tokens : prev.user?.tokens
+              silver: typeof resp.user?.silver === "number" ? resp.user.silver : prev.user?.silver
             }
           }));
         }
@@ -388,13 +388,13 @@ function useOnboardingPinned({
     try {
       const isFreePinnedReroll = !state.user?.lastFreeTaskRerollAt || (Date.now() - new Date(state.user.lastFreeTaskRerollAt).getTime() >= FREE_PINNED_REROLL_INTERVAL_MS);
         const result = await replacePinnedQuests(resolvedUsername, replacePinnedQuestIds, !isFreePinnedReroll);
-      const costText = isFreePinnedReroll ? t.freeLabel : t.sevenTokens;
+      const costText = isFreePinnedReroll ? t.freeLabel : t.sevenSilver;
       const nextQuests = Array.isArray(result?.quests) ? result.quests.map(normalizeQuest) : [];
       applyCustomQuestsFromResponse(result);
       setQuests(nextQuests);
       setState((prev) => ({
         ...prev,
-        tokens: result?.tokens ?? prev.tokens,
+        silver: result?.silver ?? prev.silver,
         preferredQuestIds: Array.isArray(result?.preferredQuestIds) ? result.preferredQuestIds : prev.preferredQuestIds,
         pinnedQuestProgress21d: normalizePinnedQuestProgress(result?.pinnedQuestProgress21d),
         completed: Array.isArray(result?.completedQuestIds) ? result.completedQuestIds : prev.completed,
@@ -414,18 +414,18 @@ function useOnboardingPinned({
       setShowPinnedReplaceModal(false);
     } catch (err) {
       setReplacePinnedError(err?.message || t.purchaseFailed);
-      // Re-sync tokens/free-reroll state so the UI reflects reality after a failed purchase.
+      // Re-sync silver/free-reroll state so the UI reflects reality after a failed purchase.
       if (authUser?.uid) {
         apiFetchGameState(resolvedUsername)
           .then((resp) => {
             if (!resp) return;
             setState((prev) => ({
               ...prev,
-              tokens: typeof resp.user?.tokens === "number" ? resp.user.tokens : prev.tokens,
+              silver: typeof resp.user?.silver === "number" ? resp.user.silver : prev.silver,
               user: {
                 ...prev.user,
                 lastFreeTaskRerollAt: resp.user?.lastFreeTaskRerollAt ?? prev.user?.lastFreeTaskRerollAt ?? null,
-                tokens: typeof resp.user?.tokens === "number" ? resp.user.tokens : prev.user?.tokens
+                silver: typeof resp.user?.silver === "number" ? resp.user.silver : prev.user?.silver
               }
             }));
           })
@@ -472,7 +472,7 @@ function useOnboardingPinned({
         lvl: result?.user?.level ?? prev.lvl,
         xp: result?.user?.xp ?? prev.xp,
         xpNext: result?.user?.xpNext ?? prev.xpNext,
-        tokens: result?.user?.tokens ?? prev.tokens,
+        silver: result?.user?.silver ?? prev.silver,
         user: {
           ...prev.user,
           handle: result?.user?.handle ?? prev.user?.handle ?? null,
@@ -536,7 +536,7 @@ function useOnboardingPinned({
         lvl: result?.user?.level ?? prev.lvl,
         xp: result?.user?.xp ?? prev.xp,
         xpNext: result?.user?.xpNext ?? prev.xpNext,
-        tokens: result?.user?.tokens ?? prev.tokens,
+        silver: result?.user?.silver ?? prev.silver,
         user: {
           ...prev.user,
           handle: result?.user?.handle ?? prev.user?.handle ?? null,

@@ -1,4 +1,6 @@
-export default function HabitMilestonePopup({ show, onClose, title, tokens, t, tf }) {
+import { IconSilver } from "./icons/Icons";
+
+export default function HabitMilestonePopup({ show, onClose, title, silver, t, tf }) {
   return (
     <div className={`levelup-popup ${show ? "show" : "hidden"}`} aria-live="assertive" style={{ backdropFilter: "blur(8px)", background: "rgba(5, 20, 10, 0.82)" }}>
       <div className="levelup-popup-card relative flex flex-col items-center justify-center p-8 md:p-12 w-[90vw] md:w-[600px] overflow-hidden" style={{ borderRadius: "2rem", border: "2px solid rgba(74, 222, 128, 0.65)", background: "linear-gradient(160deg, rgba(15,23,42,0.98), rgba(5,20,10,0.99))", boxShadow: "0 0 50px rgba(74, 222, 128, 0.2), inset 0 0 30px rgba(74,222,128,0.12)" }}>
@@ -22,7 +24,7 @@ export default function HabitMilestonePopup({ show, onClose, title, tokens, t, t
           <div className="inline-flex justify-center items-center gap-3 bg-black/40 border border-emerald-500/50 rounded-xl px-6 py-4 mb-8 shadow-[inset_0_0_15px_rgba(74,222,128,0.12)]" style={{ animation: "fadeInUp 1.2s ease-out" }}>
             <span className="text-xl text-emerald-100 uppercase tracking-widest text-[0.85rem] font-bold">{t.rewardClaimLabel}</span>
             <span className="text-3xl font-black text-emerald-300 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">
-              +{tokens} <span className="text-4xl px-1">{t.tokenIcon}</span>
+              +{silver} <span style={{ display: "inline-flex", alignItems: "center", padding: "0 0.25rem", color: "currentColor" }}><IconSilver size={32} /></span>
             </span>
           </div>
 

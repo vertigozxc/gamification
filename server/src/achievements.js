@@ -31,7 +31,7 @@ export const ACHIEVEMENT_CODES = [
   "referral_ally",
   // Referrer-side milestone: 3+ referees (across any of my up-to-3
   // codes) who reached level 5. Stacks on top of the per-referee 50
-  // tokens — this is the trophy for actually building a small crew.
+  // silver — this is the trophy for actually building a small crew.
   "referral_recruiter"
 ];
 
@@ -59,7 +59,7 @@ export const ACHIEVEMENT_REWARDS = {
   // (claimed in the My Referrals section, separate flow).
   referral_ally: 50,
   // Three-referees-at-level-5 milestone. Mid-tier reward — the
-  // referrer already collected 3×50 = 150 tokens through the
+  // referrer already collected 3×50 = 150 silver through the
   // per-row claims in My Referrals; this is the bonus trophy.
   referral_recruiter: 30
 };
@@ -78,7 +78,7 @@ export async function evaluateAchievements(prisma, userId) {
       level: true,
       streak: true,
       maxStreak: true,
-      tokensSpentTotal: true,
+      silverSpentTotal: true,
       cityResetsPaid: true,
       preferredLanguage: true
     }
@@ -100,8 +100,8 @@ export async function evaluateAchievements(prisma, userId) {
   if (!already.has("lvl_10") && lvl >= 10) toUnlock.push("lvl_10");
   if (!already.has("lvl_30") && lvl >= 30) toUnlock.push("lvl_30");
   if (!already.has("lvl_100") && lvl >= 100) toUnlock.push("lvl_100");
-  if (!already.has("first_coin") && (user.tokensSpentTotal || 0) >= 1) toUnlock.push("first_coin");
-  if (!already.has("high_roller") && (user.tokensSpentTotal || 0) >= HIGH_ROLLER_THRESHOLD) toUnlock.push("high_roller");
+  if (!already.has("first_coin") && (user.silverSpentTotal || 0) >= 1) toUnlock.push("first_coin");
+  if (!already.has("high_roller") && (user.silverSpentTotal || 0) >= HIGH_ROLLER_THRESHOLD) toUnlock.push("high_roller");
   if (!already.has("phoenix") && (user.cityResetsPaid || 0) >= 1) toUnlock.push("phoenix");
   if (!already.has("polyglot") && String(user.preferredLanguage || "").length > 0) toUnlock.push("polyglot");
 
@@ -223,7 +223,7 @@ export async function fetchUserAchievements(prisma, userId) {
       unlocked: !!r,
       unlockedAt: r?.unlockedAt || null,
       claimedAt: r?.claimedAt || null,
-      tokensReward: ACHIEVEMENT_REWARDS[code] || 0
+      silverReward: ACHIEVEMENT_REWARDS[code] || 0
     };
   });
 }

@@ -19,7 +19,17 @@ model User {
   xp                        Int                    @default(0)
   xpNext                    Int                    @default(250)
   streak                    Int                    @default(0)
-  tokens                    Int                    @default(0)
+  // Silver — primary in-game currency (formerly "tokens"). Kept the
+  // physical column name as `tokens` via @map so the existing data
+  // survives without a destructive migration; only the Prisma client
+  // field is renamed. Can be column-renamed in a follow-up migration.
+  silver                    Int                    @default(0)                         @map("tokens")
+  // Gold — premium currency, spent on cosmetics (frames, backgrounds).
+  gold                      Int                    @default(0)
+  // Roulette coupons — consumable, spend one to spin without paying silver.
+  rouletteCoupons           Int                    @default(0)
+  // JSON-encoded list of owned cosmetic ids (frames, bg variants, etc).
+  ownedCosmetics            String                 @default("[]")
   theme                     String                 @default("adventure")
   lastStreakIncreaseAt      DateTime?
   streakFreezeExpiresAt     DateTime?
@@ -40,7 +50,8 @@ model User {
   lastFreezePurchaseWeekKey String                 @default("")
   xpBoostExpiresAt          DateTime?
   cityResetsPaid            Int                    @default(0)
-  tokensSpentTotal          Int                    @default(0)
+  // Lifetime silver spent in the store. Same @map trick as `silver` above.
+  silverSpentTotal          Int                    @default(0)                         @map("tokensSpentTotal")
   preferredLanguage         String                 @default("")
   cityName                  String                 @default("")
   isDevTester               Boolean                @default(false)
@@ -266,7 +277,7 @@ model ChallengeParticipant {
   completions          Int            @default(0)
   consecutiveDays      Int            @default(0)
   lastCompletionDayKey String         @default("")
-  tokensEarned         Int            @default(0)
+  silverEarned         Int            @default(0)                         @map("tokensEarned")
   challenge            GroupChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
   user                 User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 

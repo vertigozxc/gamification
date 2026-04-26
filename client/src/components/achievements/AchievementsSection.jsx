@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { fetchAchievements, claimAchievement, fetchAchievementStats } from "../../api";
 import { ACHIEVEMENT_ICONS } from "./icons";
+import { IconSilver } from "../icons/Icons";
 
 // Ordered for display. Keep in sync with server/src/achievements.js.
 // Level / streak milestones come first (clearest "I made it that far"
@@ -107,7 +108,7 @@ function formatDate(value, languageId) {
   }
 }
 
-export default function AchievementsSection({ username, t, languageId, onModalOpenChange, prefetched, onTokensClaimed, refreshKey = 0, readOnly = false }) {
+export default function AchievementsSection({ username, t, languageId, onModalOpenChange, prefetched, onSilverClaimed, refreshKey = 0, readOnly = false }) {
   // Hydrate the initial render from prefetched > module cache > null.
   // The lazy module-cache hit eliminates the "0/N" flash on tab-switch
   // remounts that happen all the time on mobile when the user bounces
@@ -188,7 +189,7 @@ export default function AchievementsSection({ username, t, languageId, onModalOp
     if (!username) return null;
     try {
       const resp = await claimAchievement(username, code);
-      const granted = Number(resp?.tokensGranted) || 0;
+      const granted = Number(resp?.silverGranted) || 0;
       // Optimistic local update so the popup transitions to "claimed"
       // without waiting for a refetch round-trip.
       setData((prev) => {
@@ -204,14 +205,14 @@ export default function AchievementsSection({ username, t, languageId, onModalOp
         achievementsCache.set(username, next);
         return next;
       });
-      if (granted > 0 && typeof onTokensClaimed === "function") {
-        onTokensClaimed(granted);
+      if (granted > 0 && typeof onSilverClaimed === "function") {
+        onSilverClaimed(granted);
       }
       return resp;
     } catch (err) {
       return { error: err?.data?.error || err?.message || "Failed" };
     }
-  }, [username, onTokensClaimed]);
+  }, [username, onSilverClaimed]);
 
   const byCode = new Map((data?.achievements || []).map((a) => [a.code, a]));
   const ordered = ACHIEVEMENT_ORDER.map((code) => byCode.get(code) || { code, unlocked: false, unlockedAt: null });
@@ -375,7 +376,7 @@ function AchievementModal({ code, entry, stats, t, languageId, onClaim, onClose,
   const meta = getMeta(code, t);
   const locked = !entry?.unlocked;
   const claimed = !!entry?.claimedAt;
-  const reward = Number(entry?.tokensReward) || 0;
+  const reward = Number(entry?.silverReward) || 0;
   const [claiming, setClaiming] = useState(false);
   const [claimError, setClaimError] = useState("");
   const [justClaimedAt, setJustClaimedAt] = useState(null);
@@ -559,8 +560,8 @@ function AchievementModal({ code, entry, stats, t, languageId, onClaim, onClose,
                 <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-muted)" }}>
                   {t.achievementRewardLabel || "Reward"}
                 </span>
-                <span style={{ fontSize: 14, fontWeight: 800, color: "var(--color-text)" }}>
-                  +{reward} {t.tokenIcon || "🪙"}
+                <span style={{ fontSize: 14, fontWeight: 800, color: "var(--color-text)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  +{reward} <IconSilver size={14} />
                 </span>
               </div>
             ) : showClaimCta ? (
@@ -587,7 +588,12 @@ function AchievementModal({ code, entry, stats, t, languageId, onClaim, onClose,
               >
                 {claiming
                   ? (t.achievementClaiming || "Claiming…")
-                  : `${t.achievementClaimCta || "Claim"} +${reward} ${t.tokenIcon || "🪙"}`}
+                  : (
+                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                      {t.achievementClaimCta || "Claim"} +{reward}
+                      <IconSilver size={14} />
+                    </span>
+                  )}
               </button>
             ) : (
               <div
@@ -609,8 +615,8 @@ function AchievementModal({ code, entry, stats, t, languageId, onClaim, onClose,
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <polyline points="3 8.5 6.5 12 13 5" />
                 </svg>
-                <span>
-                  {(t.achievementClaimedLabel || "Claimed")} · +{reward} {t.tokenIcon || "🪙"}
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  {(t.achievementClaimedLabel || "Claimed")} · +{reward} <IconSilver size={13} />
                 </span>
               </div>
             )}

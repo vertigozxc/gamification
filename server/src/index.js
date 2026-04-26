@@ -43,7 +43,7 @@ import {
 } from "./achievements.js";
 import {
   MAX_CODES_PER_USER,
-  REFERRAL_REWARD_TOKENS,
+  REFERRAL_REWARD_SILVER,
   validateCode,
   codeIsTaken,
   countUserCodes,
@@ -594,8 +594,8 @@ app.post("/api/dev/reset-me", async (req, res) => {
           xpNext: 250,
           streak: 0,
           maxStreak: 0,
-          tokens: 0,
-          tokensSpentTotal: 0,
+          silver: 0,
+          silverSpentTotal: 0,
           theme: "adventure",
           lastStreakIncreaseAt: null,
           streakFreezeExpiresAt: null,
@@ -708,9 +708,9 @@ app.post("/api/dev/grant-tokens", async (req, res) => {
 
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
-      data: { tokens: { increment: parsed.amount } }
+      data: { silver: { increment: parsed.amount } }
     });
-    res.json({ ok: true, grantedTokens: parsed.amount, tokens: updatedUser.tokens });
+    res.json({ ok: true, grantedSilver: parsed.amount, silver: updatedUser.silver });
   } catch (error) {
     res.status(400).json({ error: "Invalid request", detail: error.message });
   }
@@ -802,7 +802,7 @@ app.post("/api/admin/users/:userId/reset-hard", requireAdmin, async (req, res) =
           xpNext: 250,
           streak: 0,
           maxStreak: 0,
-          tokens: 0,
+          silver: 0,
           randomQuestIds: "",
           previousRandomQuestIds: "",
           lastStreakIncreaseAt: null,
@@ -876,7 +876,7 @@ app.post("/api/admin/users/:userId/reset-full", requireAdmin, async (req, res) =
           xpNext: 250,
           streak: 0,
           maxStreak: 0,
-          tokens: 0,
+          silver: 0,
           theme: "adventure",
           lastStreakIncreaseAt: null,
           streakFreezeExpiresAt: null,
@@ -1115,7 +1115,7 @@ app.get("/api/admin/health", requireAdmin, async (_req, res) => {
   });
 });
 
-// Admin: reset city spin cooldown for all users (keeps XP/level/tokens intact).
+// Admin: reset city spin cooldown for all users (keeps XP/level/silver intact).
 app.post("/api/admin/spin/reset-cooldown-all", requireAdmin, async (_req, res) => {
   try {
     const result = await prisma.user.updateMany({ data: { lastCitySpinDayKey: "" } });
@@ -2134,7 +2134,7 @@ function milestoneRewardForCount(completedCount) {
 
 // Token rewards per level reached: 1 base, +1 more after every major
 // milestone (11+ → 2, 21+ → 3, 31+ → 4, 51+ → 5).
-function tokensForLevel(level) {
+function silverForLevel(level) {
   const lvl = Number(level) || 0;
   if (lvl >= 51) return 5;
   if (lvl >= 31) return 4;
@@ -2196,7 +2196,7 @@ async function ensureLeaderboardTestUsers() {
         xp: 0,
         xpNext: getXpNextForLevel(level),
         streak: Math.max(0, index - 1),
-        tokens: 0
+        silver: 0
       },
       update: {
         displayName: `Leaderboard Test ${userNumber}`,
@@ -3295,10 +3295,10 @@ async function awardQuestCompletion({ user, quest, dayKey, availableQuests, cust
       milestoneReward.bonusXp + sportBonusXpInner + xpBoostBonusXpInner
     );
 
-    let freshTokenIncrement = baseTokenIncrement;
+    let freshSilverIncrement = baseTokenIncrement;
     if (freshXpStateWithMilestone.level > freshUser.level) {
       for (let lvl = freshUser.level + 1; lvl <= freshXpStateWithMilestone.level; lvl++) {
-        freshTokenIncrement += tokensForLevel(lvl);
+        freshSilverIncrement += silverForLevel(lvl);
       }
     }
 
@@ -3307,7 +3307,7 @@ async function awardQuestCompletion({ user, quest, dayKey, availableQuests, cust
     const alreadyGranted = freshUser.lastSquareBonusDayKey === dayKey;
     const squareBonusTokensInner = (squareLvl > 0 && isFullBoardInner && !alreadyGranted) ? squareLvl : 0;
     if (squareBonusTokensInner > 0) {
-      freshTokenIncrement += squareBonusTokensInner;
+      freshSilverIncrement += squareBonusTokensInner;
     }
 
     const txUpdateData = {
@@ -3315,8 +3315,8 @@ async function awardQuestCompletion({ user, quest, dayKey, availableQuests, cust
       level: freshXpStateWithMilestone.level,
       xpNext: freshXpStateWithMilestone.xpNext
     };
-    if (freshTokenIncrement > 0) {
-      txUpdateData.tokens = { increment: freshTokenIncrement };
+    if (freshSilverIncrement > 0) {
+      txUpdateData.silver = { increment: freshSilverIncrement };
     }
     if (streakIncreased && canIncreaseStreakToday) {
       txUpdateData.streak = newStreak;
@@ -3373,7 +3373,7 @@ async function awardQuestCompletion({ user, quest, dayKey, availableQuests, cust
     habitMilestoneReached,
     habitMilestoneTokens,
     habitMilestoneQuestId: quest.id,
-    tokens: finalUser.tokens,
+    silver: finalUser.silver,
     productivity: productivityState.productivity,
     questSlots: getQuestSlotsForLevel(finalUser.level || 1, finalUser.streak || 0),
     completionPercent,
@@ -4307,12 +4307,12 @@ async function applyCitySpinReward(user, reward, todayKey) {
 
   if (reward.type === "token") {
     try {
-      return await prisma.user.update({ where: { id: user.id }, data: { ...updateData, tokens: { increment: reward.amount } } });
+      return await prisma.user.update({ where: { id: user.id }, data: { ...updateData, silver: { increment: reward.amount } } });
     } catch (error) {
       if (!isMissingCitySpinFieldError(error)) throw error;
       console.warn("[City Spin] Fallback cooldown mode active: missing lastCitySpinDayKey in Prisma client");
       citySpinFallbackDayByUserId.set(user.id, todayKey);
-      return await prisma.user.update({ where: { id: user.id }, data: { tokens: { increment: reward.amount } } });
+      return await prisma.user.update({ where: { id: user.id }, data: { silver: { increment: reward.amount } } });
     }
   }
 
@@ -4418,7 +4418,7 @@ app.post("/api/city/spin", async (req, res) => {
         level: rewardedUser.level,
         xp: rewardedUser.xp,
         xpNext: rewardedUser.xpNext,
-        tokens: rewardedUser.tokens
+        silver: rewardedUser.silver
       },
       nextSpinAt
     });
@@ -4440,7 +4440,7 @@ app.post("/api/city/spin/claim", async (req, res) => {
     const user = await prisma.user.findUnique({ where: { username: normalizedUsername } });
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // Park gate — same lockout as /api/city/spin so claim tokens
+    // Park gate — same lockout as /api/city/spin so claim silver
     // minted before a downgrade can't be replayed.
     const parkLvl = districtLevelOf(user.districtLevels, "park");
     if (parkLvl < 1) {
@@ -4489,7 +4489,7 @@ app.post("/api/city/spin/claim", async (req, res) => {
       ok: true,
       claimed: true,
       reward: { id: reward.id, type: reward.type, amount: reward.amount },
-      user: { level: finalUser.level, xp: finalUser.xp, xpNext: finalUser.xpNext, tokens: finalUser.tokens },
+      user: { level: finalUser.level, xp: finalUser.xp, xpNext: finalUser.xpNext, silver: finalUser.silver },
       nextSpinAt
     });
   } catch (error) {
@@ -4500,11 +4500,11 @@ app.post("/api/city/spin/claim", async (req, res) => {
 
 const DISTRICT_IDS = ["sport", "business", "park", "square", "residential"];
 const DISTRICT_UPGRADE_REQS = [
-  { level: 2,  tokens: 5,   streak: 0  },
-  { level: 7,  tokens: 15,  streak: 0  },
-  { level: 13, tokens: 25,  streak: 5  },
-  { level: 21, tokens: 50,  streak: 10 },
-  { level: 33, tokens: 100, streak: 21 }
+  { level: 2,  silver: 5,   streak: 0  },
+  { level: 7,  silver: 15,  streak: 0  },
+  { level: 13,  silver: 25,  streak: 5  },
+  { level: 21,  silver: 50,  streak: 10 },
+  { level: 33,  silver: 100, streak: 21 }
 ];
 const DISTRICT_MAX_LEVEL = 5;
 
@@ -4519,8 +4519,8 @@ function districtLevelOf(levelsStr, id) {
 const PARK_SPIN_COOLDOWN_HOURS = [48, 24, 20, 16, 12, 8];
 // Sport XP multiplier: +5% per level
 function sportXpBonus(lvl) { return 1 + Math.max(0, Math.min(5, lvl)) * 0.05; }
-// Square: tokens on full daily board = district level
-// Residential shop discount tokens
+// Square: silver on full daily board = district level
+// Residential shop discount silver
 function residentialShopDiscount(lvl) {
   if (lvl >= 5) return 2;
   if (lvl >= 1) return 1;
@@ -4565,11 +4565,11 @@ app.post("/api/city/upgrade-district", async (req, res) => {
     }
     const req_ = DISTRICT_UPGRADE_REQS[currentLevel];
     const userLevel = Number(user.level) || 0;
-    const userTokens = Number(user.tokens) || 0;
+    const userSilver = Number(user.silver) || 0;
     const userStreak = Number(user.streak) || 0;
     // Onboarding freebie: while the animated tour is still in progress
     // (onboardingTourCompletedAt == null), the user can lift Park from
-    // level 0 → 1 once without paying tokens or meeting streak/level
+    // level 0 → 1 once without paying silver or meeting streak/level
     // requirements. This powers the "let's upgrade Park together" tour
     // step. Every other upgrade keeps the normal gates.
     const isTourFreebie = (
@@ -4581,8 +4581,8 @@ app.post("/api/city/upgrade-district", async (req, res) => {
       if (userLevel < req_.level) {
         return res.status(400).json({ error: "Player level too low", code: "insufficient_level", required: req_.level, current: userLevel });
       }
-      if (userTokens < req_.tokens) {
-        return res.status(400).json({ error: "Not enough tokens", code: "insufficient_tokens", required: req_.tokens, current: userTokens });
+      if (userSilver < req_.silver) {
+        return res.status(400).json({ error: "Not enough silver", code: "insufficient_silver", required: req_.silver, current: userSilver });
       }
       if (userStreak < req_.streak) {
         return res.status(400).json({ error: "Streak too low", code: "insufficient_streak", required: req_.streak, current: userStreak });
@@ -4615,7 +4615,7 @@ app.post("/api/city/upgrade-district", async (req, res) => {
     }
 
     const data = {
-      tokens: isTourFreebie ? undefined : { decrement: req_.tokens },
+      silver: isTourFreebie ? undefined : { decrement: req_.silver },
       districtLevels: nextLevelsStr,
       ...residentialPatch
     };
@@ -4627,16 +4627,16 @@ app.post("/api/city/upgrade-district", async (req, res) => {
     const updated = await prisma.user.update({
       where: { id: user.id },
       data,
-      select: { tokens: true, districtLevels: true, streakFreezeCharges: true }
+      select: { silver: true, districtLevels: true, streakFreezeCharges: true }
     });
 
     return res.json({
       ok: true,
       districtId,
       level: levels[idx],
-      cost: isTourFreebie ? 0 : req_.tokens,
+      cost: isTourFreebie ? 0 : req_.silver,
       tourFreebie: isTourFreebie,
-      tokens: updated.tokens,
+      silver: updated.silver,
       districtLevels: parseDistrictLevels(updated.districtLevels),
       streakFreezeCharges: updated.streakFreezeCharges,
       grants: {
@@ -4673,14 +4673,14 @@ app.post("/api/city/downgrade-district", async (req, res) => {
     const updated = await prisma.user.update({
       where: { id: user.id },
       data: { districtLevels: nextLevelsStr },
-      select: { tokens: true, districtLevels: true }
+      select: { silver: true, districtLevels: true }
     });
 
     return res.json({
       ok: true,
       districtId,
       level: levels[idx],
-      tokens: updated.tokens,
+      silver: updated.silver,
       districtLevels: parseDistrictLevels(updated.districtLevels)
     });
   } catch (error) {
@@ -4708,15 +4708,15 @@ app.post("/api/city/business/claim", async (req, res) => {
     const updated = await prisma.user.update({
       where: { id: user.id },
       data: {
-        tokens: { increment: businessLvl },
+        silver: { increment: businessLvl },
         lastBusinessClaimDayKey: today
       },
-      select: { tokens: true, lastBusinessClaimDayKey: true }
+      select: { silver: true, lastBusinessClaimDayKey: true }
     });
     return res.json({
       ok: true,
       granted: businessLvl,
-      tokens: updated.tokens,
+      silver: updated.silver,
       lastBusinessClaimDayKey: updated.lastBusinessClaimDayKey,
       nextClaimAt: nextMidnightUTC().toISOString()
     });
@@ -4900,7 +4900,7 @@ app.post("/api/streak/dismiss-burn-notice", async (req, res) => {
   }
 });
 
-// Dev helper: bumps level/tokens/streak by +1 each. Not gated — used by the
+// Dev helper: bumps level/silver/streak by +1 each. Not gated — used by the
 // testing button next to +1 in the district controls while gating mechanics
 // are tuned.
 app.post("/api/city/dev-grant-stats", async (req, res) => {
@@ -4918,11 +4918,11 @@ app.post("/api/city/dev-grant-stats", async (req, res) => {
       data: {
         level: nextLevel,
         xpNext: getXpNextForLevel(nextLevel),
-        tokens: { increment: 1 },
+        silver: { increment: 1 },
         streak: { increment: 1 },
         maxStreak: bumpedMaxStreak
       },
-      select: { level: true, xp: true, xpNext: true, tokens: true, streak: true }
+      select: { level: true, xp: true, xpNext: true, silver: true, streak: true }
     });
 
     return res.json({
@@ -4930,7 +4930,7 @@ app.post("/api/city/dev-grant-stats", async (req, res) => {
       level: updated.level,
       xp: updated.xp,
       xpNext: updated.xpNext,
-      tokens: updated.tokens,
+      silver: updated.silver,
       streak: updated.streak
     });
   } catch (error) {
@@ -5301,7 +5301,7 @@ app.post("/api/reset-daily", async (req, res) => {
   }
 });
 
-// Streak Freeze shop — 7 tokens base (minus Residential discount), limited to
+// Streak Freeze shop — 7 silver base (minus Residential discount), limited to
 // one purchase per calendar week (resets Monday UTC 00:00 alongside daily reset).
 app.post("/api/shop/freeze-streak", async (req, res) => {
   try {
@@ -5330,22 +5330,22 @@ app.post("/api/shop/freeze-streak", async (req, res) => {
     const discount = residentialShopDiscount(resLvl);
     const freezeCost = Math.max(0, 7 - discount);
 
-    if (user.tokens < freezeCost) {
-      return res.status(400).json({ error: "Not enough tokens" });
+    if (user.silver < freezeCost) {
+      return res.status(400).json({ error: "Not enough silver" });
     }
 
     // Streak Freeze adds a charge to the pool (redeem via profile).
     const freezeData = {
-      tokens: { decrement: freezeCost },
+      silver: { decrement: freezeCost },
       streakFreezeCharges: { increment: 1 },
       lastFreezePurchaseWeekKey: weekKey
     };
-    if (freezeCost > 0) freezeData.tokensSpentTotal = { increment: freezeCost };
+    if (freezeCost > 0) freezeData.silverSpentTotal = { increment: freezeCost };
     const updated = await prisma.user.update({ where: { id: user.id }, data: freezeData });
     trackAchievements(user.id);
     res.json({
       ok: true,
-      tokens: updated.tokens,
+      silver: updated.silver,
       cost: freezeCost,
       discount,
       streakFreezeCharges: updated.streakFreezeCharges,
@@ -5376,20 +5376,20 @@ app.post("/api/shop/extra-reroll", async (req, res) => {
     const resLvl = districtLevelOf(user.districtLevels, "residential");
     const discount = residentialShopDiscount(resLvl);
     const rerollCost = Math.max(0, 3 - discount);
-    if (user.tokens < rerollCost) {
-      return res.status(400).json({ error: "Not enough tokens" });
+    if (user.silver < rerollCost) {
+      return res.status(400).json({ error: "Not enough silver" });
     }
     // Always grant +1 extra reroll, even for free purchases (rerollCost === 0
     // when the residential discount is large enough). Without the increment,
     // the daily-reroll guard in /api/reset-daily ("Daily reroll already used")
     // rejects the next reroll because user.extraRerollsToday stayed at 0 —
-    // the symptom the user saw: tokens debited, quests didn't change.
+    // the symptom the user saw: silver debited, quests didn't change.
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         ...(rerollCost > 0 ? {
-          tokens: { decrement: rerollCost },
-          tokensSpentTotal: { increment: rerollCost }
+          silver: { decrement: rerollCost },
+          silverSpentTotal: { increment: rerollCost }
         } : {}),
         extraRerollsToday: { increment: 1 }
       }
@@ -5397,7 +5397,7 @@ app.post("/api/shop/extra-reroll", async (req, res) => {
     if (rerollCost > 0) trackAchievements(user.id);
     res.json({
       ok: true,
-      tokens: updatedUser.tokens,
+      silver: updatedUser.silver,
       cost: rerollCost,
       discount,
       extraRerollsToday: Number(updatedUser.extraRerollsToday || 0)
@@ -5407,7 +5407,7 @@ app.post("/api/shop/extra-reroll", async (req, res) => {
   }
 });
 
-// XP Boost: 15 tokens → +15% XP on every quest completion for 7 days.
+// XP Boost: 15 silver → +15% XP on every quest completion for 7 days.
 // Buying while active extends expiry by +7 days from current expiry (not now).
 const XP_BOOST_COST = 15;
 const XP_BOOST_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -5428,23 +5428,23 @@ app.post("/api/shop/buy-xp-boost", async (req, res) => {
     const resLvl = districtLevelOf(user.districtLevels, "residential");
     const discount = residentialShopDiscount(resLvl);
     const cost = Math.max(0, XP_BOOST_COST - discount);
-    if (user.tokens < cost) {
-      return res.status(400).json({ error: "Not enough tokens", code: "not_enough_tokens" });
+    if (user.silver < cost) {
+      return res.status(400).json({ error: "Not enough silver", code: "insufficient_silver" });
     }
     const base = user.xpBoostExpiresAt && new Date(user.xpBoostExpiresAt).getTime() > now.getTime()
       ? new Date(user.xpBoostExpiresAt)
       : now;
     const newExpiry = new Date(base.getTime() + XP_BOOST_DURATION_MS);
     const xpBoostData = {
-      tokens: { decrement: cost },
+      silver: { decrement: cost },
       xpBoostExpiresAt: newExpiry
     };
-    if (cost > 0) xpBoostData.tokensSpentTotal = { increment: cost };
+    if (cost > 0) xpBoostData.silverSpentTotal = { increment: cost };
     const updated = await prisma.user.update({ where: { id: user.id }, data: xpBoostData });
     if (cost > 0) trackAchievements(user.id);
     res.json({
       ok: true,
-      tokens: updated.tokens,
+      silver: updated.silver,
       cost,
       discount,
       xpBoostExpiresAt: updated.xpBoostExpiresAt
@@ -5454,8 +5454,89 @@ app.post("/api/shop/buy-xp-boost", async (req, res) => {
   }
 });
 
+// ── Cosmetics catalog ────────────────────────────────────────────
+// Server-authoritative list of buyable cosmetics. The client renders
+// these as Gold-tab items and posts to /api/shop/buy-cosmetic with
+// the item id; pricing and ownership checks happen here.
+//
+// All items are placeholders for now — `previewIcon` is a single
+// emoji we render as the slot art until real animated previews land.
+// `category` is one of `background` / `frame`.
+const COSMETIC_ITEMS = [
+  { id: "bg_cosmic",      costGold: 5,  category: "background", previewIcon: "🌌" },
+  { id: "frame_phoenix",  costGold: 8,  category: "frame",      previewIcon: "🔥" },
+  { id: "frame_frost",    costGold: 6,  category: "frame",      previewIcon: "❄️" },
+  { id: "bg_sunset",      costGold: 4,  category: "background", previewIcon: "🌅" },
+  { id: "frame_lightning",costGold: 7,  category: "frame",      previewIcon: "⚡" },
+  { id: "bg_ocean",       costGold: 3,  category: "background", previewIcon: "🌊" },
+  { id: "frame_mythic",   costGold: 12, category: "frame",      previewIcon: "🎴" }
+];
+
+function parseOwnedCosmetics(raw) {
+  try {
+    const parsed = JSON.parse(raw || "[]");
+    return Array.isArray(parsed) ? parsed.filter((id) => typeof id === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+const buyCosmeticBody = z.object({
+  username: z.string().min(2).max(64),
+  cosmeticId: z.string().min(1).max(64)
+});
+
+app.post("/api/shop/buy-cosmetic", async (req, res) => {
+  try {
+    const parsed = buyCosmeticBody.parse(req.body);
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const item = COSMETIC_ITEMS.find((c) => c.id === parsed.cosmeticId);
+    if (!item) {
+      return res.status(400).json({ error: "Unknown cosmetic", code: "unknown_cosmetic" });
+    }
+
+    const owned = parseOwnedCosmetics(user.ownedCosmetics);
+    if (owned.includes(item.id)) {
+      return res.status(400).json({ error: "Already owned", code: "already_owned" });
+    }
+
+    const userGold = Number(user.gold) || 0;
+    if (userGold < item.costGold) {
+      return res.status(400).json({
+        error: "Not enough gold",
+        code: "insufficient_gold",
+        required: item.costGold,
+        current: userGold
+      });
+    }
+
+    const nextOwned = [...owned, item.id];
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        gold: { decrement: item.costGold },
+        ownedCosmetics: JSON.stringify(nextOwned)
+      },
+      select: { gold: true, ownedCosmetics: true }
+    });
+
+    res.json({
+      ok: true,
+      purchased: item.id,
+      cost: item.costGold,
+      gold: updated.gold,
+      ownedCosmetics: updated.ownedCosmetics
+    });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
 // Escalating cost per reset: 10, 20, 30, 40, 50, 50, 50…
-// (caps at 50 tokens for the 5th reset and every subsequent one).
+// (caps at 50 silver for the 5th reset and every subsequent one).
 function computeCityResetCost(resetsPaidSoFar) {
   const idx = Math.max(0, Number(resetsPaidSoFar) || 0) + 1;
   return Math.min(50, 10 * idx);
@@ -5467,7 +5548,7 @@ function computeCityResetCost(resetsPaidSoFar) {
 function computeDistrictRefundForLevel(level) {
   let total = 0;
   for (let i = 0; i < Math.max(0, Math.min(DISTRICT_MAX_LEVEL, level)); i += 1) {
-    total += Number(DISTRICT_UPGRADE_REQS[i]?.tokens) || 0;
+    total += Number(DISTRICT_UPGRADE_REQS[i]?.silver) || 0;
   }
   return total;
 }
@@ -5485,12 +5566,12 @@ app.post("/api/shop/reset-city", async (req, res) => {
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const cost = computeCityResetCost(user.cityResetsPaid);
-    if ((Number(user.tokens) || 0) < cost) {
+    if ((Number(user.silver) || 0) < cost) {
       return res.status(400).json({
-        error: "Not enough tokens",
-        code: "not_enough_tokens",
+        error: "Not enough silver",
+        code: "insufficient_silver",
         required: cost,
-        current: Number(user.tokens) || 0
+        current: Number(user.silver) || 0
       });
     }
 
@@ -5500,16 +5581,16 @@ app.post("/api/shop/reset-city", async (req, res) => {
     const netDelta = refund - cost;
 
     const resetData = {
-      tokens: Math.max(0, (Number(user.tokens) || 0) + netDelta),
+      silver: Math.max(0, (Number(user.silver) || 0) + netDelta),
       districtLevels: "0,0,0,0,0",
       cityResetsPaid: { increment: 1 }
     };
-    if (cost > 0) resetData.tokensSpentTotal = { increment: cost };
+    if (cost > 0) resetData.silverSpentTotal = { increment: cost };
     const updated = await prisma.user.update({
       where: { id: user.id },
       data: resetData,
       select: {
-        tokens: true,
+        silver: true,
         districtLevels: true,
         cityResetsPaid: true
       }
@@ -5520,7 +5601,7 @@ app.post("/api/shop/reset-city", async (req, res) => {
       ok: true,
       cost,
       refund,
-      tokens: updated.tokens,
+      silver: updated.silver,
       districtLevels: parseDistrictLevels(updated.districtLevels),
       cityResetsPaid: updated.cityResetsPaid,
       nextResetCost: computeCityResetCost(updated.cityResetsPaid)
@@ -5555,8 +5636,8 @@ app.post("/api/quests/reroll-pinned", async (req, res) => {
     const resLvlRr = districtLevelOf(user.districtLevels, "residential");
     const rerollCost = Math.max(0, 7 - residentialShopDiscount(resLvlRr));
 
-    if (shouldUseTokens && user.tokens < rerollCost) {
-      return res.status(400).json({ error: "Not enough tokens" });
+    if (shouldUseTokens && user.silver < rerollCost) {
+      return res.status(400).json({ error: "Not enough silver" });
     }
     if (!shouldUseTokens && !isFreeAvailable) {
       return res.status(400).json({ error: "Free reroll used in the last 21 days" });
@@ -5591,8 +5672,8 @@ app.post("/api/quests/reroll-pinned", async (req, res) => {
       preferredQuestIds: serializePreferredQuestIds(rerolledPreferredQuestIds)
     };
     if (shouldUseTokens) {
-      updateData.tokens = { decrement: rerollCost };
-      if (rerollCost > 0) updateData.tokensSpentTotal = { increment: rerollCost };
+      updateData.silver = { decrement: rerollCost };
+      if (rerollCost > 0) updateData.silverSpentTotal = { increment: rerollCost };
     } else {
       updateData.lastFreeTaskRerollAt = now;
     }
@@ -5615,7 +5696,7 @@ app.post("/api/quests/reroll-pinned", async (req, res) => {
 
     res.json({
       success: true,
-      tokens: updatedUser.tokens,
+      silver: updatedUser.silver,
       lastFreeTaskRerollAt: updatedUser.lastFreeTaskRerollAt,
       preferredQuestIds: rerolledPreferredQuestIds,
       pinnedQuestProgress21d: await getPinnedQuestProgress21d(updatedUser, rerolledPreferredQuestIds, now),
@@ -5714,8 +5795,8 @@ app.post("/api/shop/replace-pinned-quests", async (req, res) => {
     const resLvlPinned = districtLevelOf(user.districtLevels, "residential");
     const pinnedRerollCost = Math.max(0, 7 - residentialShopDiscount(resLvlPinned));
 
-    if (shouldUseTokens && user.tokens < pinnedRerollCost) {
-      return res.status(400).json({ error: "Not enough tokens" });
+    if (shouldUseTokens && user.silver < pinnedRerollCost) {
+      return res.status(400).json({ error: "Not enough silver" });
     }
 
     const uniquePreferredQuestIds = [...new Set(parsed.preferredQuestIds)];
@@ -5744,8 +5825,8 @@ app.post("/api/shop/replace-pinned-quests", async (req, res) => {
       preferredQuestIds: serializePreferredQuestIds(uniquePreferredQuestIds)
     };
     if (shouldUseTokens) {
-      updateData.tokens = { decrement: pinnedRerollCost };
-      if (pinnedRerollCost > 0) updateData.tokensSpentTotal = { increment: pinnedRerollCost };
+      updateData.silver = { decrement: pinnedRerollCost };
+      if (pinnedRerollCost > 0) updateData.silverSpentTotal = { increment: pinnedRerollCost };
     } else {
       updateData.lastFreeTaskRerollAt = now;
     }
@@ -5764,7 +5845,7 @@ app.post("/api/shop/replace-pinned-quests", async (req, res) => {
 
     res.json({
       ok: true,
-      tokens: updatedUser.tokens,
+      silver: updatedUser.silver,
       lastFreeTaskRerollAt: updatedUser.lastFreeTaskRerollAt,
       preferredQuestIds: uniquePreferredQuestIds,
       pinnedQuestProgress21d: await getPinnedQuestProgress21d(updatedUser, uniquePreferredQuestIds, now),
@@ -5812,7 +5893,7 @@ app.post("/api/reset-hard", async (req, res) => {
         xpNext: 250,
         streak: 0,
         maxStreak: 0,
-        tokens: 0,
+        silver: 0,
         randomQuestIds: "",
         previousRandomQuestIds: "",
         lastStreakIncreaseAt: null,
@@ -5934,7 +6015,7 @@ app.post("/api/sync-state", async (req, res) => {
     level: z.number().int().min(1),
     xp: z.number().int().min(0),
     xpNext: z.number().int().min(1),
-    tokens: z.number().int().min(0).optional(),
+    silver: z.number().int().min(0).optional(),
   });
   try {
     const parsed = schema.parse(req.body);
@@ -5958,8 +6039,8 @@ app.post("/api/sync-state", async (req, res) => {
       updateData.xpNext = parsed.xpNext;
     }
 
-    if (typeof parsed.tokens === "number" && parsed.tokens > Number(existingUser.tokens || 0)) {
-      updateData.tokens = parsed.tokens;
+    if (typeof parsed.silver === "number" && parsed.silver > Number(existingUser.silver || 0)) {
+      updateData.silver = parsed.silver;
     }
 
     if (Object.keys(updateData).length > 0) {
@@ -6043,7 +6124,7 @@ app.post("/api/admin/reset-all-users", async (req, res) => {
           xpNext: 250,
           streak: 0,
           maxStreak: 0,
-          tokens: 0,
+          silver: 0,
           lastStreakIncreaseAt: null,
           streakFreezeExpiresAt: null,
           lastFreeTaskRerollAt: null,
@@ -6432,7 +6513,7 @@ app.post("/api/quiz/scholar/claim", async (req, res) => {
     const { username } = schema.parse(req.body);
     const user = await prisma.user.findUnique({
       where: { username: slugifyUsername(username) },
-      select: { id: true, tokens: true }
+      select: { id: true, silver: true }
     });
     if (!user) return res.status(404).json({ error: "User not found" });
 
@@ -6444,7 +6525,7 @@ app.post("/api/quiz/scholar/claim", async (req, res) => {
       return res.json({
         ok: true,
         justUnlocked: false,
-        tokens: Number(user.tokens) || 0
+        silver: Number(user.silver) || 0
       });
     }
 
@@ -6458,14 +6539,14 @@ app.post("/api/quiz/scholar/claim", async (req, res) => {
       return res.json({
         ok: true,
         justUnlocked: false,
-        tokens: Number(user.tokens) || 0
+        silver: Number(user.silver) || 0
       });
     }
 
     return res.json({
       ok: true,
       justUnlocked: true,
-      tokens: Number(user.tokens) || 0
+      silver: Number(user.silver) || 0
     });
   } catch (error) {
     console.error(`[Quiz Claim Error] ${error?.message || error}`);
@@ -6476,7 +6557,7 @@ app.post("/api/quiz/scholar/claim", async (req, res) => {
 // Achievement reward claim — unified flow for every code. Idempotent:
 // the achievement must be unlocked AND not yet claimed; we set
 // claimedAt and credit the reward atomically. Repeat calls after a
-// successful claim return tokensGranted: 0.
+// successful claim return silverGranted: 0.
 app.post("/api/achievements/claim", async (req, res) => {
   const schema = z.object({
     username: z.string().min(2).max(64),
@@ -6493,7 +6574,7 @@ app.post("/api/achievements/claim", async (req, res) => {
     }
     const user = await prisma.user.findUnique({
       where: { username: slugifyUsername(username) },
-      select: { id: true, tokens: true }
+      select: { id: true, silver: true }
     });
     if (!user) return res.status(404).json({ error: "User not found" });
 
@@ -6508,8 +6589,8 @@ app.post("/api/achievements/claim", async (req, res) => {
       return res.json({
         ok: true,
         alreadyClaimed: true,
-        tokensGranted: 0,
-        tokens: Number(user.tokens) || 0,
+        silverGranted: 0,
+        silver: Number(user.silver) || 0,
         claimedAt: ach.claimedAt
       });
     }
@@ -6522,7 +6603,7 @@ app.post("/api/achievements/claim", async (req, res) => {
           where: { userId_code: { userId: user.id, code } }
         });
         if (!fresh || fresh.claimedAt) {
-          return { tokens: Number(user.tokens) || 0, claimedAt: fresh?.claimedAt || now, raced: true };
+          return { silver: Number(user.silver) || 0, claimedAt: fresh?.claimedAt || now, raced: true };
         }
         await tx.userAchievement.update({
           where: { userId_code: { userId: user.id, code } },
@@ -6530,25 +6611,25 @@ app.post("/api/achievements/claim", async (req, res) => {
         });
         const u = await tx.user.update({
           where: { id: user.id },
-          data: { tokens: { increment: reward } },
-          select: { tokens: true }
+          data: { silver: { increment: reward } },
+          select: { silver: true }
         });
-        return { tokens: u.tokens, claimedAt: now, raced: false };
+        return { silver: u.silver, claimedAt: now, raced: false };
       });
       if (updated.raced) {
         return res.json({
           ok: true,
           alreadyClaimed: true,
-          tokensGranted: 0,
-          tokens: updated.tokens,
+          silverGranted: 0,
+          silver: updated.silver,
           claimedAt: updated.claimedAt
         });
       }
       return res.json({
         ok: true,
         alreadyClaimed: false,
-        tokensGranted: reward,
-        tokens: updated.tokens,
+        silverGranted: reward,
+        silver: updated.silver,
         claimedAt: updated.claimedAt
       });
     } catch (txErr) {
@@ -7138,9 +7219,9 @@ app.get("/api/referrals/me", async (req, res) => {
 });
 
 app.post("/api/referrals/claim/:referralId", async (req, res) => {
-  // Referrer claims +REFERRAL_REWARD_TOKENS for a single referee that
+  // Referrer claims +REFERRAL_REWARD_SILVER for a single referee that
   // has reached level 5. Idempotent — repeat calls after success
-  // return tokensGranted: 0.
+  // return silverGranted: 0.
   const schema = z.object({ username: z.string().min(2).max(64) });
   try {
     const { username } = schema.parse(req.body);
@@ -7149,7 +7230,7 @@ app.post("/api/referrals/claim/:referralId", async (req, res) => {
 
     const user = await prisma.user.findUnique({
       where: { username: slugifyUsername(username) },
-      select: { id: true, tokens: true }
+      select: { id: true, silver: true }
     });
     if (!user) return res.status(404).json({ error: "User not found" });
 
@@ -7173,8 +7254,8 @@ app.post("/api/referrals/claim/:referralId", async (req, res) => {
       return res.json({
         ok: true,
         alreadyClaimed: true,
-        tokensGranted: 0,
-        tokens: Number(user.tokens) || 0,
+        silverGranted: 0,
+        silver: Number(user.silver) || 0,
         claimedAt: row.referrerClaimedAt
       });
     }
@@ -7186,11 +7267,11 @@ app.post("/api/referrals/claim/:referralId", async (req, res) => {
         select: { referrerClaimedAt: true, refereeLeveledUpAt: true }
       });
       if (!fresh || !fresh.refereeLeveledUpAt) {
-        return { tokens: Number(user.tokens) || 0, claimedAt: null, raced: true };
+        return { silver: Number(user.silver) || 0, claimedAt: null, raced: true };
       }
       if (fresh.referrerClaimedAt) {
-        const u = await tx.user.findUnique({ where: { id: user.id }, select: { tokens: true } });
-        return { tokens: u?.tokens || 0, claimedAt: fresh.referrerClaimedAt, raced: true };
+        const u = await tx.user.findUnique({ where: { id: user.id }, select: { silver: true } });
+        return { silver: u?.silver || 0, claimedAt: fresh.referrerClaimedAt, raced: true };
       }
       await tx.referral.update({
         where: { id: referralId },
@@ -7198,26 +7279,26 @@ app.post("/api/referrals/claim/:referralId", async (req, res) => {
       });
       const u = await tx.user.update({
         where: { id: user.id },
-        data: { tokens: { increment: REFERRAL_REWARD_TOKENS } },
-        select: { tokens: true }
+        data: { silver: { increment: REFERRAL_REWARD_SILVER } },
+        select: { silver: true }
       });
-      return { tokens: u.tokens, claimedAt: now, raced: false };
+      return { silver: u.silver, claimedAt: now, raced: false };
     });
 
     if (updated.raced) {
       return res.json({
         ok: true,
         alreadyClaimed: true,
-        tokensGranted: 0,
-        tokens: updated.tokens,
+        silverGranted: 0,
+        silver: updated.silver,
         claimedAt: updated.claimedAt
       });
     }
     res.json({
       ok: true,
       alreadyClaimed: false,
-      tokensGranted: REFERRAL_REWARD_TOKENS,
-      tokens: updated.tokens,
+      silverGranted: REFERRAL_REWARD_SILVER,
+      silver: updated.silver,
       claimedAt: updated.claimedAt
     });
   } catch (error) {
@@ -7990,18 +8071,18 @@ app.post("/api/challenges/:id/complete", async (req, res) => {
         data: { challengeId, userId: me.id, type: "completed" }
       });
 
-      // 2. If this completion closed the group-day, mint tokens for
+      // 2. If this completion closed the group-day, mint silver for
       //    every active participant and tick the group counter.
       let groupDayAwardedUsernames = [];
       if (groupCompletedToday) {
         for (const p of activeAccepted) {
           await tx.challengeParticipant.update({
             where: { id: p.id },
-            data: { tokensEarned: { increment: 1 } }
+            data: { silverEarned: { increment: 1 } }
           });
           await tx.user.update({
             where: { id: p.userId },
-            data: { tokens: { increment: 1 } }
+            data: { silver: { increment: 1 } }
           });
           groupDayAwardedUsernames.push(p.userId);
         }
@@ -8141,7 +8222,7 @@ app.get("/api/challenges/user/:username", async (req, res) => {
           ...p.challenge,
           myCompletions: p.completions,
           myConsecutiveDays: p.consecutiveDays,
-          myTokensEarned: p.tokensEarned,
+          myTokensEarned: p.silverEarned,
           myLastCompletionDayKey: p.lastCompletionDayKey,
           myAcceptedAt: p.acceptedAt,
           isActivated: acceptedCount >= 2,

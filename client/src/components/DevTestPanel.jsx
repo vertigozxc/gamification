@@ -1,6 +1,6 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
-import { devGrantXp, devGrantTokens, devResetMe, devGrantStreak } from "../api";
+import { devGrantXp, devGrantSilver, devResetMe, devGrantStreak } from "../api";
 
 const LEGACY_DEV_TEST_USER_ID = "C0x6GY9LeyVhY12L1yF5QRHp3DP2";
 
@@ -80,7 +80,7 @@ export default function DevTestPanel({ username, onRefresh, onLogout, xp = 0, xp
           <button
             type="button"
             disabled={busy}
-            onClick={() => run(() => devGrantTokens(username, 5))}
+            onClick={() => run(() => devGrantSilver(username, 5))}
             style={buttonStyle}
           >
             +5 🪙

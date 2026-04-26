@@ -554,10 +554,10 @@ export function removeChallengeParticipant(challengeId, requesterUsername, usern
   }));
 }
 
-export function syncState(username, { level, xp, xpNext, tokens }) {
+export function syncState(username, { level, xp, xpNext, silver }) {
   return request("/api/sync-state", {
     method: "POST",
-    body: JSON.stringify({ username, level, xp, xpNext, tokens })
+    body: JSON.stringify({ username, level, xp, xpNext, silver })
   });
 }
 
@@ -590,16 +590,16 @@ export function buyXpBoost(username) {
   });
 }
 
-export function replacePinnedQuests(username, preferredQuestIds, useTokens = true) {
+export function replacePinnedQuests(username, preferredQuestIds, useSilver = true) {
   return request("/api/shop/replace-pinned-quests", {
     method: "POST",
-    body: JSON.stringify({ username, preferredQuestIds, useTokens })
+    body: JSON.stringify({ username, preferredQuestIds, useSilver })
   });
 }
-export async function rerollPinned(username, useTokens) {
+export async function rerollPinned(username, useSilver) {
   return request("/api/quests/reroll-pinned", {
     method: "POST",
-    body: JSON.stringify({ username, useTokens })
+    body: JSON.stringify({ username, useSilver })
   });
 }
 
@@ -766,7 +766,7 @@ export function devGrantXp(username, amount = 500) {
   });
 }
 
-export function devGrantTokens(username, amount = 5) {
+export function devGrantSilver(username, amount = 5) {
   return request("/api/dev/grant-tokens", {
     method: "POST",
     body: JSON.stringify({ username, amount })
@@ -794,10 +794,17 @@ export function addPinnedQuest(username, questId) {
   });
 }
 
-export function claimBusinessTokens(username) {
+export function claimBusinessSilver(username) {
   return request("/api/city/business/claim", {
     method: "POST",
     body: JSON.stringify({ username })
+  });
+}
+
+export function buyCosmetic(username, cosmeticId) {
+  return request("/api/shop/buy-cosmetic", {
+    method: "POST",
+    body: JSON.stringify({ username, cosmeticId })
   });
 }
 

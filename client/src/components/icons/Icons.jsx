@@ -437,3 +437,33 @@ export function IconGlobe(props) {
     </Icon>
   );
 }
+
+// ─── Currencies ───────────────────────────────────────────────────
+// Coin family: same outer circle (r=9) so the two currencies read as a
+// matched pair. Differ only by the central glyph. Stroke-only, no fill,
+// inherits currentColor — the surrounding chip can glow but the glyph
+// itself stays clean per the project's icon style guide.
+
+export function IconSilver(props) {
+  // Stylized "S" formed by two cubic bezier curves (top arc curls left,
+  // bottom arc curls right) — reads as a coin face without resorting
+  // to fill text.
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M14.5 10C13 8.5 9.5 9 9.5 11.5C9.5 13.5 14.5 12.5 14.5 14.5C14.5 16.5 11 17 9.5 15.5" />
+    </Icon>
+  );
+}
+
+export function IconGold(props) {
+  // 5-point star inside the coin (outer radius 4, inner radius 1.6 from
+  // center 12,12). Scaled-down sibling of IconStar so the two read as
+  // visually related when placed next to each other.
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <polygon points="12 8 12.9 10.7 15.8 10.8 13.5 12.5 14.4 15.2 12 13.6 9.6 15.2 10.5 12.5 8.2 10.8 11.1 10.7" />
+    </Icon>
+  );
+}

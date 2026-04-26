@@ -216,8 +216,8 @@ export default function ProfileTab({
           <p className="text-[10px] uppercase tracking-wider mt-1" style={{ color: "var(--color-muted)" }}>{t.currentStreak}</p>
         </div>
         <div className="mobile-card flex flex-col items-center py-4" style={{ background: "var(--panel-bg)" }}>
-          <span className="text-2xl mb-1">{t.tokenIcon}</span>
-          <p className="cinzel text-2xl font-bold" style={{ color: "var(--color-primary)" }}>{state.tokens}</p>
+          <span className="text-2xl mb-1">{t.silverIcon}</span>
+          <p className="cinzel text-2xl font-bold" style={{ color: "var(--color-primary)" }}>{state.silver}</p>
           <p className="text-[10px] uppercase tracking-wider mt-1" style={{ color: "var(--color-muted)" }}>{t.tokensLabel}</p>
         </div>
         <div className="mobile-card flex flex-col items-center py-4" style={{ background: "var(--panel-bg)" }}>

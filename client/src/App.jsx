@@ -50,8 +50,8 @@ import {
 import PortalPreloader from "./components/PortalPreloader";
 import NetworkRetryBanner from "./components/NetworkRetryBanner";
 import PullToRefresh from "./components/PullToRefresh";
-import { evictCommunityCache, resetCity, dismissStreakBurnNotice } from "./api";
-import { IconTimer } from "./components/icons/Icons";
+import { evictCommunityCache, resetCity, dismissStreakBurnNotice, buyCosmetic } from "./api";
+import { IconTimer, IconSilver } from "./components/icons/Icons";
 
 const FreezeSuccessModal = lazy(() => import("./components/modals/FreezeSuccessModal"));
 const ResidentialAutoGrantModal = lazy(() => import("./components/modals/ResidentialAutoGrantModal"));
@@ -282,7 +282,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [showHabitMilestone, setShowHabitMilestone] = useState(false);
   const [habitMilestoneTitle, setHabitMilestoneTitle] = useState("");
-  const [habitMilestoneTokens, setHabitMilestoneTokens] = useState(20);
+  const [habitMilestoneSilver, setHabitMilestoneSilver] = useState(20);
   const [showCity, setShowCity] = useState(true);
   const [overrideStage, setOverrideStage] = useState(null);
   const questRenderCountRef = useRef(0);
@@ -316,9 +316,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       lvl: Number.isFinite(Number(user.level)) ? Number(user.level) : prev.lvl,
       xp: Number.isFinite(Number(user.xp)) ? Number(user.xp) : prev.xp,
       xpNext: Number.isFinite(Number(user.xpNext)) ? Number(user.xpNext) : prev.xpNext,
-      tokens: Number.isFinite(Number(user.tokens)) ? Number(user.tokens) : prev.tokens
+      silver: Number.isFinite(Number(user.silver)) ? Number(user.silver) : prev.silver
     }));
-    // Tour signal: any reward type (XP / tokens / freeze) flips the
+    // Tour signal: any reward type (XP / silver / freeze) flips the
     // flag. The spin-wheel onboarding step's condition gate watches
     // this so NEXT only enables after the user actually claimed.
     setSpinTourClaimed(true);
@@ -505,7 +505,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       hidden: hideSetup,
       target: '[data-tour="setup-referral"]',
       title: t.tourSetupFriendsCodeTitle || "Have a friend's code?",
-      text: t.tourSetupFriendsCodeText || "Paste it here to grant +50 tokens to both of you when you reach level 5. Skip if you don't have one.",
+      text: t.tourSetupFriendsCodeText || "Paste it here to grant +50 silver to both of you when you reach level 5. Skip if you don't have one.",
       gate: "next",
       onEnter: () => setWizardStep(0),
       bubblePlacement: "bottom",
@@ -618,7 +618,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       // in DashboardTab.jsx and carries `data-tour="daily-board"`.
       target: '[data-tour="daily-board"]',
       title: t.tourDailyBoardTitle || "Full board = bonus",
-      text: t.tourDailyBoardText || "Close the whole board and your streak grows — plus extra tokens.",
+      text: t.tourDailyBoardText || "Close the whole board and your streak grows — plus extra silver.",
       gate: "next",
       blockInteraction: true,
       scroll: true,
@@ -689,7 +689,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       id: "store-hero",
       target: '[data-tour="store-hero"]',
       title: t.tourStoreTitle || "The store",
-      text: t.tourStoreText || "Spend tokens on streak freezes, extra rerolls or an XP boost.",
+      text: t.tourStoreText || "Spend silver on streak freezes, extra rerolls or an XP boost.",
       gate: "next",
       blockInteraction: true,
       onEnter: () => { startTransition(() => setMobileTab("store")); },
@@ -726,7 +726,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       id: "profile-overview",
       target: '[data-tour="profile-quickstats"]',
       title: t.tourProfileTitle || "Your stats",
-      text: t.tourProfileText || "Total XP, streak, tokens, level — your stats at a glance.",
+      text: t.tourProfileText || "Total XP, streak, silver, level — your stats at a glance.",
       gate: "next",
       blockInteraction: true,
       onEnter: () => { startTransition(() => setMobileTab("profile")); },
@@ -995,7 +995,10 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             lvl: userData.level ?? prev.lvl,
             xp: userData.xp ?? prev.xp,
             xpNext: userData.xpNext ?? prev.xpNext,
-            tokens: userData.tokens ?? prev.tokens,
+            silver: userData.silver ?? prev.silver,
+            gold: Number(userData.gold ?? prev.gold ?? 0),
+            rouletteCoupons: Number(userData.rouletteCoupons ?? prev.rouletteCoupons ?? 0),
+            ownedCosmetics: typeof userData.ownedCosmetics === "string" ? userData.ownedCosmetics : (prev.ownedCosmetics ?? "[]"),
             districtLevels: (() => {
               const raw = userData.districtLevels;
               if (Array.isArray(raw)) return raw.slice(0, 5).map((n) => Math.max(0, Math.min(5, Math.floor(Number(n) || 0))));
@@ -1072,7 +1075,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           lvl: userData.level ?? prev.lvl,
           xp: userData.xp ?? prev.xp,
           xpNext: userData.xpNext ?? prev.xpNext,
-          tokens: userData.tokens ?? prev.tokens,
+          silver: userData.silver ?? prev.silver,
           districtLevels: (() => {
             const raw = userData.districtLevels;
             if (Array.isArray(raw)) return raw.slice(0, 5).map((n) => Math.max(0, Math.min(5, Math.floor(Number(n) || 0))));
@@ -1147,9 +1150,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const milestoneRunes = Array.isArray(t.milestoneRunes) && t.milestoneRunes.length >= 3
     ? t.milestoneRunes
     : ["✓", "★", "🏆"];
-  // Square district adds tokens on top of the base full-board reward.
+  // Square district adds silver on top of the base full-board reward.
   const squareLvlForMilestone = Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[3]) || 0)));
-  const fullBoardTokenReward = 1 + squareLvlForMilestone;
+  const fullBoardSilverReward = 1 + squareLvlForMilestone;
   // Server-side streak rule: +1 streak is awarded at >=4 completed quests
   // (see calculateStreak in server/src/index.js). The dashboard milestone
   // that carries the streak icon must sit at the SAME position — otherwise
@@ -1184,11 +1187,11 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     let reward;
     if (isFullBoard) {
       parts.push({ kind: "xp", amount: 25 });
-      parts.push({ kind: "token", amount: fullBoardTokenReward });
+      parts.push({ kind: "token", amount: fullBoardSilverReward });
       if (isStreak) parts.push({ kind: "streak", amount: 1 });
-      const tokenPart = fullBoardTokenReward > 1
-        ? `+${fullBoardTokenReward} ${t.tokenIcon}`
-        : `+${t.tokenIcon}`;
+      const tokenPart = fullBoardSilverReward > 1
+        ? `+${fullBoardSilverReward} ${t.silverIcon}`
+        : `+${t.silverIcon}`;
       reward = `+25 ${t.xpLabel} / ${tokenPart}`;
       if (isStreak) reward += ` / +${t.streakIcon}`;
     } else if (isStreak) {
@@ -1234,7 +1237,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       ? Math.max(1, Math.ceil(remainingMs / (24 * 60 * 60 * 1000)))
       : 21;
   }
-  const canRerollPinned = isFreePinnedReroll || state.tokens >= 7;
+  const canRerollPinned = isFreePinnedReroll || state.silver >= 7;
 
   const {
     floatingTexts,
@@ -1275,7 +1278,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     setLevelUpLevel,
     setShowHabitMilestone,
     setHabitMilestoneTitle,
-    setHabitMilestoneTokens,
+    setHabitMilestoneSilver,
     setTierUnlock,
     levelDisplayRef,
     questRenderCountRef,
@@ -1283,6 +1286,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   });
 
   const [noteQuest, setNoteQuest] = useState(null);
+  // Tracks the cosmetic id being purchased so the matching card can render
+  // its loading/disabled state without blocking the rest of the cosmetics tab.
+  const [cosmeticPurchasePending, setCosmeticPurchasePending] = useState(null);
   const [noteSubmitting, setNoteSubmitting] = useState(false);
   const [noteError, setNoteError] = useState("");
   const [counterPendingId, setCounterPendingId] = useState(null);
@@ -1303,9 +1309,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     const levels = Array.isArray(state.districtLevels) ? state.districtLevels : [0, 0, 0, 0, 0];
     return levels.reduce((sum, lvl) => {
       const safe = Math.max(0, Math.min(5, Math.floor(Number(lvl) || 0)));
-      let tokens = 0;
-      for (let i = 0; i < safe; i += 1) tokens += DISTRICT_UPGRADE_COSTS_CLIENT[i] || 0;
-      return sum + tokens;
+      let silver = 0;
+      for (let i = 0; i < safe; i += 1) silver += DISTRICT_UPGRADE_COSTS_CLIENT[i] || 0;
+      return sum + silver;
     }, 0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.districtLevels]);
@@ -1336,7 +1342,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         xp: latest?.user?.xp ?? prev.xp,
         lvl: latest?.user?.level ?? prev.lvl,
         xpNext: latest?.user?.xpNext ?? prev.xpNext,
-        tokens: latest?.user?.tokens ?? prev.tokens,
+        silver: latest?.user?.silver ?? prev.silver,
         streak: Number(latest?.streak ?? prev.streak),
         productivity: latest?.productivity ?? prev.productivity,
         questSlots: latest?.questSlots ?? prev.questSlots,
@@ -1602,7 +1608,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         xp,
         lvl,
         xpNext,
-        tokens: prev.tokens + tokenGain
+        silver: prev.silver + tokenGain
       };
     });
   }
@@ -1804,7 +1810,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         lvl: userData.level ?? prev.lvl,
         xp: userData.xp ?? prev.xp,
         xpNext: userData.xpNext ?? prev.xpNext,
-        tokens: userData.tokens ?? prev.tokens,
+        silver: userData.silver ?? prev.silver,
         streak: Number(gameStateResponse?.streak ?? prev.streak),
         completed: Array.isArray(gameStateResponse?.completedQuestIds) ? gameStateResponse.completedQuestIds : prev.completed,
         productivity: gameStateResponse?.productivity ?? prev.productivity,
@@ -1829,7 +1835,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       setCityResetConfirmOpen(false);
       setState((prev) => ({
         ...prev,
-        tokens: typeof resp?.tokens === "number" ? resp.tokens : prev.tokens,
+        silver: typeof resp?.silver === "number" ? resp.silver : prev.silver,
         districtLevels: Array.isArray(resp?.districtLevels) ? resp.districtLevels : [0, 0, 0, 0, 0],
         user: {
           ...prev.user,
@@ -1899,7 +1905,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           questXp: Number(result?.awardedXp ?? 0),
           milestoneXp: Number(result?.milestoneBonusXp ?? 0),
           sportXp: Number(result?.sportBonusXp ?? 0),
-          tokensAwarded: Number(result?.milestoneTokens ?? 0) + Number(result?.squareBonusTokens ?? 0),
+          silverAwarded: Number(result?.milestoneSilver ?? 0) + Number(result?.squareBonusSilver ?? 0),
           streakCounted: percent >= 100,
           completionPercent: percent,
           streakRemaining
@@ -1999,19 +2005,19 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             >
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--color-text)", fontWeight: 600 }}>
                 <span>{t.cityResetPricePaidLabel || "Price"}</span>
-                <span>🪙 {cityResetCost}</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><IconSilver size={14} /> {cityResetCost}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--color-text)", fontWeight: 600 }}>
                 <span>{t.cityResetRefundLabel || "Refund"}</span>
-                <span style={{ color: "#6ee7b7" }}>+ 🪙 {cityResetRefund}</span>
+                <span style={{ color: "#6ee7b7", display: "inline-flex", alignItems: "center", gap: 4 }}>+ <IconSilver size={14} /> {cityResetRefund}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--color-accent)", fontWeight: 800, borderTop: "1px solid var(--card-border-idle)", paddingTop: 6, marginTop: 2 }}>
                 <span>{t.cityResetNetLabel || "Total balance after reset"}</span>
-                <span>🪙 {Math.max(0, (Number(state.tokens) || 0) + cityResetRefund - cityResetCost)}</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><IconSilver size={14} /> {Math.max(0, (Number(state.silver) || 0) + cityResetRefund - cityResetCost)}</span>
               </div>
             </div>
             <p style={{ fontSize: 11, color: "var(--color-muted)", margin: "0 0 12px", lineHeight: 1.45 }}>
-              ⚠ {t.cityResetStreakWarning || "High-tier districts (levels 3–5) also need an active streak — tokens alone won't unlock them. Keep your streak alive before paying to rebuild."}
+              ⚠ {t.cityResetStreakWarning || "High-tier districts (levels 3–5) also need an active streak — silver alone won't unlock them. Keep your streak alive before paying to rebuild."}
             </p>
             <div className="logout-confirm-actions">
               <button
@@ -2024,7 +2030,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
               <button
                 className="logout-confirm-proceed cinzel mobile-pressable"
                 onClick={handleResetCity}
-                disabled={cityResetBusy || state.tokens < cityResetCost}
+                disabled={cityResetBusy || state.silver < cityResetCost}
               >
                 {cityResetBusy
                   ? (t.submittingLabel || "Submitting...")
@@ -2067,11 +2073,11 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           open={showReferrals}
           username={authUser?.uid || username}
           onClose={() => setShowReferrals(false)}
-          onTokensClaimed={(nextTotal) => {
+          onSilverClaimed={(nextTotal) => {
             // Server returned the user's new token total — mirror it
             // locally so the dashboard balance updates instantly.
             if (Number.isFinite(Number(nextTotal))) {
-              setState((prev) => ({ ...prev, tokens: Number(nextTotal) }));
+              setState((prev) => ({ ...prev, silver: Number(nextTotal) }));
               bumpAchievements();
             }
           }}
@@ -2093,7 +2099,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           username={authUser?.uid}
           onClose={() => setShowQuiz(false)}
           onPassed={({ justUnlocked }) => {
-            // Quiz no longer auto-credits tokens — scholar's reward
+            // Quiz no longer auto-credits silver — scholar's reward
             // flows through the unified achievement claim flow. Just
             // bump the refresh key so AchievementsSection picks up the
             // freshly-unlocked row and the user can claim from there.
@@ -2144,7 +2150,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           questXp={questCompletePopup?.questXp || 0}
           milestoneXp={questCompletePopup?.milestoneXp || 0}
           sportXp={questCompletePopup?.sportXp || 0}
-          tokensAwarded={questCompletePopup?.tokensAwarded || 0}
+          silverAwarded={questCompletePopup?.silverAwarded || 0}
           streakCounted={Boolean(questCompletePopup?.streakCounted)}
           streakRemaining={questCompletePopup?.streakRemaining}
           completionPercent={questCompletePopup?.completionPercent}
@@ -2236,7 +2242,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         onToggleReplacePinnedQuest={toggleReplacePinnedQuest}
         replacePinnedError={replacePinnedError}
         replacePinnedSaving={replacePinnedSaving}
-        tokens={state.tokens}
+        silver={state.silver}
         isFreePinnedReroll={isFreePinnedReroll}
         onBuy={handleBuyPinnedReplacement}
         customQuests={customQuests}
@@ -2284,7 +2290,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         show={showHabitMilestone}
         onClose={() => setShowHabitMilestone(false)}
         title={habitMilestoneTitle}
-        tokens={habitMilestoneTokens}
+        silver={habitMilestoneSilver}
         t={t}
         tf={tf}
       />
@@ -2331,7 +2337,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 onRewardClaimed={handleCityRewardClaimed}
                 t={t}
                 districtLevels={state.districtLevels || [0, 0, 0, 0, 0]}
-                tokens={state.tokens || 0}
+                silver={state.silver || 0}
                 userLevel={Math.floor(Number(state.lvl) || 0)}
                 userStreak={Number(state.streak) || 0}
                 tourFreeUpgradeDistrict={showTour ? "park" : null}
@@ -2350,7 +2356,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                   setState((prev) => {
                     const next = {
                       ...prev,
-                      tokens: typeof result?.tokens === "number" ? result.tokens : prev.tokens,
+                      silver: typeof result?.silver === "number" ? result.silver : prev.silver,
                       districtLevels: Array.isArray(result?.districtLevels) ? result.districtLevels : prev.districtLevels
                     };
                     // Residential auto-grant on threshold upgrade — mirror
@@ -2372,7 +2378,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                     lvl: typeof result?.level === "number" ? result.level : prev.lvl,
                     xp: typeof result?.xp === "number" ? result.xp : prev.xp,
                     xpNext: typeof result?.xpNext === "number" ? result.xpNext : prev.xpNext,
-                    tokens: typeof result?.tokens === "number" ? result.tokens : prev.tokens,
+                    silver: typeof result?.silver === "number" ? result.silver : prev.silver,
                     streak: typeof result?.streak === "number" ? result.streak : prev.streak,
                     user: {
                       ...(prev.user || {}),
@@ -2451,7 +2457,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             {mobileTab === "store" ? (
               <Suspense fallback={<PortalPreloader title={t.loadingText} overlay />}>
               <StoreTab
-                tokens={state.tokens}
+                silver={state.silver}
                 streakFreezeCharges={Number(state.user?.streakFreezeCharges) || 0}
                 freezeCost={(() => {
                   const resLvl = Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[4]) || 0)));
@@ -2495,6 +2501,33 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 cityResetCost={cityResetCost}
                 cityResetRefund={cityResetRefund}
                 onResetCity={() => setCityResetConfirmOpen(true)}
+                gold={Number(state.gold) || 0}
+                rouletteCoupons={Number(state.rouletteCoupons) || 0}
+                ownedCosmetics={typeof state.ownedCosmetics === "string" ? state.ownedCosmetics : "[]"}
+                onBuyCosmetic={async (item) => {
+                  if (!item || !authUser?.uid) return;
+                  setCosmeticPurchasePending(item.id);
+                  try {
+                    const resp = await buyCosmetic(authUser.uid, item.id);
+                    setState((prev) => ({
+                      ...prev,
+                      gold: Number(resp?.gold ?? prev.gold ?? 0),
+                      ownedCosmetics: typeof resp?.ownedCosmetics === "string" ? resp.ownedCosmetics : prev.ownedCosmetics
+                    }));
+                    addLog?.((t.cosmeticPurchasedLog || "Cosmetic acquired"), "text-emerald-300");
+                  } catch (err) {
+                    const code = err?.data?.code || "unknown";
+                    const msg = code === "insufficient_gold"
+                      ? (t.notEnoughGold || "Not enough gold")
+                      : code === "already_owned"
+                        ? (t.cosmeticAlreadyOwned || "Already owned")
+                        : (t.cosmeticPurchaseFailed || "Purchase failed");
+                    addLog?.(msg, "text-red-400 font-bold");
+                  } finally {
+                    setCosmeticPurchasePending(null);
+                  }
+                }}
+                cosmeticPurchasePending={cosmeticPurchasePending}
                 t={t}
               />
               </Suspense>
@@ -2532,14 +2565,14 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 onOpenNotesHistory={() => setShowNotesHistory(true)}
                 onOpenReferrals={() => setShowReferrals(true)}
                 achievementsRefreshKey={achievementsRefreshKey}
-                onAchievementTokensClaimed={(amount) => {
+                onAchievementSilverClaimed={(amount) => {
                   // Mirror the server-side token grant locally so the
                   // Profile balance updates instantly without waiting
                   // for the next /api/game-state refresh.
                   if (Number(amount) > 0) {
                     setState((prev) => ({
                       ...prev,
-                      tokens: (Number(prev.tokens) || 0) + Number(amount)
+                      silver: (Number(prev.silver) || 0) + Number(amount)
                     }));
                   }
                 }}

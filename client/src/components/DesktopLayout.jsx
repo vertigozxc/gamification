@@ -92,7 +92,7 @@ export default function DesktopLayout({
       </div>
 
       <TokenVault
-        tokens={state.tokens}
+        silver={state.silver}
         streakFreezeCharges={Number(state.user?.streakFreezeCharges) || 0}
         extraRerollsToday={state.extraRerollsToday}
         hasRerolledToday={state.hasRerolledToday}

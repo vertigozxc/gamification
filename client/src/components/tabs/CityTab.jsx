@@ -9,18 +9,18 @@ import useEdgeSwipeBack from "../../hooks/useEdgeSwipeBack";
 import SpinWheelModal from "../SpinWheelModal";
 import { useTheme } from "../../ThemeContext";
 import { pluralizeDays, pluralizeCharges } from "../../i18nConfig";
-import { citySpinStatus, upgradeDistrict, downgradeDistrict, devGrantStats, claimBusinessTokens, updateCityName } from "../../api";
+import { citySpinStatus, upgradeDistrict, downgradeDistrict, devGrantStats, claimBusinessSilver, updateCityName } from "../../api";
 import { IconCheck, IconClose, IconArrowRight, IconSparkle, IconTimer, IconTag } from "../icons/Icons";
 
 const DISTRICT_MAX_LEVEL = 5;
 
 // Upgrade requirements per step. Index = currentLevel (0..4).
 const DISTRICT_UPGRADE_REQS = [
-  { level: 2,  tokens: 5,   streak: 0  }, // 0 → 1
-  { level: 7,  tokens: 15,  streak: 0  }, // 1 → 2
-  { level: 13, tokens: 25,  streak: 5  }, // 2 → 3
-  { level: 21, tokens: 50,  streak: 10 }, // 3 → 4
-  { level: 33, tokens: 100, streak: 21 }  // 4 → 5
+  { level: 2,  silver: 5,   streak: 0  }, // 0 → 1
+  { level: 7,  silver: 15,  streak: 0  }, // 1 → 2
+  { level: 13, silver: 25,  streak: 5  }, // 2 → 3
+  { level: 21, silver: 50,  streak: 10 }, // 3 → 4
+  { level: 33, silver: 100, streak: 21 }  // 4 → 5
 ];
 
 // Perk translation key builder. Uses t lookup at render time.
@@ -482,7 +482,7 @@ export default function CityTab({
   username,
   onRewardClaimed,
   districtLevels = [0, 0, 0, 0, 0],
-  tokens = 0,
+  silver = 0,
   userLevel = 0,
   userStreak = 0,
   lastBusinessClaimDayKey = "",
@@ -697,8 +697,8 @@ export default function CityTab({
   const handleBusinessClaim = useCallback(async () => {
     if (!username) return;
     try {
-      const result = await claimBusinessTokens(username);
-      onStatsGranted?.({ tokens: result.tokens });
+      const result = await claimBusinessSilver(username);
+      onStatsGranted?.({ silver: result.silver });
       setBusinessClaimedLocal(getTodayKey());
       setClaimSuccessPopup({ type: "business", amount: Number(result.granted) || 0 });
     } catch (err) {
@@ -1119,7 +1119,7 @@ export default function CityTab({
           isTourFree
           || (
             userLevel >= nextReq.level
-            && tokens >= nextReq.tokens
+            && silver >= nextReq.silver
             && userStreak >= nextReq.streak
           )
         );
@@ -1154,7 +1154,7 @@ export default function CityTab({
                     </span>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                       <ReqChip icon="⭐" label={`${t.districtReqLevelPrefix || "Lvl"} ${userLevel} / ${nextReq.level}`} met={userLevel >= nextReq.level} current={userLevel} />
-                      <ReqChip icon="🪙" label={`${tokens} / ${nextReq.tokens}`} met={tokens >= nextReq.tokens} current={tokens} />
+                      <ReqChip icon="🪙" label={`${silver} / ${nextReq.silver}`} met={silver >= nextReq.silver} current={silver} />
                       {nextReq.streak > 0 && (
                         <ReqChip icon="🔥" label={`${userStreak} / ${nextReq.streak}`} met={userStreak >= nextReq.streak} current={userStreak} />
                       )}

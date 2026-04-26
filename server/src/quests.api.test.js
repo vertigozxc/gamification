@@ -275,7 +275,7 @@ test("POST /api/reset-daily rerolls selected random quests and keeps unselected 
   assert.equal(new Set(rerolledCategories).size, EXPECTED_RANDOM_COUNT, "rerolled random quests must keep unique categories");
 });
 
-test("POST /api/quests/complete grants 2 tokens starting from level 10", async () => {
+test("POST /api/quests/complete grants 2 silver starting from level 10", async () => {
   const username = `lvl10_${Date.now().toString().slice(-6)}`;
 
   const upsertResponse = await fetch(`${baseUrl}/api/profiles/upsert`, {
@@ -291,7 +291,7 @@ test("POST /api/quests/complete grants 2 tokens starting from level 10", async (
       level: 9,
       xp: 90,
       xpNext: 100,
-      tokens: 0,
+      silver: 0,
       preferredQuestIds: Array.from({ length: PINNED_COUNT }, (_, index) => index + 1).join(",")
     }
   });
@@ -310,11 +310,11 @@ test("POST /api/quests/complete grants 2 tokens starting from level 10", async (
   assert.equal(completeResponse.status, 200);
 
   const completePayload = await completeResponse.json();
-  assert.equal(completePayload.tokens, 2);
+  assert.equal(completePayload.silver, 2);
 
   const updatedUser = await prisma.user.findUnique({ where: { username } });
   assert.equal(updatedUser?.level, 10);
-  assert.equal(updatedUser?.tokens, 2);
+  assert.equal(updatedUser?.silver, 2);
 });
 
 test("POST /api/shop/freeze-streak only charges once when requests race", async () => {
@@ -330,7 +330,7 @@ test("POST /api/shop/freeze-streak only charges once when requests race", async 
   await prisma.user.update({
     where: { username },
     data: {
-      tokens: 5,
+      silver: 5,
       streakFreezeExpiresAt: null
     }
   });
@@ -349,7 +349,7 @@ test("POST /api/shop/freeze-streak only charges once when requests race", async 
   assert.equal(statusCodes.filter((status) => status === 200).length, 1);
 
   const updatedUser = await prisma.user.findUnique({ where: { username } });
-  assert.equal(updatedUser?.tokens, 2);
+  assert.equal(updatedUser?.silver, 2);
   assert.ok(updatedUser?.streakFreezeExpiresAt, "expected freeze expiration to be set");
 
   const gameStateResponse = await fetch(`${baseUrl}/api/game-state/${encodeURIComponent(username)}`);
@@ -415,7 +415,7 @@ test("GET /api/game-state returns full random daily quests when 2 custom habits 
   assert.equal(random.length, EXPECTED_RANDOM_COUNT, `expected exactly ${EXPECTED_RANDOM_COUNT} random quests`);
 });
 
-test("POST /api/shop/replace-pinned-quests allows free swap after 21 days, otherwise requires 7 tokens", async () => {
+test("POST /api/shop/replace-pinned-quests allows free swap after 21 days, otherwise requires 7 silver", async () => {
   const username = `pin21_${Date.now().toString().slice(-6)}`;
 
   const upsertResponse = await fetch(`${baseUrl}/api/profiles/upsert`, {
@@ -429,7 +429,7 @@ test("POST /api/shop/replace-pinned-quests allows free swap after 21 days, other
     where: { username },
     data: {
       preferredQuestIds: "1,2,3",
-      tokens: 0,
+      silver: 0,
       lastFreeTaskRerollAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000)
     }
   });
@@ -441,13 +441,13 @@ test("POST /api/shop/replace-pinned-quests allows free swap after 21 days, other
   });
   assert.equal(blockedResponse.status, 400);
   const blockedPayload = await blockedResponse.json();
-  assert.equal(blockedPayload?.error, "Not enough tokens");
+  assert.equal(blockedPayload?.error, "Not enough silver");
 
   await prisma.user.update({
     where: { username },
     data: {
       preferredQuestIds: "1,2,3",
-      tokens: 0,
+      silver: 0,
       lastFreeTaskRerollAt: new Date(Date.now() - 22 * 24 * 60 * 60 * 1000)
     }
   });
@@ -459,7 +459,7 @@ test("POST /api/shop/replace-pinned-quests allows free swap after 21 days, other
   });
   assert.equal(freeResponse.status, 200);
   const freePayload = await freeResponse.json();
-  assert.equal(freePayload?.tokens, 0);
+  assert.equal(freePayload?.silver, 0);
   assert.deepEqual(freePayload?.preferredQuestIds, [4, 5, 6]);
   assert.ok(freePayload?.lastFreeTaskRerollAt, "expected lastFreeTaskRerollAt to be refreshed after free swap");
 });

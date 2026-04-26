@@ -572,7 +572,7 @@ function OnboardingModal({
           {/* Referral code (optional) — sits on the same wizard page
               as Name + @handle so the user fills everything in one
               pass. Empty by default; leaving it blank just skips the
-              redeem step. Both sides get +50 tokens when the new
+              redeem step. Both sides get +50 silver when the new
               user reaches level 5. */}
           <div data-tour="setup-referral" style={{ marginTop: 14 }}>
             {/* Label row: field name on the left, small "OPTIONAL"

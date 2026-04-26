@@ -14,7 +14,7 @@ export default function QuestCompletePopup({
   questXp = 0,
   milestoneXp = 0,
   sportXp = 0,
-  tokensAwarded = 0,
+  silverAwarded = 0,
   streakCounted = false,
   streakRemaining,
   completionPercent = 100
@@ -39,7 +39,7 @@ export default function QuestCompletePopup({
     ? (tf("questCompletePopupPartialPraise", { percent: percentTier })
         || `You pushed through ${percentTier}% of the session — that's real effort, not nothing.`)
     : (t.questCompletePopupPraise || "Nice work — keep the momentum going.");
-  const tokenIcon = t.tokenIcon || "🪙";
+  const silverIcon = t.silverIcon || "🪙";
   const streakIcon = t.streakIcon || "🔥";
   const streakYesTitle = t.questCompletePopupStreakYesTitle || "Counts toward your streak";
   const remaining = Number.isFinite(Number(streakRemaining)) ? Math.max(0, Number(streakRemaining)) : null;
@@ -126,13 +126,13 @@ export default function QuestCompletePopup({
             {praise}
           </p>
 
-          {tokensAwarded > 0 ? (
+          {silverAwarded > 0 ? (
             <div
               className="flex items-center justify-center mb-3"
               style={{ animation: "fadeInUp 1.2s ease-out" }}
             >
               <span className="inline-flex items-center gap-1 bg-amber-900/40 border border-amber-500/50 rounded-xl px-4 py-2 text-xl font-black text-amber-200 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]">
-                +{tokensAwarded} <span className="text-2xl">{tokenIcon}</span>
+                +{silverAwarded} <span className="text-2xl">{tokenIcon}</span>
               </span>
             </div>
           ) : null}
@@ -207,7 +207,7 @@ QuestCompletePopup.propTypes = {
   questXp: PropTypes.number,
   milestoneXp: PropTypes.number,
   sportXp: PropTypes.number,
-  tokensAwarded: PropTypes.number,
+  silverAwarded: PropTypes.number,
   streakCounted: PropTypes.bool,
   streakRemaining: PropTypes.number,
   completionPercent: PropTypes.number

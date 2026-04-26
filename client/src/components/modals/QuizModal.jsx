@@ -24,7 +24,7 @@ function QuizModal({ open, username, onClose, onPassed }) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState([]); // index per question or null
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState(null); // { score, total, passed, justUnlocked, tokensGranted }
+  const [result, setResult] = useState(null); // { score, total, passed, justUnlocked, silverGranted }
   const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
@@ -103,7 +103,7 @@ function QuizModal({ open, username, onClose, onPassed }) {
     }
     const passed = score === total;
     let justUnlocked = false;
-    let tokensGranted = 0;
+    let silverGranted = 0;
     if (passed && username) {
       // Always call the server — it's idempotent. If `scholar` is
       // already unlocked, the server returns justUnlocked: false with
@@ -112,17 +112,17 @@ function QuizModal({ open, username, onClose, onPassed }) {
       try {
         const resp = await claimQuizScholar(username);
         justUnlocked = !!resp?.justUnlocked;
-        tokensGranted = Number(resp?.tokensGranted) || 0;
+        silverGranted = Number(resp?.silverGranted) || 0;
       } catch (err) {
         // Reward grant failed — score still counts, surface a soft
         // error but don't block the success screen.
         setSubmitError(err?.data?.error || err?.message || "Failed to claim reward");
       }
     }
-    setResult({ score, total, passed, justUnlocked, tokensGranted });
+    setResult({ score, total, passed, justUnlocked, silverGranted });
     setSubmitting(false);
     if (passed && justUnlocked) {
-      onPassed?.({ tokensGranted, justUnlocked });
+      onPassed?.({ silverGranted, justUnlocked });
     }
   };
 
@@ -445,7 +445,7 @@ function QuizModal({ open, username, onClose, onPassed }) {
 }
 
 function ResultScreen({ result, t, submitError }) {
-  const { score, total, passed, justUnlocked, tokensGranted } = result;
+  const { score, total, passed, justUnlocked, silverGranted } = result;
   // "Already unlocked" = passed but the server reported no new
   // grant — i.e. scholar was unlocked on a previous run.
   const alreadyUnlocked = passed && !justUnlocked;
@@ -517,9 +517,9 @@ function ResultScreen({ result, t, submitError }) {
             {t.quizResultRewardKicker || "Reward unlocked"}
           </span>
           <span>
-            {fill(t.quizResultRewardLine || "🎓 Scholar achievement · +{amount} {tokenIcon}", {
-              amount: tokensGranted || 10,
-              tokenIcon: t.tokenIcon || "🪙"
+            {fill(t.quizResultRewardLine || "🎓 Scholar achievement · +{amount} {silverIcon}", {
+              amount: silverGranted || 10,
+              silverIcon: t.silverIcon || "🪙"
             })}
           </span>
         </div>

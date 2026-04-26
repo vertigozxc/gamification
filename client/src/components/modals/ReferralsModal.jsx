@@ -28,7 +28,7 @@ import {
 
 const MIN_LEN = 4;
 const MAX_LEN = 10;
-const REWARD_TOKENS = 50;
+const REWARD_SILVER = 50;
 const TARGET_LEVEL = 5;
 
 function normalizeCode(raw) {
@@ -306,8 +306,8 @@ function ReferralsModal({ open, onClose, username, onTokensClaimed }) {
       setData(fresh);
       // Bubble the new token total up so the dashboard balance updates
       // without a full re-fetch of game-state.
-      if (typeof onTokensClaimed === "function" && resp?.tokens != null) {
-        onTokensClaimed(Number(resp.tokens));
+      if (typeof onTokensClaimed === "function" && resp?.silver != null) {
+        onTokensClaimed(Number(resp.silver));
       }
     } catch (err) {
       setError(err?.message || "Claim failed");
@@ -925,7 +925,7 @@ function ReferralsTab({ t, tf, referrals, claimingId, onClaim, onSwitchToCodes }
           <p className="cinzel ref-kpi-value">
             {claimableCount}
             {claimableCount > 0 ? (
-              <span className="ref-kpi-bonus"> · +{claimableCount * REWARD_TOKENS}🪙</span>
+              <span className="ref-kpi-bonus"> · +{claimableCount * REWARD_SILVER}🪙</span>
             ) : null}
           </p>
         </div>
@@ -946,7 +946,7 @@ function ReferralsTab({ t, tf, referrals, claimingId, onClaim, onSwitchToCodes }
       </div>
 
       <p className="ref-footnote">
-        {tf("referralsFootnoteHint", { level: TARGET_LEVEL, tokens: REWARD_TOKENS })}
+        {tf("referralsFootnoteHint", { level: TARGET_LEVEL, silver: REWARD_SILVER })}
       </p>
     </div>
   );
@@ -979,7 +979,7 @@ function ReferralRow({ row, isClaiming, onClaim, t, tf }) {
       >
         {isClaiming
           ? (t.referralsInviteeClaiming || "…")
-          : `+${REWARD_TOKENS}`}
+          : `+${REWARD_SILVER}`}
       </button>
     );
   } else {

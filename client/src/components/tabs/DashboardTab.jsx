@@ -187,7 +187,7 @@ export default function DashboardTab({
                           </span>
                         ) : (
                           <span className="dash-milestone-pill-icon" aria-hidden="true">
-                            {p.kind === "token" ? t.tokenIcon : "⚡"}
+                            {p.kind === "token" ? t.silverIcon : "⚡"}
                           </span>
                         )}
                         <span className="dash-milestone-pill-amount">+{p.amount}</span>

@@ -8,7 +8,7 @@ import InputWithClear from "../InputWithClear";
 import { groupQuests, availableCategories, matchesCategory } from "../../utils/questGrouping";
 import { IconCheck, IconClose, IconList, IconSparkle } from "../icons/Icons";
 
-const TOKEN_COST = 7;
+const SILVER_COST = 7;
 
 function PinnedReplacementModal({
   open,
@@ -21,7 +21,7 @@ function PinnedReplacementModal({
   onToggleReplacePinnedQuest,
   replacePinnedError,
   replacePinnedSaving,
-  tokens,
+  silver,
   isFreePinnedReroll,
   onBuy,
   customQuests,
@@ -117,8 +117,8 @@ function PinnedReplacementModal({
 
   const selectedCount = Array.isArray(replacePinnedQuestIds) ? replacePinnedQuestIds.length : 0;
   const selectionComplete = selectedCount === SELECTION_LIMIT;
-  const hasEnoughTokens = (Number(tokens) || 0) >= TOKEN_COST;
-  const canAfford = isFreePinnedReroll || hasEnoughTokens;
+  const hasEnoughSilver = (Number(silver) || 0) >= SILVER_COST;
+  const canAfford = isFreePinnedReroll || hasEnoughSilver;
   const primaryDisabled = replacePinnedSaving || !selectionComplete || !canAfford;
 
   const swipeBind = useEdgeSwipeBack(onClose);
@@ -217,7 +217,7 @@ function PinnedReplacementModal({
             >
               <span style={{ fontSize: 13 }}>{isFreePinnedReroll ? "🎁" : "🪙"}</span>
               <span className="cinzel" style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: isFreePinnedReroll ? "var(--color-primary)" : "var(--color-text)" }}>
-                {isFreePinnedReroll ? (t.freeLabel || "Free") : `${TOKEN_COST} ${t.tokenPlural || "tokens"}`}
+                {isFreePinnedReroll ? (t.freeLabel || "Free") : `${SILVER_COST} ${t.silverPlural || "tokens"}`}
               </span>
             </div>
             <div
@@ -234,7 +234,7 @@ function PinnedReplacementModal({
             >
               <span style={{ fontSize: 13 }}>🪙</span>
               <span className="cinzel" style={{ fontSize: 12, color: "var(--color-primary)", fontWeight: 700 }}>
-                {Number(tokens) || 0}
+                {Number(silver) || 0}
               </span>
             </div>
           </div>
@@ -511,7 +511,7 @@ function PinnedReplacementModal({
                 ? t.onboardingSaving
                 : isFreePinnedReroll
                   ? t.rerollFree
-                  : `${t.customizePrefix} ${TOKEN_COST} 🪙`}
+                  : `${t.customizePrefix} ${SILVER_COST} 🪙`}
             </button>
           </div>
         </div>

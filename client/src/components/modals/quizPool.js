@@ -32,7 +32,7 @@ const QUIZ_POOL = [
     en: "What's the bonus for completing the same habit 21 days in a row?",
     ru: "Бонус за закрытие одной привычки 21 день подряд:",
     optionsEn: ["+10 tokens", "+20 tokens", "+30 tokens", "+1 free reroll"],
-    optionsRu: ["+10 токенов", "+20 токенов", "+30 токенов", "+1 бесплатный реролл"],
+    optionsRu: ["+10 серебра", "+20 серебра", "+30 серебра", "+1 бесплатный реролл"],
     correct: 1
   },
   {
@@ -40,7 +40,7 @@ const QUIZ_POOL = [
     en: "How much does a Streak Freeze cost in the Shop?",
     ru: "Цена Streak Freeze в магазине:",
     optionsEn: ["3 tokens", "5 tokens", "7 tokens", "10 tokens"],
-    optionsRu: ["3 токена", "5 токенов", "7 токенов", "10 токенов"],
+    optionsRu: ["3 серебра", "5 серебра", "7 серебра", "10 серебра"],
     correct: 2
   },
   {
@@ -172,7 +172,7 @@ const QUIZ_POOL = [
   {
     id: "business-lvl5",
     en: "How many tokens per day does the Business district give at level 5?",
-    ru: "Сколько токенов в день даёт Бизнес-район на уровне 5?",
+    ru: "Сколько серебра в день даёт Бизнес-район на уровне 5?",
     optionsEn: ["1", "3", "5", "10"],
     optionsRu: ["1", "3", "5", "10"],
     correct: 2
@@ -222,10 +222,10 @@ const QUIZ_POOL = [
       "200 tokens"
     ],
     optionsRu: [
-      "100 токенов",
+      "100 серебра",
       "Продолжает расти на +10 каждый раз",
-      "50 токенов (кап)",
-      "200 токенов"
+      "50 серебра (кап)",
+      "200 серебра"
     ],
     correct: 2
   },
@@ -241,7 +241,7 @@ const QUIZ_POOL = [
     ],
     optionsRu: [
       "Достичь стрика 100 дней",
-      "Потратить 200+ токенов",
+      "Потратить 200+ серебра",
       "Платно сбросить город в первый раз",
       "Завершить 10 групповых челленджей"
     ],
@@ -259,8 +259,8 @@ const QUIZ_POOL = [
     ],
     optionsRu: [
       "+5 XP каждому",
-      "+1 токен каждому участнику",
-      "+10 XP и +1 токен",
+      "+1 серебро каждому участнику",
+      "+10 XP и +1 серебро",
       "Ничего, только финальная награда в конце"
     ],
     correct: 1

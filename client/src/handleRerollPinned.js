@@ -1,7 +1,7 @@
 ﻿  async function handleRerollPinned(questId) {
     const isFree = !state.user?.lastFreeTaskRerollAt || (Date.now() - new Date(state.user.lastFreeTaskRerollAt).getTime() >= 30 * 24 * 60 * 60 * 1000);
-    if (!isFree && state.tokens < 5) {
-      addLog("Not enough tokens to swap pinned task.", "text-red-400 font-bold");
+    if (!isFree && state.silver < 5) {
+      addLog("Not enough silver to swap pinned task.", "text-red-400 font-bold");
       return;
     }
     const costText = isFree ? "FREE (1/month)" : "5 TOKENS";
@@ -11,7 +11,7 @@
       const response = await fetch("http://localhost:4000/api/quests/reroll-pinned", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: authUser.uid, questIdToReroll: questId, useTokens: !isFree })
+        body: JSON.stringify({ username: authUser.uid, questIdToReroll: questId, useSilver: !isFree })
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
@@ -19,7 +19,7 @@
       setQuests(result.quests);
       setState(prev => ({
         ...prev,
-        tokens: result.tokens,
+        silver: result.silver,
         preferredQuestIds: result.preferredQuestIds,
         user: {
           ...prev.user,

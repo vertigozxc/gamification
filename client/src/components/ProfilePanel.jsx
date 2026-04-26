@@ -1,6 +1,6 @@
 ﻿import PropTypes from "prop-types";
 import { useTheme } from "../ThemeContext";
-import { IconFlame } from "./icons/Icons";
+import { IconFlame, IconSilver } from "./icons/Icons";
 
 function ProfilePanel({
   portraitUploadRef,
@@ -162,7 +162,15 @@ function ProfilePanel({
                           );
                         }
                         if (part === '🪙') {
-                          return <span key={i} className="text-[18px] leading-none drop-shadow-sm">{part}</span>;
+                          return (
+                            <span
+                              key={i}
+                              className="leading-none drop-shadow-sm"
+                              style={{ display: "inline-flex", alignItems: "center", color: "var(--color-accent)" }}
+                            >
+                              <IconSilver size={16} />
+                            </span>
+                          );
                         }
                         // Strip the leading space that follows an icon so the
                         // "+N" hugs the icon instead of having a visible gap.

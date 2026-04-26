@@ -33,7 +33,7 @@ export default function LevelUpPopup({ show, onClose, level, t }) {
           <div className="inline-flex justify-center items-center gap-3 bg-black/40 border border-yellow-700/50 rounded-xl px-5 py-3 mb-5 shadow-[inset_0_0_15px_rgba(251,191,36,0.1)]" style={{ animation: "fadeInUp 1.2s ease-out" }}>
             <span className="text-xl text-yellow-100 uppercase tracking-widest text-[0.85rem] font-bold">{t.rewardClaimLabel}</span>
             <span className="text-3xl font-black text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]">
-              +{level > 10 ? 2 : 1} <span className="text-4xl px-1">{t.tokenIcon}</span>
+              +{level > 10 ? 2 : 1} <span className="text-4xl px-1">{t.silverIcon}</span>
             </span>
           </div>
 

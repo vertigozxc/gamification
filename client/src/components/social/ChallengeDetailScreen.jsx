@@ -1128,7 +1128,7 @@ function ParticipantRow({ rank, participant, meUid, t, onOpenProfile, canRemove,
         <div style={{ display: "flex", gap: 10, fontSize: 12, color: "var(--color-muted)", fontWeight: 600, fontVariantNumeric: "tabular-nums", alignItems: "center", flexWrap: "wrap" }}>
           <span title={t.arenaStatCompletionsTooltip || "Completions"}>🏁 {participant.completions || 0}</span>
           <span style={{ color: "var(--card-border-idle)" }}>·</span>
-          <span title={t.arenaStatTokensTooltip || "Tokens earned"}>🪙 {participant.tokensEarned || 0}</span>
+          <span title={t.arenaStatTokensTooltip || "Tokens earned"}>🪙 {participant.silverEarned || 0}</span>
         </div>
       </button>
 
@@ -1303,7 +1303,7 @@ function ParticipantCard_Legacy({ rank, participant, meUid, t, onOpenProfile, ca
           <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
             <Stat IconComp={IconCheck} value={participant.completions || 0} label={t.arenaDone || "done"} />
             <Stat IconComp={IconFlame} value={participant.consecutiveDays || 0} label={t.arenaStreakShort || "streak"} />
-            <Stat icon="🪙" value={participant.tokensEarned || 0} label={t.arenaTokens || "tokens"} />
+            <Stat icon="🪙" value={participant.silverEarned || 0} label={t.arenaSilver || "tokens"} />
           </div>
         </div>
       </button>

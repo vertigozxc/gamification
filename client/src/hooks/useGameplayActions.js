@@ -33,7 +33,7 @@ function useGameplayActions({
   setLevelUpLevel,
   setShowHabitMilestone,
   setHabitMilestoneTitle,
-  setHabitMilestoneTokens,
+  setHabitMilestoneSilver,
   setTierUnlock,
   levelDisplayRef,
   questRenderCountRef,
@@ -169,7 +169,7 @@ function useGameplayActions({
               xp: latest?.user?.xp ?? prev.xp,
               lvl: latest?.user?.level ?? prev.lvl,
               xpNext: latest?.user?.xpNext ?? prev.xpNext,
-              tokens: latest?.user?.tokens ?? prev.tokens,
+              silver: latest?.user?.silver ?? prev.silver,
               streak: Number(latest?.streak ?? prev.streak),
               productivity: latest?.productivity ?? prev.productivity,
               questSlots: latest?.questSlots ?? prev.questSlots,
@@ -198,9 +198,9 @@ function useGameplayActions({
         const gameState = response.user;
         const actualXpGain = Number(completionResult?.totalAwardedXp ?? completionResult?.awardedXp ?? quest.xp);
         const milestoneBonusXp = Number(completionResult?.milestoneBonusXp ?? 0);
-        const milestoneTokens = Number(completionResult?.milestoneTokens ?? 0);
+        const milestoneSilver = Number(completionResult?.milestoneSilver ?? 0);
         const habitMilestoneReached = completionResult?.habitMilestoneReached === true;
-        const habitMilestoneTokens = Number(completionResult?.habitMilestoneTokens ?? 0);
+        const habitMilestoneSilver = Number(completionResult?.habitMilestoneSilver ?? 0);
 
         // Use setState updater to read current state for comparisons
         setState((prev) => {
@@ -211,18 +211,18 @@ function useGameplayActions({
           if (milestoneBonusXp > 0) {
             spawnFloatingText(pointerX, pointerY - 80, `🏅 +${milestoneBonusXp} ${vocab?.xpLabel || "XP"}`, "text-cyan-300 text-sm font-bold");
           }
-          if (milestoneTokens > 0) {
-            const tokenLabel = milestoneTokens === 1 ? (vocab?.tokenSingular || "Token") : (vocab?.tokenPlural || "Tokens");
-            spawnFloatingText(pointerX, pointerY - 110, `🪙 +${milestoneTokens} ${tokenLabel}`, "text-amber-300 text-sm font-bold");
+          if (milestoneSilver > 0) {
+            const silverLabel = milestoneSilver === 1 ? (vocab?.silverSingular || "Silver") : (vocab?.silverPlural || "Silver");
+            spawnFloatingText(pointerX, pointerY - 110, `🪙 +${milestoneSilver} ${silverLabel}`, "text-amber-300 text-sm font-bold");
           }
-          if (habitMilestoneReached && habitMilestoneTokens > 0) {
-            const tokenLabel = habitMilestoneTokens === 1 ? (vocab?.tokenSingular || "Token") : (vocab?.tokenPlural || "Tokens");
-            spawnFloatingText(pointerX, pointerY - 140, `🏆 +${habitMilestoneTokens} ${tokenLabel}`, "text-emerald-300 text-sm font-bold");
+          if (habitMilestoneReached && habitMilestoneSilver > 0) {
+            const silverLabel = habitMilestoneSilver === 1 ? (vocab?.silverSingular || "Silver") : (vocab?.silverPlural || "Silver");
+            spawnFloatingText(pointerX, pointerY - 140, `🏆 +${habitMilestoneSilver} ${silverLabel}`, "text-emerald-300 text-sm font-bold");
             if (typeof setHabitMilestoneTitle === "function") {
               setHabitMilestoneTitle(quest.title);
             }
-            if (typeof setHabitMilestoneTokens === "function") {
-              setHabitMilestoneTokens(habitMilestoneTokens);
+            if (typeof setHabitMilestoneSilver === "function") {
+              setHabitMilestoneSilver(habitMilestoneSilver);
             }
             if (typeof setShowHabitMilestone === "function") {
               setShowHabitMilestone(true);
@@ -245,10 +245,10 @@ function useGameplayActions({
             category: quest.category,
             xp: actualXpGain,
             milestoneBonusXp,
-            milestoneTokens,
+            milestoneSilver,
             habitMilestoneReached,
             streak: response.streak,
-            tokens: gameState.tokens,
+            silver: gameState.silver,
             level: gameState.level
           });
 
@@ -289,10 +289,10 @@ function useGameplayActions({
                 .replace("{xp}", String(milestoneBonusXp))
                 .replace(
                   "{tokenPart}",
-                  milestoneTokens > 0
+                  milestoneSilver > 0
                     ? (vocab?.milestoneTokenPart || ", +{count} {label}")
-                        .replace("{count}", String(milestoneTokens))
-                        .replace("{label}", milestoneTokens === 1 ? (vocab?.tokenSingular || "token") : (vocab?.tokenPlural || "tokens"))
+                        .replace("{count}", String(milestoneSilver))
+                        .replace("{label}", milestoneSilver === 1 ? (vocab?.silverSingular || "silver") : (vocab?.silverPlural || "silver"))
                     : ""
                 )
             : "";
@@ -314,7 +314,7 @@ function useGameplayActions({
             lvl: gameState.level,
             xpNext: gameState.xpNext,
             streak: response.streak,
-            tokens: gameState.tokens,
+            silver: gameState.silver,
             productivity: response?.productivity ?? prev.productivity,
             questSlots: response?.questSlots ?? prev.questSlots,
             pinnedQuestProgress21d: normalizePinnedQuestProgress(response?.pinnedQuestProgress21d),
@@ -464,7 +464,7 @@ function useGameplayActions({
         lvl: 1,
         xp: 0,
         xpNext: 250,
-        tokens: 0,
+        silver: 0,
         productivity: {
           xpToday: 0,
           tasksCompletedToday: 0,
@@ -499,21 +499,21 @@ function useGameplayActions({
 
     async function handleRerollPinned() {
     const isFree = !state.user?.lastFreeTaskRerollAt || (Date.now() - new Date(state.user.lastFreeTaskRerollAt).getTime() >= FREE_PINNED_REROLL_INTERVAL_MS);
-    if (!isFree && state.tokens < 7) {
-      addLog(vocab?.notEnoughTokensPinned || "Not enough tokens to reroll pinned quests.", "text-red-400 font-bold");
+    if (!isFree && state.silver < 7) {
+      addLog(vocab?.notEnoughSilverPinned || "Not enough tokens to reroll pinned quests.", "text-red-400 font-bold");
       return;
     }
     
     setRerollingPinned(true);
     try {
       const result = await rerollPinned(authUser.uid, !isFree);
-      trackEvent("pinned_quests_rerolled", { paid: !isFree, tokens: result.tokens });
-      const costText = isFree ? (vocab?.freeLabel || "Free") : (vocab?.sevenTokens || "7 Tokens");
+      trackEvent("pinned_quests_rerolled", { paid: !isFree, silver: result.silver });
+      const costText = isFree ? (vocab?.freeLabel || "Free") : (vocab?.sevenSilver || "7 Silver");
 
       setQuests(Array.isArray(result.quests) ? result.quests.map(normalizeQuest) : []);
       setState(prev => ({
         ...prev,
-        tokens: result.tokens,
+        silver: result.silver,
         preferredQuestIds: result.preferredQuestIds,
         pinnedQuestProgress21d: normalizePinnedQuestProgress(result?.pinnedQuestProgress21d),
         completed: result.completedQuestIds || prev.completed,
@@ -543,19 +543,19 @@ function useGameplayActions({
     const resLvl = Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[4]) || 0)));
     const discount = resLvl >= 5 ? 2 : resLvl >= 1 ? 1 : 0;
     const cost = Math.max(0, 3 - discount);
-    // Optimistic: deduct tokens and increment reroll count immediately
+    // Optimistic: deduct silver and increment reroll count immediately
     setState(prev => ({
       ...prev,
-      tokens: Math.max(0, prev.tokens - cost),
+      silver: Math.max(0, prev.silver - cost),
       extraRerollsToday: prev.extraRerollsToday + 1
     }));
     try {
       const result = await buyExtraReroll(resolvedUsername);
-      trackEvent("extra_reroll_purchased", { tokens: result.tokens, extraRerollsToday: result?.extraRerollsToday });
+      trackEvent("extra_reroll_purchased", { silver: result.silver, extraRerollsToday: result?.extraRerollsToday });
       // Confirm with real server values
       setState((prev) => ({
         ...prev,
-        tokens: result.tokens,
+        silver: result.silver,
         extraRerollsToday: Number(result?.extraRerollsToday ?? prev.extraRerollsToday),
         logs: [
           ...prev.logs,
@@ -570,7 +570,7 @@ function useGameplayActions({
       // Rollback
       setState(prev => ({
         ...prev,
-        tokens: prev.tokens + cost,
+        silver: prev.silver + cost,
         extraRerollsToday: Math.max(0, prev.extraRerollsToday - 1)
       }));
       addLog(err?.message || vocab?.purchaseFailed || "Purchase failed. Please try again.", "text-red-400 font-bold");
@@ -582,7 +582,7 @@ function useGameplayActions({
       return;
     }
 
-    const prevTokens = state.tokens;
+    const prevSilver = state.silver;
     const prevCharges = Number(state.user?.streakFreezeCharges) || 0;
 
     // Mirror the server's residential shop-discount so the optimistic
@@ -596,7 +596,7 @@ function useGameplayActions({
     // Optimistic: deduct tokens and bump charge count (shop adds a charge to Profile)
     setState(prev => ({
       ...prev,
-      tokens: Math.max(0, prev.tokens - freezeCost),
+      silver: Math.max(0, prev.silver - freezeCost),
       user: {
         ...(prev.user || {}),
         streakFreezeCharges: (Number(prev.user?.streakFreezeCharges) || 0) + 1
@@ -604,11 +604,11 @@ function useGameplayActions({
     }));
     try {
       const result = await freezeStreak(resolvedUsername);
-      trackEvent("streak_freeze_charge_purchased", { tokens: result.tokens, charges: result.streakFreezeCharges });
+      trackEvent("streak_freeze_charge_purchased", { silver: result.silver, charges: result.streakFreezeCharges });
       // Confirm with real server values
       setState((prev) => ({
         ...prev,
-        tokens: result.tokens,
+        silver: result.silver,
         user: {
           ...(prev.user || {}),
           streakFreezeCharges: Number(result.streakFreezeCharges) || 0,
@@ -627,7 +627,7 @@ function useGameplayActions({
       // Rollback
       setState(prev => ({
         ...prev,
-        tokens: prevTokens,
+        silver: prevSilver,
         user: {
           ...(prev.user || {}),
           streakFreezeCharges: prevCharges
@@ -644,18 +644,18 @@ function useGameplayActions({
     const resLvl = Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[4]) || 0)));
     const discount = resLvl >= 5 ? 2 : resLvl >= 1 ? 1 : 0;
     const cost = Math.max(0, 15 - discount);
-    const prevTokens = state.tokens;
+    const prevSilver = state.silver;
     const prevExpiry = state.user?.xpBoostExpiresAt ?? null;
     setState((prev) => ({
       ...prev,
-      tokens: Math.max(0, prev.tokens - cost)
+      silver: Math.max(0, prev.silver - cost)
     }));
     try {
       const result = await buyXpBoost(resolvedUsername);
-      trackEvent("xp_boost_purchased", { tokens: result.tokens, xpBoostExpiresAt: result.xpBoostExpiresAt });
+      trackEvent("xp_boost_purchased", { silver: result.silver, xpBoostExpiresAt: result.xpBoostExpiresAt });
       setState((prev) => ({
         ...prev,
-        tokens: result.tokens,
+        silver: result.silver,
         user: {
           ...(prev.user || {}),
           xpBoostExpiresAt: result.xpBoostExpiresAt ?? prev.user?.xpBoostExpiresAt ?? null
@@ -672,7 +672,7 @@ function useGameplayActions({
     } catch (err) {
       setState((prev) => ({
         ...prev,
-        tokens: prevTokens,
+        silver: prevSilver,
         user: { ...(prev.user || {}), xpBoostExpiresAt: prevExpiry }
       }));
       addLog(err?.message || vocab?.purchaseFailed || "Purchase failed. Please try again.", "text-red-400 font-bold");

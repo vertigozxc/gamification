@@ -123,7 +123,10 @@ export function createDefaultState() {
     lvl: 1,
     xp: 0,
     xpNext: 250,
-    tokens: 0,
+    silver: 0,
+    gold: 0,
+    rouletteCoupons: 0,
+    ownedCosmetics: "[]",
     districtLevels: [0, 0, 0, 0, 0],
     completed: [],
     logs: [],
@@ -158,7 +161,10 @@ export function normalizeState(rawState) {
   state.lvl = typeof rawState.lvl === "number" ? rawState.lvl : 1;
   state.xp = typeof rawState.xp === "number" ? rawState.xp : 0;
   state.xpNext = typeof rawState.xpNext === "number" ? rawState.xpNext : 250;
-  state.tokens = typeof rawState.tokens === "number" ? rawState.tokens : 0;
+  state.silver = typeof rawState.silver === "number" ? rawState.silver : 0;
+  state.gold = typeof rawState.gold === "number" ? rawState.gold : 0;
+  state.rouletteCoupons = typeof rawState.rouletteCoupons === "number" ? rawState.rouletteCoupons : 0;
+  state.ownedCosmetics = typeof rawState.ownedCosmetics === "string" ? rawState.ownedCosmetics : "[]";
   state.completed = Array.isArray(rawState.completed) ? rawState.completed : [];
   state.logs = Array.isArray(rawState.logs) ? rawState.logs : [];
   state.streak = typeof rawState.streak === "number" ? rawState.streak : 0;
