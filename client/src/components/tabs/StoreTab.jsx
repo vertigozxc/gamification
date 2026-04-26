@@ -16,36 +16,6 @@ const TABS = [
 
 const INVENTORY_GRID_SIZE = 16; // 4 cols × 4 rows
 
-// Currency pill in the header — shows current silver / gold totals.
-function CurrencyPill({ icon, value, label }) {
-  return (
-    <div
-      className="mobile-card"
-      style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 4,
-        padding: "10px 8px",
-        background: "var(--panel-bg)",
-        border: "1px solid var(--panel-border)",
-        borderRadius: 14
-      }}
-    >
-      <span style={{ fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--color-muted)", fontWeight: 700 }}>
-        {label}
-      </span>
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-        <span style={{ display: "inline-flex", color: "var(--color-accent)" }}>{icon}</span>
-        <span className="cinzel" style={{ color: "var(--color-primary)", fontSize: 22, fontWeight: 800, lineHeight: 1 }}>
-          {value}
-        </span>
-      </span>
-    </div>
-  );
-}
-
 // One slot in the WoW-bag grid. 1:1 aspect square. Filled slots show
 // their item icon centered + a count badge in the bottom-right; empty
 // slots are just a dim recessed square (no text, no icon).
@@ -268,10 +238,15 @@ export default function StoreTab({
   const indicatorRef = useRef(null);
 
   // Slide the indicator under the active tab. Mirrors QuestBoard's
-  // qb-tab-bar-expand pattern so the visual language is consistent
-  // between the dashboard's habit/daily/challenges bar and this one.
+  // qb-tab-bar-expand pattern: because grid-template-columns is also
+  // transitioning, the active button's offsetLeft / offsetWidth keep
+  // changing for ~420ms after the tab switch. We run a rAF loop over
+  // that window so the indicator stays glued to the moving target
+  // instead of snapping ahead. First mount snaps without animation
+  // so the pill doesn't flash from x=0.
   useLayoutEffect(() => {
     if (!tabsRowRef.current || !indicatorRef.current) return undefined;
+    const ind = indicatorRef.current;
     const apply = () => {
       const row = tabsRowRef.current;
       if (!row || !indicatorRef.current) return;
@@ -280,7 +255,6 @@ export default function StoreTab({
       indicatorRef.current.style.width = `${activeBtn.offsetWidth}px`;
       indicatorRef.current.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
     };
-    const ind = indicatorRef.current;
     const firstMeasure = ind.dataset.storeMeasured !== "1";
     if (firstMeasure) {
       const prev = ind.style.transition;
@@ -288,15 +262,28 @@ export default function StoreTab({
       apply();
       // eslint-disable-next-line no-unused-expressions
       ind.offsetHeight;
-      ind.style.transition = prev || "";
+      ind.style.transition = prev;
       ind.dataset.storeMeasured = "1";
-    } else {
-      apply();
+      return undefined;
     }
+    let rafId = 0;
+    let startTs = 0;
+    const durationMs = 420;
+    const sync = (ts) => {
+      if (!startTs) startTs = ts;
+      apply();
+      if (ts - startTs < durationMs) {
+        rafId = requestAnimationFrame(sync);
+      }
+    };
+    rafId = requestAnimationFrame(sync);
     const onResize = () => apply();
     window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [activeTab]);
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [activeTab, gridTemplateColumns]);
 
   const ownedList = parseOwnedCosmetics(ownedCosmetics);
   const bagSlots = buildBagSlots({
@@ -316,30 +303,36 @@ export default function StoreTab({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Compact dual-currency wallet header — silver + gold balance pills */}
+      {/* Slim 1-row hero: store title + inline silver/gold chips on the
+          right. Yellow city-hero-surface frame and background kept as-is
+          per the design pick — only the inner layout collapses to a
+          single row to free up vertical space. */}
       <div data-tour="store-hero" className="city-hero-surface mobile-card top-screen-block p-3 shadow-[0_0_20px_rgba(234,179,8,0.06)]">
         <div className="relative z-10 flex items-center gap-3">
+          {/* Title block — left */}
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.2em]" style={{ color: "var(--color-muted)" }}>
+            <p className="text-[9px] uppercase tracking-[0.2em] m-0 leading-none" style={{ color: "var(--color-muted)" }}>
               {t.storeScreenKicker}
             </p>
-            <h3 className="cinzel text-[1.1rem] font-bold tracking-wide leading-tight m-0 flex items-center gap-2" style={{ color: "var(--color-primary)" }}>
+            <h3 className="cinzel text-base font-bold tracking-wide leading-tight m-0 mt-0.5 flex items-center gap-1.5" style={{ color: "var(--color-primary)" }}>
               <span>🛍</span>
               <span className="truncate">{t.storeScreenTitle}</span>
             </h3>
           </div>
-        </div>
-        <div className="relative z-10 flex gap-2 mt-3">
-          <CurrencyPill
-            icon={<IconSilver size={20} />}
-            value={silver}
-            label={t.silverLabel || "Silver"}
-          />
-          <CurrencyPill
-            icon={<IconGold size={20} />}
-            value={gold}
-            label={t.goldLabel || "Gold"}
-          />
+          {/* Wallet chips — right. Two coin-amount pairs separated by a
+              thin vertical divider; no individual borders so they read
+              as one wallet, not two cards. */}
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="flex items-center gap-1.5" aria-label={t.silverLabel || "Silver"}>
+              <IconSilver size={20} />
+              <span className="cinzel font-bold text-base leading-none" style={{ color: "var(--color-primary)" }}>{silver}</span>
+            </span>
+            <span aria-hidden="true" style={{ width: 1, height: 18, background: "var(--card-border-idle)", opacity: 0.7 }} />
+            <span className="flex items-center gap-1.5" aria-label={t.goldLabel || "Gold"}>
+              <IconGold size={20} />
+              <span className="cinzel font-bold text-base leading-none" style={{ color: "var(--color-primary)" }}>{gold}</span>
+            </span>
+          </div>
         </div>
       </div>
 

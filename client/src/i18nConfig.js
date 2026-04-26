@@ -737,7 +737,7 @@ export const languagePacks = {
       storeBalanceTitle: "Your Balance",
       storeVaultActive: "Vault Active",
       storeDailyLimits: "Daily limits apply",
-      storeScreenKicker: "Silver",
+      storeScreenKicker: "Reward Vault",
       storeScreenTitle: "Store",
       storeScreenSubtitle: "Spend silver on boosts and streak protection. Silver is earned by leveling up, completing the full daily board, group challenges, and achievements.",
       pinnedRerollFreeAvailableHint: "You have 1 free charge available",
