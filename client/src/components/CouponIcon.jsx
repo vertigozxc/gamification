@@ -8,7 +8,7 @@
 // the file paths are stable (Vite serves /public/* with long-lived
 // cache headers in prod), so a new ?v= forces every browser to
 // fetch the fresh art instead of showing the previous version.
-const COUPON_ART_VERSION = "2";
+const COUPON_ART_VERSION = "3";
 const COUPON_SRC = {
   freeze: `/coupons/streak-freeze-coupon-2x.png?v=${COUPON_ART_VERSION}`,
   reroll: `/coupons/reroll-coupon-2x.png?v=${COUPON_ART_VERSION}`,
