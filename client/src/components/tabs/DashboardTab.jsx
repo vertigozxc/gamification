@@ -208,34 +208,21 @@ export default function DashboardTab({
       </div>
 
       {/* Quest board with Habits / Quests / Challenges tabs.
-          Section-level loader covers the daily-reset row, tab bar
-          and quest list until BOTH the user's gameplay state and
-          the group-challenges fetch have resolved — without it the
-          tab bar briefly renders without challenges or with an empty
-          quest list, which reads as a glitch on slower connections. */}
+          Don't mount QuestBoard at all until BOTH the user's gameplay
+          state and the group-challenges fetch have resolved. Mounting
+          it earlier caused two visual glitches on slower connections:
+            1. Tab bar would briefly render in 2-tab "equal" layout,
+               then re-flow to 3-tab "expanding" once challenges
+               arrived — the Quests label collapse transition (~340ms)
+               briefly flashed "0/2" on the inactive Quests tab.
+            2. Tab counts would render with stale state.zero values
+               before the real numbers arrived. */}
       <div
         data-tour="quest-board"
         className="mobile-card"
-        style={{ background: "var(--panel-bg)", position: "relative", minHeight: questsLoaded && challengesLoaded ? undefined : 280 }}
+        style={{ background: "var(--panel-bg)", minHeight: questsLoaded && challengesLoaded ? undefined : 280 }}
       >
-        {questsLoaded && challengesLoaded ? null : (
-          <div
-            aria-hidden="true"
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "color-mix(in srgb, var(--panel-bg) 96%, transparent)",
-              borderRadius: "inherit",
-              zIndex: 5,
-              backdropFilter: "blur(2px)"
-            }}
-          >
-            <div className="ref-spinner" />
-          </div>
-        )}
+        {questsLoaded && challengesLoaded ? (
         <QuestBoard
           pinnedQuests={pinnedQuests} otherQuests={otherQuests}
           pinnedQuestProgressById={pinnedQuestProgressById}
@@ -267,6 +254,19 @@ export default function DashboardTab({
           onAcceptChallenge={handleAcceptChallenge}
           onDeclineChallenge={handleDeclineChallenge}
         />
+        ) : (
+          <div
+            aria-hidden="true"
+            style={{
+              minHeight: 280,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+          >
+            <div className="ref-spinner" />
+          </div>
+        )}
       </div>
     </div>
   );

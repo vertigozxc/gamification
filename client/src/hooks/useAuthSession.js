@@ -484,6 +484,16 @@ function useAuthSession({ auth, googleProvider, firebaseInitError = "" }) {
         const bridge = window.ReactNativeWebView;
         if (bridge && typeof bridge.postMessage === "function") {
           bridge.postMessage(JSON.stringify({ type: "google-login-request" }));
+          // Native side now drives: opens ASWebAuthenticationSession,
+          // polls /api/auth/mobile-bridge for the token (1-3s typically,
+          // can stretch to ~30s on cold start), then injects the user
+          // into localStorage and reloads the WebView. During that
+          // entire window the JS layer would otherwise sit in
+          // authUser=null + authLoading=false and re-render LoginScreen
+          // — the brief "back to login" flash the user reported.
+          // Flipping authLoading=true keeps the PortalPreloader on
+          // screen straight through until the reload kicks in.
+          setAuthLoading(true);
           return;
         }
       } catch {
@@ -491,8 +501,10 @@ function useAuthSession({ auth, googleProvider, firebaseInitError = "" }) {
       }
 
       try {
+        setAuthLoading(true);
         await signInWithRedirect(auth, googleProvider);
       } catch (error) {
+        setAuthLoading(false);
         setAuthError(toReadableAuthError(error));
       }
       return;
