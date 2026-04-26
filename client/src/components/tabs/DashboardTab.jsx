@@ -188,7 +188,7 @@ export default function DashboardTab({
                           </span>
                         ) : (
                           <span className="dash-milestone-pill-icon" aria-hidden="true">
-                            {p.kind === "silver" ? <IconSilver size={11} /> : <IconBolt size={11} />}
+                            {p.kind === "silver" ? <IconSilver size={14} /> : <IconBolt size={14} />}
                           </span>
                         )}
                         <span className="dash-milestone-pill-amount">+{p.amount}</span>

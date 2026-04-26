@@ -451,7 +451,7 @@ function CosmeticCard({ item, owned, canAfford, onBuy, busy, t }) {
             boxShadow: buyDisabled ? "none" : "0 6px 16px color-mix(in srgb, var(--color-primary) 25%, transparent)"
           }}
         >
-          <span style={{ display: "inline-flex" }}><IconGold size={17} /></span>
+          <span style={{ display: "inline-flex" }}><IconGold size={20} /></span>
           <span>{item.costGold}</span>
           <span style={{ opacity: 0.85 }}>· {t.cosmeticBuyCta || "Buy"}</span>
         </button>
@@ -607,12 +607,12 @@ export default function StoreTab({
               as one wallet, not two cards. */}
           <div className="flex items-center gap-2 shrink-0">
             <span className="flex items-center gap-1.5" aria-label={t.silverLabel || "Silver"}>
-              <IconSilver size={24} />
+              <IconSilver size={36} />
               <span className="cinzel font-bold text-base leading-none" style={{ color: "var(--color-primary)" }}>{silver}</span>
             </span>
             <span aria-hidden="true" style={{ width: 1, height: 18, background: "var(--card-border-idle)", opacity: 0.7 }} />
             <span className="flex items-center gap-1.5" aria-label={t.goldLabel || "Gold"}>
-              <IconGold size={24} />
+              <IconGold size={36} />
               <span className="cinzel font-bold text-base leading-none" style={{ color: "var(--color-primary)" }}>{gold}</span>
             </span>
           </div>

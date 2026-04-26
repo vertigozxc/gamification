@@ -157,7 +157,7 @@ function ProfilePanel({
                               className="leading-none drop-shadow-sm"
                               style={{ display: "inline-flex", alignItems: "center", color: "var(--streak-text)" }}
                             >
-                              <IconFlame size={16} />
+                              <IconFlame size={20} />
                             </span>
                           );
                         }
@@ -168,7 +168,7 @@ function ProfilePanel({
                               className="leading-none drop-shadow-sm"
                               style={{ display: "inline-flex", alignItems: "center", color: "var(--color-accent)" }}
                             >
-                              <IconSilver size={16} />
+                              <IconSilver size={20} />
                             </span>
                           );
                         }
