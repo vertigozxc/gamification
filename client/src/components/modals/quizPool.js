@@ -31,7 +31,7 @@ const QUIZ_POOL = [
     id: "habit-21-day-bonus",
     en: "What's the bonus for completing the same habit 21 days in a row?",
     ru: "Бонус за закрытие одной привычки 21 день подряд:",
-    optionsEn: ["+10 tokens", "+20 tokens", "+30 tokens", "+1 free reroll"],
+    optionsEn: ["+10 silver", "+20 silver", "+30 silver", "+1 free reroll"],
     optionsRu: ["+10 серебра", "+20 серебра", "+30 серебра", "+1 бесплатный реролл"],
     correct: 1
   },
@@ -39,7 +39,7 @@ const QUIZ_POOL = [
     id: "freeze-price",
     en: "How much does a Streak Freeze cost in the Shop?",
     ru: "Цена Streak Freeze в магазине:",
-    optionsEn: ["3 tokens", "5 tokens", "7 tokens", "10 tokens"],
+    optionsEn: ["3 silver", "5 silver", "7 silver", "10 silver"],
     optionsRu: ["3 серебра", "5 серебра", "7 серебра", "10 серебра"],
     correct: 2
   },
@@ -171,7 +171,7 @@ const QUIZ_POOL = [
   },
   {
     id: "business-lvl5",
-    en: "How many tokens per day does the Business district give at level 5?",
+    en: "How much silver per day does the Business district give at level 5?",
     ru: "Сколько серебра в день даёт Бизнес-район на уровне 5?",
     optionsEn: ["1", "3", "5", "10"],
     optionsRu: ["1", "3", "5", "10"],
@@ -216,10 +216,10 @@ const QUIZ_POOL = [
     en: "Maximum cost of a city reset (from the 5th reset onwards):",
     ru: "Цена сброса города начиная с 5-го раза:",
     optionsEn: [
-      "100 tokens",
+      "100 silver",
       "Keeps growing by +10 each time",
-      "50 tokens (capped)",
-      "200 tokens"
+      "50 silver (capped)",
+      "200 silver"
     ],
     optionsRu: [
       "100 серебра",
@@ -235,7 +235,7 @@ const QUIZ_POOL = [
     ru: "За какое действие даётся достижение «Phoenix / Феникс»?",
     optionsEn: [
       "Reach a 100-day streak",
-      "Spend 200+ tokens",
+      "Spend 200+ silver",
       "Pay to reset your city for the first time",
       "Finish 10 group challenges"
     ],
@@ -253,8 +253,8 @@ const QUIZ_POOL = [
     ru: "Какую награду даёт групповой челлендж в день, когда все участники закрыли свой квест?",
     optionsEn: [
       "+5 XP each",
-      "+1 token to every participant",
-      "+10 XP and +1 token",
+      "+1 silver to every participant",
+      "+10 XP and +1 silver",
       "Nothing — only the final reward at the end"
     ],
     optionsRu: [

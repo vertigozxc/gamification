@@ -151,7 +151,7 @@ export function getMilestoneRewardForCount(completedCount = 0) {
 
   return {
     bonusXp: Number(match?.bonus_xp) || 0,
-    bonusTokens: Number(match?.bonus_token) || 0
+    bonusSilver: Number(match?.bonus_silver) || 0
   };
 }
 

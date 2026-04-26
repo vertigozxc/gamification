@@ -316,10 +316,10 @@ export default function AchievementsSection({ username, t, languageId, onModalOp
               </span>
               {claimed && !readOnly ? (
                 // Top-left ✓ badge — fires only when the user actually
-                // claimed the token reward, not just when the achievement
+                // claimed the silver reward, not just when the achievement
                 // is unlocked. Hidden when viewing someone else's profile
                 // (readOnly) — the visitor doesn't need to know whether
-                // the owner has redeemed their tokens yet.
+                // the owner has redeemed their silver yet.
                 <span
                   aria-hidden="true"
                   style={{

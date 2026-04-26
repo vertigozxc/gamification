@@ -9,7 +9,7 @@ import { buildQuiz } from "./quizPool";
 // Knowledge Quiz — 10 random questions from a 24-pool, no per-question
 // feedback (right/wrong is hidden until the very end), pass = 10/10.
 // First successful pass calls /api/quiz/scholar/claim which idempotently
-// grants the `scholar` achievement and +10 tokens. Subsequent passes
+// grants the `scholar` achievement and +10 silver. Subsequent passes
 // just re-affirm the success screen with no extra reward.
 //
 // Closing the modal mid-quiz drops all progress per the user's spec —
@@ -107,7 +107,7 @@ function QuizModal({ open, username, onClose, onPassed }) {
     if (passed && username) {
       // Always call the server — it's idempotent. If `scholar` is
       // already unlocked, the server returns justUnlocked: false with
-      // no token grant; this is the single source of truth for whether
+      // no silver grant; this is the single source of truth for whether
       // the reward fires, regardless of what the client thought.
       try {
         const resp = await claimQuizScholar(username);
@@ -372,7 +372,7 @@ function QuizModal({ open, username, onClose, onPassed }) {
             </>
           ) : result.passed ? (
             // Passed — single primary "Finish" button. Retrying after a
-            // pass adds nothing (achievement and tokens are already
+            // pass adds nothing (achievement and silver are already
             // claimed via the popup), so we hide that path entirely.
             <button
               type="button"

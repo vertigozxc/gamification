@@ -343,7 +343,7 @@ function useOnboardingPinned({
     setReplacePinnedSearch("");
     setReplacePinnedQuestIds(Array.isArray(state.preferredQuestIds) ? state.preferredQuestIds.slice(0, preferredQuestLimit) : []);
 
-    // Fetch authoritative state before showing the modal so token-dependent UI
+    // Fetch authoritative state before showing the modal so silver-dependent UI
     // does not flash stale values from persisted local state.
     if (authUser?.uid) {
       try {

@@ -717,7 +717,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       scrollBlock: "start"
     });
     // PROFILE — spotlight just the 4 KPI cards (Total XP, Streak,
-    // Tokens, Level). Tighter cutout than the previous profile-stats
+    // Silver, Level). Tighter cutout than the previous profile-stats
     // wrapper which also covered the Overall Statistics list below
     // it — the 4 cards are the canonical "your stats at a glance"
     // surface, and the per-row stats list isn't what we're
@@ -1180,19 +1180,19 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     const isStreak = target === streakMilestoneTarget;
     const isFullBoard = target === maxDailyQuests;
     // Structured reward parts — DashboardTab renders these as colored
-    // pill chips on the final/jackpot card so XP, token and streak each
+    // pill chips on the final/jackpot card so XP, silver and streak each
     // read distinctly. The legacy `reward` string is preserved for
     // surfaces that haven't migrated yet (ProfilePanel, etc.).
     const parts = [];
     let reward;
     if (isFullBoard) {
       parts.push({ kind: "xp", amount: 25 });
-      parts.push({ kind: "token", amount: fullBoardSilverReward });
+      parts.push({ kind: "silver", amount: fullBoardSilverReward });
       if (isStreak) parts.push({ kind: "streak", amount: 1 });
-      const tokenPart = fullBoardSilverReward > 1
+      const silverPart = fullBoardSilverReward > 1
         ? `+${fullBoardSilverReward} ${t.silverIcon}`
         : `+${t.silverIcon}`;
-      reward = `+25 ${t.xpLabel} / ${tokenPart}`;
+      reward = `+25 ${t.xpLabel} / ${silverPart}`;
       if (isStreak) reward += ` / +${t.streakIcon}`;
     } else if (isStreak) {
       parts.push({ kind: "xp", amount: 20 });
@@ -1592,11 +1592,11 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       let xp = prev.xp + amount;
       let lvl = prev.lvl;
       let xpNext = prev.xpNext;
-      let tokenGain = 0;
+      let silverGain = 0;
       while (xp >= xpNext) {
         xp -= xpNext;
         lvl += 1;
-        tokenGain += lvl >= 10 ? 2 : 1;
+        silverGain += lvl >= 10 ? 2 : 1;
         xpNext = Math.floor(xpNext * 1.1);
       }
       if (lvl > prev.lvl) {
@@ -1608,7 +1608,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         xp,
         lvl,
         xpNext,
-        silver: prev.silver + tokenGain
+        silver: prev.silver + silverGain
       };
     });
   }
@@ -1989,7 +1989,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
               {t.cityResetConfirmTitle || "Reset your city?"}
             </h2>
             <p className="logout-confirm-msg" style={{ marginBottom: 10 }}>
-              {t.cityResetConfirmBody || "All districts drop back to level 0. Every token you spent upgrading them comes back to your balance."}
+              {t.cityResetConfirmBody || "All districts drop back to level 0. Every silver you spent upgrading them comes back to your balance."}
             </p>
             <div
               style={{
@@ -2074,7 +2074,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           username={authUser?.uid || username}
           onClose={() => setShowReferrals(false)}
           onSilverClaimed={(nextTotal) => {
-            // Server returned the user's new token total — mirror it
+            // Server returned the user's new silver total — mirror it
             // locally so the dashboard balance updates instantly.
             if (Number.isFinite(Number(nextTotal))) {
               setState((prev) => ({ ...prev, silver: Number(nextTotal) }));
@@ -2566,7 +2566,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 onOpenReferrals={() => setShowReferrals(true)}
                 achievementsRefreshKey={achievementsRefreshKey}
                 onAchievementSilverClaimed={(amount) => {
-                  // Mirror the server-side token grant locally so the
+                  // Mirror the server-side silver grant locally so the
                   // Profile balance updates instantly without waiting
                   // for the next /api/game-state refresh.
                   if (Number(amount) > 0) {

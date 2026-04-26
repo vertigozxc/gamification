@@ -437,7 +437,7 @@ test("POST /api/shop/replace-pinned-quests allows free swap after 21 days, other
   const blockedResponse = await fetch(`${baseUrl}/api/shop/replace-pinned-quests`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, preferredQuestIds: [4, 5, 6], useTokens: false })
+    body: JSON.stringify({ username, preferredQuestIds: [4, 5, 6], useSilver: false })
   });
   assert.equal(blockedResponse.status, 400);
   const blockedPayload = await blockedResponse.json();
@@ -455,7 +455,7 @@ test("POST /api/shop/replace-pinned-quests allows free swap after 21 days, other
   const freeResponse = await fetch(`${baseUrl}/api/shop/replace-pinned-quests`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, preferredQuestIds: [4, 5, 6], useTokens: false })
+    body: JSON.stringify({ username, preferredQuestIds: [4, 5, 6], useSilver: false })
   });
   assert.equal(freeResponse.status, 200);
   const freePayload = await freeResponse.json();

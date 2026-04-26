@@ -5,13 +5,13 @@ import { IconClose } from "./icons/Icons";
 
 const REWARDS = [
   { id: 1,  type: "xp",    amount: 25,  emoji: "✨", darkText: false },
-  { id: 2,  type: "token", amount: 1,   emoji: "🪙", darkText: true  },
-  { id: 3,  type: "token", amount: 3,   emoji: "🪙", darkText: false },
+  { id: 2,  type: "silver", amount: 1,   emoji: "🪙", darkText: true  },
+  { id: 3,  type: "silver", amount: 3,   emoji: "🪙", darkText: false },
   { id: 4,  type: "xp",    amount: 50,  emoji: "⭐", darkText: false },
   { id: 5,  type: "xp",    amount: 75,  emoji: "💫", darkText: false },
   { id: 6,  type: "xp",    amount: 100, emoji: "💎", darkText: false },
-  { id: 7,  type: "token", amount: 5,   emoji: "🪙", darkText: false },
-  { id: 8,  type: "token", amount: 10,  emoji: "🪙", darkText: false },
+  { id: 7,  type: "silver", amount: 5,   emoji: "🪙", darkText: false },
+  { id: 8,  type: "silver", amount: 10,  emoji: "🪙", darkText: false },
   { id: 9,  type: "xp",    amount: 300, emoji: "🌟", darkText: true  },
   { id: 10, type: "level", amount: 1,   emoji: "👑", darkText: false },
 ];
@@ -50,11 +50,11 @@ function textPos(i) {
 }
 
 function rewardLabel(r) {
-  // Token segments already show 🪙 as the emoji above the label — don't
+  // Silver segments already show 🪙 as the emoji above the label — don't
   // duplicate the coin in the number itself. XP shows the unit, level is
   // a one-off string.
   if (r.type === "xp") return `+${r.amount} XP`;
-  if (r.type === "token") return `+${r.amount}`;
+  if (r.type === "silver") return `+${r.amount}`;
   return "+1 LVL";
 }
 
@@ -125,7 +125,7 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
       setRotation(finalRot);
       setPhase("spinning");
 
-      // Notify the parent immediately so the user's tokens/xp/level in the
+      // Notify the parent immediately so the user's silver/xp/level in the
       // header update in sync with the wheel result — the reward has already
       // been applied server-side, even if the user closes the modal mid-anim.
       onRewardClaimed?.(result);
@@ -291,11 +291,11 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
               }
             `}</style>
             {/* Big reward emoji above the "You won!" label — skipped for
-                token rewards because the 🪙 character is already present
+                silver rewards because the 🪙 character is already present
                 in the amount line below and duplicating it reads as
                 cluttered. XP and level rewards keep the emoji since
                 their amount line doesn't carry it. */}
-            {spinResult.reward.type !== "token" && (
+            {spinResult.reward.type !== "silver" && (
               <div style={{ fontSize: 36, lineHeight: 1, marginBottom: 4 }}>{wonReward.emoji}</div>
             )}
             <p className="cinzel" style={{
@@ -310,7 +310,7 @@ export default function SpinWheelModal({ open, username, t, onClose, onRewardCla
             <p style={{ color: "#f1f5f9", fontSize: 22, fontWeight: 900, margin: 0 }}>
               {spinResult.reward.type === "xp"
                 ? `+${spinResult.reward.amount} XP`
-                : spinResult.reward.type === "token"
+                : spinResult.reward.type === "silver"
                   ? `+${spinResult.reward.amount} 🪙`
                   : "+1 LEVEL 🎉"}
             </p>

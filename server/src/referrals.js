@@ -150,7 +150,7 @@ export async function buildMyReferralsPayload(prisma, userId) {
     })),
     codesLimit: MAX_CODES_PER_USER,
     canCreateMore: codes.length < MAX_CODES_PER_USER,
-    rewardTokens: REFERRAL_REWARD_SILVER,
+    rewardSilver: REFERRAL_REWARD_SILVER,
     rewardLevel: REFERRAL_LEVEL_THRESHOLD,
     referrals: referrals.map((r) => ({
       id: r.id,

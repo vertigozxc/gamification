@@ -285,12 +285,12 @@ function useGameplayActions({
           }
 
           const milestoneSuffix = milestoneBonusXp > 0
-            ? (vocab?.milestoneSuffix || ", Milestone: +{xp} XP{tokenPart}")
+            ? (vocab?.milestoneSuffix || ", Milestone: +{xp} XP{silverPart}")
                 .replace("{xp}", String(milestoneBonusXp))
                 .replace(
-                  "{tokenPart}",
+                  "{silverPart}",
                   milestoneSilver > 0
-                    ? (vocab?.milestoneTokenPart || ", +{count} {label}")
+                    ? (vocab?.milestoneSilverPart || ", +{count} {label}")
                         .replace("{count}", String(milestoneSilver))
                         .replace("{label}", milestoneSilver === 1 ? (vocab?.silverSingular || "silver") : (vocab?.silverPlural || "silver"))
                     : ""
@@ -500,7 +500,7 @@ function useGameplayActions({
     async function handleRerollPinned() {
     const isFree = !state.user?.lastFreeTaskRerollAt || (Date.now() - new Date(state.user.lastFreeTaskRerollAt).getTime() >= FREE_PINNED_REROLL_INTERVAL_MS);
     if (!isFree && state.silver < 7) {
-      addLog(vocab?.notEnoughSilverPinned || "Not enough tokens to reroll pinned quests.", "text-red-400 font-bold");
+      addLog(vocab?.notEnoughSilverPinned || "Not enough silver to reroll pinned quests.", "text-red-400 font-bold");
       return;
     }
     
@@ -593,7 +593,7 @@ function useGameplayActions({
     const freezeCost = Math.max(0, 7 - discount);
 
     setFreezeStreakPending(true);
-    // Optimistic: deduct tokens and bump charge count (shop adds a charge to Profile)
+    // Optimistic: deduct silver and bump charge count (shop adds a charge to Profile)
     setState(prev => ({
       ...prev,
       silver: Math.max(0, prev.silver - freezeCost),

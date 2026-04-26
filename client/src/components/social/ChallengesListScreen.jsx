@@ -76,7 +76,7 @@ export default function ChallengesListScreen({ challenges = [], t, onClose, onOp
             {t.arenaPactsListEmptyTitle || "No group challenges yet"}
           </p>
           <p className="sb-caption" style={{ maxWidth: 300, margin: "0 auto" }}>
-            {t.arenaPactsListEmptyBody || "Pick a friend, pick a habit, pick a duration. Every daily completion earns a token for everyone."}
+            {t.arenaPactsListEmptyBody || "Pick a friend, pick a habit, pick a duration. Every daily completion earns silver for everyone."}
           </p>
         </div>
       )}

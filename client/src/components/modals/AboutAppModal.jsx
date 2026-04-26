@@ -363,9 +363,9 @@ const COPY_EN = {
         <>
           <Bullets items={[
             "Every day you get a small set of quests to complete.",
-            "Finishing quests earns XP (levels you up) and sometimes tokens (premium currency).",
+            "Finishing quests earns XP (levels you up) and sometimes silver (premium currency).",
             "Showing up day after day grows your streak, which multiplies the XP from every quest.",
-            "Tokens upgrade districts in your personal city — each district gives a permanent gameplay perk.",
+            "Silver upgrades districts in your personal city — each district gives a permanent gameplay perk.",
             "Everything is designed around one habit: come back every day."
           ]} />
         </>
@@ -380,7 +380,7 @@ const COPY_EN = {
           <Bullets items={[
             "Your board mixes two kinds of quests: habits (you pick them, they stay pinned) and daily quests (shuffle each day).",
             "The higher your level, the more quests unlock each day, and the harder quests appear.",
-            "You can reroll today's random quests once for free; extra rerolls cost 3 tokens each in the shop.",
+            "You can reroll today's random quests once for free; extra rerolls cost 3 silver each in the shop.",
             "Finishing a quest at 100% always counts toward your streak. Timer quests can earn partial XP — see the Timer section."
           ]} />
           <Rows rows={[
@@ -452,12 +452,12 @@ const COPY_EN = {
     {
       icon: "🏅",
       title: "Daily board rewards",
-      summary: "Bonus XP and tokens when you fill enough slots.",
+      summary: "Bonus XP and silver when you fill enough slots.",
       body: (
         <>
           <Bullets items={[
             "The board shows three milestones matching your daily quest count.",
-            "Hitting each milestone gives extra XP and, at the top one, a token.",
+            "Hitting each milestone gives extra XP and, at the top one, a silver.",
             "The board clears every day at midnight UTC."
           ]} />
           <Rows rows={[
@@ -477,8 +477,8 @@ const COPY_EN = {
           <Bullets items={[
             "Habits are the quests you've pinned for yourself. They don't shuffle.",
             "Every habit gives a flat 30 XP, no matter its base reward.",
-            "Complete the same habit 21 days in a row → earn a +20 token bonus.",
-            "Want to swap a habit? Use the Replace Habits button — free once every 21 days, otherwise 7 tokens.",
+            "Complete the same habit 21 days in a row → earn a +20 silver bonus.",
+            "Want to swap a habit? Use the Replace Habits button — free once every 21 days, otherwise 7 silver.",
             "You can also create your own custom habits, up to 20 total."
           ]} />
         </>
@@ -491,16 +491,16 @@ const COPY_EN = {
       body: (
         <>
           <Bullets items={[
-            "Your city is the long-term progression layer. As you save tokens and upgrade districts, each district unlocks a permanent perk that changes how the game plays for you.",
+            "Your city is the long-term progression layer. As you save silver and upgrade districts, each district unlocks a permanent perk that changes how the game plays for you.",
             "It also gives daily work something visible: the city physically grows as you keep showing up — a snapshot of your discipline.",
-            "Districts can be upgraded to level 5. Costs scale up (5 → 15 → 25 → 50 → 100 tokens) and higher levels also require a minimum streak and account level.",
+            "Districts can be upgraded to level 5. Costs scale up (5 → 15 → 25 → 50 → 100 silver) and higher levels also require a minimum streak and account level.",
             "Districts upgrade independently — you can specialize, or spread upgrades across all five."
           ]} />
           <Rows rows={[
             { label: "🏃 Sport", value: "+5% XP per level (max +25%)" },
-            { label: "💼 Business", value: "Claim a token bundle once a day" },
+            { label: "💼 Business", value: "Claim a silver bundle once a day" },
             { label: "🌳 Park", value: "Unlocks Wheel of Fortune (lvl 1+); shortens its cooldown at higher levels" },
-            { label: "🏛 Square", value: "Extra tokens for filling the full daily board" },
+            { label: "🏛 Square", value: "Extra silver for filling the full daily board" },
             { label: "🏘 Residential", value: "Shop discount (lvl 1+), monthly Freeze (lvl 2+), Vacation (lvl 3+)" }
           ]} />
           <p style={{ fontSize: 12, color: "var(--color-muted)", marginTop: 10, fontStyle: "italic", lineHeight: 1.5 }}>
@@ -512,11 +512,11 @@ const COPY_EN = {
     {
       icon: "🎰",
       title: "Wheel of Fortune",
-      summary: "Daily free spin for XP, tokens, or a level up.",
+      summary: "Daily free spin for XP, silver, or a level up.",
       body: (
         <>
           <Bullets items={[
-            "The Wheel lives inside the Park district on the City screen. Rewards include XP, tokens, or a free level up.",
+            "The Wheel lives inside the Park district on the City screen. Rewards include XP, silver, or a free level up.",
             "It's locked until you upgrade Park to level 1 — there's no spin available at Park 0.",
             "From Park 1 onwards a cooldown kicks in after each spin; higher Park levels shorten that cooldown."
           ]} />
@@ -533,17 +533,17 @@ const COPY_EN = {
     },
     {
       icon: "🪙",
-      title: "Tokens — where they come from",
+      title: "Silver — where it comes from",
       summary: "Everything you can spend in the Shop and City.",
       body: (
         <>
           <Bullets items={[
-            "Level up — tokens per level scale: 1 (lvl 2–10), 2 (11–20), 3 (21–30), 4 (31–50), 5 (51+).",
-            "Daily board — 3 tokens for filling all 4 milestone slots.",
-            "Habit milestone — +20 token bonus for completing the same habit 21 days in a row.",
-            "Business district — claim a daily token bundle (1–5 tokens based on district level).",
-            "Square district — at level 1+, filling the full daily board gives extra tokens equal to district level.",
-            "Wheel of Fortune — tokens are one of the possible spin rewards.",
+            "Level up — silver per level scale: 1 (lvl 2–10), 2 (11–20), 3 (21–30), 4 (31–50), 5 (51+).",
+            "Daily board — 3 silver for filling all 4 milestone slots.",
+            "Habit milestone — +20 silver bonus for completing the same habit 21 days in a row.",
+            "Business district — claim a daily silver bundle (1–5 silver based on district level).",
+            "Square district — at level 1+, filling the full daily board gives extra silver equal to district level.",
+            "Wheel of Fortune — silver are one of the possible spin rewards.",
             "Residential district — awards free Streak Freeze charges instead of silver: 1 per month from level 2, 2 per month from level 4."
           ]} />
         </>
@@ -552,16 +552,16 @@ const COPY_EN = {
     {
       icon: "🛒",
       title: "Shop",
-      summary: "What your tokens buy you.",
+      summary: "What your silver buy you.",
       body: (
         <>
           <Bullets items={[
-            "Streak Freeze — 7 tokens. Adds one charge to your inventory (visible in Profile). Charges auto-consume when you would otherwise miss a day — no manual activation. Limit: 1 purchase per week.",
-            "Extra Daily Reroll — 3 tokens. Reshuffles today's random quests once more after the free reroll is used. You can buy multiple.",
-            "XP Boost — 15 tokens. Gives +15% XP on every completed quest for 7 days. Buying again while active extends the timer.",
-            "Pinned Quest Reroll — 7 tokens. Opens the picker to replace your pinned habits. You also get a free pinned reroll every 21 days.",
-            "Reset City — wipes every district back to level 0 and refunds the tokens you spent on them. Cost grows each time: 10 → 20 → 30 → 40 → 50, capped at 50 tokens from the 5th reset onward. The first paid reset unlocks the Phoenix achievement.",
-            "Residential district gives a discount on every shop item (−1 token from level 1, −2 tokens from level 5)."
+            "Streak Freeze — 7 silver. Adds one charge to your inventory (visible in Profile). Charges auto-consume when you would otherwise miss a day — no manual activation. Limit: 1 purchase per week.",
+            "Extra Daily Reroll — 3 silver. Reshuffles today's random quests once more after the free reroll is used. You can buy multiple.",
+            "XP Boost — 15 silver. Gives +15% XP on every completed quest for 7 days. Buying again while active extends the timer.",
+            "Pinned Quest Reroll — 7 silver. Opens the picker to replace your pinned habits. You also get a free pinned reroll every 21 days.",
+            "Reset City — wipes every district back to level 0 and refunds the silver you spent on them. Cost grows each time: 10 → 20 → 30 → 40 → 50, capped at 50 silver from the 5th reset onward. The first paid reset unlocks the Phoenix achievement.",
+            "Residential district gives a discount on every shop item (−1 silver from level 1, −2 silver from level 5)."
           ]} />
         </>
       )
@@ -574,7 +574,7 @@ const COPY_EN = {
         <>
           <Bullets items={[
             "Achievements unlock automatically as you play. Tap them in your Profile to see what you've earned and when.",
-            "They cover three areas: daily discipline (streak length), token spending, and social play (challenges, invites, language).",
+            "They cover three areas: daily discipline (streak length), silver spending, and social play (challenges, invites, language).",
             "There's no XP bonus — each one is a one-shot trophy and bragging right."
           ]} />
           <Rows rows={[
@@ -582,7 +582,7 @@ const COPY_EN = {
             { label: "🏔 Month Monk", value: "Reach a 30-day streak" },
             { label: "💯 Hundred Club", value: "Reach a 100-day streak" },
             { label: "🪙 First Coin", value: "Spend your first token" },
-            { label: "💰 High Roller", value: "Spend 200+ tokens total" },
+            { label: "💰 High Roller", value: "Spend 200+ silver total" },
             { label: "🌐 Polyglot", value: "Switch the app language" },
             { label: "🤝 First Handshake", value: "Join a group challenge" },
             { label: "🏅 Champion", value: "Finish a 7+ day group challenge" },
@@ -671,7 +671,7 @@ const COPY_RU = {
           "Каждый день вы получаете небольшой набор квестов.",
           "Закрывая квесты, вы зарабатываете опыт (для уровней) и иногда серебро (премиум-валюта).",
           "Если появляетесь каждый день — растёт стрик, который умножает опыт с каждого квеста.",
-          "Токены тратятся на прокачку районов в вашем городе, а каждый район даёт постоянный игровой бонус.",
+          "Серебро тратится на прокачку районов в вашем городе, а каждый район даёт постоянный игровой бонус.",
           "Всё приложение построено вокруг одной привычки: возвращаться каждый день."
         ]} />
       )
@@ -836,7 +836,7 @@ const COPY_RU = {
     },
     {
       icon: "🪙",
-      title: "Токены — откуда брать",
+      title: "Серебро — откуда брать",
       summary: "Всё, что можно тратить в магазине и на городе.",
       body: (
         <>

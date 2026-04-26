@@ -193,7 +193,7 @@ export default function ProfileTab({
           onboarding tour itself spotlights only the inner 4-KPI grid
           (data-tour="profile-quickstats") for a tighter focus. */}
       <div data-tour="profile-stats" className="flex flex-col gap-4">
-      {/* Quick Stats Grid — Total XP / Streak / Tokens / Level */}
+      {/* Quick Stats Grid — Total XP / Streak / Silver / Level */}
       <div data-tour="profile-quickstats" className="grid grid-cols-2 gap-3">
         <div className="mobile-card flex flex-col items-center py-4" style={{ background: "var(--panel-bg)" }}>
           <span className="text-2xl mb-1">{t.logsIcon}</span>

@@ -495,7 +495,7 @@ export default function CityTab({
   cityName: serverCityName = "",
   onCityNameChanged,
   // Tour-only override — when set, the matching district's next
-  // upgrade bypasses token / level / streak gates on the client side.
+  // upgrade bypasses silver / level / streak gates on the client side.
   // Server grants the same freebie once for Park during onboarding.
   tourFreeUpgradeDistrict = null
 }) {

@@ -767,7 +767,7 @@ export function devGrantXp(username, amount = 500) {
 }
 
 export function devGrantSilver(username, amount = 5) {
-  return request("/api/dev/grant-tokens", {
+  return request("/api/dev/grant-silver", {
     method: "POST",
     body: JSON.stringify({ username, amount })
   });

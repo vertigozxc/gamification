@@ -176,7 +176,7 @@ export default function DashboardTab({
                 </div>
                 {Array.isArray(step.parts) && step.parts.length > 1 ? (
                   // Multi-reward (jackpot) milestone — render each reward
-                  // as its own colored pill so XP / token / streak read
+                  // as its own colored pill so XP / silver / streak read
                   // distinctly instead of mashing into one cramped line.
                   <div className="dash-milestone-pills" style={{ opacity: unlocked ? 1 : 0.55 }}>
                     {step.parts.map((p, i) => (
@@ -187,7 +187,7 @@ export default function DashboardTab({
                           </span>
                         ) : (
                           <span className="dash-milestone-pill-icon" aria-hidden="true">
-                            {p.kind === "token" ? t.silverIcon : "⚡"}
+                            {p.kind === "silver" ? t.silverIcon : "⚡"}
                           </span>
                         )}
                         <span className="dash-milestone-pill-amount">+{p.amount}</span>

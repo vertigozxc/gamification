@@ -692,7 +692,7 @@ app.post("/api/dev/grant-streak", async (req, res) => {
   }
 });
 
-app.post("/api/dev/grant-tokens", async (req, res) => {
+app.post("/api/dev/grant-silver", async (req, res) => {
   try {
     const schema = z.object({
       username: z.string().min(2).max(64),
@@ -2132,7 +2132,7 @@ function milestoneRewardForCount(completedCount) {
   return getConfiguredMilestoneRewardForCount(completedCount);
 }
 
-// Token rewards per level reached: 1 base, +1 more after every major
+// Silver rewards per level reached: 1 base, +1 more after every major
 // milestone (11+ → 2, 21+ → 3, 31+ → 4, 51+ → 5).
 function silverForLevel(level) {
   const lvl = Number(level) || 0;
@@ -3211,13 +3211,13 @@ async function processQuestCompletion({ user, quest, dayKey, availableQuests, cu
 
   const milestoneReward = milestoneRewardForCount(todayCompletionsCount);
   let habitMilestoneReached = false;
-  let habitMilestoneTokens = 0;
+  let habitMilestoneSilver = 0;
 
   if (pinnedQuestIds.includes(quest.id) && completionPercent >= 100) {
     const nextPinnedQuestStreak = await getQuestConsecutiveDaysForUser(user.id, quest.id);
     if (previousPinnedQuestStreak < 21 && nextPinnedQuestStreak >= 21) {
       habitMilestoneReached = true;
-      habitMilestoneTokens = 20;
+      habitMilestoneSilver = 20;
     }
   }
 
@@ -3229,14 +3229,14 @@ async function processQuestCompletion({ user, quest, dayKey, availableQuests, cu
     questForXp,
     milestoneReward,
     habitMilestoneReached,
-    habitMilestoneTokens,
+    habitMilestoneSilver,
     todayCompletionsCount,
     todayHundredCount,
     newStreak
   };
 }
 
-// Run the XP award + token/streak bookkeeping transaction shared by
+// Run the XP award + silver/streak bookkeeping transaction shared by
 // /api/quests/complete and the timer stop endpoint.
 async function awardQuestCompletion({ user, quest, dayKey, availableQuests, customQuests, completionPercent, elapsedMs, now }) {
   // Snapshot the user's tier slots BEFORE awarding XP so we can detect
@@ -3249,7 +3249,7 @@ async function awardQuestCompletion({ user, quest, dayKey, availableQuests, cust
     questForXp,
     milestoneReward,
     habitMilestoneReached,
-    habitMilestoneTokens,
+    habitMilestoneSilver,
     todayCompletionsCount,
     todayHundredCount,
     newStreak
@@ -3270,8 +3270,8 @@ async function awardQuestCompletion({ user, quest, dayKey, availableQuests, cust
   // Atomic XP read+compute+write: lock the user row so concurrent completions
   // (e.g. mobile + web simultaneously) cannot both read the same stale XP and
   // overwrite each other, causing lost XP.
-  const baseTokenIncrement = milestoneReward.bonusTokens + (habitMilestoneReached ? habitMilestoneTokens : 0);
-  const { updatedUser, xpState, sportBonusXp, squareBonusTokens, isFullBoard } = await prisma.$transaction(async (tx) => {
+  const baseSilverIncrement = milestoneReward.bonusSilver + (habitMilestoneReached ? habitMilestoneSilver : 0);
+  const { updatedUser, xpState, sportBonusXp, squareBonusSilver, isFullBoard } = await prisma.$transaction(async (tx) => {
     try {
       await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${user.id} FOR UPDATE`;
     } catch (lockErr) {
@@ -3295,7 +3295,7 @@ async function awardQuestCompletion({ user, quest, dayKey, availableQuests, cust
       milestoneReward.bonusXp + sportBonusXpInner + xpBoostBonusXpInner
     );
 
-    let freshSilverIncrement = baseTokenIncrement;
+    let freshSilverIncrement = baseSilverIncrement;
     if (freshXpStateWithMilestone.level > freshUser.level) {
       for (let lvl = freshUser.level + 1; lvl <= freshXpStateWithMilestone.level; lvl++) {
         freshSilverIncrement += silverForLevel(lvl);
@@ -3305,9 +3305,9 @@ async function awardQuestCompletion({ user, quest, dayKey, availableQuests, cust
     const squareLvl = districtLevelOf(freshUser.districtLevels, "square");
     const isFullBoardInner = todayCompletionsCount >= availableQuests.length && availableQuests.length > 0;
     const alreadyGranted = freshUser.lastSquareBonusDayKey === dayKey;
-    const squareBonusTokensInner = (squareLvl > 0 && isFullBoardInner && !alreadyGranted) ? squareLvl : 0;
-    if (squareBonusTokensInner > 0) {
-      freshSilverIncrement += squareBonusTokensInner;
+    const squareBonusSilverInner = (squareLvl > 0 && isFullBoardInner && !alreadyGranted) ? squareLvl : 0;
+    if (squareBonusSilverInner > 0) {
+      freshSilverIncrement += squareBonusSilverInner;
     }
 
     const txUpdateData = {
@@ -3325,7 +3325,7 @@ async function awardQuestCompletion({ user, quest, dayKey, availableQuests, cust
         txUpdateData.maxStreak = newStreak;
       }
     }
-    if (squareBonusTokensInner > 0) {
+    if (squareBonusSilverInner > 0) {
       txUpdateData.lastSquareBonusDayKey = dayKey;
     }
 
@@ -3334,7 +3334,7 @@ async function awardQuestCompletion({ user, quest, dayKey, availableQuests, cust
       updatedUser: updated,
       xpState: freshXpState,
       sportBonusXp: sportBonusXpInner,
-      squareBonusTokens: squareBonusTokensInner,
+      squareBonusSilver: squareBonusSilverInner,
       isFullBoard: isFullBoardInner
     };
   });
@@ -3365,13 +3365,13 @@ async function awardQuestCompletion({ user, quest, dayKey, availableQuests, cust
     awardedXp: xpState.awardedXp,
     multiplier: xpState.multiplier,
     milestoneBonusXp: milestoneReward.bonusXp,
-    milestoneTokens: milestoneReward.bonusTokens,
+    milestoneSilver: milestoneReward.bonusSilver,
     sportBonusXp: sportBonusXp || 0,
-    squareBonusTokens: squareBonusTokens || 0,
+    squareBonusSilver: squareBonusSilver || 0,
     fullBoardCompleted: !!isFullBoard,
     totalAwardedXp: xpState.awardedXp + milestoneReward.bonusXp + (sportBonusXp || 0),
     habitMilestoneReached,
-    habitMilestoneTokens,
+    habitMilestoneSilver,
     habitMilestoneQuestId: quest.id,
     silver: finalUser.silver,
     productivity: productivityState.productivity,
@@ -4166,13 +4166,13 @@ app.get("/api/notes/history/:username", async (req, res) => {
 
 const CITY_SPIN_REWARDS = [
   { id: 1,  type: "xp",    amount: 25,  weight: 25 },
-  { id: 2,  type: "token", amount: 1,   weight: 25 },
-  { id: 3,  type: "token", amount: 3,   weight: 15 },
+  { id: 2,  type: "silver", amount: 1,   weight: 25 },
+  { id: 3,  type: "silver", amount: 3,   weight: 15 },
   { id: 4,  type: "xp",    amount: 50,  weight: 15 },
   { id: 5,  type: "xp",    amount: 75,  weight: 5  },
   { id: 6,  type: "xp",    amount: 100, weight: 5  },
-  { id: 7,  type: "token", amount: 5,   weight: 3  },
-  { id: 8,  type: "token", amount: 10,  weight: 3  },
+  { id: 7,  type: "silver", amount: 5,   weight: 3  },
+  { id: 8,  type: "silver", amount: 10,  weight: 3  },
   { id: 9,  type: "xp",    amount: 300, weight: 3  },
   { id: 10, type: "level", amount: 1,   weight: 1  },
 ];
@@ -4305,7 +4305,7 @@ async function applyCitySpinReward(user, reward, todayKey) {
     }
   }
 
-  if (reward.type === "token") {
+  if (reward.type === "silver") {
     try {
       return await prisma.user.update({ where: { id: user.id }, data: { ...updateData, silver: { increment: reward.amount } } });
     } catch (error) {
@@ -5616,7 +5616,7 @@ app.post("/api/quests/reroll-pinned", async (req, res) => {
     const language = getRequestLanguage(req);
     const schema = z.object({
       username: z.string().min(2).max(64),
-      useTokens: z.boolean().default(false)
+      useSilver: z.boolean().default(false)
     });
     const parsed = schema.parse(req.body);
     const username = slugifyUsername(parsed.username);
@@ -5632,7 +5632,7 @@ app.post("/api/quests/reroll-pinned", async (req, res) => {
 
     const now = new Date();
     const isFreeAvailable = !user.lastFreeTaskRerollAt || (now.getTime() - new Date(user.lastFreeTaskRerollAt).getTime() >= FREE_PINNED_REROLL_INTERVAL_MS);
-    const shouldUseTokens = parsed.useTokens || !isFreeAvailable;
+    const shouldUseTokens = parsed.useSilver || !isFreeAvailable;
     const resLvlRr = districtLevelOf(user.districtLevels, "residential");
     const rerollCost = Math.max(0, 7 - residentialShopDiscount(resLvlRr));
 
@@ -5775,7 +5775,7 @@ app.post("/api/shop/replace-pinned-quests", async (req, res) => {
     const schema = z.object({
       username: z.string().min(2).max(64),
       preferredQuestIds: z.array(z.number().int().min(1)).min(1).max(4),
-      useTokens: z.boolean().default(true)
+      useSilver: z.boolean().default(true)
     });
     const parsed = schema.parse(req.body);
     const username = slugifyUsername(parsed.username);
@@ -6502,7 +6502,7 @@ app.get("/api/users/:username/activity", async (req, res) => {
 });
 
 // Knowledge Quiz — unlock-only. The achievement row is created here
-// when the user scores 10/10 for the first time; the token reward is
+// when the user scores 10/10 for the first time; the silver reward is
 // claimed separately via POST /api/achievements/claim, same flow as
 // every other achievement. Subsequent quiz passes return justUnlocked:
 // false (the row already exists) and the user simply re-sees their

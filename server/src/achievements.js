@@ -19,7 +19,7 @@ export const ACHIEVEMENT_CODES = [
   "polyglot",
   "phoenix",
   // Knowledge Quiz pass — `userAchievement{code:"scholar"}` is created
-  // by /api/quiz/scholar/claim when the user scores 10/10. The token
+  // by /api/quiz/scholar/claim when the user scores 10/10. The silver
   // reward fires through the unified /api/achievements/claim flow,
   // not at quiz time. evaluateAchievements does not infer it from
   // user state, so it sits here purely for ordering / rendering.
@@ -35,7 +35,7 @@ export const ACHIEVEMENT_CODES = [
   "referral_recruiter"
 ];
 
-// Token rewards per achievement, claimed via POST /api/achievements/claim.
+// Silver rewards per achievement, claimed via POST /api/achievements/claim.
 // Scaled by difficulty: trivial (1 click) → 2, easy (a week's effort,
 // quiz pass, or one-shot purchase milestone) → 6–20, medium (month /
 // serious play / social leverage) → 20–30, hard (long-haul) → 60–100,
@@ -147,7 +147,7 @@ export async function evaluateAchievements(prisma, userId) {
 
   // Referral system milestone. If this user redeemed someone's referral
   // code AND has reached level 5+, both sides become eligible for their
-  // 50-token reward. The referee gets it via the standard achievement
+  // 50-silver reward. The referee gets it via the standard achievement
   // claim flow ("referral_ally"); the referrer claims per-row in the
   // My Referrals section (referrerClaimedAt). Stamp refereeLeveledUpAt
   // so the referrer's "Claim 50" button can light up immediately.

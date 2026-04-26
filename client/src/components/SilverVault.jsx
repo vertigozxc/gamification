@@ -11,7 +11,7 @@ import {
   IconSilver
 } from "./icons/Icons";
 
-function TokenVault({
+function SilverVault({
   silver,
   streakFreezeCharges = 0,
   freezeCost = 7,
@@ -36,11 +36,11 @@ function TokenVault({
 }) {
   const { t, tf } = useTheme();
 
-  function getPluralizedToken(count, singular = String(t.silverSingular || "TOKEN").toUpperCase(), plural = String(t.silverPlural || "TOKENS").toUpperCase()) {
+  function getPluralizedSilver(count, singular = String(t.silverSingular || "SILVER").toUpperCase(), plural = String(t.silverPlural || "SILVER").toUpperCase()) {
     return count === 1 ? singular : plural;
   }
 
-  // Token-cost chip uses theme variables so it blends into each interface
+  // Silver-cost chip uses theme variables so it blends into each interface
   // theme (adventure / balance / light) instead of punching a gold hole
   // through the card. Individual glyph colors below now read from
   // --color-accent too.
@@ -98,7 +98,7 @@ function TokenVault({
                   ? t.processingLabel
                   : silver < freezeCost
                     ? t.notEnough
-                    : `${t.buyPrefix} ${freezeCost} ${getPluralizedToken(freezeCost)}`}
+                    : `${t.buyPrefix} ${freezeCost} ${getPluralizedSilver(freezeCost)}`}
             </button>
             <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
               {t.freezeWeeklyHint || "Limit: 1 purchase per week · resets Monday"}
@@ -124,7 +124,7 @@ function TokenVault({
               style={silver >= rerollCost && hasRerolledToday ? buyButtonActiveStyle : undefined}
             >
               <span style={{ display: "inline-flex", color: "currentColor" }}><IconSilver size={18} /></span>
-              {silver < rerollCost ? t.notEnough : `${t.buyPrefix} ${rerollCost} ${getPluralizedToken(rerollCost)}`}
+              {silver < rerollCost ? t.notEnough : `${t.buyPrefix} ${rerollCost} ${getPluralizedSilver(rerollCost)}`}
             </button>
             <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
               {!hasRerolledToday ? t.extraRerollFreeAvailableHint : t.extraRerollFreeUsedHint}
@@ -165,7 +165,7 @@ function TokenVault({
                 ? (t.pinnedRerollFreeUse || t.freeLabel || "Free Reroll")
                 : (silver < 7
                     ? t.notEnough
-                    : `${t.buyPrefix} 7 ${getPluralizedToken(7)}`)}
+                    : `${t.buyPrefix} 7 ${getPluralizedSilver(7)}`)}
             </button>
             <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
               {isFreePinnedReroll
@@ -199,7 +199,7 @@ function TokenVault({
               style={silver >= xpBoostCost ? buyButtonActiveStyle : undefined}
             >
               <span style={{ display: "inline-flex", color: "currentColor" }}><IconSilver size={18} /></span>
-              {silver < xpBoostCost ? t.notEnough : `${t.buyPrefix} ${xpBoostCost} ${getPluralizedToken(xpBoostCost)}`}
+              {silver < xpBoostCost ? t.notEnough : `${t.buyPrefix} ${xpBoostCost} ${getPluralizedSilver(xpBoostCost)}`}
             </button>
             <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
               {xpBoostActive
@@ -211,15 +211,15 @@ function TokenVault({
             </p>
           </div>
 
-          {/* Reset city — refunds every token sunk into districts, wipes
+          {/* Reset city — refunds every silver sunk into districts, wipes
               them all back to level 0. Cost escalates by 10/reset up to
-              a 50-token cap. */}
+              a 50-silver cap. */}
           <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
             <div className="flex items-start gap-3">
               <span style={{ display: "inline-flex", color: "var(--color-primary)" }}><IconHouse size={28} /></span>
               <div className="flex-1">
                 <p className="cinzel font-bold text-base tracking-wide" style={{ color: "var(--color-text)" }}>{t.cityResetTitle || "Reset city"}</p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.cityResetDesc || "Wipe all districts and refund every token spent on them."}</p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.cityResetDesc || "Wipe all districts and refund every silver spent on them."}</p>
               </div>
               <div className="flex items-center gap-1 rounded-full px-3 py-1 self-start" style={costChipStyle}>
                 <span style={{ display: "inline-flex", color: "var(--color-accent)" }}><IconSilver size={16} /></span>
@@ -227,7 +227,7 @@ function TokenVault({
               </div>
             </div>
             <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
-              {t.cityResetRefundHint || "Every token you spent upgrading districts comes back to your balance."}
+              {t.cityResetRefundHint || "Every silver you spent upgrading districts comes back to your balance."}
             </p>
             <button
               onClick={onResetCity}
@@ -236,7 +236,7 @@ function TokenVault({
               style={silver >= cityResetCost ? buyButtonActiveStyle : undefined}
             >
               <span style={{ display: "inline-flex", color: "currentColor" }}><IconSilver size={18} /></span>
-              {silver < cityResetCost ? t.notEnough : `${t.buyPrefix} ${cityResetCost} ${getPluralizedToken(cityResetCost)}`}
+              {silver < cityResetCost ? t.notEnough : `${t.buyPrefix} ${cityResetCost} ${getPluralizedSilver(cityResetCost)}`}
             </button>
             <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
               {t.cityResetCostHint || "Each reset costs +10 silver more (max 50)."}
@@ -246,8 +246,8 @@ function TokenVault({
         </div>
       ) : (
         <div className="mt-8 mb-4">
-          <div className="rounded-2xl overflow-hidden shadow-2xl" style={{ background: "var(--token-bg)", border: "2px solid var(--token-border)" }}>
-            <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: "2px solid var(--token-header-border)" }}>
+          <div className="rounded-2xl overflow-hidden shadow-2xl" style={{ background: "var(--silver-bg)", border: "2px solid var(--silver-border)" }}>
+            <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: "2px solid var(--silver-header-border)" }}>
                 <h2 className="flex items-center gap-2 cinzel text-transparent bg-clip-text font-bold text-xl tracking-[0.18em] uppercase" style={{ backgroundImage: "var(--heading-gradient)" }}>
                   {t.silverSection}
                   <div className="relative group inline-block cursor-help z-50">
@@ -257,10 +257,10 @@ function TokenVault({
                     </div>
                   </div>
                 </h2>
-              <div className="flex items-center gap-2 rounded-full px-4 py-1.5" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--token-header-border)" }}>
+              <div className="flex items-center gap-2 rounded-full px-4 py-1.5" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--silver-header-border)" }}>
                 <span className="text-2xl">{t.silverIcon}</span>
                 <span className="cinzel text-lg font-bold" style={{ color: "var(--color-primary)" }}>{silver}</span>
-                <span className="cinzel text-xs" style={{ color: "var(--color-muted)" }}>{getPluralizedToken(silver)}</span>
+                <span className="cinzel text-xs" style={{ color: "var(--color-muted)" }}>{getPluralizedSilver(silver)}</span>
               </div>
             </div>
             <div className="px-6 py-5">
@@ -302,7 +302,7 @@ function TokenVault({
                   <div className="relative z-10 flex flex-col items-center">
                     <span className="text-7xl drop-shadow-[0_0_20px_rgba(250,204,21,0.4)] transition-transform group-hover:scale-110 duration-500">{t.silverIcon}</span>
                     <p className="cinzel text-5xl font-bold mt-4" style={{ color: "var(--color-primary)", textShadow: "0 4px 20px rgba(0,0,0,0.5)" }}>{silver}</p>
-                    <span className="cinzel text-sm text-slate-500 mt-2">{getPluralizedToken(silver)}</span>
+                    <span className="cinzel text-sm text-slate-500 mt-2">{getPluralizedSilver(silver)}</span>
                   </div>
                 </div>
               </div>
@@ -315,7 +315,7 @@ function TokenVault({
   );
 }
 
-TokenVault.propTypes = {
+SilverVault.propTypes = {
   silver: PropTypes.number.isRequired,
   streakFreezeCharges: PropTypes.number,
   freezeStreakPending: PropTypes.bool,
@@ -330,4 +330,4 @@ TokenVault.propTypes = {
   compact: PropTypes.bool
 };
 
-export default TokenVault;
+export default SilverVault;

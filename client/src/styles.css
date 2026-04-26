@@ -36,9 +36,9 @@ body[data-theme="adventure"] {
     --streak-border: #f97316;
     --streak-text: #fed7aa;
     --streak-label: #fdba74;
-    --token-bg: linear-gradient(to bottom right, #020617, rgba(69, 26, 3, 0.2), #0f172a);
-    --token-border: #d97706;
-    --token-header-border: rgba(180, 83, 9, 0.6);
+    --silver-bg: linear-gradient(to bottom right, #020617, rgba(69, 26, 3, 0.2), #0f172a);
+    --silver-border: #d97706;
+    --silver-header-border: rgba(180, 83, 9, 0.6);
     --log-bg: linear-gradient(to bottom right, #020617, rgba(69, 10, 10, 0.2), #0f172a);
     --log-border: #dc2626;
     --log-header-border: rgba(185, 28, 28, 0.7);
@@ -128,9 +128,9 @@ body[data-theme="balance"] {
     --streak-border: #4ade80;
     --streak-text: #bbf7d0;
     --streak-label: #86efac;
-    --token-bg: linear-gradient(to bottom right, #0a1612, rgba(22, 101, 52, 0.1), #0f1f1a);
-    --token-border: #2d6a4f;
-    --token-header-border: rgba(45, 106, 79, 0.6);
+    --silver-bg: linear-gradient(to bottom right, #0a1612, rgba(22, 101, 52, 0.1), #0f1f1a);
+    --silver-border: #2d6a4f;
+    --silver-header-border: rgba(45, 106, 79, 0.6);
     --log-bg: linear-gradient(to bottom right, #0a1612, rgba(60, 30, 50, 0.1), #0f1f1a);
     --log-border: #86717a;
     --log-header-border: rgba(134, 113, 122, 0.5);
@@ -216,9 +216,9 @@ body[data-theme="light"] {
     --streak-border: rgba(255, 92, 138, 0.38);
     --streak-text: #cc346a;
     --streak-label: #ef5a8a;
-    --token-bg: linear-gradient(145deg, #ffffff, #f2f8ff);
-    --token-border: rgba(116, 168, 255, 0.34);
-    --token-header-border: rgba(116, 168, 255, 0.34);
+    --silver-bg: linear-gradient(145deg, #ffffff, #f2f8ff);
+    --silver-border: rgba(116, 168, 255, 0.34);
+    --silver-header-border: rgba(116, 168, 255, 0.34);
     --log-bg: linear-gradient(145deg, #ffffff, #f7f8ff);
     --log-border: rgba(255, 92, 138, 0.25);
     --log-header-border: rgba(255, 92, 138, 0.24);
@@ -1652,7 +1652,7 @@ body[data-theme="light"] .delete-profile-confirm-cancel {
 .dash-progress-strip{align-items:center;gap:.65rem;padding:0 .15rem;display:flex}
 .dash-milestone{-webkit-backdrop-filter:blur(12px);background:color-mix(in srgb,var(--card-bg) 82%,transparent);border:1px solid color-mix(in srgb,var(--card-border-idle) 70%,transparent);border-radius:1rem;flex-direction:column;justify-content:center;align-items:center;gap:.25rem;padding:.65rem .25rem;transition:all .3s cubic-bezier(.2,.8,.2,1);display:flex;position:relative;overflow:hidden}
 .dash-milestone-on{background:color-mix(in srgb,var(--color-primary) 16%,transparent);border-color:color-mix(in srgb,var(--color-primary) 42%,transparent);box-shadow:inset 0 0 12px color-mix(in srgb,var(--color-primary) 18%,transparent)}
-/* Jackpot milestone — three reward pills (XP / token / streak), each
+/* Jackpot milestone — three reward pills (XP / silver / streak), each
    with a kind-specific tint so they read distinctly inside the
    ~110px-wide milestone card. Wrap is allowed on extra-narrow screens
    but the pills are sized to fit a single row at iPhone 13/14 width. */
@@ -1661,9 +1661,9 @@ body[data-theme="light"] .delete-profile-confirm-cancel {
 .dash-milestone-pill-icon{display:inline-flex;align-items:center;font-size:11px;line-height:1}
 .dash-milestone-pill-amount{display:inline-flex;align-items:center;line-height:1}
 .dash-milestone-pill-xp{background:color-mix(in srgb,var(--color-primary) 18%,transparent);border-color:color-mix(in srgb,var(--color-primary) 42%,transparent);color:var(--color-primary)}
-.dash-milestone-pill-token{background:color-mix(in srgb,#d9a441 22%,transparent);border-color:color-mix(in srgb,#d9a441 50%,transparent);color:#f0c469}
+.dash-milestone-pill-silver{background:color-mix(in srgb,#d9a441 22%,transparent);border-color:color-mix(in srgb,#d9a441 50%,transparent);color:#f0c469}
 .dash-milestone-pill-streak{background:color-mix(in srgb,#f97316 22%,transparent);border-color:color-mix(in srgb,#f97316 50%,transparent);color:#fb923c}
-[data-theme="light"] .dash-milestone-pill-token{color:#a06b1a}
+[data-theme="light"] .dash-milestone-pill-silver{color:#a06b1a}
 [data-theme="light"] .dash-milestone-pill-streak{color:#c2410c}
 [data-theme="light"] .dash-milestone-pill-xp{color:#7a3aa6}
 /* Base tab-bar (used by Community/Leaderboard — original sliding pill). */

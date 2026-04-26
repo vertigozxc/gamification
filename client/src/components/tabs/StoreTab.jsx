@@ -1,5 +1,5 @@
 import { useState } from "react";
-import TokenVault from "../TokenVault";
+import SilverVault from "../SilverVault";
 import COSMETIC_ITEMS, { parseOwnedCosmetics } from "../../data/cosmetics";
 import { IconSilver, IconGold, IconCheck } from "../icons/Icons";
 
@@ -380,7 +380,7 @@ export default function StoreTab({
             </div>
           ) : null}
 
-          <TokenVault
+          <SilverVault
             silver={silver}
             streakFreezeCharges={streakFreezeCharges}
             freezeCost={freezeCost}

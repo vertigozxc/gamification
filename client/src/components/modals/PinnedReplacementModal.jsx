@@ -197,7 +197,7 @@ function PinnedReplacementModal({
             </button>
           </div>
 
-          {/* Single row: compact cost chip on the left, token balance
+          {/* Single row: compact cost chip on the left, silver balance
               on the right. Replaces the previous 2-row layout to keep
               the header tight. */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 10 }}>
@@ -217,7 +217,7 @@ function PinnedReplacementModal({
             >
               <span style={{ fontSize: 13 }}>{isFreePinnedReroll ? "🎁" : "🪙"}</span>
               <span className="cinzel" style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: isFreePinnedReroll ? "var(--color-primary)" : "var(--color-text)" }}>
-                {isFreePinnedReroll ? (t.freeLabel || "Free") : `${SILVER_COST} ${t.silverPlural || "tokens"}`}
+                {isFreePinnedReroll ? (t.freeLabel || "Free") : `${SILVER_COST} ${t.silverPlural || "silver"}`}
               </span>
             </div>
             <div

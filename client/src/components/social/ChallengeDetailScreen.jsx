@@ -352,12 +352,12 @@ export default function ChallengeDetailScreen({ challengeId, authUser, t, onClos
           icon={rewardPopup.kind === "finished" ? "🏆" : "🪙"}
           title={rewardPopup.kind === "finished"
             ? (t.arenaRewardFinishedTitle || "Challenge complete!")
-            : (t.arenaRewardDayTitle || "Daily token earned!")}
+            : (t.arenaRewardDayTitle || "Daily silver earned!")}
           message={rewardPopup.kind === "finished"
             ? ((t.arenaRewardFinishedBody || "You and your crew finished all {days} days. Every participant earned +{xp} XP. Awesome work.")
                 .replace("{days}", String(rewardPopup.days))
                 .replace("{xp}", String(rewardPopup.xp)))
-            : ((t.arenaRewardDayBody || "Everyone completed today — +1 token for each player. Keep it up and finish the challenge to unlock the final XP reward.")
+            : ((t.arenaRewardDayBody || "Everyone completed today — +1 silver for each player. Keep it up and finish the challenge to unlock the final XP reward.")
                 .replace("{done}", String(rewardPopup.daysSoFar))
                 .replace("{total}", String(rewardPopup.total)))}
           confirmLabel={t.arenaRewardConfirm || "Nice!"}
@@ -1128,7 +1128,7 @@ function ParticipantRow({ rank, participant, meUid, t, onOpenProfile, canRemove,
         <div style={{ display: "flex", gap: 10, fontSize: 12, color: "var(--color-muted)", fontWeight: 600, fontVariantNumeric: "tabular-nums", alignItems: "center", flexWrap: "wrap" }}>
           <span title={t.arenaStatCompletionsTooltip || "Completions"}>🏁 {participant.completions || 0}</span>
           <span style={{ color: "var(--card-border-idle)" }}>·</span>
-          <span title={t.arenaStatTokensTooltip || "Tokens earned"}>🪙 {participant.silverEarned || 0}</span>
+          <span title={t.arenaStatSilverTooltip || "Silver earned"}>🪙 {participant.silverEarned || 0}</span>
         </div>
       </button>
 
@@ -1303,7 +1303,7 @@ function ParticipantCard_Legacy({ rank, participant, meUid, t, onOpenProfile, ca
           <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
             <Stat IconComp={IconCheck} value={participant.completions || 0} label={t.arenaDone || "done"} />
             <Stat IconComp={IconFlame} value={participant.consecutiveDays || 0} label={t.arenaStreakShort || "streak"} />
-            <Stat icon="🪙" value={participant.silverEarned || 0} label={t.arenaSilver || "tokens"} />
+            <Stat icon="🪙" value={participant.silverEarned || 0} label={t.arenaSilver || "silver"} />
           </div>
         </div>
       </button>

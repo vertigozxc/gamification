@@ -551,7 +551,7 @@ function ChallengesInlineTab({ pendingChallenges = [], activeChallenges, endedCh
       <div className="cm-intro">
         <p className="cm-intro-title">{t.communityChallengesIntroTitle || "Group challenges"}</p>
         <p className="cm-intro-body">
-          {t.communityChallengesIntroBody || "Team up with a friend on a daily habit. Every completion earns a token for every participant. Up to 3 active challenges."}
+          {t.communityChallengesIntroBody || "Team up with a friend on a daily habit. Every completion earns silver for every participant. Up to 3 active challenges."}
         </p>
       </div>
 

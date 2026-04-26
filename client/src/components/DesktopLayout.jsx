@@ -2,7 +2,7 @@ import CityIllustration from "./CityIllustration";
 import ProfilePanel from "./ProfilePanel";
 import QuestBoard from "./QuestBoard";
 import SidePanels from "./SidePanels";
-import TokenVault from "./TokenVault";
+import SilverVault from "./SilverVault";
 
 export default function DesktopLayout({
   showCity, state, levelDisplayRef,
@@ -91,7 +91,7 @@ export default function DesktopLayout({
         <SidePanels leaderboard={leaderboard} authUser={authUser} logs={logs} />
       </div>
 
-      <TokenVault
+      <SilverVault
         silver={state.silver}
         streakFreezeCharges={Number(state.user?.streakFreezeCharges) || 0}
         extraRerollsToday={state.extraRerollsToday}
