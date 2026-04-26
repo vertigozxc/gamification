@@ -237,6 +237,15 @@ export default function StoreTab({
   const tabsRowRef = useRef(null);
   const indicatorRef = useRef(null);
 
+  // CSS-grid columns: active tab gets 2fr (room for label), inactive
+  // tabs get 1fr each (collapsing to icon-only). MUST be declared
+  // before the useLayoutEffect below — that effect lists this in its
+  // dep array, and a `const` referenced before its declaration would
+  // hit the temporal dead zone and crash the whole tab.
+  const gridTemplateColumns = TABS
+    .map((tab) => (tab.id === activeTab ? "2fr" : "1fr"))
+    .join(" ");
+
   // Slide the indicator under the active tab. Mirrors QuestBoard's
   // qb-tab-bar-expand pattern: because grid-template-columns is also
   // transitioning, the active button's offsetLeft / offsetWidth keep
@@ -292,14 +301,6 @@ export default function StoreTab({
     xpBoostExpiresAt,
     ownedCosmetics: ownedList
   });
-
-  // CSS-grid columns: active tab gets 2fr (room for label), inactive
-  // tabs get 1fr each (collapsing to icon-only). The CSS transition
-  // on grid-template-columns handles the smooth expand/collapse the
-  // user sees on the dashboard.
-  const gridTemplateColumns = TABS
-    .map((tab) => (tab.id === activeTab ? "2fr" : "1fr"))
-    .join(" ");
 
   return (
     <div className="flex flex-col gap-4">
