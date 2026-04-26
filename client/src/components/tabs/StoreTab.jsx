@@ -1,51 +1,20 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import SilverVault from "../SilverVault";
 import COSMETIC_ITEMS, { parseOwnedCosmetics } from "../../data/cosmetics";
-import { IconSilver, IconGold, IconCheck } from "../icons/Icons";
+import { IconSilver, IconGold, IconCheck, IconBolt, IconPalette, IconBag } from "../icons/Icons";
 
-// New 3-tab Store screen (Schema 2):
+// 3-tab Store screen with the dashboard-style sliding tab bar:
 //   Utility    — silver-currency items (freeze, reroll, change habits, XP boost, reset city)
 //   Cosmetics  — gold-currency items (frames, backgrounds — 7 placeholder stubs)
-//   Inventory  — 3×4 RPG-style grid: currencies, consumables, active effects, owned cosmetics
+//   Inventory  — 4×4 WoW-bag grid: items only (currencies live in the wallet header)
 
 const TABS = [
-  { id: "utility",   labelKey: "storeTabUtility"  },
-  { id: "cosmetics", labelKey: "storeTabCosmetics" },
-  { id: "inventory", labelKey: "storeTabInventory" }
+  { id: "utility",   labelKey: "storeTabUtility",   IconCmp: IconBolt    },
+  { id: "cosmetics", labelKey: "storeTabCosmetics", IconCmp: IconPalette },
+  { id: "inventory", labelKey: "storeTabInventory", IconCmp: IconBag     }
 ];
 
-// Tab pill with mobile-pressable feedback. Active tab gets a primary
-// gradient + dark text; inactive stays muted, so the active state is
-// instantly readable on both light and dark themes.
-function TabPill({ active, onClick, children }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="mobile-pressable cinzel font-bold tracking-wider uppercase"
-      style={{
-        flex: 1,
-        padding: "10px 12px",
-        borderRadius: 12,
-        fontSize: 12,
-        letterSpacing: "0.12em",
-        border: active
-          ? "1px solid color-mix(in srgb, var(--color-primary) 70%, transparent)"
-          : "1px solid var(--card-border-idle)",
-        background: active
-          ? "linear-gradient(135deg, var(--color-primary), var(--color-accent))"
-          : "var(--card-bg)",
-        color: active ? "#0b1120" : "var(--color-muted)",
-        boxShadow: active
-          ? "0 6px 18px color-mix(in srgb, var(--color-primary) 25%, transparent)"
-          : "none",
-        transition: "all 180ms ease"
-      }}
-    >
-      {children}
-    </button>
-  );
-}
+const INVENTORY_GRID_SIZE = 16; // 4 cols × 4 rows
 
 // Currency pill in the header — shows current silver / gold totals.
 function CurrencyPill({ icon, value, label }) {
@@ -77,114 +46,95 @@ function CurrencyPill({ icon, value, label }) {
   );
 }
 
-// One slot inside the 3×4 inventory grid. Visually mirrors the daily-board
-// milestone card (locked/unlocked) — same flex-1, padding, rounded-border
-// container so the two surfaces feel like one design system.
-function InventorySlot({ filled, icon, label, sub, t }) {
-  const cls = filled ? "daily-board-card-unlocked" : "daily-board-card-locked";
-  const bgStyle = filled
-    ? { background: "color-mix(in srgb, var(--color-primary) 14%, transparent)", border: "1px solid color-mix(in srgb, var(--color-primary) 50%, transparent)", boxShadow: "inset 0 0 10px color-mix(in srgb, var(--color-primary) 12%, transparent)" }
-    : { background: "color-mix(in srgb, var(--panel-bg) 80%, transparent)", border: "1px solid var(--card-border-idle)" };
+// One slot in the WoW-bag grid. 1:1 aspect square. Filled slots show
+// their item icon centered + a count badge in the bottom-right; empty
+// slots are just a dim recessed square (no text, no icon).
+function BagSlot({ filled, icon, count }) {
+  const wrapStyle = filled
+    ? {
+        background: "color-mix(in srgb, var(--color-primary) 14%, transparent)",
+        border: "1px solid color-mix(in srgb, var(--color-primary) 55%, transparent)",
+        boxShadow: "inset 0 0 8px color-mix(in srgb, var(--color-primary) 18%, transparent)"
+      }
+    : {
+        background: "color-mix(in srgb, var(--card-bg) 60%, rgba(0,0,0,0.18))",
+        border: "1px solid color-mix(in srgb, var(--card-border-idle) 70%, transparent)",
+        boxShadow: "inset 0 1px 2px rgba(0,0,0,0.3)"
+      };
   return (
     <div
-      className={`flex flex-col items-center justify-center rounded overflow-hidden ${cls}`}
       style={{
-        padding: "10px 6px",
-        minHeight: 76,
-        ...bgStyle,
-        opacity: filled ? 1 : 0.55
+        position: "relative",
+        aspectRatio: "1 / 1",
+        borderRadius: 8,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        ...wrapStyle
       }}
     >
-      <div style={{ fontSize: 22, lineHeight: 1, marginBottom: 4, display: "inline-flex" }}>{icon}</div>
-      <p className="cinzel" style={{
-        fontSize: 11,
-        fontWeight: 700,
-        letterSpacing: "0.06em",
-        textAlign: "center",
-        color: filled ? "var(--color-primary)" : "var(--color-muted)",
-        margin: 0,
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        maxWidth: "100%"
-      }}>{label}</p>
-      {sub ? (
-        <p style={{
-          fontSize: 10,
-          fontWeight: 700,
-          color: filled ? "var(--color-accent)" : "var(--color-muted)",
-          margin: 0,
-          marginTop: 2,
-          opacity: filled ? 1 : 0.7
-        }}>{sub}</p>
+      {filled ? (
+        <>
+          <div style={{ fontSize: 24, lineHeight: 1, display: "inline-flex", color: "var(--color-primary)" }}>{icon}</div>
+          {count ? (
+            // WoW-style stack count: bottom-right, white with dark stroke for
+            // legibility against any item icon underneath.
+            <span
+              className="cinzel"
+              style={{
+                position: "absolute",
+                bottom: 2,
+                right: 4,
+                fontSize: 11,
+                fontWeight: 800,
+                lineHeight: 1,
+                color: "#fff",
+                textShadow: "0 1px 2px rgba(0,0,0,0.85), 0 0 1px rgba(0,0,0,0.85)",
+                letterSpacing: "0.02em",
+                pointerEvents: "none"
+              }}
+            >
+              {count}
+            </span>
+          ) : null}
+        </>
       ) : null}
     </div>
   );
 }
 
-// 3×4 = 12 slots. Composition:
-//   [silver]     [gold]      [coupon]
-//   [freeze]     [boost]     [-empty-]
-//   [cosmetic1..6 if owned, else empty]
-function buildSlots({ silver, gold, rouletteCoupons, streakFreezeCharges, xpBoostExpiresAt, ownedCosmetics, t }) {
+// Build the up-to-16 inventory list. NO currencies (those live in the
+// wallet header). Order: consumables → active effects → owned cosmetics.
+function buildBagSlots({ rouletteCoupons, streakFreezeCharges, xpBoostExpiresAt, ownedCosmetics }) {
   const slots = [];
 
-  // Currencies — always shown, "filled" iff > 0
-  slots.push({
-    filled: silver > 0,
-    icon: <span style={{ display: "inline-flex", color: "var(--color-accent)" }}><IconSilver size={22} /></span>,
-    label: t.silverLabel || "Silver",
-    sub: String(silver || 0)
-  });
-  slots.push({
-    filled: gold > 0,
-    icon: <span style={{ display: "inline-flex", color: "var(--color-accent)" }}><IconGold size={22} /></span>,
-    label: t.goldLabel || "Gold",
-    sub: String(gold || 0)
-  });
-  slots.push({
-    filled: rouletteCoupons > 0,
-    icon: "🎟",
-    label: t.inventoryCouponLabel || "Coupon",
-    sub: rouletteCoupons > 0 ? `×${rouletteCoupons}` : null
-  });
-
-  // Consumables / active effects
-  slots.push({
-    filled: streakFreezeCharges > 0,
-    icon: "🧊",
-    label: t.inventoryFreezeLabel || "Freeze",
-    sub: streakFreezeCharges > 0 ? `×${streakFreezeCharges}` : null
-  });
+  if (streakFreezeCharges > 0) {
+    slots.push({ icon: "🧊", count: streakFreezeCharges > 1 ? streakFreezeCharges : null });
+  }
+  if (rouletteCoupons > 0) {
+    slots.push({ icon: "🎟", count: rouletteCoupons > 1 ? rouletteCoupons : null });
+  }
 
   const xpBoostMs = xpBoostExpiresAt ? new Date(xpBoostExpiresAt).getTime() - Date.now() : 0;
   const xpBoostActive = xpBoostMs > 0;
   const daysLeft = xpBoostActive ? Math.max(1, Math.ceil(xpBoostMs / 86400000)) : 0;
-  slots.push({
-    filled: xpBoostActive,
-    icon: "⚡",
-    label: t.inventoryBoostLabel || "Boost",
-    sub: xpBoostActive ? `${daysLeft}${t.inventoryDaysLeftSuffix || "d"}` : null
-  });
-
-  // Cosmetic collection — fill in order of ownership, then pad with empty
-  const ownedItems = ownedCosmetics
-    .map((id) => COSMETIC_ITEMS.find((c) => c.id === id))
-    .filter(Boolean);
-  ownedItems.forEach((item) => {
-    slots.push({
-      filled: true,
-      icon: item.previewIcon,
-      label: item.category === "frame" ? (t.inventoryFrameLabel || "Frame") : (t.inventoryBackgroundLabel || "BG"),
-      sub: t[item.nameKey] ? String(t[item.nameKey]).split(" ")[0] : null
-    });
-  });
-
-  // Pad to 12 slots so the grid is always 3×4
-  while (slots.length < 12) {
-    slots.push({ filled: false, icon: "", label: t.inventoryEmptySlotLabel || "Empty", sub: null });
+  if (xpBoostActive) {
+    slots.push({ icon: "⚡", count: `${daysLeft}d` });
   }
-  return slots.slice(0, 12);
+
+  ownedCosmetics
+    .map((id) => COSMETIC_ITEMS.find((c) => c.id === id))
+    .filter(Boolean)
+    .forEach((item) => {
+      // Cosmetics are non-stackable singletons, so no count badge.
+      slots.push({ icon: item.previewIcon, count: null });
+    });
+
+  // Pad to 16. Empty slots have no icon or count.
+  while (slots.length < INVENTORY_GRID_SIZE) {
+    slots.push({ icon: null, count: null });
+  }
+  return slots.slice(0, INVENTORY_GRID_SIZE);
 }
 
 function CosmeticCard({ item, owned, canAfford, onBuy, busy, t }) {
@@ -204,8 +154,7 @@ function CosmeticCard({ item, owned, canAfford, onBuy, busy, t }) {
         position: "relative"
       }}
     >
-      {/* Preview tile — placeholder emoji until real animated previews ship.
-          Rounded square so it visually reads as art, not chrome. */}
+      {/* Preview tile — placeholder emoji until real animated previews ship. */}
       <div
         style={{
           aspectRatio: "1 / 1",
@@ -315,20 +264,51 @@ export default function StoreTab({
   t
 }) {
   const [activeTab, setActiveTab] = useState("utility");
+  const tabsRowRef = useRef(null);
+  const indicatorRef = useRef(null);
+
+  // Slide the indicator under the active tab. Mirrors QuestBoard's
+  // qb-tab-bar-expand pattern so the visual language is consistent
+  // between the dashboard's habit/daily/challenges bar and this one.
+  useLayoutEffect(() => {
+    if (!tabsRowRef.current || !indicatorRef.current) return undefined;
+    const apply = () => {
+      const row = tabsRowRef.current;
+      if (!row || !indicatorRef.current) return;
+      const activeBtn = row.querySelector(`[data-store-tab="${activeTab}"]`);
+      if (!activeBtn) return;
+      indicatorRef.current.style.width = `${activeBtn.offsetWidth}px`;
+      indicatorRef.current.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
+    };
+    const ind = indicatorRef.current;
+    const firstMeasure = ind.dataset.storeMeasured !== "1";
+    if (firstMeasure) {
+      const prev = ind.style.transition;
+      ind.style.transition = "none";
+      apply();
+      // eslint-disable-next-line no-unused-expressions
+      ind.offsetHeight;
+      ind.style.transition = prev || "";
+      ind.dataset.storeMeasured = "1";
+    } else {
+      apply();
+    }
+    const onResize = () => apply();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [activeTab]);
+
   const ownedList = parseOwnedCosmetics(ownedCosmetics);
-  const slots = buildSlots({
-    silver,
-    gold,
+  const bagSlots = buildBagSlots({
     rouletteCoupons,
     streakFreezeCharges,
     xpBoostExpiresAt,
-    ownedCosmetics: ownedList,
-    t
+    ownedCosmetics: ownedList
   });
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Compact dual-currency wallet header */}
+      {/* Compact dual-currency wallet header — silver + gold balance pills */}
       <div data-tour="store-hero" className="city-hero-surface mobile-card top-screen-block p-3 shadow-[0_0_20px_rgba(234,179,8,0.06)]">
         <div className="relative z-10 flex items-center gap-3">
           <div className="flex-1 min-w-0">
@@ -355,17 +335,34 @@ export default function StoreTab({
         </div>
       </div>
 
-      {/* Tab pills */}
-      <div className="flex gap-2">
-        {TABS.map((tab) => (
-          <TabPill
-            key={tab.id}
-            active={activeTab === tab.id}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {t[tab.labelKey] || tab.id}
-          </TabPill>
-        ))}
+      {/* Slide-bar tabs (qb-tab-bar pattern from QuestBoard so the two surfaces
+          share visual DNA). The indicator slides between active tabs and the
+          inactive labels collapse to icons-only on narrow screens via the
+          built-in qb-tab-bar-expand styling. */}
+      <div
+        ref={tabsRowRef}
+        className="qb-tab-bar qb-tab-bar-expand qb-tab-bar-equal"
+        role="tablist"
+      >
+        <div ref={indicatorRef} className="qb-tab-indicator" />
+        {TABS.map((tab) => {
+          const Icon = tab.IconCmp;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              data-store-tab={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`mobile-pressable qb-tab-btn ${isActive ? "qb-tab-active" : ""}`}
+            >
+              <span className="qb-tab-icon"><Icon size={15} /></span>
+              <span className="qb-tab-label">{t[tab.labelKey] || tab.id}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* ── Utility tab ─────────────────────────────────────── */}
@@ -429,18 +426,11 @@ export default function StoreTab({
           <p className="cinzel mobile-section-kicker" style={{ marginBottom: 10 }}>
             {t.inventoryTitle || "Inventory"}
           </p>
-          {/* 3×4 RPG-style grid. Each cell mirrors the daily-board milestone
-              card so the two surfaces share the same visual language. */}
-          <div className="grid grid-cols-3 gap-2">
-            {slots.map((slot, i) => (
-              <InventorySlot
-                key={i}
-                filled={slot.filled}
-                icon={slot.icon}
-                label={slot.label}
-                sub={slot.sub}
-                t={t}
-              />
+          {/* 4×4 WoW-bag grid. Square slots, no "empty" labels, optional
+              count badge in the bottom-right corner of stacked items. */}
+          <div className="grid grid-cols-4 gap-1.5">
+            {bagSlots.map((slot, i) => (
+              <BagSlot key={i} filled={Boolean(slot.icon)} icon={slot.icon} count={slot.count} />
             ))}
           </div>
         </div>

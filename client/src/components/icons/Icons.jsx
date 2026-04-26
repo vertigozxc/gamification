@@ -439,31 +439,57 @@ export function IconGlobe(props) {
 }
 
 // ─── Currencies ───────────────────────────────────────────────────
-// Coin family: same outer circle (r=9) so the two currencies read as a
-// matched pair. Differ only by the central glyph. Stroke-only, no fill,
-// inherits currentColor — the surrounding chip can glow but the glyph
-// itself stays clean per the project's icon style guide.
+// Lost-Ark-inspired coin pair. Both share the same minted-coin chassis
+// — outer rim, inner ring, ornamental notches around the perimeter —
+// and differ only by the central emblem. Silver: clean 4-point compass
+// star (cardinal feel). Gold: ornate 8-point sunburst (more rays =
+// more ceremony). Stroke-only per the icon style guide; the chip
+// around them is what carries the warm/cool tint per theme.
 
 export function IconSilver(props) {
-  // Stylized "S" formed by two cubic bezier curves (top arc curls left,
-  // bottom arc curls right) — reads as a coin face without resorting
-  // to fill text.
   return (
     <Icon {...props}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M14.5 10C13 8.5 9.5 9 9.5 11.5C9.5 13.5 14.5 12.5 14.5 14.5C14.5 16.5 11 17 9.5 15.5" />
+      {/* coin chassis: outer rim + inner engraved ring */}
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="7.2" />
+      {/* 4-point compass star (cardinal axes) */}
+      <polygon points="12 6.5 13.6 10.4 17.5 12 13.6 13.6 12 17.5 10.4 13.6 6.5 12 10.4 10.4" />
+      {/* 4 cardinal rim notches — tiny ticks suggesting a milled coin edge */}
+      <line x1="12" y1="2" x2="12" y2="3.2" />
+      <line x1="12" y1="20.8" x2="12" y2="22" />
+      <line x1="2" y1="12" x2="3.2" y2="12" />
+      <line x1="20.8" y1="12" x2="22" y2="12" />
     </Icon>
   );
 }
 
 export function IconGold(props) {
-  // 5-point star inside the coin (outer radius 4, inner radius 1.6 from
-  // center 12,12). Scaled-down sibling of IconStar so the two read as
-  // visually related when placed next to each other.
   return (
     <Icon {...props}>
-      <circle cx="12" cy="12" r="9" />
-      <polygon points="12 8 12.9 10.7 15.8 10.8 13.5 12.5 14.4 15.2 12 13.6 9.6 15.2 10.5 12.5 8.2 10.8 11.1 10.7" />
+      {/* same coin chassis as silver */}
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="7.2" />
+      {/* 8-point sunburst star — outer R≈5, inner R≈2 from center 12,12 */}
+      <polygon points="12 7 12.77 10.15 15.54 8.46 13.85 11.23 17 12 13.85 12.77 15.54 15.54 12.77 13.85 12 17 11.23 13.85 8.46 15.54 10.15 12.77 7 12 10.15 11.23 8.46 8.46 11.23 10.15" />
+      {/* 4 diagonal rim notches — offset 45° from silver to keep the pair distinct */}
+      <line x1="4.5" y1="4.5" x2="5.4" y2="5.4" />
+      <line x1="18.6" y1="5.4" x2="19.5" y2="4.5" />
+      <line x1="19.5" y1="19.5" x2="18.6" y2="18.6" />
+      <line x1="5.4" y1="18.6" x2="4.5" y2="19.5" />
+    </Icon>
+  );
+}
+
+// ─── Inventory bag ────────────────────────────────────────────────
+// Distinct from IconShoppingBag (which is the Store top-level icon) —
+// this one is the open RPG-style satchel for the inventory tab.
+export function IconBag(props) {
+  return (
+    <Icon {...props}>
+      <path d="M5.5 8h13l-1 11.5a2 2 0 0 1-2 1.5H8.5a2 2 0 0 1-2-1.5z" />
+      <path d="M9 8V6a3 3 0 1 1 6 0v2" />
+      <line x1="9" y1="13" x2="9" y2="14.5" />
+      <line x1="15" y1="13" x2="15" y2="14.5" />
     </Icon>
   );
 }
