@@ -184,7 +184,7 @@ export default function DashboardTab({
                       <span key={`${p.kind}-${i}`} className={`dash-milestone-pill dash-milestone-pill-${p.kind}`}>
                         {p.kind === "streak" ? (
                           <span className="dash-milestone-pill-icon" aria-hidden="true">
-                            <IconFlame size={11} />
+                            <IconFlame size={18} />
                           </span>
                         ) : (
                           <span className="dash-milestone-pill-icon" aria-hidden="true">
