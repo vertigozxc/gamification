@@ -1786,13 +1786,21 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     });
   }
 
-  const rerollButtonLabel = completedToday >= 6 || allRandomCompleted
+  // Reroll-button label state machine:
+  //   1. Board complete (≥6 done or all randoms cleared) → "COMPLETE"
+  //   2. Free reroll NOT used today → always "FREE REROLL", no count
+  //      in parens even if extra paid charges are stocked up. The
+  //      free one is what'll fire on the next tap, so the count
+  //      would mislead.
+  //   3. Free reroll USED + paid charges queued → "REROLL (N)"
+  //   4. Free reroll USED + no paid charges → "REROLLED" (disabled)
+  const rerollButtonLabel = (completedToday >= 6 || allRandomCompleted)
     ? t.rerollComplete
-    : state.hasRerolledToday && state.extraRerollsToday === 0
-      ? t.rerollDone
+    : !state.hasRerolledToday
+      ? (t.rerollFree || "FREE REROLL")
       : state.extraRerollsToday > 0
         ? `${t.rerollButton} (${state.extraRerollsToday})`
-        : t.rerollButton;
+        : t.rerollDone;
   const rerollButtonTitle = allRandomCompleted ? t.allRandomTasksDone : state.hasRerolledToday && state.extraRerollsToday === 0 ? t.alreadyUsedToday : completedToday >= 6 ? t.allDoneUnavailable : t.oncePerDay;
 
   if (authLoading) {
