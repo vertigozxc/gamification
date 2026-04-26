@@ -31,6 +31,7 @@ export default function DashboardTab({
   onOpenHabitPicker,
   authUser,
   questsLoaded = true,
+  computeEffectiveQuestXp,
 }) {
   const { themeId } = useTheme();
   const isLight = themeId === "light";
@@ -224,6 +225,7 @@ export default function DashboardTab({
       >
         {questsLoaded && challengesLoaded ? (
         <QuestBoard
+          computeEffectiveQuestXp={computeEffectiveQuestXp}
           pinnedQuests={pinnedQuests} otherQuests={otherQuests}
           pinnedQuestProgressById={pinnedQuestProgressById}
           dailyQuestFreshDayKey={dailyQuestFreshDayKey}

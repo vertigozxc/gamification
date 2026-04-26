@@ -5,6 +5,7 @@ import SidePanels from "./SidePanels";
 import SilverVault from "./SilverVault";
 
 export default function DesktopLayout({
+  computeEffectiveQuestXp,
   showCity, state, levelDisplayRef,
   editingName, nameDraft, characterName,
   onNameDraftChange, onSubmitNameEdit, onStartEditingName, onCancelEditingName,
@@ -70,6 +71,7 @@ export default function DesktopLayout({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <QuestBoard
+          computeEffectiveQuestXp={computeEffectiveQuestXp}
           pinnedQuests={pinnedQuests} otherQuests={otherQuests}
           pinnedQuestProgressById={pinnedQuestProgressById}
           dailyQuestFreshDayKey={dailyQuestFreshDayKey}

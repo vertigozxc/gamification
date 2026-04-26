@@ -1180,6 +1180,24 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
               ? 1.05
               : 1.00;
   const streakBonusPercent = Math.round((streakMultiplier - 1) * 100);
+  // Effective XP per quest = base * streak_multiplier (floored), plus
+  // additive sport-district bonus and XP-Boost bonus rounded onto that.
+  // Mirrors server-side computeQuestXp / xpAfterQuest in
+  // server/src/utils.js so the number on the card matches what the
+  // user actually banks. Bonuses are computed against the streak-
+  // adjusted award (NOT the raw base) — that's how the server stacks
+  // them.
+  const sportLvlForXp = Math.max(0, Math.min(5, Math.floor(Number(state.districtLevels?.[0]) || 0)));
+  const sportXpMultiplier = 1 + sportLvlForXp * 0.05;
+  const xpBoostActive = Boolean(
+    state.user?.xpBoostExpiresAt && new Date(state.user.xpBoostExpiresAt).getTime() > Date.now()
+  );
+  const computeEffectiveQuestXp = (baseXp) => {
+    const awarded = Math.floor((Number(baseXp) || 0) * streakMultiplier);
+    const sportBonus = Math.max(0, Math.round(awarded * (sportXpMultiplier - 1)));
+    const boostBonus = xpBoostActive ? Math.max(0, Math.round(awarded * 0.15)) : 0;
+    return awarded + sportBonus + boostBonus;
+  };
   const completedToday = state.completed.length;
   const maxDailyQuests = Number(state.questSlots?.dailyTotal) || 6;
   const milestoneProgressPercent = Math.min(100, (completedToday / Math.max(1, maxDailyQuests)) * 100);
@@ -2478,6 +2496,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             {mobileTab === "dashboard" ? (
               <Suspense fallback={<PortalPreloader title={t.loadingText} overlay />}>
               <DashboardTab
+                computeEffectiveQuestXp={computeEffectiveQuestXp}
                 questsLoaded={initialDataResolved}
                 state={state}
                 characterName={characterName}
@@ -2778,6 +2797,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           </PullToRefresh>
         ) : (
           <DesktopLayout
+            computeEffectiveQuestXp={computeEffectiveQuestXp}
             showCity={showCity}
             state={state}
             levelDisplayRef={levelDisplayRef}

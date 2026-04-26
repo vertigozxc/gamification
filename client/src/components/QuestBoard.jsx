@@ -390,7 +390,15 @@ function QuestBoard({
   onCompleteChallenge = null,
   onAcceptChallenge = null,
   onDeclineChallenge = null,
+  // Function that maps base XP → final XP after streak / sport / boost.
+  computeEffectiveQuestXp = null,
 }) {
+  // Map base quest.xp → effective XP shown on the card. Identity if
+  // no helper passed (older call sites still work).
+  const withEffectiveXp = (quest) => {
+    if (!quest || !computeEffectiveQuestXp) return quest;
+    return { ...quest, xp: computeEffectiveQuestXp(quest.xp) };
+  };
   const { t } = useTheme();
   const pinnedSlotTotal = pinnedQuests.length + Math.max(0, Number(emptyPinnedSlotCount) || 0);
   const otherSlotTotal = otherQuests.length + Math.max(0, Number(emptyOtherSlotCount) || 0);
@@ -624,7 +632,7 @@ function QuestBoard({
                 const timerNode = renderQuestTimer && quest.needsTimer && !isDone ? renderQuestTimer(quest) : null;
                 const mechanicNode = !timerNode && renderQuestMechanic && !isDone ? renderQuestMechanic(quest) : null;
                 return (
-                  <QuestItem key={`pinned-${quest.id}`} quest={{ ...quest, isPending }} index={index}
+                  <QuestItem key={`pinned-${quest.id}`} quest={withEffectiveXp({ ...quest, isPending })} index={index}
                     isDone={isDone} questRenderCount={questRenderCount} compact={compact} t={t}
                     onCompleteQuest={onCompleteQuest} isLongTapOnly={true} isRerolling={rerollingPinned}
                     timerActive={Boolean(timerNode)} mechanicActive={Boolean(mechanicNode)}>
@@ -664,7 +672,7 @@ function QuestBoard({
                 const timerNode = renderQuestTimer && quest.needsTimer && !isDone ? renderQuestTimer(quest) : null;
                 const mechanicNode = !timerNode && renderQuestMechanic && !isDone ? renderQuestMechanic(quest) : null;
                 return (
-                  <QuestItem key={quest.id} quest={{ ...quest, isPending }} index={index}
+                  <QuestItem key={quest.id} quest={withEffectiveXp({ ...quest, isPending })} index={index}
                     isDone={isDone} questRenderCount={questRenderCount} compact={compact} t={t}
                     onCompleteQuest={onCompleteQuest} isLongTapOnly={true}
                     isRerolling={quest.id === rerollingQuestId}
@@ -719,7 +727,7 @@ function QuestBoard({
                 const timerNode = renderQuestTimer && quest.needsTimer && !isDone ? renderQuestTimer(quest) : null;
                 const mechanicNode = !timerNode && renderQuestMechanic && !isDone ? renderQuestMechanic(quest) : null;
                 return (
-                  <QuestItem key={quest.id} quest={{ ...quest, isPending }} index={index}
+                  <QuestItem key={quest.id} quest={withEffectiveXp({ ...quest, isPending })} index={index}
                     isDone={isDone} questRenderCount={questRenderCount} compact={compact} t={t}
                     onCompleteQuest={onCompleteQuest} isLongTapOnly={true}
                     isRerolling={quest.id === rerollingQuestId}
