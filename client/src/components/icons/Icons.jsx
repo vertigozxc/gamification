@@ -452,8 +452,8 @@ export function IconGlobe(props) {
 // is at the surrounding chip level (border / glow), not on the coin
 // glyph itself.
 
-const SILVER_PNG = "/coins/silver-medallion.png";
-const GOLD_PNG   = "/coins/coin-medallion.png";
+const SILVER_PNG = "/coins/silver-coin-2x.png";
+const GOLD_PNG   = "/coins/gold-coin-2x.png";
 
 function CoinImage({ src, alt, size, className, style }) {
   return (
