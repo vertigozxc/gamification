@@ -9,9 +9,15 @@ function formatMs(ms) {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
+// Floor (not round) so the displayed percent stays consistent with the
+// server's tier check, which uses a raw float < 50/75/100 comparison.
+// With Math.round, a rawPercent of 49.5 already showed as "50%" and
+// users tapped Complete — but the server saw 49.5 < 50 and returned
+// completed:false, killing the session without firing the popup. Floor
+// guarantees displayed 50% means actual rawPercent ≥ 50.
 function pct(elapsedMs, targetMinutes) {
   const target = Math.max(1, Number(targetMinutes || 0) * 60 * 1000);
-  return Math.min(200, Math.round((elapsedMs / target) * 100));
+  return Math.min(200, Math.floor((elapsedMs / target) * 100));
 }
 
 export default function QuestTimerControls({ quest, session, elapsedMs, onStart, onPause, onResume, onStop }) {

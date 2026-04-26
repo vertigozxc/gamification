@@ -1914,6 +1914,11 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   return (
     <>
       {dataLoading && !isEmbeddedApp ? <PortalPreloader title={t.loadingText} fullscreen /> : null}
+      {/* Embedded (mobile WebView) gets the overlay variant during the
+       * initial data load so the dashboard never flashes "0/2 tasks"
+       * before quests + challenges resolve. Same chrome as the
+       * referrals modal preloader, just stretched edge-to-edge. */}
+      {dataLoading && isEmbeddedApp ? <PortalPreloader title={t.loadingText} overlay /> : null}
       {onboardingSaving ? <PortalPreloader title={t.loadingText} overlay /> : null}
       {pinnedReplacementOpening ? <PortalPreloader title={t.loadingText} overlay /> : null}
       {replacePinnedSaving ? <PortalPreloader title={t.loadingText} overlay /> : null}
