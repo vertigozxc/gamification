@@ -428,6 +428,11 @@ export const languagePacks = {
       cosmeticPurchaseFailed: "Cosmetic purchase failed.",
       cosmeticAlreadyOwned: "Already owned.",
       notEnoughGold: "Not enough gold.",
+      // Error boundary popup
+      errorBoundaryTitle: "Something went wrong",
+      errorBoundaryBody: "We've already been notified and we're looking into it. Try the action again, or reload the app to recover.",
+      errorBoundaryRetryCta: "Try again",
+      errorBoundaryReloadCta: "Reload",
       logSection: "📋 Activity Log",
       dailyBoardTooltip: "Daily board, random quests, and streak progress refresh at midnight local time. Be sure to complete your quests to earn rewards and increase your streak!",
       dailyQuestFreshBadge: "NEW",
@@ -1729,6 +1734,11 @@ export const languagePacks = {
       cosmeticPurchaseFailed: "Не удалось купить косметику.",
       cosmeticAlreadyOwned: "Уже в коллекции.",
       notEnoughGold: "Недостаточно золота.",
+      // Error boundary popup
+      errorBoundaryTitle: "Что-то пошло не так",
+      errorBoundaryBody: "Мы уже знаем об ошибке и разбираемся. Попробуй ещё раз или перезагрузи приложение.",
+      errorBoundaryRetryCta: "Попробовать снова",
+      errorBoundaryReloadCta: "Перезагрузить",
       dailyQuestFreshBadge: "НОВЫЕ",
       silverUnit: "серебра",
       silverIcon: "🪙",

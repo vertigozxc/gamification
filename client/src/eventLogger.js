@@ -86,20 +86,45 @@ async function flushEvents() {
   if (!apiBase) return;
 
   const batch = queue.splice(0, 50);
+  const payload = {
+    userId: context.userId,
+    username: context.username,
+    platform,
+    events: batch
+  };
   try {
-    await fetch(`${apiBase}/api/events/ingest`, {
+    const res = await fetch(`${apiBase}/api/events/ingest`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: context.userId,
-        username: context.username,
-        platform,
-        events: batch
-      }),
+      body: JSON.stringify(payload),
       keepalive: true
     });
+    if (res && res.ok) return;
   } catch {
-    // Drop on failure — do not re-queue to avoid loops.
+    // fall through to stash
+  }
+  // Network or server error — only stash error-level events for the next
+  // boot to retry. Warn-level / non-error noise we drop on the floor: it
+  // would just burn admin storage if a flaky connection turns warn flush
+  // into a leak. The ErrorBoundary's own ship path handles boundary
+  // events directly, so this only kicks in for ad-hoc logError() calls.
+  try {
+    const errorOnly = batch.filter((evt) => {
+      const lvl = String(evt?.level || "").toLowerCase();
+      return lvl === "error" || lvl === "fatal" || lvl === "critical";
+    });
+    if (errorOnly.length === 0) return;
+    if (typeof localStorage === "undefined") return;
+    const raw = localStorage.getItem("rpg_pending_errors");
+    const stash = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(stash)) {
+      stash.push({ ...payload, events: errorOnly });
+      localStorage.setItem("rpg_pending_errors", JSON.stringify(stash.slice(-20)));
+    } else {
+      localStorage.setItem("rpg_pending_errors", JSON.stringify([{ ...payload, events: errorOnly }]));
+    }
+  } catch {
+    // Storage quota / private mode — give up silently.
   }
 }
 
