@@ -173,16 +173,16 @@ export default function SingleHabitPickerModal({
             <div
               style={{
                 width: 40, height: 40, borderRadius: 12,
-                background: "linear-gradient(135deg, rgba(74,222,128,0.25), rgba(16,185,129,0.12))",
-                border: "1px solid rgba(74,222,128,0.45)",
+                background: "linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 25%, transparent), color-mix(in srgb, var(--color-primary) 12%, transparent))",
+                border: "1px solid color-mix(in srgb, var(--color-primary) 45%, transparent)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 20
               }}
             >
-              <span style={{ color: "#bbf7d0", display: "inline-flex" }}><IconSparkle size={20} /></span>
+              <span style={{ color: "var(--color-primary)", display: "inline-flex" }}><IconSparkle size={20} /></span>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <h2 className="cinzel" style={{ color: "#bbf7d0", fontSize: 17, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>
+              <h2 className="cinzel" style={{ color: "var(--color-primary)", fontSize: 17, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>
                 {heading}
               </h2>
               <p style={{ fontSize: 12, color: "#94a3b8", margin: "2px 0 0" }}>
@@ -352,13 +352,13 @@ export default function SingleHabitPickerModal({
               fontWeight: 700,
               fontSize: 15,
               letterSpacing: "0.08em",
-              border: "1px solid rgba(34,197,94,0.65)",
+              border: `1px solid color-mix(in srgb, var(--color-primary) ${selectedId ? 65 : 30}%, transparent)`,
               background: selectedId
-                ? "linear-gradient(135deg, rgba(34,197,94,0.85), rgba(16,185,129,0.7))"
+                ? "var(--color-primary)"
                 : "rgba(148,163,184,0.18)",
-              color: selectedId ? "#ffffff" : "#94a3b8",
+              color: selectedId ? "#1b1410" : "var(--color-muted)",
               cursor: selectedId ? "pointer" : "not-allowed",
-              boxShadow: selectedId ? "0 6px 18px rgba(22,163,74,0.35)" : "none",
+              boxShadow: selectedId ? "0 6px 18px color-mix(in srgb, var(--color-primary) 35%, transparent)" : "none",
               transition: "background 150ms ease, box-shadow 150ms ease"
             }}
           >

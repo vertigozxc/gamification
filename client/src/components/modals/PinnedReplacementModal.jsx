@@ -206,9 +206,9 @@ function PinnedReplacementModal({
                 padding: "5px 10px",
                 borderRadius: 999,
                 background: isFreePinnedReroll
-                  ? "rgba(16,185,129,0.15)"
+                  ? "color-mix(in srgb, var(--color-primary) 15%, transparent)"
                   : "rgba(255,255,255,0.05)",
-                border: `1px solid ${isFreePinnedReroll ? "rgba(16,185,129,0.45)" : "var(--card-border-idle)"}`,
+                border: `1px solid ${isFreePinnedReroll ? "color-mix(in srgb, var(--color-primary) 45%, transparent)" : "var(--card-border-idle)"}`,
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 5,
@@ -216,7 +216,7 @@ function PinnedReplacementModal({
               }}
             >
               <span style={{ fontSize: 13 }}>{isFreePinnedReroll ? "🎁" : "🪙"}</span>
-              <span className="cinzel" style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: isFreePinnedReroll ? "#6ee7b7" : "var(--color-text)" }}>
+              <span className="cinzel" style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: isFreePinnedReroll ? "var(--color-primary)" : "var(--color-text)" }}>
                 {isFreePinnedReroll ? (t.freeLabel || "Free") : `${TOKEN_COST} ${t.tokenPlural || "tokens"}`}
               </span>
             </div>
@@ -233,7 +233,7 @@ function PinnedReplacementModal({
               }}
             >
               <span style={{ fontSize: 13 }}>🪙</span>
-              <span className="cinzel" style={{ fontSize: 12, color: "#fbbf24", fontWeight: 700 }}>
+              <span className="cinzel" style={{ fontSize: 12, color: "var(--color-primary)", fontWeight: 700 }}>
                 {Number(tokens) || 0}
               </span>
             </div>
@@ -504,7 +504,7 @@ function PinnedReplacementModal({
                 fontWeight: 800,
                 cursor: primaryDisabled ? "not-allowed" : "pointer",
                 letterSpacing: "0.05em",
-                boxShadow: primaryDisabled ? "none" : "0 8px 20px rgba(56,189,248,0.2)"
+                boxShadow: primaryDisabled ? "none" : "0 8px 20px color-mix(in srgb, var(--color-primary) 28%, transparent)"
               }}
             >
               {replacePinnedSaving

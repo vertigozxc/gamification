@@ -969,7 +969,7 @@ function OnboardingModal({
                   fontWeight: 800,
                   cursor: !canAdvanceFromStep0 ? "not-allowed" : "pointer",
                   letterSpacing: "0.05em",
-                  boxShadow: !canAdvanceFromStep0 ? "none" : "0 8px 20px rgba(56,189,248,0.2)"
+                  boxShadow: !canAdvanceFromStep0 ? "none" : "0 8px 20px color-mix(in srgb, var(--color-primary) 28%, transparent)"
                 }}
               >
                 {t.onboardingContinue || "Continue →"}
@@ -1017,7 +1017,7 @@ function OnboardingModal({
                   fontWeight: 800,
                   cursor: primaryDisabled ? "not-allowed" : "pointer",
                   letterSpacing: "0.05em",
-                  boxShadow: primaryDisabled ? "none" : "0 8px 20px rgba(56,189,248,0.2)"
+                  boxShadow: primaryDisabled ? "none" : "0 8px 20px color-mix(in srgb, var(--color-primary) 28%, transparent)"
                 }}
               >
                 {onboardingSaving ? t.onboardingSaving : t.onboardingBegin}
