@@ -25,7 +25,7 @@ const TABS = [
   { id: "inventory", labelKey: "storeTabInventory", IconCmp: IconBag     }
 ];
 
-const INVENTORY_GRID_SIZE = 25; // 5 cols × 5 rows — icons fill the slot fully
+const INVENTORY_GRID_SIZE = 16; // 4 cols × 4 rows — icons fill the slot fully, cells ~70px on a 360-viewport
 
 // Coupon raster art lives at /public/coupons/<type>.png — see
 // CouponIcon component. Mapping is by coupon.type.
@@ -719,11 +719,12 @@ export default function StoreTab({
           <p className="cinzel mobile-section-kicker" style={{ marginBottom: 10 }}>
             {t.inventoryTitle || "Inventory"}
           </p>
-          {/* 5×5 WoW-bag grid. Slots are tighter so the raster coupon
-              icons fill the cell almost edge-to-edge. Square aspect,
-              no "empty" labels, count badge in the bottom-right of
-              stacked items. */}
-          <div className="grid grid-cols-5 gap-1.5">
+          {/* 4×4 WoW-bag grid. Cells stay comfortably tappable (~70px
+              on a 360-px viewport, ~80+ on regular phones) and just
+              shrink on narrower devices instead of wrapping rows.
+              Square aspect, no "empty" labels, count badge in the
+              bottom-right of stacked items. */}
+          <div className="grid grid-cols-4 gap-1.5">
             {bagSlots.map((slot, i) => (
               <BagSlot key={i} slot={slot} onTap={setSelectedSlot} />
             ))}
