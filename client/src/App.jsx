@@ -1880,6 +1880,16 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
         xp: userData.xp ?? prev.xp,
         xpNext: userData.xpNext ?? prev.xpNext,
         silver: userData.silver ?? prev.silver,
+        // Pull the wallet + inventory + cosmetics fields here too —
+        // before this they were only re-read on full re-login, which
+        // is why DEV +gold (and any other server-side mutation) only
+        // appeared after a relaunch. Keep this list in sync with the
+        // initial bootstrap setState above (~line 1030).
+        gold: Number(userData.gold ?? prev.gold ?? 0),
+        rouletteCoupons: Number(userData.rouletteCoupons ?? prev.rouletteCoupons ?? 0),
+        ownedCosmetics: typeof userData.ownedCosmetics === "string" ? userData.ownedCosmetics : (prev.ownedCosmetics ?? "[]"),
+        activeCosmetics: typeof userData.activeCosmetics === "string" ? userData.activeCosmetics : (prev.activeCosmetics ?? "{}"),
+        couponInventory: typeof userData.couponInventory === "string" ? userData.couponInventory : (prev.couponInventory ?? "[]"),
         streak: Number(gameStateResponse?.streak ?? prev.streak),
         completed: Array.isArray(gameStateResponse?.completedQuestIds) ? gameStateResponse.completedQuestIds : prev.completed,
         productivity: gameStateResponse?.productivity ?? prev.productivity,
