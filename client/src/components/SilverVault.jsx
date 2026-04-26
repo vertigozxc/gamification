@@ -1,17 +1,14 @@
 import PropTypes from "prop-types";
 import { useTheme } from "../ThemeContext";
 import {
-  IconDice,
-  IconPuzzle,
-  IconBolt,
   IconRefresh,
   IconSwords,
   IconShoppingBag,
-  IconHouse,
   IconSilver,
   IconGold,
   IconArrowRight
 } from "./icons/Icons";
+import CouponIcon from "./CouponIcon";
 
 const SWAP_SILVER_COST = 100;
 const SWAP_GOLD_REWARD = 1;
@@ -80,7 +77,7 @@ function SilverVault({
         <div className="flex flex-col gap-4">
           <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
             <div className="flex items-center gap-3">
-              <span className="text-3xl">🧊</span>
+              <CouponIcon type="freeze" size={44} alt="freeze" />
               <div className="flex-1">
                 <p className="cinzel font-bold text-base tracking-wide" style={{ color: "var(--color-text)" }}>{t.freezeTitle}</p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.freezeDesc}</p>
@@ -99,14 +96,13 @@ function SilverVault({
               className={`${buyButtonClass} ${silver >= freezeCost && !freezeStreakPending && !freezeWeeklyLocked ? "" : buyButtonDisabledClass}`}
               style={silver >= freezeCost && !freezeStreakPending && !freezeWeeklyLocked ? buyButtonActiveStyle : undefined}
             >
-              <span style={{ display: "inline-flex", color: "currentColor" }}><IconSilver size={18} /></span>
               {freezeWeeklyLocked
                 ? (t.freezeWeeklyLocked || "Already bought this week")
                 : freezeStreakPending
                   ? t.processingLabel
                   : silver < freezeCost
                     ? t.notEnough
-                    : `${t.buyPrefix} ${freezeCost} ${getPluralizedSilver(freezeCost)}`}
+                    : (t.buyShort || "BUY")}
             </button>
             <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
               {t.freezeWeeklyHint || "Limit: 1 purchase per week · resets Monday"}
@@ -115,7 +111,7 @@ function SilverVault({
 
           <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
             <div className="flex items-center gap-3">
-              <span style={{ display: "inline-flex", color: "var(--color-primary)" }}><IconDice size={28} /></span>
+              <CouponIcon type="reroll" size={44} alt="reroll" />
               <div className="flex-1">
                 <p className="cinzel font-bold text-base tracking-wide" style={{ color: "var(--color-text)" }}>{t.rerollShopTitle}</p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.rerollShopDesc}</p>
@@ -131,8 +127,7 @@ function SilverVault({
               className={`${buyButtonClass} ${silver >= rerollCost ? "" : buyButtonDisabledClass}`}
               style={silver >= rerollCost ? buyButtonActiveStyle : undefined}
             >
-              <span style={{ display: "inline-flex", color: "currentColor" }}><IconSilver size={18} /></span>
-              {silver < rerollCost ? t.notEnough : `${t.buyPrefix} ${rerollCost} ${getPluralizedSilver(rerollCost)}`}
+              {silver < rerollCost ? t.notEnough : (t.buyShort || "BUY")}
             </button>
             <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
               {t.extraRerollCouponHint || "Coupon goes to inventory — activate it whenever you need a daily-quest reroll."}
@@ -146,7 +141,7 @@ function SilverVault({
               "free" state in the shop card any more. */}
           <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
             <div className="flex items-start gap-3">
-              <span style={{ display: "inline-flex", color: "var(--color-primary)" }}><IconPuzzle size={28} /></span>
+              <CouponIcon type="pinned_reroll" size={44} alt="change habits" />
               <div className="flex-1">
                 <p className="cinzel font-bold text-base tracking-wide" style={{ color: "var(--color-text)" }}>{t.pinnedQuestRerollTitle}</p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.pinnedQuestRerollDesc}</p>
@@ -162,8 +157,7 @@ function SilverVault({
               className={`${buyButtonClass} ${silver >= 7 && !buyPinnedRerollCouponPending ? "" : buyButtonDisabledClass}`}
               style={silver >= 7 && !buyPinnedRerollCouponPending ? buyButtonActiveStyle : undefined}
             >
-              <span style={{ display: "inline-flex" }}><IconRefresh size={16} /></span>
-              {silver < 7 ? t.notEnough : `${t.buyPrefix} 7 ${getPluralizedSilver(7)}`}
+              {silver < 7 ? t.notEnough : (t.buyShort || "BUY")}
             </button>
             <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
               {t.pinnedRerollFreeGrantHint || "A free coupon arrives every 21 days. Activate any from your inventory."}
@@ -172,7 +166,7 @@ function SilverVault({
 
           <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
             <div className="flex items-center gap-3">
-              <span style={{ display: "inline-flex", color: "var(--color-primary)" }}><IconBolt size={28} /></span>
+              <CouponIcon type="xp_boost" size={44} alt="xp boost" />
               <div className="flex-1">
                 <p className="cinzel font-bold text-base tracking-wide" style={{ color: "var(--color-text)" }}>{t.xpBoostTitle}</p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.xpBoostDesc}</p>
@@ -191,17 +185,16 @@ function SilverVault({
               className={`${buyButtonClass} ${silver >= xpBoostCost ? "" : buyButtonDisabledClass}`}
               style={silver >= xpBoostCost ? buyButtonActiveStyle : undefined}
             >
-              <span style={{ display: "inline-flex", color: "currentColor" }}><IconSilver size={18} /></span>
-              {silver < xpBoostCost ? t.notEnough : `${t.buyPrefix} ${xpBoostCost} ${getPluralizedSilver(xpBoostCost)}`}
+              {silver < xpBoostCost ? t.notEnough : (t.buyShort || "BUY")}
             </button>
-            <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
-              {xpBoostActive
-                ? tf("xpBoostActiveHint", {
-                    days: xpBoostDaysLeft,
-                    dayLabel: xpBoostDaysLeft === 1 ? t.daySingular : t.dayPlural
-                  })
-                : t.xpBoostInactiveHint}
-            </p>
+            {/* Hint shown only when boost is INACTIVE (per spec). When
+                active the user can already see "X days left" in the
+                inventory; repeating it here is noise. */}
+            {!xpBoostActive ? (
+              <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
+                {t.xpBoostInactiveHint}
+              </p>
+            ) : null}
           </div>
 
           {/* Silver → Gold swap. Fixed 100:1 rate (server-authoritative).
@@ -230,25 +223,18 @@ function SilverVault({
               className={`${buyButtonClass} ${silver >= SWAP_SILVER_COST ? "" : buyButtonDisabledClass}`}
               style={silver >= SWAP_SILVER_COST ? buyButtonActiveStyle : undefined}
             >
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <IconSilver size={16} />
-                <span>{SWAP_SILVER_COST}</span>
-                <span style={{ display: "inline-flex" }}><IconArrowRight size={12} /></span>
-                <IconGold size={16} />
-                <span>{SWAP_GOLD_REWARD}</span>
-              </span>
+              {silver < SWAP_SILVER_COST ? t.notEnough : (t.swapShort || "SWAP")}
             </button>
             <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
-              {t.swapHint || "Useful when you've stocked up on silver but need gold for cosmetics."}
+              {t.swapHint || "Useful when you've stocked up on silver but need gold."}
             </p>
           </div>
 
           {/* Reset city — refunds every silver sunk into districts, wipes
-              them all back to level 0. Cost escalates by 10/reset up to
-              a 50-silver cap. */}
+              them all back to level 0. Flat 20 silver per coupon. */}
           <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
             <div className="flex items-start gap-3">
-              <span style={{ display: "inline-flex", color: "var(--color-primary)" }}><IconHouse size={28} /></span>
+              <CouponIcon type="city_reset" size={44} alt="reset city" />
               <div className="flex-1">
                 <p className="cinzel font-bold text-base tracking-wide" style={{ color: "var(--color-text)" }}>{t.cityResetTitle || "Reset city"}</p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.cityResetDesc || "Wipe all districts and refund every silver spent on them."}</p>
@@ -267,12 +253,8 @@ function SilverVault({
               className={`${buyButtonClass} ${silver >= cityResetCost ? "" : buyButtonDisabledClass}`}
               style={silver >= cityResetCost ? buyButtonActiveStyle : undefined}
             >
-              <span style={{ display: "inline-flex", color: "currentColor" }}><IconSilver size={18} /></span>
-              {silver < cityResetCost ? t.notEnough : `${t.buyPrefix} ${cityResetCost} ${getPluralizedSilver(cityResetCost)}`}
+              {silver < cityResetCost ? t.notEnough : (t.buyShort || "BUY")}
             </button>
-            <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
-              {t.cityResetCostHint || "Each reset costs +10 silver more (max 50)."}
-            </p>
           </div>
 
         </div>

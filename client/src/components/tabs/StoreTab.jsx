@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import SilverVault from "../SilverVault";
+import CouponIcon from "../CouponIcon";
 import COSMETIC_ITEMS, { parseOwnedCosmetics } from "../../data/cosmetics";
 import { parseCouponInventory, groupCouponsByType, parseActiveCosmetics } from "../../data/coupons";
 import {
@@ -9,11 +10,7 @@ import {
   IconBolt,
   IconPalette,
   IconBag,
-  IconCouponFreeze,
-  IconCouponReroll,
-  IconCouponHabitSwap,
-  IconCouponXpBoost,
-  IconCouponCityReset
+  IconClose
 } from "../icons/Icons";
 
 // 3-tab Store screen with the dashboard-style sliding tab bar:
@@ -30,15 +27,8 @@ const TABS = [
 
 const INVENTORY_GRID_SIZE = 16; // 4 cols × 4 rows
 
-// One coupon-type → glyph mapping. Used both in the inventory grid and
-// for log/toast messages.
-const COUPON_GLYPH = {
-  freeze: IconCouponFreeze,
-  reroll: IconCouponReroll,
-  pinned_reroll: IconCouponHabitSwap,
-  xp_boost: IconCouponXpBoost,
-  city_reset: IconCouponCityReset
-};
+// Coupon raster art lives at /public/coupons/<type>.png — see
+// CouponIcon component. Mapping is by coupon.type.
 
 // One slot in the WoW-bag grid. 1:1 aspect square. Filled slots can be
 // "tappable" (coupons, owned cosmetics) or read-only (active effects);
@@ -46,7 +36,7 @@ const COUPON_GLYPH = {
 // active:scale press feedback. Count badge lives in the bottom-right
 // corner WoW-style — white with dark stroke for legibility against any
 // glyph underneath.
-function BagSlot({ slot }) {
+function BagSlot({ slot, onTap }) {
   if (!slot || slot.kind === "empty") {
     return (
       <div
@@ -85,7 +75,8 @@ function BagSlot({ slot }) {
       ? "inset 0 1px 2px rgba(0,0,0,0.25)"
       : `inset 0 0 8px color-mix(in srgb, ${baseColor} 18%, transparent)`,
     color: isReadOnly ? "var(--color-muted)" : baseColor,
-    cursor: slot.onClick ? "pointer" : "default",
+    cursor: "pointer",
+    padding: 4,
     opacity: isReadOnly ? 0.85 : 1
   };
 
@@ -122,11 +113,11 @@ function BagSlot({ slot }) {
             position: "absolute",
             bottom: 2,
             right: 4,
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: 800,
             lineHeight: 1,
             color: "#fff",
-            textShadow: "0 1px 2px rgba(0,0,0,0.85), 0 0 1px rgba(0,0,0,0.85)",
+            textShadow: "0 1px 2px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.9)",
             letterSpacing: "0.02em",
             pointerEvents: "none"
           }}
@@ -137,20 +128,178 @@ function BagSlot({ slot }) {
     </>
   );
 
-  if (slot.onClick) {
-    return (
-      <button
-        type="button"
-        onClick={slot.onClick}
-        className="mobile-pressable"
-        aria-label={slot.label || ""}
-        style={{ ...wrapStyle, padding: 0, border: wrapStyle.border, color: wrapStyle.color }}
+  // Every non-empty slot is tappable — opens the bottom-sheet with details.
+  // Activation runs from the sheet's "Use" CTA, not from the slot tap, so
+  // the user always sees the description before committing.
+  return (
+    <button
+      type="button"
+      onClick={() => onTap?.(slot)}
+      className="mobile-pressable"
+      aria-label={slot.label || ""}
+      style={wrapStyle}
+    >
+      {Inner}
+    </button>
+  );
+}
+
+// Bottom-sheet for the inventory: tap a slot → slides up from below
+// with full title/description/count + a "Use" or "Equip" CTA. Backdrop
+// tap closes (per the user spec — "tap outside to close, not just the X").
+function InventorySheet({ slot, onClose, t }) {
+  if (!slot) return null;
+
+  const ctaDestructive = Boolean(slot.ctaDestructive);
+  const ctaDisabled = Boolean(slot.ctaDisabled);
+  const hasAction = typeof slot.action === "function";
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9000,
+        backdropFilter: "blur(6px)",
+        WebkitBackdropFilter: "blur(6px)",
+        background: "rgba(5, 10, 20, 0.6)",
+        display: "flex",
+        alignItems: "flex-end",
+        justifyContent: "center",
+        animation: "fadeIn 0.2s ease-out"
+      }}
+    >
+      <div
+        // stop the inner click from bubbling to the backdrop
+        onClick={(e) => e.stopPropagation()}
+        className="mobile-card"
+        style={{
+          width: "100%",
+          maxWidth: 480,
+          padding: "20px 18px 24px",
+          borderRadius: "20px 20px 0 0",
+          border: "1px solid var(--panel-border)",
+          borderBottom: "none",
+          background: "linear-gradient(180deg, var(--panel-bg), color-mix(in srgb, var(--panel-bg) 92%, var(--color-primary)))",
+          animation: "slideInUp 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
+          paddingBottom: "calc(24px + env(safe-area-inset-bottom, 0px))",
+          position: "relative"
+        }}
       >
-        {Inner}
-      </button>
-    );
-  }
-  return <div style={wrapStyle} title={slot.label || ""}>{Inner}</div>;
+        {/* drag handle (visual only) */}
+        <div
+          style={{
+            width: 36,
+            height: 4,
+            borderRadius: 2,
+            background: "color-mix(in srgb, var(--color-muted) 40%, transparent)",
+            margin: "0 auto 16px"
+          }}
+        />
+
+        {/* close X — top-right */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={t.closeLabel || "Close"}
+          className="mobile-pressable"
+          style={{
+            position: "absolute",
+            top: 14,
+            right: 12,
+            width: 32,
+            height: 32,
+            borderRadius: "50%",
+            border: "1px solid var(--card-border-idle)",
+            background: "var(--card-bg)",
+            color: "var(--color-muted)",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer"
+          }}
+        >
+          <IconClose size={16} />
+        </button>
+
+        <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 14 }}>
+          <div
+            style={{
+              flex: "0 0 auto",
+              width: 88,
+              height: 88,
+              borderRadius: 16,
+              background: "color-mix(in srgb, var(--card-bg) 70%, rgba(0,0,0,0.2))",
+              border: "1px solid var(--card-border-idle)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+          >
+            {slot.bigIcon || slot.icon}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p className="cinzel" style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.25, color: "var(--color-text)", margin: 0 }}>
+              {slot.title}
+            </p>
+            {slot.count ? (
+              <p style={{ fontSize: 12, color: "var(--color-accent)", fontWeight: 700, margin: "4px 0 0" }}>
+                {String(slot.count).startsWith("×") || /^\d+$/.test(String(slot.count)) ? `× ${String(slot.count).replace("×", "")}` : slot.count}
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        {slot.description ? (
+          <p style={{ fontSize: 13, color: "var(--color-muted)", lineHeight: 1.5, margin: "0 0 18px" }}>
+            {slot.description}
+          </p>
+        ) : null}
+
+        {hasAction ? (
+          <button
+            type="button"
+            onClick={() => {
+              if (ctaDisabled) return;
+              try { slot.action(); } catch { /* swallow — handler logs */ }
+              onClose();
+            }}
+            disabled={ctaDisabled}
+            className="mobile-pressable cinzel"
+            style={{
+              width: "100%",
+              padding: "14px 18px",
+              borderRadius: 14,
+              border: ctaDestructive
+                ? "1.5px solid color-mix(in srgb, #ef4444 65%, transparent)"
+                : "1.5px solid color-mix(in srgb, var(--color-primary) 55%, transparent)",
+              background: ctaDisabled
+                ? "color-mix(in srgb, var(--card-border-idle) 30%, transparent)"
+                : ctaDestructive
+                  ? "linear-gradient(135deg, #dc2626, #ef4444)"
+                  : "linear-gradient(135deg, var(--color-primary), var(--color-accent))",
+              color: ctaDisabled ? "var(--color-muted)" : (ctaDestructive ? "#fff" : "#0b1120"),
+              fontSize: 14,
+              fontWeight: 800,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              cursor: ctaDisabled ? "not-allowed" : "pointer",
+              boxShadow: ctaDisabled
+                ? "none"
+                : ctaDestructive
+                  ? "0 6px 18px color-mix(in srgb, #ef4444 35%, transparent)"
+                  : "0 6px 18px color-mix(in srgb, var(--color-primary) 30%, transparent)"
+            }}
+          >
+            {slot.ctaLabel || (t.couponUseCta || "Use")}
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 // Compose the dynamic inventory grid. Order: coupons (stacked by type)
@@ -170,18 +319,24 @@ function buildBagSlots({
   const slots = [];
 
   // 1) Coupons — group by type, stack count = number of coupons of that type.
-  // Tap on the slot activates the OLDEST coupon of that type.
+  // Tap on the slot opens the bottom-sheet with details + Use button.
   const couponInv = parseCouponInventory(couponInventoryRaw);
   const grouped = groupCouponsByType(couponInv);
   grouped.forEach((bucket) => {
-    const Glyph = COUPON_GLYPH[bucket.type];
     const oldest = bucket.coupons[0];
+    const name = t[`couponName_${bucket.type}`] || bucket.type;
     slots.push({
       kind: "coupon",
-      icon: Glyph ? <Glyph size={26} /> : null,
+      type: bucket.type,
+      icon: <CouponIcon type={bucket.type} size={44} alt={name} />,
+      bigIcon: <CouponIcon type={bucket.type} size={120} alt={name} />,
       count: bucket.count > 1 ? bucket.count : null,
-      label: t[`couponName_${bucket.type}`] || bucket.type,
-      onClick: () => onActivateCoupon?.(oldest)
+      label: name,
+      title: name,
+      description: t[`couponSheetDesc_${bucket.type}`] || "",
+      ctaLabel: t.couponUseCta || "Use",
+      ctaDestructive: bucket.type === "city_reset",
+      action: () => onActivateCoupon?.(oldest)
     });
   });
 
@@ -191,9 +346,13 @@ function buildBagSlots({
   if (Number(streakFreezeCharges) > 0) {
     slots.push({
       kind: "active-effect",
-      icon: <IconCouponFreeze size={26} />,
+      type: "freeze",
+      icon: <CouponIcon type="freeze" size={44} alt="freeze" />,
+      bigIcon: <CouponIcon type="freeze" size={120} alt="freeze" />,
       count: streakFreezeCharges > 1 ? streakFreezeCharges : null,
-      label: t.activeFreezeChargesLabel || "Freeze charges (auto-consume)"
+      label: t.activeFreezeChargesLabel || "Freeze charges (auto-consume)",
+      title: t.activeFreezeChargesLabel || "Freeze charges",
+      description: t.activeFreezeChargesDesc || "Already activated. Will auto-shield a missed streak day."
     });
   }
   const xpBoostMs = xpBoostExpiresAt ? new Date(xpBoostExpiresAt).getTime() - Date.now() : 0;
@@ -201,17 +360,24 @@ function buildBagSlots({
     const daysLeft = Math.max(1, Math.ceil(xpBoostMs / 86400000));
     slots.push({
       kind: "active-effect",
-      icon: <IconCouponXpBoost size={26} />,
+      type: "xp_boost",
+      icon: <CouponIcon type="xp_boost" size={44} alt="xp boost" />,
+      bigIcon: <CouponIcon type="xp_boost" size={120} alt="xp boost" />,
       count: `${daysLeft}d`,
-      label: t.activeXpBoostLabel || "XP Boost active"
+      label: t.activeXpBoostLabel || "XP Boost active",
+      title: t.activeXpBoostLabel || "XP Boost active",
+      description: (t.activeXpBoostDesc || "+15% XP on every quest. {days} day(s) left.").replace("{days}", String(daysLeft))
     });
   }
   if (Number(rouletteCoupons) > 0) {
     slots.push({
       kind: "active-effect",
       icon: "🎟",
+      bigIcon: <span style={{ fontSize: 40 }}>🎟</span>,
       count: rouletteCoupons > 1 ? rouletteCoupons : null,
-      label: t.inventoryCouponLabel || "Roulette coupon"
+      label: t.inventoryCouponLabel || "Roulette coupon",
+      title: t.inventoryCouponLabel || "Roulette coupon",
+      description: t.rouletteCouponDesc || "Spend on a free spin of the City wheel."
     });
   }
 
@@ -225,13 +391,19 @@ function buildBagSlots({
     .filter(Boolean)
     .forEach((item) => {
       const isActive = active[item.category] === item.id;
+      const cosmeticName = t[item.nameKey] || item.id;
       slots.push({
         kind: "cosmetic",
         icon: <span style={{ fontSize: 22 }}>{item.previewIcon}</span>,
+        bigIcon: <span style={{ fontSize: 56 }}>{item.previewIcon}</span>,
         count: null,
         active: isActive,
-        label: t[item.nameKey] || item.id,
-        onClick: () => onActivateCosmetic?.(item.id)
+        label: cosmeticName,
+        title: cosmeticName,
+        description: t[item.descKey] || "",
+        ctaLabel: isActive ? (t.cosmeticEquippedLabel || "Currently equipped") : (t.cosmeticEquipCta || "Equip"),
+        ctaDisabled: isActive,
+        action: () => onActivateCosmetic?.(item.id)
       });
     });
 
@@ -377,6 +549,7 @@ export default function StoreTab({
   t
 }) {
   const [activeTab, setActiveTab] = useState("utility");
+  const [selectedSlot, setSelectedSlot] = useState(null);
   const tabsRowRef = useRef(null);
   const indicatorRef = useRef(null);
 
@@ -594,11 +767,20 @@ export default function StoreTab({
               count badge in the bottom-right corner of stacked items. */}
           <div className="grid grid-cols-4 gap-1.5">
             {bagSlots.map((slot, i) => (
-              <BagSlot key={i} slot={slot} />
+              <BagSlot key={i} slot={slot} onTap={setSelectedSlot} />
             ))}
           </div>
         </div>
       ) : null}
+
+      {/* Bottom-sheet: opens on slot tap. Backdrop click + close button
+          + Use-CTA all dismiss. Closes after activation so the user
+          sees the inventory grid update right away. */}
+      <InventorySheet
+        slot={selectedSlot}
+        onClose={() => setSelectedSlot(null)}
+        t={t}
+      />
     </div>
   );
 }

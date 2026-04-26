@@ -5668,11 +5668,12 @@ app.post("/api/shop/buy-cosmetic", async (req, res) => {
   }
 });
 
-// Escalating cost per reset: 10, 20, 30, 40, 50, 50, 50…
-// (caps at 50 silver for the 5th reset and every subsequent one).
-function computeCityResetCost(resetsPaidSoFar) {
-  const idx = Math.max(0, Number(resetsPaidSoFar) || 0) + 1;
-  return Math.min(50, 10 * idx);
+// Fixed cost per reset coupon. cityResetsPaid is still incremented on
+// every paid reset purchase because the Phoenix achievement uses it as
+// a "did you ever pay for one" gate (server/src/achievements.js).
+const CITY_RESET_COST = 20;
+function computeCityResetCost() {
+  return CITY_RESET_COST;
 }
 
 // Sum of all upgrade-step costs for a district currently at level L.
@@ -5698,10 +5699,11 @@ app.post("/api/shop/reset-city", async (req, res) => {
     const user = await prisma.user.findUnique({ where: { username } });
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // Cost escalates with each PURCHASE (10 → 20 → … cap 50). We
-    // bump cityResetsPaid here on buy, NOT on activation, so a user
-    // who stockpiles 3 reset coupons pays 10 + 20 + 30 = 60 silver
-    // total — not 3 × current cost.
+    // Fixed 20 silver per coupon. cityResetsPaid is still bumped here
+    // (not on activation) because the Phoenix achievement gates on
+    // `did you ever pay for a reset` and a user who stockpiles a
+    // bunch of coupons should unlock it on the first BUY, not have
+    // to wait until they activate.
     const cost = computeCityResetCost(user.cityResetsPaid);
     if ((Number(user.silver) || 0) < cost) {
       return res.status(400).json({

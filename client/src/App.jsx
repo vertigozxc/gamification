@@ -1329,10 +1329,10 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   // / LoginScreen) — otherwise React sees more hooks after the user logs
   // in than before (error #310).
   const DISTRICT_UPGRADE_COSTS_CLIENT = [5, 15, 25, 50, 100];
-  const cityResetCost = useMemo(() => {
-    const paid = Math.max(0, Number(state.user?.cityResetsPaid) || 0);
-    return Math.min(50, 10 * (paid + 1));
-  }, [state.user?.cityResetsPaid]);
+  // Reset City coupon is now a flat 20 silver — see server's
+  // CITY_RESET_COST. cityResetsPaid still bumps on each purchase
+  // for the Phoenix achievement, but no longer affects price.
+  const cityResetCost = 20;
   const cityResetRefund = useMemo(() => {
     const levels = Array.isArray(state.districtLevels) ? state.districtLevels : [0, 0, 0, 0, 0];
     return levels.reduce((sum, lvl) => {
