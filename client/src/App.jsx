@@ -2323,6 +2323,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
           >
           <div className="w-full max-w-3xl mx-auto embedded-content-safe">
             {mobileTab === "city" ? (
+              <Suspense fallback={<PortalPreloader title={t.loadingText} overlay />}>
               <CityTab
                 stage={Math.max(0, Math.floor(state.lvl) || 0)}
                 dailyXpToday={state.productivity?.xpToday ?? 0}
@@ -2384,9 +2385,11 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                   }));
                 }}
               />
+              </Suspense>
             ) : null}
 
             {mobileTab === "dashboard" ? (
+              <Suspense fallback={<PortalPreloader title={t.loadingText} overlay />}>
               <DashboardTab
                 state={state}
                 characterName={characterName}
@@ -2430,18 +2433,22 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 rerollingPinned={rerollingPinned}
                 authUser={authUser}
               />
+              </Suspense>
             ) : null}
 
             {mobileTab === "leaderboard" ? (
+              <Suspense fallback={<PortalPreloader title={t.loadingText} overlay />}>
               <LeaderboardTab
                 leaderboard={leaderboard}
                 authUser={authUser}
                 logs={state.logs}
                 t={t}
               />
+              </Suspense>
             ) : null}
 
             {mobileTab === "store" ? (
+              <Suspense fallback={<PortalPreloader title={t.loadingText} overlay />}>
               <StoreTab
                 tokens={state.tokens}
                 streakFreezeCharges={Number(state.user?.streakFreezeCharges) || 0}
@@ -2489,9 +2496,11 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 onResetCity={() => setCityResetConfirmOpen(true)}
                 t={t}
               />
+              </Suspense>
             ) : null}
 
             {mobileTab === "profile" ? (
+              <Suspense fallback={<PortalPreloader title={t.loadingText} overlay />}>
               <ProfileTab
                 characterName={characterName}
                 editingName={editingName}
@@ -2548,6 +2557,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                   }));
                 }}
               />
+              </Suspense>
             ) : null}
           </div>
           </PullToRefresh>

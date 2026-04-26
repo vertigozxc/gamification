@@ -313,10 +313,12 @@ export default function AchievementsSection({ username, t, languageId, onModalOp
               >
                 {Icon ? <Icon /> : null}
               </span>
-              {claimed ? (
+              {claimed && !readOnly ? (
                 // Top-left ✓ badge — fires only when the user actually
                 // claimed the token reward, not just when the achievement
-                // is unlocked. Apple-style green check on a soft chip.
+                // is unlocked. Hidden when viewing someone else's profile
+                // (readOnly) — the visitor doesn't need to know whether
+                // the owner has redeemed their tokens yet.
                 <span
                   aria-hidden="true"
                   style={{
@@ -532,10 +534,13 @@ function AchievementModal({ code, entry, stats, t, languageId, onClaim, onClose,
           <span>{stats ? formatPercent(stats.percent, t) : (t.achievementStatLoading || "Loading…")}</span>
         </div>
 
-        {/* Reward / claim CTA / claimed row */}
+        {/* Reward / claim CTA / claimed row.
+            On other-profile (readOnly) the claim status disappears —
+            visitors see the reward amount but never whether the owner
+            has redeemed it. */}
         {reward > 0 ? (
           <>
-            {locked ? (
+            {locked || readOnly ? (
               <div
                 style={{
                   display: "flex",
@@ -545,8 +550,10 @@ function AchievementModal({ code, entry, stats, t, languageId, onClaim, onClose,
                   padding: "10px 14px",
                   borderRadius: 12,
                   background: "color-mix(in srgb, var(--panel-bg) 70%, rgba(255,255,255,0.04))",
-                  border: "1px dashed var(--panel-border)",
-                  opacity: 0.7
+                  border: locked
+                    ? "1px dashed var(--panel-border)"
+                    : "1px solid color-mix(in srgb, var(--card-border-idle) 65%, transparent)",
+                  opacity: locked ? 0.7 : 1
                 }}
               >
                 <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-muted)" }}>
@@ -616,15 +623,16 @@ function AchievementModal({ code, entry, stats, t, languageId, onClaim, onClose,
           </p>
         ) : null}
 
-        {/* Footer dates */}
-        {(entry?.unlockedAt || effectiveClaimedAt) ? (
+        {/* Footer dates. Claimed-on is hidden in readOnly so visitors
+            on someone else's profile don't learn the redemption state. */}
+        {(entry?.unlockedAt || (effectiveClaimedAt && !readOnly)) ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, marginTop: 2 }}>
             {entry?.unlockedAt ? (
               <p className="text-[11px] m-0" style={{ color: "var(--color-muted)" }}>
                 {t.achievementUnlockedOn || "Unlocked on"} {formatDate(entry.unlockedAt, languageId)}
               </p>
             ) : null}
-            {effectiveClaimedAt ? (
+            {effectiveClaimedAt && !readOnly ? (
               <p className="text-[11px] m-0" style={{ color: "var(--color-muted)" }}>
                 {t.achievementClaimedOn || "Claimed on"} {formatDate(effectiveClaimedAt, languageId)}
               </p>

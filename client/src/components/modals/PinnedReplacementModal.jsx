@@ -497,9 +497,9 @@ function PinnedReplacementModal({
                 borderRadius: 12,
                 background: primaryDisabled
                   ? "rgba(255,255,255,0.08)"
-                  : "linear-gradient(90deg, var(--color-primary), var(--color-accent))",
-                border: "none",
-                color: primaryDisabled ? "#64748b" : "#0b1120",
+                  : "var(--color-primary)",
+                border: `1px solid color-mix(in srgb, var(--color-primary) ${primaryDisabled ? 30 : 65}%, transparent)`,
+                color: primaryDisabled ? "var(--color-muted)" : "#1b1410",
                 fontSize: 13,
                 fontWeight: 800,
                 cursor: primaryDisabled ? "not-allowed" : "pointer",
