@@ -50,7 +50,7 @@ import {
 import PortalPreloader from "./components/PortalPreloader";
 import NetworkRetryBanner from "./components/NetworkRetryBanner";
 import PullToRefresh from "./components/PullToRefresh";
-import { evictCommunityCache, resetCity, dismissStreakBurnNotice, buyCosmetic } from "./api";
+import { evictCommunityCache, resetCity, dismissStreakBurnNotice, buyCosmetic, swapSilverToGold } from "./api";
 import { IconTimer, IconSilver } from "./components/icons/Icons";
 
 const FreezeSuccessModal = lazy(() => import("./components/modals/FreezeSuccessModal"));
@@ -2516,6 +2516,24 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 cityResetCost={cityResetCost}
                 cityResetRefund={cityResetRefund}
                 onResetCity={() => setCityResetConfirmOpen(true)}
+                onSwapSilverToGold={async () => {
+                  if (!authUser?.uid) return;
+                  try {
+                    const resp = await swapSilverToGold(authUser.uid);
+                    setState((prev) => ({
+                      ...prev,
+                      silver: Number(resp?.silver ?? prev.silver),
+                      gold: Number(resp?.gold ?? prev.gold ?? 0)
+                    }));
+                    addLog?.((t.swapSuccessLog || "Exchanged 100 silver for 1 gold"), "text-amber-300");
+                  } catch (err) {
+                    const code = err?.data?.code || "unknown";
+                    const msg = code === "insufficient_silver"
+                      ? (t.notEnoughSilverSwap || "Not enough silver to swap (need 100)")
+                      : (t.swapFailed || "Exchange failed");
+                    addLog?.(msg, "text-red-400 font-bold");
+                  }
+                }}
                 gold={Number(state.gold) || 0}
                 rouletteCoupons={Number(state.rouletteCoupons) || 0}
                 ownedCosmetics={typeof state.ownedCosmetics === "string" ? state.ownedCosmetics : "[]"}

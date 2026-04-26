@@ -808,6 +808,15 @@ export function buyCosmetic(username, cosmeticId) {
   });
 }
 
+// Currency exchange: 100 silver → 1 gold. Server is authoritative on
+// the rate; client just posts the username.
+export function swapSilverToGold(username) {
+  return request("/api/shop/swap-silver-to-gold", {
+    method: "POST",
+    body: JSON.stringify({ username })
+  });
+}
+
 export function claimMonthlyFreeze(username) {
   return request("/api/city/residential/claim-freeze", {
     method: "POST",

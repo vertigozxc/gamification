@@ -428,6 +428,15 @@ export const languagePacks = {
       cosmeticPurchaseFailed: "Cosmetic purchase failed.",
       cosmeticAlreadyOwned: "Already owned.",
       notEnoughGold: "Not enough gold.",
+      // Silver → Gold swap
+      swapTitle: "Swap silver for gold",
+      swapDesc: "Convert silver into premium gold at a fixed 100:1 rate.",
+      swapHint: "Useful when you've stocked up on silver but need gold for cosmetics.",
+      swapSuccessLog: "Exchanged 100 silver for 1 gold.",
+      swapFailed: "Exchange failed.",
+      notEnoughSilverSwap: "Need 100 silver to swap.",
+      // Compact 1-line economy hint shown under the Store header
+      storeEconomyHint: "Silver — earned from most activities · Gold — high-level progress only (see About) · Exchange 100 silver = 1 gold",
       // Error boundary popup
       errorBoundaryTitle: "Something went wrong",
       errorBoundaryBody: "We've already been notified and we're looking into it. Try the action again, or reload the app to recover.",
@@ -1738,6 +1747,15 @@ export const languagePacks = {
       cosmeticPurchaseFailed: "Не удалось купить косметику.",
       cosmeticAlreadyOwned: "Уже в коллекции.",
       notEnoughGold: "Недостаточно золота.",
+      // Обмен серебра на золото
+      swapTitle: "Обмен серебра на золото",
+      swapDesc: "Конвертируй серебро в премиум-золото по курсу 100 к 1.",
+      swapHint: "Удобно, когда серебра много, а золота на косметику не хватает.",
+      swapSuccessLog: "Обменено 100 серебра на 1 золото.",
+      swapFailed: "Обмен не удался.",
+      notEnoughSilverSwap: "Нужно 100 серебра для обмена.",
+      // Компактная подпись под шапкой Store про экономику
+      storeEconomyHint: "Серебро — за большинство активностей · Золото — только за хай-левел прогресс (см. «О приложении») · Курс обмена 100 серебра = 1 золото",
       // Error boundary popup
       errorBoundaryTitle: "Что-то пошло не так",
       errorBoundaryBody: "Мы уже знаем об ошибке и разбираемся. Попробуй ещё раз или перезагрузи приложение.",

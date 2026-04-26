@@ -229,6 +229,7 @@ export default function StoreTab({
   onBuyExtraReroll,
   onBuyXpBoost,
   onResetCity,
+  onSwapSilverToGold,
   onBuyCosmetic,
   cosmeticPurchasePending = null,
   t
@@ -335,6 +336,16 @@ export default function StoreTab({
             </span>
           </div>
         </div>
+        {/* Compact economy hint — three facts about how the dual-currency
+            economy works, separated by middle dots so each fact reads as
+            its own chunk without bloating the header. Two-line max on
+            narrow screens; ≤14 words per fact keeps it scannable. */}
+        <p className="relative z-10 text-[10px] leading-snug m-0 mt-2 pt-2" style={{
+          color: "var(--color-muted)",
+          borderTop: "1px solid color-mix(in srgb, var(--card-border-idle) 50%, transparent)"
+        }}>
+          {t.storeEconomyHint || "Silver — most activities · Gold — high-level only · Swap 100:1 (see About)"}
+        </p>
       </div>
 
       {/* Slide-bar tabs (qb-tab-bar pattern from QuestBoard so the two surfaces
@@ -401,6 +412,7 @@ export default function StoreTab({
             cityResetCost={cityResetCost}
             cityResetRefund={cityResetRefund}
             onResetCity={onResetCity}
+            onSwapSilverToGold={onSwapSilverToGold}
             compact
           />
         </>

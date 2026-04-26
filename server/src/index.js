@@ -5454,6 +5454,54 @@ app.post("/api/shop/buy-xp-boost", async (req, res) => {
   }
 });
 
+// Silver → Gold exchange. Fixed 100:1 rate. Atomic via Prisma update —
+// silver decremented, gold incremented, silverSpentTotal bumped (so the
+// "high_roller" achievement still tracks lifetime silver spend even when
+// the spend is on the swap rather than a utility item).
+const SWAP_SILVER_PER_GOLD = 100;
+const SWAP_GOLD_PER_TRADE = 1;
+const swapSilverBody = z.object({
+  username: z.string().min(2).max(64)
+});
+app.post("/api/shop/swap-silver-to-gold", async (req, res) => {
+  try {
+    const parsed = swapSilverBody.parse(req.body);
+    const username = slugifyUsername(parsed.username);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const userSilver = Number(user.silver) || 0;
+    if (userSilver < SWAP_SILVER_PER_GOLD) {
+      return res.status(400).json({
+        error: "Not enough silver",
+        code: "insufficient_silver",
+        required: SWAP_SILVER_PER_GOLD,
+        current: userSilver
+      });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        silver: { decrement: SWAP_SILVER_PER_GOLD },
+        gold: { increment: SWAP_GOLD_PER_TRADE },
+        silverSpentTotal: { increment: SWAP_SILVER_PER_GOLD }
+      },
+      select: { silver: true, gold: true }
+    });
+    trackAchievements(user.id);
+
+    res.json({
+      ok: true,
+      silver: updated.silver,
+      gold: updated.gold,
+      swapped: { silverIn: SWAP_SILVER_PER_GOLD, goldOut: SWAP_GOLD_PER_TRADE }
+    });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid request", detail: error.message });
+  }
+});
+
 // ── Cosmetics catalog ────────────────────────────────────────────
 // Server-authoritative list of buyable cosmetics. The client renders
 // these as Gold-tab items and posts to /api/shop/buy-cosmetic with

@@ -8,8 +8,13 @@ import {
   IconSwords,
   IconShoppingBag,
   IconHouse,
-  IconSilver
+  IconSilver,
+  IconGold,
+  IconArrowRight
 } from "./icons/Icons";
+
+const SWAP_SILVER_COST = 100;
+const SWAP_GOLD_REWARD = 1;
 
 function SilverVault({
   silver,
@@ -32,6 +37,7 @@ function SilverVault({
   onBuyExtraReroll,
   onBuyXpBoost,
   onResetCity,
+  onSwapSilverToGold,
   compact = false
 }) {
   const { t, tf } = useTheme();
@@ -208,6 +214,45 @@ function SilverVault({
                     dayLabel: xpBoostDaysLeft === 1 ? t.daySingular : t.dayPlural
                   })
                 : t.xpBoostInactiveHint}
+            </p>
+          </div>
+
+          {/* Silver → Gold swap. Fixed 100:1 rate (server-authoritative).
+              Card hero shows the conversion visually: silver coin →
+              arrow → gold coin, so the function reads instantly without
+              needing the title. Disabled until silver ≥ 100. */}
+          <div className="mobile-card flex flex-col gap-3" style={{ background: "var(--panel-bg)" }}>
+            <div className="flex items-center gap-3">
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <IconSilver size={26} />
+                <span style={{ display: "inline-flex", color: "var(--color-muted)" }}><IconArrowRight size={14} /></span>
+                <IconGold size={26} />
+              </span>
+              <div className="flex-1">
+                <p className="cinzel font-bold text-base tracking-wide" style={{ color: "var(--color-text)" }}>{t.swapTitle || "Swap silver for gold"}</p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>{t.swapDesc || "Convert silver into premium gold."}</p>
+              </div>
+              <div className="flex items-center gap-1 rounded-full px-3 py-1" style={costChipStyle}>
+                <span style={{ display: "inline-flex", color: "var(--color-accent)" }}><IconSilver size={16} /></span>
+                <span className="cinzel font-bold text-sm" style={{ color: costValueColor }}>{SWAP_SILVER_COST}</span>
+              </div>
+            </div>
+            <button
+              onClick={onSwapSilverToGold}
+              disabled={silver < SWAP_SILVER_COST}
+              className={`${buyButtonClass} ${silver >= SWAP_SILVER_COST ? "" : buyButtonDisabledClass}`}
+              style={silver >= SWAP_SILVER_COST ? buyButtonActiveStyle : undefined}
+            >
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <IconSilver size={16} />
+                <span>{SWAP_SILVER_COST}</span>
+                <span style={{ display: "inline-flex" }}><IconArrowRight size={12} /></span>
+                <IconGold size={16} />
+                <span>{SWAP_GOLD_REWARD}</span>
+              </span>
+            </button>
+            <p className="text-[10px] text-center m-0 opacity-70" style={{ color: "var(--color-muted)" }}>
+              {t.swapHint || "Useful when you've stocked up on silver but need gold for cosmetics."}
             </p>
           </div>
 
