@@ -477,6 +477,8 @@ export const languagePacks = {
       activeXpBoostDesc: "+15% XP on every quest. {days} day(s) left.",
       rouletteCouponDesc: "Spend on a free spin of the City wheel.",
       closeLabel: "Close",
+      inventoryCountHint: "{n} in inventory",
+      cityResetActivateCta: "Reset",
       // Error boundary popup
       errorBoundaryTitle: "Something went wrong",
       errorBoundaryBody: "We've already been notified and we're looking into it. Try the action again, or reload the app to recover.",
@@ -1836,6 +1838,8 @@ export const languagePacks = {
       activeXpBoostDesc: "+15% XP за каждый квест. Осталось {days} дн.",
       rouletteCouponDesc: "Потрать на бесплатный спин колеса в Городе.",
       closeLabel: "Закрыть",
+      inventoryCountHint: "В инвентаре: {n}",
+      cityResetActivateCta: "Сбросить",
       // Error boundary popup
       errorBoundaryTitle: "Что-то пошло не так",
       errorBoundaryBody: "Мы уже знаем об ошибке и разбираемся. Попробуй ещё раз или перезагрузи приложение.",

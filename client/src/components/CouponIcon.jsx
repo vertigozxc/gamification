@@ -12,9 +12,30 @@ const COUPON_SRC = {
   city_reset: "/coupons/reset-city-coupon-2x.png"
 };
 
-export default function CouponIcon({ type, size = 36, alt = "", style, ...rest }) {
+export default function CouponIcon({ type, size = 36, fill = false, alt = "", style, ...rest }) {
   const src = COUPON_SRC[type];
   if (!src) return null;
+  // `fill` mode lets the parent flex/grid cell decide the size — used
+  // by the inventory bag slots so the raster art reaches edge-to-edge
+  // regardless of screen width.
+  if (fill) {
+    return (
+      <img
+        src={src}
+        alt={alt}
+        draggable={false}
+        style={{
+          display: "block",
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          userSelect: "none",
+          ...style
+        }}
+        {...rest}
+      />
+    );
+  }
   return (
     <img
       src={src}

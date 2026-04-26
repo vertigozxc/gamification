@@ -25,7 +25,7 @@ const TABS = [
   { id: "inventory", labelKey: "storeTabInventory", IconCmp: IconBag     }
 ];
 
-const INVENTORY_GRID_SIZE = 16; // 4 cols × 4 rows
+const INVENTORY_GRID_SIZE = 25; // 5 cols × 5 rows — icons fill the slot fully
 
 // Coupon raster art lives at /public/coupons/<type>.png — see
 // CouponIcon component. Mapping is by coupon.type.
@@ -76,13 +76,21 @@ function BagSlot({ slot, onTap }) {
       : `inset 0 0 8px color-mix(in srgb, ${baseColor} 18%, transparent)`,
     color: isReadOnly ? "var(--color-muted)" : baseColor,
     cursor: "pointer",
-    padding: 4,
+    padding: 2,
     opacity: isReadOnly ? 0.85 : 1
   };
 
   const Inner = (
     <>
-      <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+        borderRadius: 6
+      }}>
         {slot.icon}
       </div>
       {isActive ? (
@@ -144,159 +152,85 @@ function BagSlot({ slot, onTap }) {
   );
 }
 
-// Bottom-sheet for the inventory: tap a slot → slides up from below
-// with full title/description/count + a "Use" or "Equip" CTA. Backdrop
-// tap closes (per the user spec — "tap outside to close, not just the X").
+// Inventory confirmation popup. Same style as the existing logout /
+// city-reset / timer-limit confirms — uses the .logout-confirm-* CSS
+// class family so the visual identity matches across the app.
+//
+// Layout: dim full-screen overlay (backdrop tap closes) → centered
+// card with the coupon's big icon, title, small "{n} in inventory"
+// hint under the title, description body, then Cancel + Use buttons.
 function InventorySheet({ slot, onClose, t }) {
   if (!slot) return null;
 
-  const ctaDestructive = Boolean(slot.ctaDestructive);
   const ctaDisabled = Boolean(slot.ctaDisabled);
   const hasAction = typeof slot.action === "function";
 
+  // Build the small "you have N in inventory" hint under the title.
+  // Coupons stack so we always show >=2 as "N in inventory"; for
+  // active timers (e.g. "5d") we keep the raw label as the count.
+  const countNum = typeof slot.count === "number" ? slot.count : (typeof slot.count === "string" && /^\d+$/.test(slot.count) ? Number(slot.count) : null);
+  let countHint = null;
+  if (countNum && countNum > 0) {
+    countHint = (t.inventoryCountHint || "{n} in inventory").replace("{n}", String(countNum));
+  } else if (typeof slot.count === "string" && !/^\d+$/.test(slot.count)) {
+    countHint = slot.count; // raw timer label like "5d"
+  }
+
   return (
     <div
-      role="dialog"
-      aria-modal="true"
+      className="logout-confirm-overlay"
+      style={{ zIndex: 95 }}
       onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9000,
-        backdropFilter: "blur(6px)",
-        WebkitBackdropFilter: "blur(6px)",
-        background: "rgba(5, 10, 20, 0.6)",
-        display: "flex",
-        alignItems: "flex-end",
-        justifyContent: "center",
-        animation: "fadeIn 0.2s ease-out"
-      }}
     >
       <div
-        // stop the inner click from bubbling to the backdrop
+        className="logout-confirm-card"
+        role="dialog"
+        aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className="mobile-card"
-        style={{
-          width: "100%",
-          maxWidth: 480,
-          padding: "20px 18px 24px",
-          borderRadius: "20px 20px 0 0",
-          border: "1px solid var(--panel-border)",
-          borderBottom: "none",
-          background: "linear-gradient(180deg, var(--panel-bg), color-mix(in srgb, var(--panel-bg) 92%, var(--color-primary)))",
-          animation: "slideInUp 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
-          paddingBottom: "calc(24px + env(safe-area-inset-bottom, 0px))",
-          position: "relative"
-        }}
+        style={{ maxWidth: 380 }}
       >
-        {/* drag handle (visual only) */}
-        <div
-          style={{
-            width: 36,
-            height: 4,
-            borderRadius: 2,
-            background: "color-mix(in srgb, var(--color-muted) 40%, transparent)",
-            margin: "0 auto 16px"
-          }}
-        />
-
-        {/* close X — top-right */}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={t.closeLabel || "Close"}
-          className="mobile-pressable"
-          style={{
-            position: "absolute",
-            top: 14,
-            right: 12,
-            width: 32,
-            height: 32,
-            borderRadius: "50%",
-            border: "1px solid var(--card-border-idle)",
-            background: "var(--card-bg)",
-            color: "var(--color-muted)",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer"
-          }}
-        >
-          <IconClose size={16} />
-        </button>
-
-        <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 14 }}>
-          <div
-            style={{
-              flex: "0 0 auto",
-              width: 88,
-              height: 88,
-              borderRadius: 16,
-              background: "color-mix(in srgb, var(--card-bg) 70%, rgba(0,0,0,0.2))",
-              border: "1px solid var(--card-border-idle)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}
-          >
-            {slot.bigIcon || slot.icon}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p className="cinzel" style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.25, color: "var(--color-text)", margin: 0 }}>
-              {slot.title}
-            </p>
-            {slot.count ? (
-              <p style={{ fontSize: 12, color: "var(--color-accent)", fontWeight: 700, margin: "4px 0 0" }}>
-                {String(slot.count).startsWith("×") || /^\d+$/.test(String(slot.count)) ? `× ${String(slot.count).replace("×", "")}` : slot.count}
-              </p>
-            ) : null}
-          </div>
+        <div className="logout-confirm-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {slot.bigIcon || slot.icon}
         </div>
-
-        {slot.description ? (
-          <p style={{ fontSize: 13, color: "var(--color-muted)", lineHeight: 1.5, margin: "0 0 18px" }}>
-            {slot.description}
+        <h3 className="cinzel logout-confirm-title">{slot.title}</h3>
+        {countHint ? (
+          <p style={{
+            fontSize: 11,
+            color: "var(--color-muted)",
+            margin: "-4px 0 8px",
+            textAlign: "center",
+            letterSpacing: "0.05em",
+            opacity: 0.85
+          }}>
+            {countHint}
           </p>
         ) : null}
-
-        {hasAction ? (
+        {slot.description ? (
+          <p className="logout-confirm-msg">{slot.description}</p>
+        ) : null}
+        <div className="logout-confirm-actions">
           <button
             type="button"
-            onClick={() => {
-              if (ctaDisabled) return;
-              try { slot.action(); } catch { /* swallow — handler logs */ }
-              onClose();
-            }}
-            disabled={ctaDisabled}
-            className="mobile-pressable cinzel"
-            style={{
-              width: "100%",
-              padding: "14px 18px",
-              borderRadius: 14,
-              border: ctaDestructive
-                ? "1.5px solid color-mix(in srgb, #ef4444 65%, transparent)"
-                : "1.5px solid color-mix(in srgb, var(--color-primary) 55%, transparent)",
-              background: ctaDisabled
-                ? "color-mix(in srgb, var(--card-border-idle) 30%, transparent)"
-                : ctaDestructive
-                  ? "linear-gradient(135deg, #dc2626, #ef4444)"
-                  : "linear-gradient(135deg, var(--color-primary), var(--color-accent))",
-              color: ctaDisabled ? "var(--color-muted)" : (ctaDestructive ? "#fff" : "#0b1120"),
-              fontSize: 14,
-              fontWeight: 800,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              cursor: ctaDisabled ? "not-allowed" : "pointer",
-              boxShadow: ctaDisabled
-                ? "none"
-                : ctaDestructive
-                  ? "0 6px 18px color-mix(in srgb, #ef4444 35%, transparent)"
-                  : "0 6px 18px color-mix(in srgb, var(--color-primary) 30%, transparent)"
-            }}
+            className="logout-confirm-cancel cinzel mobile-pressable"
+            onClick={onClose}
           >
-            {slot.ctaLabel || (t.couponUseCta || "Use")}
+            {t.cancelLabel || "Cancel"}
           </button>
-        ) : null}
+          {hasAction ? (
+            <button
+              type="button"
+              className="logout-confirm-proceed cinzel mobile-pressable"
+              onClick={() => {
+                if (ctaDisabled) return;
+                try { slot.action(); } catch { /* handler logs its own errors */ }
+                onClose();
+              }}
+              disabled={ctaDisabled}
+            >
+              {slot.ctaLabel || (t.couponUseCta || "Use")}
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -328,8 +262,8 @@ function buildBagSlots({
     slots.push({
       kind: "coupon",
       type: bucket.type,
-      icon: <CouponIcon type={bucket.type} size={44} alt={name} />,
-      bigIcon: <CouponIcon type={bucket.type} size={120} alt={name} />,
+      icon: <CouponIcon type={bucket.type} fill alt={name} />,
+      bigIcon: <CouponIcon type={bucket.type} size={96} alt={name} />,
       count: bucket.count > 1 ? bucket.count : null,
       label: name,
       title: name,
@@ -340,48 +274,12 @@ function buildBagSlots({
     });
   });
 
-  // 2) Active effects (read-only) — these are direct-credit balances
-  // that the user already activated previously. Show so the inventory
-  // tells the WHOLE story, not just unactivated coupons.
-  if (Number(streakFreezeCharges) > 0) {
-    slots.push({
-      kind: "active-effect",
-      type: "freeze",
-      icon: <CouponIcon type="freeze" size={44} alt="freeze" />,
-      bigIcon: <CouponIcon type="freeze" size={120} alt="freeze" />,
-      count: streakFreezeCharges > 1 ? streakFreezeCharges : null,
-      label: t.activeFreezeChargesLabel || "Freeze charges (auto-consume)",
-      title: t.activeFreezeChargesLabel || "Freeze charges",
-      description: t.activeFreezeChargesDesc || "Already activated. Will auto-shield a missed streak day."
-    });
-  }
-  const xpBoostMs = xpBoostExpiresAt ? new Date(xpBoostExpiresAt).getTime() - Date.now() : 0;
-  if (xpBoostMs > 0) {
-    const daysLeft = Math.max(1, Math.ceil(xpBoostMs / 86400000));
-    slots.push({
-      kind: "active-effect",
-      type: "xp_boost",
-      icon: <CouponIcon type="xp_boost" size={44} alt="xp boost" />,
-      bigIcon: <CouponIcon type="xp_boost" size={120} alt="xp boost" />,
-      count: `${daysLeft}d`,
-      label: t.activeXpBoostLabel || "XP Boost active",
-      title: t.activeXpBoostLabel || "XP Boost active",
-      description: (t.activeXpBoostDesc || "+15% XP on every quest. {days} day(s) left.").replace("{days}", String(daysLeft))
-    });
-  }
-  if (Number(rouletteCoupons) > 0) {
-    slots.push({
-      kind: "active-effect",
-      icon: "🎟",
-      bigIcon: <span style={{ fontSize: 40 }}>🎟</span>,
-      count: rouletteCoupons > 1 ? rouletteCoupons : null,
-      label: t.inventoryCouponLabel || "Roulette coupon",
-      title: t.inventoryCouponLabel || "Roulette coupon",
-      description: t.rouletteCouponDesc || "Spend on a free spin of the City wheel."
-    });
-  }
+  // (Per spec: don't show already-activated effects in the inventory.
+  // streakFreezeCharges and xpBoostExpiresAt live in Profile / on the
+  // streak indicator now — once a coupon is consumed and the effect is
+  // applied, the inventory entry disappears.)
 
-  // 3) Owned cosmetics — each its own slot with an "active" marker if
+  // 2) Owned cosmetics — each its own slot with an "active" marker if
   // currently equipped via activeCosmetics map. Tap → activate (sets
   // active for that category, doesn't remove from ownedCosmetics).
   const owned = parseOwnedCosmetics(ownedCosmetics);
@@ -394,8 +292,8 @@ function buildBagSlots({
       const cosmeticName = t[item.nameKey] || item.id;
       slots.push({
         kind: "cosmetic",
-        icon: <span style={{ fontSize: 22 }}>{item.previewIcon}</span>,
-        bigIcon: <span style={{ fontSize: 56 }}>{item.previewIcon}</span>,
+        icon: <span style={{ fontSize: 32, lineHeight: 1 }}>{item.previewIcon}</span>,
+        bigIcon: <span style={{ fontSize: 56, lineHeight: 1 }}>{item.previewIcon}</span>,
         count: null,
         active: isActive,
         label: cosmeticName,
@@ -407,7 +305,7 @@ function buildBagSlots({
       });
     });
 
-  // 4) Pad to 16
+  // 3) Pad to 16
   while (slots.length < INVENTORY_GRID_SIZE) {
     slots.push({ kind: "empty" });
   }
@@ -763,9 +661,11 @@ export default function StoreTab({
           <p className="cinzel mobile-section-kicker" style={{ marginBottom: 10 }}>
             {t.inventoryTitle || "Inventory"}
           </p>
-          {/* 4×4 WoW-bag grid. Square slots, no "empty" labels, optional
-              count badge in the bottom-right corner of stacked items. */}
-          <div className="grid grid-cols-4 gap-1.5">
+          {/* 5×5 WoW-bag grid. Slots are tighter so the raster coupon
+              icons fill the cell almost edge-to-edge. Square aspect,
+              no "empty" labels, count badge in the bottom-right of
+              stacked items. */}
+          <div className="grid grid-cols-5 gap-1.5">
             {bagSlots.map((slot, i) => (
               <BagSlot key={i} slot={slot} onTap={setSelectedSlot} />
             ))}

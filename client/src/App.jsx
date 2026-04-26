@@ -259,6 +259,13 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   const [showNotesHistory, setShowNotesHistory] = useState(false);
   const [cityResetConfirmOpen, setCityResetConfirmOpen] = useState(false);
   const [cityResetBusy, setCityResetBusy] = useState(false);
+  // The pinned coupon id we'll consume when the user confirms the
+  // city-reset modal. Set when an inventory tap on a city_reset
+  // coupon opens the confirm modal; cleared on close. Distinct from
+  // cityResetBusy (which is the in-flight network flag) so we can
+  // tell "modal opened from inventory" apart from "modal opened from
+  // somewhere else".
+  const [cityResetCouponId, setCityResetCouponId] = useState(null);
   const [singleHabitPickerSaving, setSingleHabitPickerSaving] = useState(false);
   const [singleHabitPickerError, setSingleHabitPickerError] = useState("");
   const [profileStats, setProfileStats] = useState(null);
@@ -1855,15 +1862,17 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
     }
   }
 
-  // Coupon-flow buy. The actual reset (district wipe + refund) happens
-  // when the user activates the city_reset coupon from inventory; this
-  // call only buys the coupon (charges silver, escalates cityResetsPaid).
+  // BUY-time path: the shop button calls this directly (no confirm
+  // modal in the shop). Just charges silver and adds a city_reset
+  // coupon to the inventory. The confirm modal opens later — when
+  // the user activates the coupon from the inventory tab — and that
+  // path calls activate-coupon, not resetCity, so the actual wipe +
+  // refund happens at activation time.
   async function handleResetCity() {
     if (!username || cityResetBusy) return;
     setCityResetBusy(true);
     try {
       const resp = await resetCity(username);
-      setCityResetConfirmOpen(false);
       setState((prev) => ({
         ...prev,
         silver: typeof resp?.silver === "number" ? resp.silver : prev.silver,
@@ -2009,7 +2018,12 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       {cityResetConfirmOpen ? (
         <div
           className="logout-confirm-overlay"
-          onClick={(e) => { if (e.target === e.currentTarget && !cityResetBusy) setCityResetConfirmOpen(false); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !cityResetBusy) {
+              setCityResetConfirmOpen(false);
+              setCityResetCouponId(null);
+            }
+          }}
           style={{ zIndex: 95 }}
         >
           <div className="logout-confirm-card" style={{ maxWidth: 420 }}>
@@ -2020,6 +2034,9 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             <p className="logout-confirm-msg" style={{ marginBottom: 10 }}>
               {t.cityResetConfirmBody || "All districts drop back to level 0. Every silver you spent upgrading them comes back to your balance."}
             </p>
+            {/* The coupon was paid for at buy time, so the modal at
+                activation time shows only the REFUND (what you get
+                back) and the resulting balance. No "Price" row. */}
             <div
               style={{
                 display: "flex",
@@ -2033,16 +2050,12 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--color-text)", fontWeight: 600 }}>
-                <span>{t.cityResetPricePaidLabel || "Price"}</span>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><IconSilver size={14} /> {cityResetCost}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--color-text)", fontWeight: 600 }}>
                 <span>{t.cityResetRefundLabel || "Refund"}</span>
                 <span style={{ color: "#6ee7b7", display: "inline-flex", alignItems: "center", gap: 4 }}>+ <IconSilver size={14} /> {cityResetRefund}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--color-accent)", fontWeight: 800, borderTop: "1px solid var(--card-border-idle)", paddingTop: 6, marginTop: 2 }}>
                 <span>{t.cityResetNetLabel || "Total balance after reset"}</span>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><IconSilver size={14} /> {Math.max(0, (Number(state.silver) || 0) + cityResetRefund - cityResetCost)}</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><IconSilver size={14} /> {Math.max(0, (Number(state.silver) || 0) + cityResetRefund)}</span>
               </div>
             </div>
             <p style={{ fontSize: 11, color: "var(--color-muted)", margin: "0 0 12px", lineHeight: 1.45 }}>
@@ -2051,19 +2064,42 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
             <div className="logout-confirm-actions">
               <button
                 className="logout-confirm-cancel cinzel mobile-pressable"
-                onClick={() => { if (!cityResetBusy) setCityResetConfirmOpen(false); }}
+                onClick={() => {
+                  if (cityResetBusy) return;
+                  setCityResetConfirmOpen(false);
+                  setCityResetCouponId(null);
+                }}
                 disabled={cityResetBusy}
               >
                 {t.cancelLabel || "Cancel"}
               </button>
               <button
                 className="logout-confirm-proceed cinzel mobile-pressable"
-                onClick={handleResetCity}
-                disabled={cityResetBusy || state.silver < cityResetCost}
+                onClick={async () => {
+                  if (cityResetBusy || !cityResetCouponId || !authUser?.uid) return;
+                  setCityResetBusy(true);
+                  try {
+                    const resp = await activateCoupon(authUser.uid, cityResetCouponId);
+                    setState((prev) => ({
+                      ...prev,
+                      silver: typeof resp?.silver === "number" ? resp.silver : prev.silver,
+                      couponInventory: typeof resp?.couponInventory === "string" ? resp.couponInventory : prev.couponInventory,
+                      districtLevels: Array.isArray(resp?.districtLevels) ? resp.districtLevels : prev.districtLevels
+                    }));
+                    addLog?.((t.couponActivatedCityReset || "🏙 City reset — districts wiped, silver refunded."), "text-cyan-300 font-bold");
+                  } catch (err) {
+                    addLog?.((t.couponActivationFailed || "Activation failed."), "text-red-400 font-bold");
+                  } finally {
+                    setCityResetBusy(false);
+                    setCityResetConfirmOpen(false);
+                    setCityResetCouponId(null);
+                  }
+                }}
+                disabled={cityResetBusy || !cityResetCouponId}
               >
                 {cityResetBusy
                   ? (t.submittingLabel || "Submitting...")
-                  : (t.cityResetConfirmCta || "Reset · {cost} 🪙").replace("{cost}", String(cityResetCost))}
+                  : (t.cityResetActivateCta || "Reset")}
               </button>
             </div>
           </div>
@@ -2529,7 +2565,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 onBuyXpBoost={handleBuyXpBoost}
                 cityResetCost={cityResetCost}
                 cityResetRefund={cityResetRefund}
-                onResetCity={() => setCityResetConfirmOpen(true)}
+                onResetCity={handleResetCity}
                 onSwapSilverToGold={async () => {
                   if (!authUser?.uid) return;
                   try {
@@ -2606,6 +2642,15 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                   // coupon when the user confirms.
                   if (coupon.type === "pinned_reroll") {
                     setShowPinnedReplaceModal(true);
+                    return;
+                  }
+                  // City-reset coupons open the existing reset-confirm
+                  // popup. The modal's "Reset" button calls activate-
+                  // coupon directly, not this handler — so we just stash
+                  // the coupon id and bail out without firing the API.
+                  if (coupon.type === "city_reset") {
+                    setCityResetCouponId(coupon.id);
+                    setCityResetConfirmOpen(true);
                     return;
                   }
                   try {
