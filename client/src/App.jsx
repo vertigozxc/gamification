@@ -890,6 +890,8 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
       || questCompletePopup
       || timerLimitPopup
       || singleHabitPickerOpen
+      || cityResetConfirmOpen
+      || inventorySheetOpen
     );
     // The injected wrapper relays to `window.webkit.messageHandlers.ReactNativeWebView.postMessage`,
     // which can be undefined during unload / WebView teardown on iOS. Swallow the TypeError.
@@ -1324,6 +1326,12 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
   // its loading/disabled state without blocking the rest of the cosmetics tab.
   const [cosmeticPurchasePending, setCosmeticPurchasePending] = useState(null);
   const [buyPinnedRerollCouponPending, setBuyPinnedRerollCouponPending] = useState(false);
+  // Mirrors StoreTab's selectedSlot. Lifted here so anyOverlayOpen
+  // sees it and asks the native mobile shell to hide its tab bar
+  // while the inventory popup is open — otherwise a strip of the
+  // native shell background pokes through between the popup and
+  // the bar (same fix as for logout / delete-profile modals).
+  const [inventorySheetOpen, setInventorySheetOpen] = useState(false);
   const [noteSubmitting, setNoteSubmitting] = useState(false);
   const [noteError, setNoteError] = useState("");
   const [counterPendingId, setCounterPendingId] = useState(null);
@@ -2635,6 +2643,7 @@ const FREE_PINNED_REROLL_INTERVAL_MS = 21 * 24 * 60 * 60 * 1000;
                 buyPinnedRerollCouponPending={buyPinnedRerollCouponPending}
                 couponInventory={typeof state.couponInventory === "string" ? state.couponInventory : "[]"}
                 activeCosmetics={typeof state.activeCosmetics === "string" ? state.activeCosmetics : "{}"}
+                onInventorySheetOpenChange={setInventorySheetOpen}
                 onActivateCoupon={async (coupon) => {
                   if (!coupon || !authUser?.uid) return;
                   // Pinned-reroll coupons need a habit picker; just open

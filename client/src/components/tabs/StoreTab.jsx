@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import SilverVault from "../SilverVault";
 import CouponIcon from "../CouponIcon";
 import COSMETIC_ITEMS, { parseOwnedCosmetics } from "../../data/cosmetics";
@@ -485,10 +485,22 @@ export default function StoreTab({
   activeCosmetics = "{}",
   onActivateCoupon,
   onActivateCosmetic,
+  // App.jsx watches this so the native mobile shell can hide its
+  // tab bar while the popup is open (same overlay-aware behaviour as
+  // logout / delete-profile / city-reset confirms).
+  onInventorySheetOpenChange,
   t
 }) {
   const [activeTab, setActiveTab] = useState("utility");
   const [selectedSlot, setSelectedSlot] = useState(null);
+
+  // Notify the parent whenever the popup opens or closes so the
+  // mobile shell can flip showTabBar accordingly.
+  useEffect(() => {
+    if (typeof onInventorySheetOpenChange === "function") {
+      onInventorySheetOpenChange(Boolean(selectedSlot));
+    }
+  }, [selectedSlot, onInventorySheetOpenChange]);
   const tabsRowRef = useRef(null);
   const indicatorRef = useRef(null);
 
