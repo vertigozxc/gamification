@@ -283,12 +283,20 @@ function ChallengeItem({ challenge, meUid, t, busy, optimisticDone, onComplete, 
           <div className="flex items-center gap-2 mb-1 flex-wrap pr-12">
             <span className="qb-cat">{t.challengeCategory || "CHALLENGE"}</span>
             {pending ? (
-              <span className="qb-xp" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <IconEnvelope size={11} /> {t.arenaPendingBadge || "Pending"}
+              <span
+                className="qb-xp qb-chal-state-icon qb-chal-state-pending"
+                title={t.arenaPendingBadge || "Pending"}
+                aria-label={t.arenaPendingBadge || "Pending"}
+              >
+                <IconEnvelope size={14} />
               </span>
             ) : waiting ? (
-              <span className="qb-xp" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <IconHourglass size={11} /> {t.arenaWaitingBadge || "Waiting"}
+              <span
+                className="qb-xp qb-chal-state-icon qb-chal-state-waiting"
+                title={t.arenaWaitingBadge || "Waiting for players"}
+                aria-label={t.arenaWaitingBadge || "Waiting for players"}
+              >
+                <IconHourglass size={14} />
               </span>
             ) : (
               <span className="qb-xp">{daysLeftLabel}</span>

@@ -368,7 +368,7 @@ function OnboardingModal({
         alignItems: "stretch",
         justifyContent: "stretch",
         padding: 0,
-        background: "var(--card-bg, #0f172a)"
+        background: "var(--panel-bg)"
       }}
     >
       <div
@@ -380,7 +380,7 @@ function OnboardingModal({
           height: "100dvh",
           maxWidth: "100vw",
           maxHeight: "100dvh",
-          background: "var(--card-bg, #0f172a)",
+          background: "var(--panel-bg)",
           border: "none",
           borderRadius: 0,
           boxShadow: "none",
@@ -774,7 +774,7 @@ function OnboardingModal({
               padding: "10px 16px",
               borderRadius: 0,
               borderBottom: "1px solid var(--card-border-idle)",
-              background: "var(--card-bg, #0f172a)"
+              background: "var(--panel-bg)"
             }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, gap: 10 }}>

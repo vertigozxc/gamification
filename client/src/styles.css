@@ -1702,6 +1702,16 @@ body[data-theme="light"] .delete-profile-confirm-cancel {
 .qb-chal-item .qb-cat{color:#fde68a;background:rgba(250,204,21,.18);border-color:rgba(253,224,71,.34)}
 .qb-chal-item .qb-xp{color:#fde68a}
 .qb-chal-item.qb-quest-done{background:color-mix(in srgb,#facc15 5%,var(--quest-item-done-bg))}
+/* Compact state icon for pending / waiting challenge cards — replaces the
+   "Waiting for players" / "Pending" text that collided with the CHALLENGE
+   chip on narrow phones. */
+.qb-chal-state-icon{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;padding:0;border-radius:999px;background:rgba(250,204,21,.18);border:1px solid rgba(253,224,71,.34);font-size:0;line-height:1}
+.qb-chal-state-icon svg{display:block}
+.qb-chal-state-pending svg{animation:qbChalEnvelopeWiggle 2.4s ease-in-out infinite}
+.qb-chal-state-waiting svg{animation:qbChalHourglassFlip 2.6s ease-in-out infinite;transform-origin:center}
+@keyframes qbChalEnvelopeWiggle{0%,100%{transform:rotate(0deg)}20%{transform:rotate(-12deg)}40%{transform:rotate(10deg)}60%{transform:rotate(-6deg)}80%{transform:rotate(4deg)}}
+@keyframes qbChalHourglassFlip{0%,55%{transform:rotate(0deg)}60%,95%{transform:rotate(180deg)}100%{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.qb-chal-state-pending svg,.qb-chal-state-waiting svg{animation:none}}
 body[data-theme="light"] .qb-tab-bar-expand .qb-tab-indicator-chal{background:rgba(250,204,21,.2);border-color:rgba(217,119,6,.55);box-shadow:0 4px 14px rgba(217,119,6,.22)}
 body[data-theme="light"] .qb-tab-count-alert{color:#92400e;background:rgba(250,204,21,.3)}
 body[data-theme="light"] .qb-chal-item{border-color:rgba(217,119,6,.4);background:color-mix(in srgb,#facc15 12%,var(--quest-item-bg))}
