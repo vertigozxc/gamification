@@ -443,17 +443,32 @@ export function IconGlobe(props) {
 // — outer rim, inner ring, ornamental notches around the perimeter —
 // and differ only by the central emblem. Silver: clean 4-point compass
 // star (cardinal feel). Gold: ornate 8-point sunburst (more rays =
-// more ceremony). Stroke-only per the icon style guide; the chip
-// around them is what carries the warm/cool tint per theme.
+// more ceremony).
+//
+// EXCEPTION to the project's icon style guide: these two are semantic
+// currency icons — silver is always silver-coloured, gold is always
+// gold-coloured, in every theme. We hardcode metallic stroke + a soft
+// inner fill so the coin reads as a "minted" object instead of a flat
+// outline. Callers can still override `stroke` / `fill` by passing
+// them explicitly (the spread below puts caller props after the
+// metallic defaults).
 
-export function IconSilver(props) {
+const SILVER_STROKE = "#cdd5e0"; // bright steel rim
+const SILVER_FILL   = "#7c8b9e1f"; // ~12% steel wash inside the coin
+const GOLD_STROKE   = "#f0c14a"; // warm amber rim
+const GOLD_FILL     = "#d4a4341f"; // ~12% gold wash inside the coin
+
+export function IconSilver({ stroke = SILVER_STROKE, fill = SILVER_FILL, ...props }) {
   return (
-    <Icon {...props}>
-      {/* coin chassis: outer rim + inner engraved ring */}
-      <circle cx="12" cy="12" r="10" />
+    <Icon stroke={stroke} {...props}>
+      {/* coin chassis: outer rim + inner engraved ring (filled with a
+          subtle steel wash so the disc reads as a minted object, not
+          just two empty rings stacked together) */}
+      <circle cx="12" cy="12" r="10" fill={fill} />
       <circle cx="12" cy="12" r="7.2" />
-      {/* 4-point compass star (cardinal axes) */}
-      <polygon points="12 6.5 13.6 10.4 17.5 12 13.6 13.6 12 17.5 10.4 13.6 6.5 12 10.4 10.4" />
+      {/* 4-point compass star (cardinal axes), filled with the same
+          steel wash so it sits in the recess of the coin face */}
+      <polygon points="12 6.5 13.6 10.4 17.5 12 13.6 13.6 12 17.5 10.4 13.6 6.5 12 10.4 10.4" fill={fill} />
       {/* 4 cardinal rim notches — tiny ticks suggesting a milled coin edge */}
       <line x1="12" y1="2" x2="12" y2="3.2" />
       <line x1="12" y1="20.8" x2="12" y2="22" />
@@ -463,14 +478,14 @@ export function IconSilver(props) {
   );
 }
 
-export function IconGold(props) {
+export function IconGold({ stroke = GOLD_STROKE, fill = GOLD_FILL, ...props }) {
   return (
-    <Icon {...props}>
-      {/* same coin chassis as silver */}
-      <circle cx="12" cy="12" r="10" />
+    <Icon stroke={stroke} {...props}>
+      {/* same coin chassis as silver, with the gold wash */}
+      <circle cx="12" cy="12" r="10" fill={fill} />
       <circle cx="12" cy="12" r="7.2" />
       {/* 8-point sunburst star — outer R≈5, inner R≈2 from center 12,12 */}
-      <polygon points="12 7 12.77 10.15 15.54 8.46 13.85 11.23 17 12 13.85 12.77 15.54 15.54 12.77 13.85 12 17 11.23 13.85 8.46 15.54 10.15 12.77 7 12 10.15 11.23 8.46 8.46 11.23 10.15" />
+      <polygon points="12 7 12.77 10.15 15.54 8.46 13.85 11.23 17 12 13.85 12.77 15.54 15.54 12.77 13.85 12 17 11.23 13.85 8.46 15.54 10.15 12.77 7 12 10.15 11.23 8.46 8.46 11.23 10.15" fill={fill} />
       {/* 4 diagonal rim notches — offset 45° from silver to keep the pair distinct */}
       <line x1="4.5" y1="4.5" x2="5.4" y2="5.4" />
       <line x1="18.6" y1="5.4" x2="19.5" y2="4.5" />

@@ -341,7 +341,7 @@ export default function StoreTab({
           built-in qb-tab-bar-expand styling. */}
       <div
         ref={tabsRowRef}
-        className="qb-tab-bar qb-tab-bar-expand qb-tab-bar-equal"
+        className="qb-tab-bar qb-tab-bar-expand"
         role="tablist"
       >
         <div ref={indicatorRef} className="qb-tab-indicator" />
